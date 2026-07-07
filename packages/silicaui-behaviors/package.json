@@ -1,6 +1,6 @@
 {
   "name": "silicaui-behaviors",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Silica UI's framework-agnostic runtime for the behavior marker contract — scans data-sui-* markers and wires interactivity for any host that renders plain markup.",
   "type": "module",
   "license": "MIT",
