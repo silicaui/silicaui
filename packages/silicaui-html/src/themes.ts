@@ -124,24 +124,36 @@ const DARK_STATUS = {
 
 export const THEME_PRESETS: Theme[] = [
   {
-    name: "default",
+    // The default. One cool-mineral hue family (Chalk/Flint/Slate/Obsidian, 250-255)
+    // for structure, a single higher-chroma accent (Quartz, 211) reserved for
+    // interaction, and the four semantic roles kept to their functional hues but
+    // the same chroma discipline: Azurite/Malachite/Citrine/Garnet. Matches
+    // silicaui's `colors.js` LIGHT/DARK exactly — keep the two in sync.
+    name: "quartz",
     mode: "light",
     tokens: {
-      ...surfaces("oklch(100% 0 0)", "oklch(97% 0 0)", "oklch(92% 0 0)", "oklch(25% 0.01 265)"),
+      ...surfaces("oklch(98% 0.003 250)", "oklch(95% 0.004 250)", "oklch(90% 0.006 250)", "oklch(21% 0.012 255)"),
       ...roles({
-        primary: "oklch(55% 0.24 262)",
-        secondary: "oklch(65% 0.22 330)",
-        accent: "oklch(72% 0.19 195)",
-        neutral: "oklch(32% 0.02 265)",
-        ...STATUS,
+        primary: "oklch(42% 0.055 252)",
+        secondary: "oklch(55% 0.035 255)",
+        accent: "oklch(64% 0.13 211)",
+        neutral: "oklch(26% 0.014 255)",
+        info: "oklch(68% 0.1 232)",
+        success: "oklch(70% 0.12 150)",
+        warning: "oklch(80% 0.11 85)",
+        error: "oklch(58% 0.17 25)",
       }),
     },
     dark: {
-      ...surfaces("oklch(22% 0.01 265)", "oklch(20% 0.01 265)", "oklch(17% 0.01 265)", "oklch(92% 0.01 265)"),
-      "--color-primary": "oklch(65% 0.22 262)",
-      "--color-secondary": "oklch(70% 0.19 330)",
-      "--color-accent": "oklch(75% 0.17 195)",
-      ...roles({ ...DARK_STATUS } as Record<SemanticRole, string>),
+      ...surfaces("oklch(16% 0.01 255)", "oklch(13.5% 0.01 255)", "oklch(11% 0.01 255)", "oklch(93% 0.006 250)"),
+      "--color-primary": "oklch(72% 0.06 252)",
+      "--color-secondary": "oklch(78% 0.035 255)",
+      "--color-accent": "oklch(72% 0.13 211)",
+      "--color-neutral": "oklch(32% 0.016 255)",
+      "--color-info": "oklch(74% 0.09 232)",
+      "--color-success": "oklch(75% 0.11 150)",
+      "--color-warning": "oklch(83% 0.1 85)",
+      "--color-error": "oklch(66% 0.18 25)",
     },
   },
   {
@@ -159,7 +171,7 @@ export const THEME_PRESETS: Theme[] = [
     },
     dark: {
       ...surfaces("oklch(21% 0.02 245)", "oklch(19% 0.02 245)", "oklch(16% 0.02 245)", "oklch(91% 0.02 230)"),
-      ...DARK_STATUS,
+      ...roles({ ...DARK_STATUS } as Record<SemanticRole, string>),
     },
   },
   {
@@ -178,7 +190,7 @@ export const THEME_PRESETS: Theme[] = [
     dark: {
       ...surfaces("oklch(22% 0.02 300)", "oklch(20% 0.02 300)", "oklch(17% 0.02 300)", "oklch(92% 0.015 300)"),
       "--color-primary": "oklch(66% 0.22 300)",
-      ...DARK_STATUS,
+      ...roles({ ...DARK_STATUS } as Record<SemanticRole, string>),
     },
   },
   {
@@ -197,7 +209,7 @@ export const THEME_PRESETS: Theme[] = [
     dark: {
       ...surfaces("oklch(22% 0.02 40)", "oklch(20% 0.02 40)", "oklch(17% 0.02 40)", "oklch(93% 0.02 60)"),
       "--color-primary": "oklch(70% 0.18 45)",
-      ...DARK_STATUS,
+      ...roles({ ...DARK_STATUS } as Record<SemanticRole, string>),
     },
   },
 ];

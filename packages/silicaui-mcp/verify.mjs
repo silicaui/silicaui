@@ -61,6 +61,9 @@ check("get_behavior returns a description", behavior.description.includes("trigg
 const search = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "accordion" } })));
 check("search_docs finds cross-domain matches", search.some((r) => r.kind === "block") || search.some((r) => r.kind === "behavior"));
 
+const classSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "soft" } })));
+check("search_docs finds literal class names", classSearch.some((r) => r.kind === "class" && r.class === "bg-soft"));
+
 await client.close();
 
 console.log(failures === 0 ? "\n✅ all checks passed\n" : `\n❌ ${failures} check(s) failed\n`);

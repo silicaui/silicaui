@@ -294,7 +294,7 @@ export function createServer(): McpServer {
     {
       title: "Search Silica UI catalog data",
       description:
-        "Full-text search over component names/descriptions, block names/descriptions, and behavior descriptions. Use this when you don't know the exact name to look up.",
+        "Full-text search across everything this server knows: component names/descriptions, block names/descriptions, behavior descriptions, literal CSS class names, and design tokens. Use this when you don't know the exact name to look up.",
       inputSchema: {
         query: z.string().describe("Search term, case-insensitive."),
       },
@@ -310,7 +310,21 @@ export function createServer(): McpServer {
       const matchedBehaviors = behaviors
         .filter((b) => b.type.toLowerCase().includes(q) || b.description.toLowerCase().includes(q))
         .map((b) => ({ kind: "behavior", type: b.type }));
-      const results = [...matchedComponents, ...matchedBlocks, ...matchedBehaviors];
+      const matchedClasses = Object.entries(classesByComponent).flatMap(([component, classes]) =>
+        classes
+          .filter((cls) => cls.toLowerCase().includes(q))
+          .map((cls) => ({ kind: "class" as const, component, class: cls })),
+      );
+      const matchedTokens = tokens.semanticColors
+        .filter((name) => name.toLowerCase().includes(q))
+        .map((name) => ({ kind: "token" as const, name }));
+      const results = [
+        ...matchedComponents,
+        ...matchedBlocks,
+        ...matchedBehaviors,
+        ...matchedClasses,
+        ...matchedTokens,
+      ];
       return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
     },
   );

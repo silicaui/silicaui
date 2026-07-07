@@ -17,7 +17,7 @@ import { Icon } from "./Icon";
 
 type Mode = "light" | "dark";
 
-const DEFAULT_PRESET = presetByName("default");
+const DEFAULT_PRESET = presetByName("quartz");
 
 /** Contrast-checked ink painted on `value` (relative-color, like autoContent). */
 const inkOn = (value: string): string =>
