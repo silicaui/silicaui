@@ -1,6 +1,6 @@
 {
   "name": "silicaui-panels",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Silica UI resizable panels — react-resizable-panels wrapped with a Silica-styled resize handle.",
   "type": "module",
   "license": "MIT",
