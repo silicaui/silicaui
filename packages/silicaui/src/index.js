@@ -1,7 +1,7 @@
 import plugin from "tailwindcss/plugin";
 import { LIGHT, SEMANTIC_COLORS } from "./colors.js";
 import { buildBase } from "./theme.js";
-import { colorUtilities } from "./color-utilities.js";
+import { colorUtilities, softUtilities } from "./color-utilities.js";
 import { button } from "./components/button.js";
 import { badge } from "./components/badge.js";
 import { input } from "./components/input.js";
@@ -137,7 +137,7 @@ function parsePrefix(option) {
  */
 export default plugin.withOptions(
   (options = {}) =>
-    ({ addBase }) => {
+    ({ addBase, addUtilities }) => {
       const colors = parseColors(options.colors);
       const prefix = parsePrefix(options.prefix);
       addBase(buildBase());
@@ -242,6 +242,13 @@ export default plugin.withOptions(
       // Emitted LAST so an explicit `text-*`/`bg-*` still layers over a
       // component's own color, matching Tailwind's utilities-beat-components rule.
       addBase(colorUtilities(colors, prefix));
+      // The `soft` family goes through addUtilities, not addBase: a registered
+      // semantic color (e.g. `bg-primary`) gets a REAL utilities-layer rule from
+      // Tailwind's own generator whenever it's scanned, which always beats a
+      // base-layer rule regardless of source order. addUtilities lands `.soft`/
+      // `.bg-soft`/`.text-soft`/`.border-soft` in that same utilities layer, after
+      // Tailwind's core output, so they reliably win. See softUtilities' doc.
+      addUtilities(softUtilities(prefix));
     },
   // Register the semantic colors as real theme values so Tailwind generates the
   // matching CSS variables (`--color-primary`, …) AND utilities (`bg-primary`,
