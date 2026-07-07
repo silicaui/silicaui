@@ -4,7 +4,7 @@
  * caching each snapshot so getSnapshot stays referentially stable between commits.
  */
 import * as React from "react";
-import type { Document, Node, Theme } from "silicaui-html";
+import type { Document, Node, SymbolDef, Theme } from "silicaui-html";
 import type { ActiveTree, Editor, PagesView } from "../engine";
 
 const EditorContext = React.createContext<Editor | null>(null);
@@ -84,6 +84,38 @@ export function usePages(): PagesView {
   );
 }
 
+/**
+ * The site's saved symbols (reusable components) — a stable roster from the engine
+ * that only changes when a symbol is added/removed/renamed, so getSnapshot is
+ * referentially safe and unrelated edits don't re-render the Components palette.
+ */
+export function useSymbols(): readonly SymbolDef[] {
+  const editor = useEditor();
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    () => editor.symbols,
+  );
+}
+
+/**
+ * The symbol master currently open for editing (id + name), or undefined. Cached
+ * by id so getSnapshot stays referentially stable (the engine returns a fresh
+ * object each call, which would otherwise loop useSyncExternalStore).
+ */
+export function useEditingSymbol(): { id: string; name: string } | undefined {
+  const editor = useEditor();
+  const ref = React.useRef<{ id: string; name: string } | undefined>(undefined);
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    React.useCallback(() => {
+      const next = editor.editingSymbol;
+      const prev = ref.current;
+      if (next?.id !== prev?.id || next?.name !== prev?.name) ref.current = next;
+      return ref.current;
+    }, [editor]),
+  );
+}
+
 /** Which tree the spine edits — "page" body or "frame" shell (re-read on switch). */
 export function useActiveTree(): ActiveTree {
   const editor = useEditor();
@@ -100,8 +132,12 @@ export function useActiveTree(): ActiveTree {
  * whole spine.
  */
 export function useActiveRoot(): Node {
-  const doc = useDocument();
+  const editor = useEditor();
+  const doc = useDocument(); // subscribe so a re-render fires on every commit
   const which = useActiveTree();
+  // Symbol masters live on the site (not in the page Document); read the live one
+  // straight from the engine. `useDocument` above still drives the re-render.
+  if (which === "symbol") return editor.activeRootNode;
   return which === "frame" && doc.frame ? doc.frame.root : doc.root;
 }
 

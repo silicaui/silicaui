@@ -1,6 +1,7 @@
 import { carousel } from "./behaviors/carousel";
 import { disclosure } from "./behaviors/disclosure";
 import { dismiss } from "./behaviors/dismiss";
+import { form } from "./behaviors/form";
 import { marquee } from "./behaviors/marquee";
 import { menu } from "./behaviors/menu";
 import { scrollspy, toc } from "./behaviors/scrollspy";
@@ -19,4 +20,5 @@ export const HANDLERS: Record<BehaviorType, BehaviorHandler> = {
   counter,
   dismiss,
   toc,
+  form,
 };

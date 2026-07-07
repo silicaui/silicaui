@@ -5,10 +5,16 @@
  * native drag source (drag → drop onto the canvas at a precise spot). The engine
  * resolves *where* a click lands; the Canvas resolves *where* a drop lands.
  *
+ * The catalog is large (primitives + forms + nav + data + the whole block
+ * library), so the top of the rail is a fuzzy SEARCH box: type a few letters and
+ * the groups collapse to a single ranked result list, best match first, Enter to
+ * insert it. Search matches label, key, and hint so "cta", "pricing", or "sub"
+ * all land their block. Empty query restores the normal grouped browse view.
+ *
  * STYLING RULE (hard): Tailwind utilities + silicaui classes + baked <Icon> only.
  */
 import * as React from "react";
-import { useEditor, useSelectedNode } from "./editor-context";
+import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
 import { Icon } from "./Icon";
 import { paletteGroups } from "../palette";
 import type { PaletteItem } from "../palette";
@@ -17,7 +23,64 @@ import { DRAG_MIME, encodeDrag } from "../dnd";
 
 const GROUPS = paletteGroups();
 
-function ItemRow({ item }: { item: PaletteItem }) {
+/** Every item flattened once, tagged with its group — the search corpus. */
+interface FlatItem {
+  item: PaletteItem;
+  groupLabel: string;
+}
+const FLAT: FlatItem[] = GROUPS.flatMap((g) => g.items.map((item) => ({ item, groupLabel: g.label })));
+
+/**
+ * Subsequence fuzzy score: `null` when `q`'s characters don't all appear in `t`
+ * in order, else a positive score that rewards contiguous runs and word-boundary
+ * hits (so "pt" → "**P**ricing **T**iers" beats a scattered match) and gently
+ * penalizes long haystacks. Deliberately tiny — no dependency, no index return.
+ */
+function subseqScore(q: string, t: string): number | null {
+  const query = q.toLowerCase();
+  const text = t.toLowerCase();
+  let qi = 0;
+  let score = 0;
+  let prev = -2;
+  let streak = 0;
+  for (let ti = 0; ti < text.length && qi < query.length; ti++) {
+    if (text[ti] !== query[qi]) continue;
+    if (ti === prev + 1) {
+      streak += 1;
+      score += 6 + streak * 2; // contiguous run — strongly preferred
+    } else {
+      streak = 0;
+      score += 1;
+    }
+    const before = ti === 0 ? " " : text[ti - 1];
+    if (before === " " || before === "-" || before === "_" || before === "/") score += 9; // word start
+    prev = ti;
+    qi += 1;
+  }
+  if (qi < query.length) return null; // not every query char matched
+  return score - text.length * 0.06;
+}
+
+/** Best weighted score across an item's searchable fields, or `null` if no match. */
+function scoreItem(q: string, f: FlatItem): number | null {
+  const fields: Array<[string | undefined, number]> = [
+    [f.item.label, 1],
+    [f.item.key.replace(/^block:/, ""), 0.7],
+    [f.item.hint, 0.45],
+    [f.groupLabel, 0.35],
+  ];
+  let best: number | null = null;
+  for (const [text, weight] of fields) {
+    if (!text) continue;
+    const s = subseqScore(q, text);
+    if (s == null) continue;
+    const w = s * weight;
+    if (best == null || w > best) best = w;
+  }
+  return best;
+}
+
+function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string }) {
   const editor = useEditor();
   return (
     <button
@@ -34,7 +97,46 @@ function ItemRow({ item }: { item: PaletteItem }) {
     >
       <Icon name={item.icon} className="text-base-content/55" />
       <span className="truncate">{item.label}</span>
+      {groupLabel && <span className="ml-auto shrink-0 text-xs uppercase tracking-wide text-base-content/35">{groupLabel}</span>}
     </button>
+  );
+}
+
+/** A saved-symbol row: click inserts an instance, drag drops one at a precise spot.
+ *  Distinct from a catalog `ItemRow` — a symbol inserts through the engine's
+ *  instance path (not a static `make()`), so it stays linked to its master. */
+function SymbolRow({ id, name }: { id: string; name: string }) {
+  const editor = useEditor();
+  return (
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+      draggable
+      data-insert-key={`symbol:${id}`}
+      onDragStart={(e) => {
+        e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `symbol:${id}` }));
+        e.dataTransfer.effectAllowed = "copy";
+      }}
+      onClick={() => editor.insertSymbolInstance(id)}
+    >
+      <Icon name="box" className="text-secondary" />
+      <span className="truncate">{name}</span>
+      <span aria-hidden className="ml-auto shrink-0 text-secondary/60">◆</span>
+    </button>
+  );
+}
+
+/** The Components section — the site's saved reusable components (symbols). */
+function ComponentsSection() {
+  const symbols = useSymbols();
+  if (symbols.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-0.5">
+      <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/40">Components</h3>
+      {symbols.map((s) => (
+        <SymbolRow key={s.id} id={s.id} name={s.name} />
+      ))}
+    </section>
   );
 }
 
@@ -50,19 +152,73 @@ function TargetHint() {
 }
 
 export function Palette() {
+  const editor = useEditor();
+  const [query, setQuery] = React.useState("");
+  const q = query.trim();
+
+  // Ranked flat results while searching; recomputed only when the query changes.
+  const results = React.useMemo(() => {
+    if (!q) return null;
+    return FLAT.map((f) => ({ f, score: scoreItem(q, f) }))
+      .filter((r): r is { f: FlatItem; score: number } => r.score != null)
+      .sort((a, b) => b.score - a.score)
+      .map((r) => r.f);
+  }, [q]);
+
   return (
     <div className="flex flex-col gap-3 px-1.5 py-2">
-      <TargetHint />
-      {GROUPS.map((group) => (
-        <section key={group.key} className="flex flex-col gap-0.5">
-          <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/40">
-            {group.label}
-          </h3>
-          {group.items.map((item) => (
-            <ItemRow key={item.key} item={item} />
+      <div className="px-1">
+        <label className="input input-sm flex items-center gap-2">
+          <Icon name="search" className="text-base-content/45" />
+          <input
+            type="search"
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              const top = results?.[0];
+              if (e.key === "Enter" && top) {
+                editor.insertRelative(top.item.make());
+              } else if (e.key === "Escape" && query) {
+                e.stopPropagation();
+                setQuery("");
+              }
+            }}
+            placeholder="Search components…"
+            className="grow"
+            aria-label="Search the insert catalog"
+          />
+        </label>
+      </div>
+
+      {results ? (
+        results.length === 0 ? (
+          <p className="px-2.5 py-6 text-center text-xs text-base-content/40">
+            No components match “{q}”.
+          </p>
+        ) : (
+          <section className="flex flex-col gap-0.5">
+            {results.map((r) => (
+              <ItemRow key={r.item.key} item={r.item} groupLabel={r.groupLabel} />
+            ))}
+          </section>
+        )
+      ) : (
+        <>
+          <TargetHint />
+          <ComponentsSection />
+          {GROUPS.map((group) => (
+            <section key={group.key} className="flex flex-col gap-0.5">
+              <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/40">
+                {group.label}
+              </h3>
+              {group.items.map((item) => (
+                <ItemRow key={item.key} item={item} />
+              ))}
+            </section>
           ))}
-        </section>
-      ))}
+        </>
+      )}
     </div>
   );
 }

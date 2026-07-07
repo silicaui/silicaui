@@ -18,14 +18,22 @@
  */
 import * as React from "react";
 import type { Child, ElementNode, Node, Theme } from "silicaui-html";
-import { expandComponent, rolesOf } from "silicaui-html";
+import { applyOverrides, expandComponent, rolesOf } from "silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { acceptsChildren } from "../engine";
+import type { Editor } from "../engine";
 import { customColorCss } from "../color-cascade";
 import { DRAG_MIME, decodeDrag } from "../dnd";
 import type { DropEdge } from "../dnd";
 import { paletteItemByKey } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
+
+/** Resolve a palette drag key to the node to insert: a `symbol:<id>` key builds a
+ *  linked instance (through the engine), any other key is a static catalog item. */
+function nodeForInsertKey(editor: Editor, key: string): Node | undefined {
+  if (key.startsWith("symbol:")) return editor.makeInstanceNode(key.slice("symbol:".length));
+  return paletteItemByKey(key)?.make();
+}
 
 /** Document theme tokens → inline CSS vars for the island (mirrors the board). */
 function themeVars(theme: Theme): React.CSSProperties {
@@ -182,6 +190,11 @@ interface RenderCtx {
   outlet?: { tree: Node; preview: boolean };
   /** True while rendering the inert (non-editable) context layer. */
   preview?: boolean;
+  /** Resolve a symbol id → its master tree, so an instance node expands in place. */
+  symbolRoot?: (id: string) => Node | undefined;
+  /** The chain of symbol ids currently being expanded — breaks a self-referential
+   *  instance (a symbol dropped into its own master) instead of recursing forever. */
+  symbolPath?: readonly string[];
 }
 
 /** Which edge of the hovered node a pointer at `clientY` targets. */
@@ -242,6 +255,28 @@ function EmptyHint() {
   return (
     <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content/40">
       Empty — drop something here
+    </span>
+  );
+}
+
+/** The corner chip that marks a node on the canvas as a symbol INSTANCE (a linked
+ *  copy — edit its master to change every instance). Shown on hover/selection so
+ *  it doesn't clutter; pointer-transparent so it never eats a click. */
+function SymbolBadge({ name }: { name: string }) {
+  return (
+    <span className="pointer-events-none absolute right-0 top-0 z-10 inline-flex items-center gap-1 rounded-bl-md bg-secondary px-1.5 py-0.5 text-xs font-medium leading-none text-secondary-content">
+      <span aria-hidden>◆</span>
+      <span className="max-w-[120px] truncate">{name}</span>
+    </span>
+  );
+}
+
+/** Shown when an instance references a symbol that no longer exists (defensive —
+ *  delete detaches instances, so this normally never appears). */
+function MissingSymbol() {
+  return (
+    <span className="inline-flex select-none px-2 py-1 text-xs text-error">
+      Missing component
     </span>
   );
 }
@@ -365,6 +400,38 @@ function CanvasNode({
     };
   }
 
+  // A symbol INSTANCE — expand it to a fresh render of its master, INERT inside
+  // (the master is edited via its own mode, not through the instance), so the
+  // whole instance selects/drags/deletes as one unit. Output flattens the wrapper
+  // away; here it's the selection host + carries the ◆ badge. A dangling ref shows
+  // a "missing" marker rather than a broken tree.
+  if (node.instanceOf) {
+    const cyclic = (ctx.symbolPath ?? []).includes(node.instanceOf);
+    const rawMaster = cyclic ? undefined : ctx.symbolRoot?.(node.instanceOf);
+    // Bake this instance's per-instance overrides over a clone of the master, so a
+    // customized instance reads its own text on the canvas (output flattens the same).
+    const master = rawMaster ? applyOverrides(structuredClone(rawMaster), node.overrides) : undefined;
+    const innerCtx: RenderCtx = {
+      ...ctx,
+      preview: true,
+      outlet: undefined,
+      symbolPath: [...(ctx.symbolPath ?? []), node.instanceOf],
+    };
+    const inner = master ? (
+      <CanvasNode node={master} parentId={undefined} index={0} ctx={innerCtx} />
+    ) : (
+      <MissingSymbol />
+    );
+    const badge = id && (id === ctx.selectedId || id === ctx.hoveredId);
+    const cls = `relative block ${node.class ?? ""}${deco}`.trim();
+    return React.createElement(
+      "div",
+      { className: cls || undefined, ...inter },
+      badge ? <SymbolBadge name={node.label ?? "Component"} /> : null,
+      inner,
+    );
+  }
+
   // A component is a macro — expand it to its element (sub)tree and render THAT
   // through the SAME element path a hand-authored element takes (the expansion
   // carries the node's class + children). Interaction wiring (`inter`) stays bound
@@ -401,6 +468,25 @@ function textOf(children: Child[] | undefined): string {
   return children.filter((c): c is string => typeof c === "string").join("");
 }
 
+/** HTML attribute → the camelCase name React requires (warns on the raw form). */
+const REACT_ATTR: ReadonlyArray<readonly [string, string]> = [
+  ["tabindex", "tabIndex"],
+  ["readonly", "readOnly"],
+  ["maxlength", "maxLength"],
+  ["minlength", "minLength"],
+  ["colspan", "colSpan"],
+  ["rowspan", "rowSpan"],
+  ["for", "htmlFor"],
+  ["autocomplete", "autoComplete"],
+  ["autofocus", "autoFocus"],
+  ["spellcheck", "spellCheck"],
+  ["crossorigin", "crossOrigin"],
+  ["srcset", "srcSet"],
+  ["novalidate", "noValidate"],
+  ["enctype", "encType"],
+  ["inputmode", "inputMode"],
+];
+
 /**
  * The render-ready attributes for a canvas element: the expansion's own attrs,
  * plus a canvas-only stand-in `src` so an unset Image still has presence on the
@@ -409,6 +495,11 @@ function textOf(children: Child[] | undefined): string {
  */
 function canvasAttrs(el: ElementNode): Record<string, string | number | boolean> {
   const attrs = sanitizeAttrs(el.attrs);
+  // React demands certain HTML attributes in camelCase and warns on the raw
+  // lowercase DOM name. Authored nodes carry standard HTML names (what `toHtml`
+  // emits), so normalize the common set here — canvas-only; production markup is
+  // unchanged. `aria-*`/`data-*`/`role`/`hidden` are already correct lowercase.
+  for (const [dom, react] of REACT_ATTR) rename(attrs, dom, react);
   if (el.tag === "img" && attrs.src == null) attrs.src = PLACEHOLDER_IMG;
   // Form controls: render UNCONTROLLED on the design surface. React warns if a
   // form field gets `value`/`checked` without an `onChange`; the canvas is a static
@@ -418,6 +509,13 @@ function canvasAttrs(el: ElementNode): Record<string, string | number | boolean>
   if (el.tag === "input" || el.tag === "select") {
     rename(attrs, "value", "defaultValue");
     rename(attrs, "checked", "defaultChecked");
+  }
+  // Behavior parts (a disclosure/tabs/menu `panel`) ship `hidden` so they don't
+  // flash open before the runtime hydrates. The canvas has no runtime, so a hidden
+  // panel would be un-editable — reveal it here, exactly as the runtime's preview
+  // mode does (§9.8). Canvas-only: toHtml still emits `hidden` for production.
+  if (el.part === "panel" && (attrs.hidden === true || attrs.hidden === "")) {
+    delete attrs.hidden;
   }
   return attrs;
 }
@@ -558,8 +656,12 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
   // The canvas always renders the composed site: when a frame exists it's the
   // shell, with the page in its Outlet; only which layer is editable flips with
   // the mode. With no frame, the page renders bare (Layout mode mints one).
-  const frameRoot = doc.frame?.root;
-  const shellNode = frameRoot ?? doc.root;
+  // Editing a symbol master: the canvas renders THAT tree bare (no frame/outlet
+  // composition) — it's a component in isolation, not a page. `root` is the live
+  // master (via useActiveRoot). Otherwise render the composed site as before.
+  const symbolEditing = activeTree === "symbol";
+  const frameRoot = symbolEditing ? undefined : doc.frame?.root;
+  const shellNode = symbolEditing ? root : frameRoot ?? doc.root;
   const editingPage = activeTree === "page";
   const shellPreview = frameRoot ? editingPage : false;
   const outlet = frameRoot ? { tree: doc.root, preview: !editingPage } : undefined;
@@ -607,8 +709,8 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
       if (!payload) return;
       const place = placement(info, edge);
       if (payload.kind === "insert") {
-        const item = paletteItemByKey(payload.key);
-        if (item) editor.insert(item.make(), place.parentId, place.index);
+        const node = nodeForInsertKey(editor, payload.key);
+        if (node) editor.insert(node, place.parentId, place.index);
       } else {
         if (payload.id === place.parentId) return; // can't drop into itself
         editor.move(payload.id, place.parentId, place.index ?? childCount(place.parentId));
@@ -623,8 +725,8 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     clearDrag();
     if (!payload || !rootId) return;
     if (payload.kind === "insert") {
-      const item = paletteItemByKey(payload.key);
-      if (item) editor.insert(item.make(), rootId);
+      const node = nodeForInsertKey(editor, payload.key);
+      if (node) editor.insert(node, rootId);
     } else {
       editor.move(payload.id, rootId, childCount(rootId));
     }
@@ -670,6 +772,7 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     lineGap,
     outlet,
     preview: shellPreview,
+    symbolRoot: (sid) => editor.symbol(sid)?.root,
   };
 
   return (

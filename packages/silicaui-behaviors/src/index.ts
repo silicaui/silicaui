@@ -11,7 +11,14 @@ import { BEHAVIOR_ATTR, HYDRATED_ATTR } from "./dom";
 import { HANDLERS } from "./registry";
 import type { BehaviorType, HydrateOptions } from "./types";
 
-export type { BehaviorHandler, BehaviorType, HydrateOptions } from "./types";
+export type {
+  ActionPayload,
+  BehaviorHandler,
+  BehaviorType,
+  FormSubmitPayload,
+  FormValue,
+  HydrateOptions,
+} from "./types";
 
 /**
  * Hydrates every not-yet-hydrated behavior marker under `root` (default:

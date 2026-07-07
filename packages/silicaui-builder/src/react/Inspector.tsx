@@ -13,7 +13,7 @@
  */
 import * as React from "react";
 import type { ComponentNode, Node, Theme } from "silicaui-html";
-import { rolesOf, colorValue, SURFACE_TOKENS } from "silicaui-html";
+import { rolesOf, colorValue, SURFACE_TOKENS, walk } from "silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
 import { Icon } from "./Icon";
@@ -125,7 +125,7 @@ const BTN_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
 // (the same family-by-name pattern as the Button block); the values map straight
 // to the props the ComponentDef's `expand()` reads, so editing here changes the
 // published HTML. Options for Select are edited separately (a list, not a scalar).
-type PropControl = "text" | "number" | "toggle" | "select";
+type PropControl = "text" | "number" | "toggle" | "select" | "list";
 interface PropField {
   key: string;
   label: string;
@@ -134,7 +134,7 @@ interface PropField {
   placeholder?: string;
 }
 const INPUT_TYPES = ["text", "email", "password", "number", "tel", "url", "search"] as const;
-const FORM_PROPS: Record<string, readonly PropField[]> = {
+const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
   Input: [
     { key: "type", label: "Type", control: "select", options: INPUT_TYPES },
     { key: "placeholder", label: "Placeholder", control: "text" },
@@ -166,6 +166,39 @@ const FORM_PROPS: Record<string, readonly PropField[]> = {
     { key: "name", label: "Name", control: "text" },
     { key: "checked", label: "Checked", control: "toggle" },
   ],
+  // Form — the host action a valid submit dispatches to (lowers to data-sui-action;
+  // the `form` behavior runtime reads it). Empty → validate-only / native submit.
+  Form: [{ key: "action", label: "Submit action", control: "text", placeholder: "host action id" }],
+
+  // ── navigation ──
+  Breadcrumb: [{ key: "items", label: "Items", control: "list" }],
+  Menu: [{ key: "items", label: "Items", control: "list" }],
+  Steps: [
+    { key: "items", label: "Items", control: "list" },
+    { key: "current", label: "Current step", control: "number" },
+  ],
+  Pagination: [{ key: "pages", label: "Pages", control: "number" }],
+
+  // ── feedback ──
+  Alert: [{ key: "text", label: "Message", control: "text" }],
+  Progress: [{ key: "value", label: "Value (0–100)", control: "number" }],
+  Kbd: [{ key: "text", label: "Key", control: "text" }],
+
+  // ── data ──
+  Stat: [
+    { key: "title", label: "Title", control: "text" },
+    { key: "value", label: "Value", control: "text" },
+    { key: "desc", label: "Description", control: "text" },
+  ],
+  Avatar: [
+    { key: "src", label: "Image URL", control: "text" },
+    { key: "alt", label: "Alt text", control: "text" },
+  ],
+  Collapse: [
+    { key: "title", label: "Title", control: "text" },
+    { key: "content", label: "Content", control: "text" },
+  ],
+  Timeline: [{ key: "items", label: "Items", control: "list" }],
 };
 
 // ── small building blocks ─────────────────────────────────────────────────────
@@ -280,6 +313,14 @@ export function Inspector() {
   }
 
   const id = node.id;
+
+  // A symbol instance is a LINKED copy — its own wrapper class/text don't reach
+  // output (flatten renders the master). So it gets its own focused panel (edit the
+  // master / detach / rename), not the generic style controls, which would mislead.
+  if (node.instanceOf) {
+    return <InstancePanel id={id} symbolId={node.instanceOf} node={node} />;
+  }
+
   const cls = node.class ?? "";
   // Swap a group's active member for `value` ("" clears the group).
   const setToken = (group: readonly string[], value: string) => {
@@ -307,7 +348,7 @@ export function Inspector() {
         </Group>
       )}
 
-      {node.kind === "component" && node.component in FORM_PROPS && (
+      {node.kind === "component" && node.component in COMPONENT_PROPS && (
         <PropsGroup id={id} node={node} />
       )}
 
@@ -343,6 +384,75 @@ export function Inspector() {
       <ClassField id={id} cls={cls} />
 
       <Group label="Node">
+        <button
+          type="button"
+          className="btn btn-sm btn-soft btn-secondary w-full mb-2"
+          onClick={() => editor.createSymbol(nodeName(node))}
+        >
+          <Icon name="box" /> Save as component
+        </button>
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
+            Duplicate
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
+            Delete
+          </button>
+        </div>
+      </Group>
+    </div>
+  );
+}
+
+/**
+ * The panel for a selected symbol INSTANCE: rename the component (propagates to
+ * the roster + every instance's label), open its master for editing, or detach
+ * this one into an independent copy. No style controls — an instance's own wrapper
+ * doesn't survive to output, so editing happens on the master.
+ */
+function InstancePanel({ id, symbolId, node }: { id: string; symbolId: string; node: Node }) {
+  const editor = useEditor();
+  const sym = editor.symbol(symbolId);
+  const name = sym?.name ?? (node.kind !== "outlet" ? node.label : undefined) ?? "Component";
+  const [draft, setDraft] = React.useState(name);
+  React.useEffect(() => setDraft(name), [name, id]);
+  const commitName = () => {
+    if (draft.trim() && draft !== name) editor.renameSymbol(symbolId, draft.trim());
+  };
+  return (
+    <div className="flex-1 min-h-0 overflow-auto" data-testid="instance-panel">
+      <IdentityHeader node={node} />
+      <Group label="Component instance">
+        <p className="mb-2 text-xs text-base-content/55">
+          A linked copy of <span className="font-medium text-base-content/80">{name}</span>. Edit the component to
+          change every instance.
+        </p>
+        <Row label="Name">
+          <Input
+            className="w-full"
+            size="sm"
+            value={draft}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitName();
+              }
+            }}
+          />
+        </Row>
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-sm btn-primary flex-1" onClick={() => editor.enterSymbol(symbolId)}>
+            Edit component
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.detachInstance(id)}>
+            Detach
+          </button>
+        </div>
+      </Group>
+      <OverridesGroup instanceId={id} node={node} symbolId={symbolId} />
+      <Group label="Node">
         <div className="flex gap-2">
           <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
             Duplicate
@@ -369,6 +479,102 @@ function IdentityHeader({ node }: { node: Node }) {
         <div className="text-xs text-base-content/45 truncate">{kindLabel}</div>
       </div>
     </div>
+  );
+}
+
+/** One override target discovered on a symbol master: a text-bearing node. */
+interface OverrideTarget {
+  masterId: string;
+  label: string;
+  text: string;
+}
+
+/** The master's text-bearing nodes — the fields an instance can override. */
+function overrideTargets(masterRoot: Node): OverrideTarget[] {
+  const out: OverrideTarget[] = [];
+  walk(masterRoot, (n) => {
+    if (n.kind === "outlet" || !n.id) return;
+    const text = editableText(n);
+    if (text !== undefined) out.push({ masterId: n.id, label: nodeName(n), text });
+  });
+  return out;
+}
+
+/**
+ * Per-instance overrides — a field per text-bearing node in the master. Typing a
+ * value overrides just THIS instance (an overridden field is immune to later
+ * master edits); clearing it (or matching the master's text) removes the override.
+ */
+function OverridesGroup({ instanceId, node, symbolId }: { instanceId: string; node: Node; symbolId: string }) {
+  const editor = useEditor();
+  const master = editor.symbol(symbolId)?.root;
+  const targets = master ? overrideTargets(master) : [];
+  const overrides = node.kind !== "outlet" ? node.overrides : undefined;
+  if (targets.length === 0) return null;
+  return (
+    <Group label="Overrides">
+      <p className="mb-2 text-xs text-base-content/45">Customize this instance without detaching.</p>
+      {targets.map((t) => (
+        <OverrideRow
+          key={t.masterId}
+          instanceId={instanceId}
+          target={t}
+          current={overrides?.[t.masterId]?.text}
+        />
+      ))}
+    </Group>
+  );
+}
+
+/** One override field: seeded with the master default; commits on blur/Enter. A
+ *  reset (•) appears when the field diverges, clearing the override. */
+function OverrideRow({
+  instanceId,
+  target,
+  current,
+}: {
+  instanceId: string;
+  target: OverrideTarget;
+  current: string | undefined;
+}) {
+  const editor = useEditor();
+  const value = current ?? target.text;
+  const [draft, setDraft] = React.useState(value);
+  React.useEffect(() => setDraft(value), [value, instanceId, target.masterId]);
+  const commit = () => {
+    if (draft === value) return;
+    // Empty or back-to-master → clear the override; else record it.
+    editor.setInstanceOverrideText(instanceId, target.masterId, draft === "" || draft === target.text ? undefined : draft);
+  };
+  return (
+    <Row label={target.label}>
+      <div className="flex items-center gap-1">
+        <Input
+          className="w-full"
+          size="sm"
+          value={draft}
+          placeholder={target.text}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            }
+          }}
+        />
+        {current !== undefined && (
+          <button
+            type="button"
+            title="Reset to component default"
+            className="btn btn-xs btn-ghost flex-none text-secondary"
+            onClick={() => editor.setInstanceOverrideText(instanceId, target.masterId, undefined)}
+          >
+            <Icon name="undo" />
+          </button>
+        )}
+      </div>
+    </Row>
   );
 }
 
@@ -403,7 +609,7 @@ function ContentField({ id, node }: { id: string; node: Node }) {
 // ── form-control props ────────────────────────────────────────────────────────
 /** The recognized-family block for a form control — its editable `props`. */
 function PropsGroup({ id, node }: { id: string; node: ComponentNode }) {
-  const fields = FORM_PROPS[node.component];
+  const fields = COMPONENT_PROPS[node.component];
   if (!fields) return null;
   return (
     <Group label={node.component}>
@@ -453,7 +659,54 @@ function PropRow({ id, node, field }: { id: string; node: ComponentNode; field: 
       </Row>
     );
   }
+  if (field.control === "list") {
+    return <ListProp id={id} field={field} value={node.props?.[field.key]} />;
+  }
   return <TextProp id={id} field={field} value={raw != null ? String(raw) : ""} />;
+}
+
+/** A string-list prop (Breadcrumb/Menu/Steps/Timeline items) — one item per line,
+ *  committed on blur / Cmd+Enter into the `props[key]` string array `expand()` reads. */
+function ListProp({ id, field, value }: { id: string; field: PropField; value: unknown }) {
+  const editor = useEditor();
+  const text = listToText(value);
+  const [draft, setDraft] = React.useState(text);
+  React.useEffect(() => setDraft(text), [text, id]);
+  const commit = () => {
+    if (draft === text) return;
+    const items = textToList(draft);
+    editor.setProp(id, field.key, items.length ? items : undefined);
+  };
+  return (
+    <Row label={field.label}>
+      <Textarea
+        className="w-full text-xs"
+        rows={4}
+        spellCheck={false}
+        placeholder={"One item per line"}
+        value={draft}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+    </Row>
+  );
+}
+
+/** `props.items` (string array) ↔ the newline-list editor text. */
+function listToText(value: unknown): string {
+  return Array.isArray(value) ? value.map(String).join("\n") : "";
+}
+function textToList(text: string): string[] {
+  return text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** A text/number prop — draft state committed on blur/Enter (one undo step). An

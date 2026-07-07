@@ -58,6 +58,11 @@ export type { ComponentDef } from "./component";
 // Tree traversal (shared with the builder).
 export { walk, composeFrame } from "./tree";
 
+// Symbols (user-saved reusable components): flatten instances → plain markup for
+// output, so the projection stays symbol-agnostic (§ authoring vs output).
+export { flattenSymbols, hasInstances, applyOverrides } from "./symbols";
+export type { SymbolResolver } from "./symbols";
+
 // The theme model (§5) — the shared source of truth for a theme's color roles,
 // scalar tokens, and the preset library. Consumed by the builder's theme editor
 // and property panel so nobody hardcodes a color list.

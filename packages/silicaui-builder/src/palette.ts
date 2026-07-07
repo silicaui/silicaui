@@ -117,23 +117,184 @@ const FORM: PaletteItem[] = [
   },
 ];
 
+/**
+ * Navigation primitives — trails, lists, and page controls. List-shaped atoms
+ * (Breadcrumb/Menu/Steps) carry their items as `props.items` (edited in the
+ * Inspector); Navbar is a container whose slots are authored in the tree.
+ */
+const NAV: PaletteItem[] = [
+  {
+    key: "breadcrumb",
+    label: "Breadcrumb",
+    icon: "breadcrumb",
+    make: () => atom("Breadcrumb", "breadcrumb", { items: ["Home", "Library", "Data"] }),
+  },
+  {
+    key: "menu",
+    label: "Menu",
+    icon: "nav",
+    make: () => atom("Menu", "menu w-56", { items: ["Dashboard", "Settings", "Profile"] }),
+  },
+  {
+    key: "steps",
+    label: "Steps",
+    icon: "steps",
+    make: () => atom("Steps", "steps", { items: ["Register", "Choose plan", "Purchase"], current: 1 }),
+  },
+  {
+    key: "pagination",
+    label: "Pagination",
+    icon: "pagination",
+    make: () => atom("Pagination", "join", { pages: 3 }),
+  },
+  {
+    key: "navbar",
+    label: "Navbar",
+    icon: "header",
+    hint: "A top bar with start/end slots",
+    make: () =>
+      atom("Navbar", "navbar bg-base-100 rounded-box", undefined, [
+        el("div", "navbar-start", { children: [el("a", "btn btn-ghost text-xl", { text: "Brand" })] }),
+        el("div", "navbar-end", { children: [atom("Button", "btn btn-primary", { label: "Sign in" })] }),
+      ]),
+  },
+];
+
+/** Feedback primitives — status/loading surfaces the app shows the user. */
+const FEEDBACK: PaletteItem[] = [
+  {
+    key: "alert",
+    label: "Alert",
+    icon: "warning",
+    make: () => atom("Alert", "alert alert-info", { text: "New updates are available." }),
+  },
+  {
+    key: "progress",
+    label: "Progress",
+    icon: "progress",
+    make: () => atom("Progress", "progress w-56", { value: 60 }),
+  },
+  { key: "loading", label: "Loading", icon: "loading", make: () => atom("Loading", "loading loading-md") },
+  { key: "skeleton", label: "Skeleton", icon: "box", make: () => atom("Skeleton", "skeleton h-24 w-full") },
+  { key: "status", label: "Status", icon: "dot", make: () => atom("Status", "status status-success status-lg") },
+  { key: "kbd", label: "Kbd", icon: "kbd", make: () => atom("Kbd", "kbd", { text: "Ctrl" }) },
+];
+
+/** Data-display primitives — metrics, media, tables, and disclosure. */
+const DATA: PaletteItem[] = [
+  {
+    key: "stat",
+    label: "Stat",
+    icon: "stat",
+    make: () =>
+      atom("Stat", "stats bg-base-100 border border-base-200", {
+        title: "Total Users",
+        value: "1,204",
+        desc: "↗ 12% this month",
+      }),
+  },
+  {
+    key: "avatar",
+    label: "Avatar",
+    icon: "avatar",
+    make: () => atom("Avatar", "avatar w-12 rounded-full", { alt: "" }),
+  },
+  {
+    key: "collapse",
+    label: "Collapse",
+    icon: "collapse",
+    hint: "A native disclosure panel",
+    make: () =>
+      atom("Collapse", "collapse bg-base-100 border border-base-200", {
+        title: "Click to expand",
+        content: "Hidden content revealed on toggle.",
+      }),
+  },
+  {
+    key: "timeline",
+    label: "Timeline",
+    icon: "timeline",
+    make: () => atom("Timeline", "timeline", { items: ["Founded 2021", "Series A 2022", "Launched 2024"] }),
+  },
+  {
+    key: "table",
+    label: "Table",
+    icon: "table",
+    hint: "A styled data table",
+    make: () =>
+      atom("Table", "table", undefined, [
+        el("thead", undefined, {
+          children: [
+            el("tr", undefined, {
+              children: [el("th", undefined, { text: "Name" }), el("th", undefined, { text: "Role" })],
+            }),
+          ],
+        }),
+        el("tbody", undefined, {
+          children: [
+            el("tr", undefined, {
+              children: [el("td", undefined, { text: "Ada" }), el("td", undefined, { text: "Engineer" })],
+            }),
+            el("tr", undefined, {
+              children: [el("td", undefined, { text: "Grace" }), el("td", undefined, { text: "Admiral" })],
+            }),
+          ],
+        }),
+      ]),
+  },
+];
+
 /** Block category → the palette glyph representing it. */
 const BLOCK_ICON: Record<string, IconName> = {
   hero: "layout",
   features: "grid",
   faq: "list",
+  nav: "header",
+  footer: "footer",
+  cta: "cta",
+  testimonial: "quote",
+  pricing: "pricing",
+  stats: "stat",
+  logos: "gallery",
+  team: "team",
+  contact: "contact",
+  content: "article",
+  tabs: "tabs",
+  accordion: "collapse",
+  dropdown: "dropdown",
 };
 
-/** The composed blocks, read live from the validated catalog. */
-function blockItems(): PaletteItem[] {
-  return listBlocks().map((b) => ({
+/**
+ * Categories that are behavior-driven INTERACTIVE composites (tabs/accordion/
+ * dropdown) rather than marketing SECTIONS — they get their own palette group so
+ * a long block list stays legible. Everything else is a section.
+ */
+const INTERACTIVE_CATEGORIES: ReadonlySet<string> = new Set(["tabs", "accordion", "dropdown"]);
+
+/** One palette item from a validated block Template. */
+function blockItem(b: ReturnType<typeof listBlocks>[number]): PaletteItem {
+  return {
     key: `block:${b.key}`,
     // Block names read "Short — long description"; keep the short half for the row.
     label: b.name.split(" — ")[0] ?? b.name,
     icon: BLOCK_ICON[b.category] ?? "box",
     hint: b.description,
     make: () => b.root, // shared root; the engine deep-clones + stamps on insert
-  }));
+  };
+}
+
+/** The composed marketing sections, read live from the validated catalog. */
+function sectionItems(): PaletteItem[] {
+  return listBlocks()
+    .filter((b) => !INTERACTIVE_CATEGORIES.has(b.category))
+    .map(blockItem);
+}
+
+/** The behavior-driven interactive composites. */
+function interactiveItems(): PaletteItem[] {
+  return listBlocks()
+    .filter((b) => INTERACTIVE_CATEGORIES.has(b.category))
+    .map(blockItem);
 }
 
 /** The full grouped catalog for the Insert panel. */
@@ -142,7 +303,11 @@ export function paletteGroups(): PaletteGroup[] {
     { key: "layout", label: "Layout", items: LAYOUT },
     { key: "content", label: "Content", items: CONTENT },
     { key: "form", label: "Form", items: FORM },
-    { key: "blocks", label: "Blocks", items: blockItems() },
+    { key: "nav", label: "Navigation", items: NAV },
+    { key: "feedback", label: "Feedback", items: FEEDBACK },
+    { key: "data", label: "Data", items: DATA },
+    { key: "interactive", label: "Interactive", items: interactiveItems() },
+    { key: "blocks", label: "Sections", items: sectionItems() },
   ];
 }
 

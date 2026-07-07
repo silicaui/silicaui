@@ -102,10 +102,12 @@ authorFails("lint: arbitrary z-[9999] rejected", () => block(mk("z-[9999]")));
 authorFails("lint: content-[…] rejected", () => block(mk("content-['x']")));
 authorFails("lint: url(...) rejected", () => block(mk("bg-[url(https://x.com/a.png)]")));
 authorFails("lint: viewport variant md: rejected", () => block(mk("md:flex")));
-check("lint: real blocks are clean (all 3 authored)", listBlocks().length === 3);
+// Every authored block passed the linter at module load (`block()` throws
+// otherwise), so a non-empty catalog means the whole library is clean.
+check("lint: real blocks are clean (all authored)", listBlocks().length > 0);
 
 // ── block index ─────────────────────────────────────────────────────────────
-check("listBlocks() returns 3", listBlocks().length === 3);
+check("listBlocks() returns the full catalog", listBlocks().length >= 15);
 check("listBlocks({category}) filters", listBlocks({ category: "faq" }).length === 1);
 check("getBlock(key) resolves", getBlock("feature_grid")?.name === "Feature grid — data-bound");
 check(

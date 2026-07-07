@@ -130,6 +130,48 @@ function toOption(opt: unknown): Child {
   return { kind: "element", tag: "option", children: [s] };
 }
 
+/** Build a plain INNER element of a component expansion (not the macro root, so
+ *  it carries no source metadata — that lives on the root via `lower`). */
+function elc(
+  tag: string,
+  cls?: string,
+  children?: Child[],
+  attrs?: ElementNode["attrs"],
+): ElementNode {
+  const node: ElementNode = { kind: "element", tag };
+  if (cls) node.class = cls;
+  if (attrs) node.attrs = attrs;
+  if (children && children.length) node.children = children;
+  return node;
+}
+
+/** A component's `props.items` list (Breadcrumb/Menu/Steps/Timeline) as strings.
+ *  Absent/non-array → `[]` (an empty structure; the palette seeds demo items). */
+function itemsOf(node: ComponentNode): string[] {
+  const raw = node.props?.items;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+/** Determinate Progress fill → a LITERAL width utility (no inline style; the raw
+ *  strings must be present in-source so the harness `@source` scan safelists them).
+ *  The value snaps to the nearest bucket. */
+const PROGRESS_WIDTHS: ReadonlyArray<readonly [number, string]> = [
+  [0, "w-0"],
+  [25, "w-1/4"],
+  [33, "w-1/3"],
+  [50, "w-1/2"],
+  [66, "w-2/3"],
+  [75, "w-3/4"],
+  [100, "w-full"],
+];
+function progressWidth(value: number): string {
+  let best: readonly [number, string] = PROGRESS_WIDTHS[0]!;
+  for (const bucket of PROGRESS_WIDTHS) {
+    if (Math.abs(bucket[0] - value) < Math.abs(best[0] - value)) best = bucket;
+  }
+  return best[1];
+}
+
 /** A plain element atom: one tag carrying class + (children | text prop). */
 function elementDef(
   name: string,
@@ -288,9 +330,190 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   elementDef("Container", "layout", "box", "div", true),
   elementDef("Grid", "layout", "grid", "div", true),
   elementDef("Stack", "layout", "stack", "div", true),
-  // Field / Form — form containers (hold label+control / fields+submit as children).
+  // Feedback leaves — colorless status surfaces (class carries size/variant).
+  elementDef("Loading", "feedback", "loading", "span"),
+  elementDef("Skeleton", "feedback", "box", "div"),
+  elementDef("Status", "feedback", "dot", "span"),
+  elementDef("Kbd", "feedback", "kbd", "kbd"),
+  // Navbar / Table — structural containers (children authored in the tree).
+  elementDef("Navbar", "nav", "header", "div", true),
+  elementDef("Table", "data", "table", "table", true),
+  // Field — a form-row container (label + control as children).
   elementDef("Field", "form", "label", "div", true),
-  elementDef("Form", "form", "form", "form", true),
+  // Form — a <form> that ALWAYS lowers with the `form` behavior marker so a
+  // published form is functional (validate + submit) with zero author wiring.
+  // `props.action` names the host action a valid submit dispatches to; an
+  // explicitly-set behavior/data on the node is respected and never overwritten.
+  {
+    name: "Form",
+    category: "form",
+    label: "Form",
+    icon: "form",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "form", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "form" };
+      const action = n.props?.action;
+      if (action != null && !out.data) out.data = { kind: "action", ref: String(action) };
+      return out;
+    },
+  },
+
+  // ── navigation ─────────────────────────────────────────────────────────────
+  // Breadcrumb — a <nav class="breadcrumb"> wrapping an <ol>; each item is a link,
+  // the last marked aria-current="page". Items come from props.items (strings).
+  {
+    name: "Breadcrumb",
+    category: "nav",
+    label: "Breadcrumb",
+    icon: "breadcrumb",
+    expand: (n) => {
+      const items = itemsOf(n);
+      const last = items.length - 1;
+      const lis = items.map((label, i) =>
+        elc("li", undefined, [
+          elc("a", undefined, [label], i === last ? { href: "#", "aria-current": "page" } : { href: "#" }),
+        ]),
+      );
+      return lower(n, "nav", { children: [elc("ol", undefined, lis)] });
+    },
+  },
+  // Menu — a vertical <ul class="menu"> of link items (sidebars / popover bodies).
+  {
+    name: "Menu",
+    category: "nav",
+    label: "Menu",
+    icon: "nav",
+    expand: (n) =>
+      lower(n, "ul", {
+        children: itemsOf(n).map((label) =>
+          elc("li", undefined, [elc("a", undefined, [label], { href: "#" })]),
+        ),
+      }),
+  },
+  // Steps — a <ul class="steps"> tracker; items up to props.current are `-primary`
+  // (read as completed). Both from props.
+  {
+    name: "Steps",
+    category: "nav",
+    label: "Steps",
+    icon: "steps",
+    expand: (n) => {
+      const current = Number(n.props?.current ?? -1);
+      return lower(n, "ul", {
+        children: itemsOf(n).map((label, i) =>
+          elc("li", i <= current ? "step step-primary" : "step", [label]),
+        ),
+      });
+    },
+  },
+  // Pagination — a joined button row (1…props.pages), the first marked active.
+  {
+    name: "Pagination",
+    category: "nav",
+    label: "Pagination",
+    icon: "pagination",
+    expand: (n) => {
+      const pages = Math.max(1, Math.min(20, Math.floor(Number(n.props?.pages ?? 3))));
+      const btns: Child[] = [];
+      for (let p = 1; p <= pages; p++) {
+        btns.push(
+          elc("button", p === 1 ? "join-item btn btn-active" : "join-item btn", [String(p)], {
+            type: "button",
+          }),
+        );
+      }
+      return lower(n, "div", { children: btns });
+    },
+  },
+
+  // ── feedback ───────────────────────────────────────────────────────────────
+  // Alert — a role="alert" surface; its children (or text prop) sit in the flex row.
+  {
+    name: "Alert",
+    category: "feedback",
+    label: "Alert",
+    icon: "warning",
+    expand: (n) =>
+      lower(n, "div", { attrs: { role: "alert" }, children: textChildren(n, "text") ?? ["Alert message"] }),
+  },
+  // Progress — a track div + a fill div whose LITERAL width utility encodes value.
+  {
+    name: "Progress",
+    category: "feedback",
+    label: "Progress",
+    icon: "progress",
+    expand: (n) => {
+      const value = Number(n.props?.value ?? 50);
+      return lower(n, "div", { children: [elc("div", `progress-bar ${progressWidth(value)}`)] });
+    },
+  },
+
+  // ── data display ───────────────────────────────────────────────────────────
+  // Stat — a .stats container holding one .stat (title / value / desc from props).
+  {
+    name: "Stat",
+    category: "data",
+    label: "Stat",
+    icon: "stat",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const rows: Child[] = [];
+      if (p.title != null) rows.push(elc("div", "stat-title", [String(p.title)]));
+      rows.push(elc("div", "stat-value", [String(p.value ?? "0")]));
+      if (p.desc != null) rows.push(elc("div", "stat-desc", [String(p.desc)]));
+      return lower(n, "div", { children: [elc("div", "stat", rows)] });
+    },
+  },
+  // Avatar — a single .avatar div whose inner <img> rounds via inherited radius.
+  {
+    name: "Avatar",
+    category: "data",
+    label: "Avatar",
+    icon: "avatar",
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = {
+        alt: (n.props?.alt ?? "") as string,
+        loading: "lazy",
+      };
+      if (n.props?.src != null) attrs.src = n.props.src as string;
+      return lower(n, "div", { children: [elc("img", undefined, undefined, attrs)] });
+    },
+  },
+  // Collapse — a native <details> disclosure (works with zero JS on publish). Not
+  // a container: its body is `props.content` (text). `expand` still honors authored
+  // children as the body for direct toHtml use, but the builder edits it as a prop.
+  {
+    name: "Collapse",
+    category: "data",
+    label: "Collapse",
+    icon: "collapse",
+    expand: (n) => {
+      const p = n.props ?? {};
+      return lower(n, "details", {
+        children: [
+          elc("summary", "collapse-title", [String(p.title ?? "Details")]),
+          elc("div", "collapse-content", n.children?.length ? n.children : [String(p.content ?? "")]),
+        ],
+      });
+    },
+  },
+  // Timeline — a <ul class="timeline"> of events (marker + content per item).
+  {
+    name: "Timeline",
+    category: "data",
+    label: "Timeline",
+    icon: "timeline",
+    expand: (n) =>
+      lower(n, "ul", {
+        children: itemsOf(n).map((label) =>
+          elc("li", undefined, [
+            elc("div", "timeline-middle", ["●"]),
+            elc("div", "timeline-end", [label]),
+          ]),
+        ),
+      }),
+  },
 ];
 
 // ── registry ────────────────────────────────────────────────────────────────

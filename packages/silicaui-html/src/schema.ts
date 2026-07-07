@@ -37,6 +37,26 @@ interface NodeBase {
   behavior?: BehaviorMarker;
   /** Marks this node as a structural PART of an ancestor behavior. */
   part?: BehaviorRole;
+  /** This node is an INSTANCE of a reusable symbol (a user-saved component). It
+   *  holds no meaningful children of its own — at render it EXPANDS to a fresh
+   *  clone of `symbols[instanceOf].root`, so editing that one master propagates to
+   *  every instance. `flattenSymbols` inlines it for output; the projection itself
+   *  stays symbol-agnostic. */
+  instanceOf?: string;
+  /** Per-INSTANCE overrides, keyed by the MASTER node's (stable) id. Applied over
+   *  the expanded master clone, so this instance can differ from its siblings
+   *  without detaching; an overridden field is NOT overwritten by a later master
+   *  edit. Only meaningful on an instance node (`instanceOf` set). */
+  overrides?: Record<string, NodeOverride>;
+}
+
+/** What a single instance overrides on one master node. Extensible; text is the
+ *  common case (a heading, paragraph, or button label per instance). */
+export interface NodeOverride {
+  /** Replacement primary text (element text, or a component's label/text). */
+  text?: string;
+  /** Replacement component props, shallow-merged over the master's (component nodes). */
+  props?: Record<string, unknown>;
 }
 
 export interface ElementNode extends NodeBase {
@@ -96,7 +116,8 @@ export type BehaviorType =
   | "scrollspy"
   | "counter"
   | "dismiss"
-  | "toc";
+  | "toc"
+  | "form";
 
 export type BehaviorRole =
   | "track"
@@ -130,6 +151,21 @@ export interface Template {
   /** Exactly one, id-free. */
   root: Node;
   preview?: { thumb?: string; note?: string };
+}
+
+/**
+ * A reusable component saved from the canvas: a named, id-carrying master tree
+ * that INSTANCE nodes (`instanceOf`) render. Editing the master updates every
+ * instance. Site-scoped (shared across all pages + the frame) — stored in
+ * `Site.symbols`, keyed by `id`.
+ */
+export interface SymbolDef {
+  /** Stable symbol id — the value an instance node's `instanceOf` references. */
+  id: string;
+  /** Human name shown in the Components palette + instance chrome. */
+  name: string;
+  /** The master tree (ids present — it's editable like any page/frame tree). */
+  root: Node;
 }
 
 /** A native silicaui theme — a token set applied via `[data-theme]` (§5). */
@@ -184,4 +220,7 @@ export interface Site {
   frame?: Frame;
   /** At least one page; `pages[0]` is the home/default page. */
   pages: Page[];
+  /** User-saved reusable components, keyed by symbol id. Instances across any page
+   *  or the frame reference these; edit-once-propagate flows from here. */
+  symbols?: Record<string, SymbolDef>;
 }

@@ -10,8 +10,8 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { ComponentNode, Document, ElementNode, Frame, Node, Page, Site, Theme } from "silicaui-html";
-import { el, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "silicaui-html";
+import type { ComponentNode, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "silicaui-html";
+import { applyOverrides, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "silicaui-html";
 import { defaultFrameRoot } from "./frame";
 
 /** A node that carries id/class/children — everything except an outlet. */
@@ -26,10 +26,12 @@ export type ChangeKind =
   | "selection"
   | "active"
   | "page"
+  | "symbols"
   | "replace";
 
-/** Which tree the editing spine currently targets: the page BODY or the site FRAME. */
-export type ActiveTree = "page" | "frame";
+/** Which tree the editing spine targets: the page BODY, the site FRAME, or a
+ *  reusable SYMBOL master (editing a saved component propagates to its instances). */
+export type ActiveTree = "page" | "frame" | "symbol";
 
 /** Lightweight page descriptor for the page switcher (no tree — just identity). */
 export interface PageMeta {
@@ -121,6 +123,9 @@ const CONTAINER_COMPONENTS = new Set(listComponents().filter((c) => c.container)
 /** True when a node should receive an insertion as a CHILD (vs a sibling). */
 export function acceptsChildren(node: Node): boolean {
   if (node.kind === "outlet") return false;
+  // A symbol instance is ATOMIC — it renders its master, ignoring its own
+  // children, so nothing may be nested inside it (it takes a sibling instead).
+  if (node.instanceOf) return false;
   if (node.kind === "component") return CONTAINER_COMPONENTS.has(node.component);
   return CONTAINER_TAGS.has(node.tag);
 }
@@ -153,6 +158,12 @@ export class Editor {
   // node-editing spine (select/edit/insert/move/undo) runs against `activeRoot()`,
   // so Layout mode reuses Page mode's machinery unchanged.
   private active: ActiveTree = "page";
+  // The symbol master currently being edited (when `active === "symbol"`). Edits to
+  // it flow to every instance because instances render THIS master, not a copy.
+  private editingSymbolId: string | undefined;
+  // Cached, referentially-stable symbol roster for the Components palette + hooks —
+  // swapped (never mutated) only when a symbol is added/removed/renamed.
+  private symbolsViewCache: readonly SymbolDef[] = [];
   // Whole-SITE undo history. `past` holds snapshots taken BEFORE each edit (node
   // or page structure); `future` holds snapshots undone past (for redo). Snapshots
   // are the whole site, so a node edit on any page — and page add/remove/rename —
@@ -176,9 +187,13 @@ export class Editor {
     if (this.site.pages.length === 0) {
       this.site.pages = [makePage("Home", "/", stampTree(newPageRoot()))];
     }
+    // Symbols are site-scoped and shared across pages + the frame; a site may
+    // arrive without any. (Held on the site so undo/redo + save carry them.)
+    this.site.symbols ??= {};
     this.activePageId = this.site.pages[0]!.id;
     this.saved = [structuredClone(this.site.theme)];
     this.syncPages();
+    this.syncSymbols();
   }
 
   /** Subscribe to committed edits; returns an unsubscribe. */
@@ -212,10 +227,27 @@ export class Editor {
     return this.site.pages.find((p) => p.id === this.activePageId) ?? this.site.pages[0]!;
   }
 
-  /** The root the spine currently edits — the active page body, or the frame shell. */
+  /** The root the spine currently edits — the active page body, the frame shell,
+   *  or a symbol master. A dangling symbol pointer (e.g. after undo removed it)
+   *  falls back to the page body so the spine always has a valid target. */
   private activeRoot(): Node {
     if (this.active === "frame" && this.site.frame) return this.site.frame.root;
+    if (this.active === "symbol" && this.editingSymbolId) {
+      const sym = this.site.symbols?.[this.editingSymbolId];
+      if (sym) return sym.root;
+    }
     return this.currentPage().root;
+  }
+
+  /** The live active-tree root (page/frame/symbol master) — the Canvas reads this
+   *  directly for the symbol-editing case (the master isn't in the page Document). */
+  get activeRootNode(): Node {
+    return this.activeRoot();
+  }
+
+  /** Rebuild the cached symbol roster (stable identity between mutations). */
+  private syncSymbols(): void {
+    this.symbolsViewCache = Object.values(this.site.symbols ?? {});
   }
 
   /** Rebuild the cached switcher view (roster + active id). Called after any page
@@ -289,10 +321,193 @@ export class Editor {
    * — an id in one tree means nothing in the other — so it clears on switch.
    */
   setActiveTree(which: ActiveTree): void {
+    // A symbol master is entered by id (it needs one) — route through enterSymbol.
+    if (which === "symbol") return;
     if (which === this.active) return;
     this.active = which;
+    this.editingSymbolId = undefined; // leaving symbol mode drops the master pointer
     this.selectedId = undefined;
     this.emit("active");
+  }
+
+  // ── symbols (reusable saved components) ────────────────────────────────────
+  /** The site's symbols — a stable roster for the Components palette + hooks. */
+  get symbols(): readonly SymbolDef[] {
+    return this.symbolsViewCache;
+  }
+
+  /** Look up one symbol by id (live reference — the Canvas resolves masters this way). */
+  symbol(id: string): SymbolDef | undefined {
+    return this.site.symbols?.[id];
+  }
+
+  /** The symbol master currently open for editing (id + name), or undefined. */
+  get editingSymbol(): { id: string; name: string } | undefined {
+    if (this.active !== "symbol" || !this.editingSymbolId) return undefined;
+    const s = this.site.symbols?.[this.editingSymbolId];
+    return s ? { id: s.id, name: s.name } : undefined;
+  }
+
+  /**
+   * Save a node's subtree as a reusable symbol and replace it in place with an
+   * INSTANCE of that new symbol (so the canvas looks unchanged but is now linked).
+   * The master gets its own fresh ids, independent of the instance. Undoable.
+   * No-op on the tree root (an instance needs a parent to live in). Returns the id.
+   */
+  createSymbol(name: string, fromId?: string): string | undefined {
+    const target = fromId ?? this.selectedId;
+    if (!target) return undefined;
+    const found = locate(this.activeRoot(), target);
+    if (!found || !found.parent) return undefined; // can't symbolize the root
+    const label = name.trim() || "Component";
+    const symId = defaultMakeId();
+    const master = stampTree(found.node); // independent, editable master tree
+    const instance = stampTree({ kind: "element", tag: "div", instanceOf: symId, label }) as ElementNode;
+    this.pushHistory();
+    (this.site.symbols ??= {})[symId] = { id: symId, name: label, root: master };
+    found.parent.children![found.index] = instance;
+    this.syncSymbols();
+    this.emit("structure");
+    this.emit("symbols");
+    if (instance.id) this.select(instance.id);
+    return symId;
+  }
+
+  /** Build a fresh (id-free) instance node for `symbolId`, or undefined if the
+   *  symbol is gone or it would self-nest (a symbol inside its own master). The
+   *  drop path stamps + places it; `insertSymbolInstance` is the click path. */
+  makeInstanceNode(symbolId: string): Node | undefined {
+    const sym = this.site.symbols?.[symbolId];
+    if (!sym) return undefined;
+    if (this.active === "symbol" && this.editingSymbolId === symbolId) return undefined;
+    return { kind: "element", tag: "div", instanceOf: symbolId, label: sym.name };
+  }
+
+  /** Insert an instance of `symbolId` relative to the selection (palette click). */
+  insertSymbolInstance(symbolId: string, targetId?: string): string | undefined {
+    const instance = this.makeInstanceNode(symbolId);
+    return instance ? this.insertRelative(instance, targetId) : undefined;
+  }
+
+  /** Open a symbol master for editing — the whole spine retargets to it, and edits
+   *  propagate to every instance (they render THIS master). Selection clears. */
+  enterSymbol(symbolId: string): void {
+    if (!this.site.symbols?.[symbolId]) return;
+    this.editingSymbolId = symbolId;
+    this.active = "symbol";
+    this.selectedId = undefined;
+    this.emit("active");
+  }
+
+  /** Leave symbol-editing, returning to the page body. */
+  exitSymbol(): void {
+    this.setActiveTree("page");
+  }
+
+  /**
+   * Set (or clear, with `undefined`) this instance's text override for one master
+   * node — so this instance can differ from its siblings without detaching. Keyed
+   * by the MASTER node's id. Undoable. No-op on a non-instance.
+   */
+  setInstanceOverrideText(instanceId: string, masterNodeId: string, text: string | undefined): void {
+    const found = locate(this.activeRoot(), instanceId);
+    if (!found || !found.node.instanceOf) return;
+    const node = found.node;
+    this.commit("props", () => {
+      const overrides = { ...(node.overrides ?? {}) };
+      const rest = { ...overrides[masterNodeId] };
+      if (text === undefined) delete rest.text;
+      else rest.text = text;
+      if (Object.keys(rest).length) overrides[masterNodeId] = rest;
+      else delete overrides[masterNodeId];
+      if (Object.keys(overrides).length) node.overrides = overrides;
+      else delete node.overrides;
+    });
+  }
+
+  /** Detach an instance from its symbol: replace it with an independent, editable
+   *  clone of the master WITH this instance's overrides baked in (severing the
+   *  propagation link but keeping what you customized). Undoable. */
+  detachInstance(id: string): string | undefined {
+    const found = locate(this.activeRoot(), id);
+    if (!found || !found.parent || !found.node.instanceOf) return undefined;
+    const master = this.site.symbols?.[found.node.instanceOf]?.root;
+    if (!master) return undefined;
+    const copy = stampTree(applyOverrides(structuredClone(master), found.node.overrides));
+    const newId = copy.kind === "outlet" ? undefined : copy.id;
+    this.commit("structure", () => {
+      found.parent!.children![found.index] = copy;
+    });
+    if (newId) this.select(newId);
+    return newId;
+  }
+
+  /** Rename a symbol (and refresh the Navigator label its instances carry). Undoable. */
+  renameSymbol(symbolId: string, name: string): void {
+    const sym = this.site.symbols?.[symbolId];
+    const value = name.trim();
+    if (!sym || !value || value === sym.name) return;
+    this.pushHistory();
+    sym.name = value;
+    this.forEachTree((root) =>
+      walk(root, (n) => {
+        if (n.kind !== "outlet" && n.instanceOf === symbolId) n.label = value;
+      }),
+    );
+    this.syncSymbols();
+    this.emit("symbols");
+    this.emit("structure");
+  }
+
+  /** Delete a symbol, detaching every instance of it (across all pages, the frame,
+   *  and other masters) into an independent clone so no dangling ref remains. Undoable. */
+  deleteSymbol(symbolId: string): void {
+    const sym = this.site.symbols?.[symbolId];
+    if (!sym) return;
+    this.pushHistory();
+    const master = sym.root;
+    this.forEachTree((root) =>
+      walk(root, (n) => {
+        const kids = n.kind !== "outlet" ? n.children : undefined;
+        if (!kids) return;
+        for (let i = 0; i < kids.length; i++) {
+          const c = kids[i];
+          if (c && typeof c !== "string" && c.kind !== "outlet" && c.instanceOf === symbolId) {
+            kids[i] = stampTree(applyOverrides(structuredClone(master), c.overrides));
+          }
+        }
+      }),
+    );
+    delete this.site.symbols![symbolId];
+    if (this.editingSymbolId === symbolId) {
+      this.active = "page";
+      this.editingSymbolId = undefined;
+    }
+    this.selectedId = undefined;
+    this.syncSymbols();
+    this.emit("structure");
+    this.emit("symbols");
+  }
+
+  /** Run a fn over every editable tree in the site (pages, frame, symbol masters). */
+  private forEachTree(fn: (root: Node) => void): void {
+    for (const p of this.site.pages) fn(p.root);
+    if (this.site.frame) fn(this.site.frame.root);
+    for (const s of Object.values(this.site.symbols ?? {})) fn(s.root);
+  }
+
+  /** The whole site with every instance inlined + symbols dropped — ready for
+   *  `toHtml` (output is always plain markup; symbols are an authoring concept). */
+  exportSite(): Site {
+    const site = structuredClone(this.site);
+    const syms = site.symbols ?? {};
+    const flat = (root: Node): Node => flattenSymbols(root, syms);
+    return {
+      version: site.version,
+      theme: site.theme,
+      frame: site.frame ? { ...site.frame, root: flat(site.frame.root) } : undefined,
+      pages: site.pages.map((p) => ({ ...p, root: flat(p.root) })),
+    };
   }
 
   // ── pages (multi-page site) ────────────────────────────────────────────────
@@ -596,8 +811,10 @@ export class Editor {
     this.future.push(structuredClone(this.site));
     this.site = prev; // already an owned clone
     this.clampActivePage();
+    this.clampSymbol();
     this.clampSelection();
     this.syncPages();
+    this.syncSymbols();
     this.emit("replace");
   }
 
@@ -608,8 +825,10 @@ export class Editor {
     this.past.push(structuredClone(this.site));
     this.site = next;
     this.clampActivePage();
+    this.clampSymbol();
     this.clampSelection();
     this.syncPages();
+    this.syncSymbols();
     this.emit("replace");
   }
 
@@ -617,6 +836,15 @@ export class Editor {
   private clampActivePage(): void {
     if (!this.site.pages.some((p) => p.id === this.activePageId)) {
       this.activePageId = this.site.pages[0]!.id;
+    }
+  }
+
+  /** After a history swap, drop a symbol-editing pointer whose master is gone
+   *  (fall back to the page body so the spine never targets a missing tree). */
+  private clampSymbol(): void {
+    if (this.active === "symbol" && (!this.editingSymbolId || !this.site.symbols?.[this.editingSymbolId])) {
+      this.active = "page";
+      this.editingSymbolId = undefined;
     }
   }
 

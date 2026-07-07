@@ -1,7 +1,6 @@
 {
   "name": "silicaui-builder",
   "version": "0.0.0",
-  "private": true,
   "description": "silicaui's visual builder — chrome built ON silicaui (Tailwind v4 plugin) + silicaui-react, over a framework-neutral document engine.",
   "type": "module",
   "license": "MIT",
@@ -27,6 +26,7 @@
     "dev": "tsup --watch",
     "harness": "vite harness",
     "typecheck": "tsc --noEmit",
+    "verify:symbols": "esbuild probe-symbols.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-symbols.mjs && node node_modules/.cache/probe-symbols.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

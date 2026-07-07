@@ -22,9 +22,20 @@ const USED = {
   // form controls
   textarea: "wrap-text", select: "chevrons-up-down", checkbox: "square-check",
   radio: "circle-dot", toggle: "toggle-left",
+  // nav / feedback / data components
+  breadcrumb: "chevrons-right", steps: "list-ordered", pagination: "ellipsis",
+  progress: "activity", loading: "loader-circle", kbd: "keyboard",
+  stat: "trending-up", avatar: "user", collapse: "chevrons-down-up",
+  table: "table", timeline: "milestone",
+  // block-category glyphs (marketing sections)
+  quote: "quote", pricing: "circle-dollar-sign", team: "users",
+  contact: "mail", gallery: "images", star: "star", cta: "megaphone",
+  // interactive-composite glyphs
+  tabs: "app-window", dropdown: "square-chevron-down",
   // chrome / ui
   lock: "lock", shared: "link-2", undo: "undo-2", redo: "redo-2", command: "command",
   plus: "plus", chevron: "chevron-right", close: "x", sun: "sun", moon: "moon",
+  search: "search",
   monitor: "monitor", tablet: "tablet", smartphone: "smartphone",
   page: "file", layout: "panels-top-left", theme: "palette", dot: "circle",
   // theme editor

@@ -14,7 +14,7 @@ import type { Document as SuiDocument, RenderedPage, Site } from "silicaui-html"
 import { renderSite } from "silicaui-html";
 import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "silicaui-react";
 import { Editor } from "../engine";
-import { EditorProvider, StudioThemeProvider, useEditor, useHistory, usePages } from "./editor-context";
+import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { useEditorShortcuts } from "./use-shortcuts";
 import { ThemeEditor } from "./ThemeEditor";
@@ -103,6 +103,7 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
   const editor = useEditor();
   const { canUndo, canRedo } = useHistory();
   const { activeId } = usePages();
+  const editingSymbol = useEditingSymbol();
   const [mode, setMode] = React.useState<Mode>("page");
   const [device, setDevice] = React.useState("desktop");
   const [appearance, setAppearance] = React.useState<Appearance>("light");
@@ -202,6 +203,26 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
           {publishing ? "Publishing…" : "Publish"}
         </Button>
       </header>
+
+      {/* symbol-editing banner — the whole spine is retargeted at a component
+          master; edits here propagate to every instance. Leave via Done (or the
+          mode toggle, which exits the master). */}
+      {editingSymbol && (
+        <div
+          className="flex items-center gap-2 h-9 flex-none px-3.5 bg-secondary/12 border-b border-secondary/30 text-sm"
+          data-testid="symbol-banner"
+        >
+          <Icon name="box" className="text-secondary" />
+          <span>
+            Editing component <span className="font-semibold">{editingSymbol.name}</span> — changes apply to every
+            instance.
+          </span>
+          <span className="flex-1" />
+          <Button size="sm" color="secondary" onClick={() => editor.exitSymbol()}>
+            Done
+          </Button>
+        </div>
+      )}
 
       {/* body */}
       <div className="grid flex-1 min-h-0 grid-cols-[264px_1fr_320px]">

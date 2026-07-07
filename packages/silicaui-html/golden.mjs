@@ -11,7 +11,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { toHtml } from "./dist/index.js";
-import { faqAccordion, featureGrid, heroSplitCta } from "./dist/blocks/index.js";
+import { faqAccordion, featureGrid, heroSplitCta, listBlocks } from "./dist/blocks/index.js";
 
 const FIXTURE = fileURLToPath(new URL("./golden.fixture.txt", import.meta.url));
 
@@ -83,7 +83,36 @@ const synthetic = e("section", {
     c("Radio", { class: "radio", props: { name: "r", value: "1" } }),
     c("Toggle", { class: "toggle", props: { name: "t", disabled: true } }),
     c("Field", { class: "field", children: [e("label", { class: "field-label", text: "Name" }), c("Input", { class: "input", props: {} })] }),
+    // Form: auto `form` behavior marker; props.action → action binding; an
+    // explicit `data`/`behavior` on the node is respected (never clobbered).
     c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
+    c("Form", { class: "flex", props: { action: "subscribe" }, children: [c("Input", { class: "input", props: { name: "email", type: "email" } })] }),
+    c("Form", { id: "f3", class: "flex", props: { action: "ignored" }, data: { kind: "action", ref: "explicit" }, children: [] }),
+    // ── Nav/Feedback/Data components: items lists, prop-driven structures, edges ──
+    c("Breadcrumb", { class: "breadcrumb", props: { items: ["Home", "Library & Docs", "Data"] } }),
+    c("Breadcrumb", { props: { items: [] } }), // empty items → empty <ol>
+    c("Menu", { class: "menu w-56", props: { items: ["Dashboard", "Settings"] } }),
+    c("Steps", { class: "steps", props: { items: ["A", "B", "C"], current: 1 } }),
+    c("Steps", { class: "steps", props: { items: ["Only"] } }), // no current → none primary
+    c("Pagination", { class: "join", props: { pages: 3 } }),
+    c("Pagination", { class: "join", props: {} }), // default 3
+    c("Navbar", { class: "navbar", children: [e("div", { class: "navbar-start", text: "Brand" }), e("div", { class: "navbar-end", text: "Sign in" })] }),
+    c("Alert", { class: "alert alert-info", props: { text: "Heads up <b> & stuff" } }),
+    c("Alert", { class: "alert" }), // default message
+    c("Progress", { class: "progress", props: { value: 70 } }),
+    c("Progress", { class: "progress", props: {} }), // default 50 → w-1/2
+    c("Loading", { class: "loading loading-md" }),
+    c("Skeleton", { class: "skeleton h-24 w-full" }),
+    c("Status", { class: "status status-success" }),
+    c("Kbd", { class: "kbd", props: { text: "Ctrl" } }),
+    c("Stat", { class: "stats", props: { title: "Users", value: "1,204", desc: "↗ 12%" } }),
+    c("Stat", { class: "stats", props: { value: "42" } }), // value-only (no title/desc rows)
+    c("Avatar", { class: "avatar w-12 rounded-full", props: { src: "/me.png", alt: "Me & I" } }),
+    c("Avatar", { class: "avatar", props: {} }), // no src → alt="" only
+    c("Collapse", { class: "collapse", props: { title: "More", content: "Hidden body" } }),
+    c("Collapse", { class: "collapse", props: { title: "Custom" }, children: [e("p", { text: "Rich body & <x>" })] }),
+    c("Timeline", { class: "timeline", props: { items: ["Founded", "Launched"] } }),
+    c("Table", { class: "table", children: [e("thead", { children: [e("tr", { children: [e("th", { text: "Name" })] })] })] }),
     // ── Metadata lowering across every DataBinding + behavior + part ──
     e("div", { id: "n1", class: "menu", data: { kind: "value", ref: "user.name" } }),
     e("ul", { id: "n2", data: { kind: "collection", ref: "items" }, children: [e("li", { text: "x" })] }),
@@ -102,10 +131,17 @@ const synthetic = e("section", {
 function renderCorpus() {
   const parts = [];
   const push = (label, html) => parts.push(`### ${label}\n${html}`);
+  // The three original blocks in all three render modes (plain / prefixed / ids).
   for (const [name, blk] of [["hero", heroSplitCta], ["faq", faqAccordion], ["feat", featureGrid]]) {
     push(`block:${name}:plain`, toHtml(blk));
     push(`block:${name}:prefix`, toHtml(blk, { prefix: "st-" }));
     push(`block:${name}:ids`, toHtml(blk, { ids: true }));
+  }
+  // Every registered block (plain + prefixed) — locks the whole marketing library's
+  // markup and proves the prefixer walks each block's class strings correctly.
+  for (const blk of listBlocks()) {
+    push(`lib:${blk.key}:plain`, toHtml(blk));
+    push(`lib:${blk.key}:prefix`, toHtml(blk, { prefix: "st-" }));
   }
   push("synthetic:plain", toHtml(synthetic));
   push("synthetic:prefix", toHtml(synthetic, { prefix: "st-" }));
