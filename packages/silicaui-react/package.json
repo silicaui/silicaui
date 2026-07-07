@@ -1,6 +1,6 @@
 {
   "name": "silicaui-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Silica UI's React layer — thin components over the Silica CSS classes.",
   "type": "module",
   "license": "MIT",
@@ -17,6 +17,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
     }
   },
   "main": "./dist/index.js",
@@ -26,6 +30,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./server": {
+        "types": "./dist/server.d.ts",
+        "import": "./dist/server.js"
       }
     }
   },

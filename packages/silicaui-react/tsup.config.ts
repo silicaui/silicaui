@@ -6,7 +6,7 @@ import { defineConfig } from "tsup";
 const outDir = join(dirname(fileURLToPath(import.meta.url)), "dist");
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: ["src/index.ts", "src/server.ts"],
   format: ["esm"],
   dts: true,
   clean: true,
