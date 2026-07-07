@@ -1,6 +1,6 @@
 {
   "name": "silicaui-react",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Silica UI's React layer — thin components over the Silica CSS classes.",
   "type": "module",
   "license": "MIT",
