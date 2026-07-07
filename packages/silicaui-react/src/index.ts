@@ -554,6 +554,39 @@ export type { DropzoneProps, DropzoneRejection } from "./dropzone";
 export { Wizard } from "./wizard";
 export type { WizardProps, WizardStep } from "./wizard";
 
+export { Wordmark, WordmarkAccent } from "./wordmark";
+export type { WordmarkProps, WordmarkAccentProps } from "./wordmark";
+
+export { SelectionList } from "./selection-list";
+export type { SelectionListProps, SelectionListItem } from "./selection-list";
+
+export {
+  SidebarProvider,
+  useSidebar,
+  Sidebar,
+  SidebarHeader,
+  SidebarHeaderBrand,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarItem,
+  SidebarTrigger,
+} from "./sidebar";
+export type {
+  SidebarProviderProps,
+  SidebarProps,
+  SidebarSide,
+  SidebarHeaderProps,
+  SidebarHeaderBrandProps,
+  SidebarContentProps,
+  SidebarFooterProps,
+  SidebarGroupProps,
+  SidebarGroupLabelProps,
+  SidebarItemProps,
+  SidebarTriggerProps,
+} from "./sidebar";
+
 export {
   SilicaProvider,
   useSilicaConfig,

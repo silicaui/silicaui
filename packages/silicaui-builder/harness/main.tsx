@@ -51,10 +51,20 @@ const bus = window as unknown as {
 };
 bus.__changeCount = 0;
 
+// Local crash-recovery: ON for the real designer, OFF under test automation (so
+// e2e specs start clean and don't restore a prior test's edits) — unless a spec
+// opts back in with `?persist=1` (the persistence spec, which cleans up after).
+const params = new URLSearchParams(location.search);
+const persist = params.has("persist")
+  ? params.get("persist") !== "0"
+  : !navigator.webdriver;
+const persistKey = persist ? "silicaui-designer" : null;
+
 createRoot(document.getElementById("app") as HTMLElement).render(
   <React.StrictMode>
     <Builder
       document={stamp(heroSplitCta, theme)}
+      persistKey={persistKey}
       onChange={(site) => {
         bus.__lastChange = site;
         bus.__changeCount += 1;

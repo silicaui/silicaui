@@ -86,6 +86,9 @@ import { TabsDemo } from "./Tabs";
 import { CheckboxDemo } from "./Checkbox";
 import { RadioDemo } from "./Radio";
 import { ToggleDemo } from "./Toggle";
+import { WordmarkDemo } from "./Wordmark";
+import { SelectionListDemo } from "./SelectionList";
+import { SidebarDemo } from "./Sidebar";
 
 /**
  * One entry per component. The shell walks this list to render every demo under
@@ -189,4 +192,7 @@ export const DEMOS: DemoEntry[] = [
     { id: "checkbox", title: "Checkbox", Demo: CheckboxDemo },
     { id: "radio", title: "Radio", Demo: RadioDemo },
     { id: "toggle", title: "Toggle", Demo: ToggleDemo },
+    { id: "wordmark", title: "Wordmark", Demo: WordmarkDemo },
+    { id: "selection-list", title: "Selection List", Demo: SelectionListDemo },
+    { id: "sidebar", title: "Sidebar", Demo: SidebarDemo },
 ];

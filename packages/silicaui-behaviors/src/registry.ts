@@ -7,6 +7,7 @@ import { menu } from "./behaviors/menu";
 import { scrollspy, toc } from "./behaviors/scrollspy";
 import { counter } from "./behaviors/counter";
 import { tabs } from "./behaviors/tabs";
+import { sidebar } from "./behaviors/sidebar";
 import type { BehaviorHandler, BehaviorType } from "./types";
 
 /** The closed dispatch table — one handler per `BehaviorType` (architecture §7). */
@@ -21,4 +22,5 @@ export const HANDLERS: Record<BehaviorType, BehaviorHandler> = {
   dismiss,
   toc,
   form,
+  sidebar,
 };

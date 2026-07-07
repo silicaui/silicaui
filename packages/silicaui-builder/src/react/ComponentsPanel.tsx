@@ -11,6 +11,7 @@ import * as React from "react";
 import { Button, Input } from "silicaui-react";
 import { useEditingSymbol, useEditor, useSymbols } from "./editor-context";
 import { Icon } from "./Icon";
+import { NewComponentButton } from "./ComponentStarterDialog";
 
 export function ComponentsPanel() {
   const editor = useEditor();
@@ -33,16 +34,13 @@ export function ComponentsPanel() {
       <div className="flex items-center gap-1.5 h-10 px-3.5 border-b border-base-200 text-sm font-semibold">
         <Icon name="box" /> Components
         <span className="ml-auto" />
-        <Button
-          variant="ghost"
-          size="sm"
-          shape="square"
-          aria-label="New component"
-          data-testid="new-component"
-          onClick={() => editor.createBlankSymbol()}
-        >
-          <Icon name="plus" />
-        </Button>
+        <NewComponentButton
+          trigger={
+            <Button variant="ghost" size="sm" shape="square" aria-label="New component" data-testid="new-component">
+              <Icon name="plus" />
+            </Button>
+          }
+        />
       </div>
 
       {symbols.length === 0 ? (

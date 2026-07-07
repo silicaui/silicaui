@@ -90,6 +90,9 @@ import { wizard } from "./components/wizard.js";
 import { richTextEditor } from "./components/rich-text-editor.js";
 import { sortableList } from "./components/sortable-list.js";
 import { resizablePanels } from "./components/resizable-panels.js";
+import { wordmark } from "./components/wordmark.js";
+import { selectionList } from "./components/selection-list.js";
+import { sidebar } from "./components/sidebar.js";
 
 /**
  * Parse the `colors` option from `@plugin "silicaui" { colors: … }`.
@@ -228,6 +231,9 @@ export default plugin.withOptions(
       addBase(richTextEditor(prefix));
       addBase(sortableList(prefix));
       addBase(resizablePanels(prefix));
+      addBase(wordmark(colors, prefix));
+      addBase(selectionList(prefix));
+      addBase(sidebar(colors, prefix));
       addBase(tooltip(prefix));
       addBase(dialog(prefix));
       addBase(popover(prefix));

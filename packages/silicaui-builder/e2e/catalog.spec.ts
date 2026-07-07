@@ -153,7 +153,8 @@ test("editing a list-prop (Breadcrumb items) rewrites the rendered items", async
 
   await insert(page, "breadcrumb");
   const crumb = canvas.locator("nav.breadcrumb[data-sui-id]").first();
-  await crumb.click(); // select → Inspector shows the Items list editor
+  await crumb.click(); // select
+  await page.getByRole("button", { name: "Settings" }).click(); // props live in Settings
 
   // The Items row is a newline textarea; four lines → four <li>.
   const items = page.locator("div.mb-2", { hasText: "Items" }).locator("textarea");

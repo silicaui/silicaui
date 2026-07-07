@@ -38,8 +38,9 @@ test("Component mode: create a blank component from scratch, edit it, and place 
   await page.getByRole("button", { name: "Component", exact: true }).click();
   await expect(page.getByText("No component open")).toBeVisible();
 
-  // Create a blank component — it opens for editing (the starter master renders).
+  // Create a blank component — the New button opens the starter picker; pick Blank.
   await page.getByTestId("new-component").click();
+  await page.getByTestId("starter:blank").click();
   await expect(canvas.getByText("New component")).toBeVisible();
   await expect(page.locator('[data-testid^="component-open:"]')).toHaveCount(1);
 

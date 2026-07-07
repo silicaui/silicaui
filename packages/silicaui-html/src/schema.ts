@@ -117,7 +117,8 @@ export type BehaviorType =
   | "counter"
   | "dismiss"
   | "toc"
-  | "form";
+  | "form"
+  | "sidebar";
 
 export type BehaviorRole =
   | "track"

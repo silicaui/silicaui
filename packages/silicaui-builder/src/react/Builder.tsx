@@ -14,6 +14,7 @@ import type { Document as SuiDocument, RenderedPage, Site } from "silicaui-html"
 import { renderSite } from "silicaui-html";
 import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "silicaui-react";
 import { Editor } from "../engine";
+import { DraftStore } from "../persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { useEditorShortcuts } from "./use-shortcuts";
@@ -23,6 +24,7 @@ import { ThemeLibrary } from "./ThemeLibrary";
 import { Canvas } from "./Canvas";
 import { PagesPanel } from "./PagesPanel";
 import { ComponentsPanel } from "./ComponentsPanel";
+import { NewComponentButton } from "./ComponentStarterDialog";
 import { Navigator } from "./Navigator";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
@@ -293,9 +295,13 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
                 title="No component open"
                 description="Pick a component on the left, create a new one, or select an element on a page and save it as a component."
                 actions={
-                  <Button size="sm" color="primary" onClick={() => editor.createBlankSymbol()}>
-                    <Icon name="plus" /> New component
-                  </Button>
+                  <NewComponentButton
+                    trigger={
+                      <Button size="sm" color="primary">
+                        <Icon name="plus" /> New component
+                      </Button>
+                    }
+                  />
                 }
               />
             </div>
@@ -361,36 +367,155 @@ export interface BuilderProps {
    * the Publish button is disabled.
    */
   onPublish?: (payload: PublishPayload) => void | Promise<void>;
+  /**
+   * Local crash-recovery. When set (the default), every edit is autosaved to a
+   * durable LOCAL store (IndexedDB + a synchronous localStorage flush on unload)
+   * under this key, and restored on the next load — so work survives a reload,
+   * closed tab, or power cut even with no host backend. Pass `null` to disable
+   * (e.g. a host that is fully server-authoritative). Independent of `onChange`.
+   */
+  persistKey?: string | null;
 }
 
-/** The full builder. Mount it anywhere; it fills its host container. */
-export function Builder({ document, studioTheme = "studio", onChange, onPublish }: BuilderProps) {
-  const [editor] = React.useState(() => new Editor(document));
+const DEFAULT_PERSIST_KEY = "silicaui-builder";
 
-  // Persist-on-change: relay stored-state edits to the host. Selection / active
-  // page-or-tree switches and the saved-theme library are view concerns that
-  // don't alter the extracted Site, so they're filtered out (no redundant saves).
+/** The full builder. Mount it anywhere; it fills its host container. */
+export function Builder({
+  document,
+  studioTheme = "studio",
+  onChange,
+  onPublish,
+  persistKey = DEFAULT_PERSIST_KEY,
+}: BuilderProps) {
+  const store = React.useMemo(() => (persistKey ? new DraftStore(persistKey) : null), [persistKey]);
+  const docRef = React.useRef(document);
+  // The editor is created only after we've checked storage, so a recovered draft
+  // seeds it directly (no editor-swap flash). `gen` bumps on every editor swap so
+  // the whole subtree remounts — no stale canvas DOM (e.g. a contentEditable edit)
+  // survives a restore / start-fresh. `recoveredAt` drives the banner.
+  const [current, setCurrent] = React.useState<{ editor: Editor; recoveredAt: number | null; gen: number } | null>(
+    null,
+  );
+  const editor = current?.editor ?? null;
+
+  // Boot: restore a saved draft if one exists, else seed from the `document` prop.
   React.useEffect(() => {
-    if (!onChange) return;
-    return editor.subscribe((e) => {
-      if (e.kind !== "selection" && e.kind !== "active" && e.kind !== "library") {
-        onChange(editor.extractSite());
-      }
+    let cancelled = false;
+    void (async () => {
+      const snap = store ? await store.load() : undefined;
+      if (cancelled) return;
+      setCurrent({ editor: new Editor(snap?.site ?? docRef.current), recoveredAt: snap?.savedAt ?? null, gen: 0 });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [store]);
+
+  // Autosave (local durable store) + relay stored-state edits to the host. Selection
+  // / active page-or-tree switches and the saved-theme library are view concerns
+  // that don't alter the extracted Site, so they're filtered out. A final flush runs
+  // on tab-hide / pagehide / unmount so the very last edit always lands.
+  React.useEffect(() => {
+    if (!editor) return;
+    const relay = () => {
+      const site = editor.extractSite();
+      store?.save(site);
+      onChange?.(site);
+    };
+    const unsub = editor.subscribe((e) => {
+      if (e.kind !== "selection" && e.kind !== "active" && e.kind !== "library") relay();
     });
-  }, [editor, onChange]);
+    const flush = () => store?.flush();
+    window.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      unsub();
+      window.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flush);
+      store?.flush();
+    };
+  }, [editor, store, onChange]);
+
+  // "Start fresh" — discard the recovered draft and reseed from the prop document.
+  // Bumping `gen` remounts the subtree so no stale canvas DOM carries over.
+  const startFresh = React.useCallback(() => {
+    void store?.clear();
+    setCurrent((c) => ({ editor: new Editor(docRef.current), recoveredAt: null, gen: (c?.gen ?? 0) + 1 }));
+  }, [store]);
+
+  const dismissBanner = React.useCallback(() => setCurrent((c) => (c ? { ...c, recoveredAt: null } : c)), []);
+
+  if (!editor || !current) {
+    return (
+      <div
+        className="grid h-full place-items-center bg-base-100 text-base-content"
+        data-theme={studioTheme}
+      >
+        <Icon name="loading" />
+      </div>
+    );
+  }
 
   return (
-    <EditorProvider editor={editor}>
+    <EditorProvider key={current.gen} editor={editor}>
       <StudioThemeProvider value={studioTheme}>
         <div
           className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased"
           data-theme={studioTheme}
         >
           <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
+            {current.recoveredAt !== null && (
+              <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
+            )}
             <Chrome onPublish={onPublish} />
           </ErrorBoundary>
         </div>
       </StudioThemeProvider>
     </EditorProvider>
   );
+}
+
+/** A slim, dismissible bar confirming a recovered session — reassurance that work
+ *  wasn't lost, with an escape hatch to start over from the original document. */
+function RecoveryBanner({
+  at,
+  onDismiss,
+  onStartFresh,
+}: {
+  at: number;
+  onDismiss: () => void;
+  onStartFresh: () => void;
+}) {
+  // Auto-dismiss after a few seconds so it never lingers as chrome.
+  React.useEffect(() => {
+    const t = setTimeout(onDismiss, 7000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+  return (
+    <div
+      data-testid="recovery-banner"
+      className="flex flex-none items-center gap-2 border-b border-base-300 bg-primary/10 px-3.5 py-1.5 text-xs text-base-content"
+    >
+      <Icon name="database" />
+      <span>Restored your last session ({relativeTime(at)}).</span>
+      <span className="flex-1" />
+      <button type="button" className="btn btn-xs btn-ghost" onClick={onStartFresh}>
+        Start fresh
+      </button>
+      <button type="button" className="btn btn-xs btn-ghost btn-square" aria-label="Dismiss" onClick={onDismiss}>
+        <Icon name="close" />
+      </button>
+    </div>
+  );
+}
+
+/** "just now" / "3 min ago" / "2 hr ago" — a coarse relative timestamp. */
+function relativeTime(at: number): string {
+  const s = Math.max(0, Math.round((Date.now() - at) / 1000));
+  if (s < 45) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  return `${Math.round(h / 24)} d ago`;
 }

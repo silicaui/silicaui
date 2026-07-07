@@ -325,6 +325,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   // Simple element atoms.
   elementDef("Text", "content", "text", "p"),
   elementDef("Badge", "content", "label", "span"),
+  elementDef("Wordmark", "content", "text", "span"),
   elementDef("Card", "layout", "box", "div", true),
   elementDef("Section", "layout", "section", "section", true),
   elementDef("Container", "layout", "box", "div", true),
@@ -355,6 +356,43 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       if (!out.behavior) out.behavior = { type: "form" };
       const action = n.props?.action;
       if (action != null && !out.data) out.data = { kind: "action", ref: String(action) };
+      return out;
+    },
+  },
+
+  // Sidebar — a persistent nav panel (`<aside>`) that collapses in place to an
+  // icon rail, unlike Drawer (which overlays and dismisses). Always carries the
+  // `sidebar` behavior so a `SidebarTrigger` nested anywhere inside it works
+  // with zero authored wiring; `props.defaultCollapsed` seeds the initial state.
+  {
+    name: "Sidebar",
+    category: "layout",
+    label: "Sidebar",
+    icon: "sidebar",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "aside", { children: n.children });
+      if (!out.behavior) {
+        const defaultCollapsed = n.props?.defaultCollapsed;
+        out.behavior = {
+          type: "sidebar",
+          ...(defaultCollapsed ? { params: { defaultCollapsed: true } } : {}),
+        };
+      }
+      return out;
+    },
+  },
+  // SidebarTrigger — the sidebar's collapse/expand button. A structural PART
+  // (`trigger`), not a behavior root itself — it must be authored somewhere
+  // inside the `Sidebar` it controls (e.g. its header).
+  {
+    name: "SidebarTrigger",
+    category: "nav",
+    label: "Sidebar toggle",
+    icon: "sidebar",
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button", "aria-label": "Toggle sidebar" } });
+      if (!out.part) out.part = "trigger";
       return out;
     },
   },

@@ -42,6 +42,9 @@ const USED = {
   shuffle: "shuffle", sliders: "sliders-horizontal", download: "download",
   check: "check", droplet: "droplet", pencil: "pencil", trash: "trash-2",
   warning: "triangle-alert",
+  // inspector settings tab
+  settings: "settings-2", eye: "eye", eyeOff: "eye-off", code: "code",
+  accessibility: "accessibility", database: "database", hash: "hash",
 };
 
 // Pull the inner markup out of each <svg>…</svg> (Lucide files share one root svg).

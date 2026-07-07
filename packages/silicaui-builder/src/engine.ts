@@ -10,7 +10,7 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { ComponentNode, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "silicaui-html";
+import type { ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "silicaui-html";
 import { applyOverrides, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "silicaui-html";
 import { defaultFrameRoot } from "./frame";
 
@@ -390,9 +390,8 @@ export class Editor {
    * canvas safelist scanner emits them.
    */
   createBlankSymbol(name?: string): string {
-    const label = name?.trim() || `Component ${this.symbolsViewCache.length + 1}`;
-    const symId = defaultMakeId();
-    const master = stampTree(
+    return this.createComponent(
+      name,
       el("div", "flex flex-col gap-3 p-6", {
         children: [
           el("h3", "text-lg font-semibold text-base-content", { text: "New component" }),
@@ -400,6 +399,17 @@ export class Editor {
         ],
       }),
     );
+  }
+
+  /**
+   * Create a new component from a starter `root` (a blank shell or a ready-made
+   * section template) and OPEN it for editing. The root is deep-stamped with fresh
+   * ids so a shared block template is safe to pass. Undoable. Returns the symbol id.
+   */
+  createComponent(name: string | undefined, root: Node): string {
+    const label = name?.trim() || `Component ${this.symbolsViewCache.length + 1}`;
+    const symId = defaultMakeId();
+    const master = stampTree(root);
     this.pushHistory();
     (this.site.symbols ??= {})[symId] = { id: symId, name: label, root: master };
     this.editingSymbolId = symId;
@@ -702,6 +712,38 @@ export class Editor {
       const value = label.trim();
       if (value) found.node.label = value;
       else delete found.node.label;
+    });
+  }
+
+  /**
+   * Change an ELEMENT node's semantic tag (a heading level h1→h2, or a container
+   * div→section/nav/header/footer). Pure semantics — style rides on `class`, so a
+   * retagged node keeps its look. No-op on components/outlets or a blank tag.
+   */
+  setTag(id: string, tag: string): void {
+    const found = locate(this.activeRoot(), id);
+    if (!found || found.node.kind !== "element") return;
+    const value = tag.trim();
+    if (!value) return;
+    const node = found.node;
+    this.commit("props", () => {
+      node.tag = value;
+    });
+  }
+
+  /**
+   * Set (or clear, with undefined) a node's dynamic-content binding. The union is
+   * "at most one" by construction, so this replaces any existing binding wholesale.
+   * The `ref` is opaque — silicaui never parses it; a host (sparx) interprets it.
+   * Lowers to `data-sui-bind` / `-repeat` / `-action` (+ `href`) in `toHtml`.
+   */
+  setData(id: string, binding: DataBinding | undefined): void {
+    const found = locate(this.activeRoot(), id);
+    if (!found) return;
+    const node = found.node;
+    this.commit("props", () => {
+      if (binding) node.data = binding;
+      else delete node.data;
     });
   }
 

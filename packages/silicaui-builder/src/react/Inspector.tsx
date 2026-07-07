@@ -12,9 +12,9 @@
  * utility a node can WEAR is a LITERAL string here so the harness safelists it.
  */
 import * as React from "react";
-import type { ComponentNode, Node, Theme } from "silicaui-html";
+import type { ComponentNode, DataBinding, ElementNode, Node, Theme } from "silicaui-html";
 import { rolesOf, colorValue, SURFACE_TOKENS, walk } from "silicaui-html";
-import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "silicaui-react";
+import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
 import { Icon } from "./Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
@@ -289,15 +289,13 @@ function SwatchGroup({
 }
 
 // ── the panel ─────────────────────────────────────────────────────────────────
+type InspectorTab = "design" | "settings";
+
 export function Inspector() {
-  const editor = useEditor();
   const node = useSelectedNode();
-  const theme = useTheme();
-  const mode = theme.mode ?? "light";
-  // Theme-derived color vocab — recomputed as the theme (or its roles) change.
-  const textColors = React.useMemo(() => textColorOptions(theme, mode), [theme, mode]);
-  const bgColors = React.useMemo(() => bgColorOptions(theme, mode), [theme, mode]);
-  const btnColors = React.useMemo(() => btnColorOptions(theme, mode), [theme, mode]);
+  // Which tab is showing. Persists across selection changes (the Inspector stays
+  // mounted), so moving between nodes keeps you in Design or Settings.
+  const [tab, setTab] = React.useState<InspectorTab>("design");
 
   if (!node || node.kind === "outlet" || !node.id) {
     return (
@@ -321,8 +319,53 @@ export function Inspector() {
     return <InstancePanel id={id} symbolId={node.instanceOf} node={node} />;
   }
 
-  const cls = node.class ?? "";
-  // Swap a group's active member for `value` ("" clears the group).
+  return (
+    <div className="flex flex-1 min-h-0 flex-col">
+      <IdentityHeader node={node} />
+      <div className="flex-none border-b border-base-200 px-3 py-2">
+        <ToggleGroup
+          className="toggle-group-sm w-full"
+          aria-label="Inspector tab"
+          value={[tab]}
+          onValueChange={(v: string[]) => v.length && setTab(v[0] as InspectorTab)}
+        >
+          <ToggleGroupItem value="design" className="flex-1">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="sliders" /> Design
+            </span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="settings" className="flex-1">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="settings" /> Settings
+            </span>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-auto">
+        {tab === "design" ? <DesignTab id={id} node={node} /> : <SettingsTab id={id} node={node} />}
+      </div>
+
+      <NodeFooter id={id} node={node} />
+    </div>
+  );
+}
+
+/**
+ * The DESIGN tab — pure visual styling over the one class set: the recognized
+ * family block (Button), Text (color/size/weight/align), Surface (bg/padding/
+ * corners), and the raw class escape hatch. Content, semantics, and bindings live
+ * in the Settings tab.
+ */
+function DesignTab({ id, node }: { id: string; node: Node }) {
+  const editor = useEditor();
+  const theme = useTheme();
+  const mode = theme.mode ?? "light";
+  const textColors = React.useMemo(() => textColorOptions(theme, mode), [theme, mode]);
+  const bgColors = React.useMemo(() => bgColorOptions(theme, mode), [theme, mode]);
+  const btnColors = React.useMemo(() => btnColorOptions(theme, mode), [theme, mode]);
+
+  const cls = node.kind !== "outlet" ? node.class ?? "" : "";
   const setToken = (group: readonly string[], value: string) => {
     const t = tokensOf(cls);
     for (const c of group) t.delete(c);
@@ -331,9 +374,7 @@ export function Inspector() {
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto">
-      <IdentityHeader node={node} />
-
+    <>
       {node.kind === "component" && node.component === "Button" && (
         <Group label="Button">
           <Row label="Color">
@@ -347,12 +388,6 @@ export function Inspector() {
           </Row>
         </Group>
       )}
-
-      {node.kind === "component" && node.component in COMPONENT_PROPS && (
-        <PropsGroup id={id} node={node} />
-      )}
-
-      {editableText(node) !== undefined && <ContentField id={id} node={node} />}
 
       <Group label="Text">
         <Row label="Color">
@@ -382,24 +417,392 @@ export function Inspector() {
       </Group>
 
       <ClassField id={id} cls={cls} />
+    </>
+  );
+}
 
-      <Group label="Node">
-        <button
-          type="button"
-          className="btn btn-sm btn-soft btn-secondary w-full mb-2"
-          onClick={() => editor.createSymbol(nodeName(node))}
-        >
-          <Icon name="box" /> Save as component
+/** Node-level actions, pinned below the tabs so they're reachable from either. */
+function NodeFooter({ id, node }: { id: string; node: Node }) {
+  const editor = useEditor();
+  return (
+    <div className="flex-none border-t border-base-200 px-3.5 py-3">
+      <button
+        type="button"
+        className="btn btn-sm btn-soft btn-secondary w-full mb-2"
+        onClick={() => editor.createSymbol(nodeName(node))}
+      >
+        <Icon name="box" /> Save as component
+      </button>
+      <div className="flex gap-2">
+        <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
+          Duplicate
         </button>
-        <div className="flex gap-2">
-          <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
-            Duplicate
-          </button>
-          <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
-            Delete
+        <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Settings tab ──────────────────────────────────────────────────────────────
+/** Tag families offered by the semantic-tag control. A node can only be retagged
+ *  within its own family (a heading stays text-level, a container stays a block),
+ *  so changing the tag never turns an `<img>` into a `<section>`. */
+const TAG_FAMILIES: readonly (readonly string[])[] = [
+  ["h1", "h2", "h3", "h4", "h5", "h6", "p"],
+  ["div", "section", "article", "nav", "header", "footer", "aside", "main"],
+  ["span", "a", "strong", "em", "small", "label"],
+  ["ul", "ol"],
+];
+const familyOf = (tag: string): readonly string[] | undefined =>
+  TAG_FAMILIES.find((f) => f.includes(tag));
+
+/** A text/number input that commits on blur / Enter (one undo step per edit), with
+ *  draft state reseeded when the selection (`reseed`) or upstream value changes. */
+function CommitInput({
+  value,
+  reseed,
+  onCommit,
+  placeholder,
+  type = "text",
+  mono = false,
+}: {
+  value: string;
+  reseed: string;
+  onCommit: (v: string) => void;
+  placeholder?: string;
+  type?: "text" | "number";
+  mono?: boolean;
+}) {
+  const [draft, setDraft] = React.useState(value);
+  React.useEffect(() => setDraft(value), [value, reseed]);
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+  return (
+    <Input
+      className={`w-full ${mono ? "font-mono text-xs" : ""}`}
+      size="sm"
+      type={type}
+      value={draft}
+      placeholder={placeholder}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        }
+      }}
+    />
+  );
+}
+
+/**
+ * The SETTINGS tab — everything that isn't visual style: the element's identity
+ * (name/tag/id/visibility), its content, links & host actions, dynamic data
+ * bindings, accessibility, raw HTML attributes, and custom `data-*`. Fields map
+ * straight onto the typed schema slots (`label`, `tag`, `attrs`, `data`), so
+ * editing here changes the published HTML.
+ */
+function SettingsTab({ id, node }: { id: string; node: Node }) {
+  return (
+    <>
+      <ElementSection id={id} node={node} />
+      {editableText(node) !== undefined && <ContentField id={id} node={node} />}
+      {node.kind === "component" && node.component in COMPONENT_PROPS && <PropsGroup id={id} node={node} />}
+      {node.kind === "element" && node.tag === "a" && <LinkSection id={id} node={node} />}
+      <DataSection id={id} node={node} />
+      {node.kind === "element" && <AccessibilitySection id={id} node={node} isImg={node.tag === "img"} />}
+      {node.kind === "element" && <AttributesSection id={id} node={node} />}
+      {node.kind === "element" && <CustomDataSection id={id} node={node} />}
+    </>
+  );
+}
+
+/** Identity + semantics: the Navigator name (`label`), the element tag (retag
+ *  within its family), the read-only node id (for anchor links / host reference),
+ *  and a visibility toggle (a `hidden` class token). */
+function ElementSection({ id, node }: { id: string; node: Node }) {
+  const editor = useEditor();
+  const tag = node.kind === "element" ? node.tag : undefined;
+  const family = tag ? familyOf(tag) : undefined;
+  const cls = node.kind !== "outlet" ? node.class ?? "" : "";
+  const hidden = tokensOf(cls).has("hidden");
+  const toggleHidden = (on: boolean) => {
+    const t = tokensOf(cls);
+    if (on) t.add("hidden");
+    else t.delete("hidden");
+    editor.setClass(id, [...t].join(" "));
+  };
+  return (
+    <Group label="Element">
+      <Row label="Name">
+        <CommitInput
+          value={node.kind !== "outlet" ? node.label ?? "" : ""}
+          reseed={id}
+          placeholder={nodeName(node)}
+          onCommit={(v) => editor.setLabel(id, v)}
+        />
+      </Row>
+      {tag && family && (
+        <Row label="Tag">
+          <NativeSelect size="sm" data-testid="settings-tag" value={tag} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => editor.setTag(id, e.target.value)}>
+            {family.map((t) => (
+              <option key={t} value={t}>
+                {`<${t}>`}
+              </option>
+            ))}
+          </NativeSelect>
+        </Row>
+      )}
+      <Row label="ID">
+        <div className="flex items-center gap-1">
+          <Input className="w-full font-mono text-xs" size="sm" value={id} readOnly spellCheck={false} />
+          <button
+            type="button"
+            title="Copy id"
+            className="btn btn-xs btn-ghost flex-none"
+            onClick={() => navigator.clipboard?.writeText(id)}
+          >
+            <Icon name="hash" />
           </button>
         </div>
-      </Group>
+      </Row>
+      <Row label="Visibility">
+        <label className="flex items-center gap-2 text-xs text-base-content/60">
+          <Toggle size="sm" checked={hidden} onChange={(e: React.ChangeEvent<HTMLInputElement>) => toggleHidden(e.target.checked)} />
+          <Icon name={hidden ? "eyeOff" : "eye"} /> {hidden ? "Hidden" : "Visible"}
+        </label>
+      </Row>
+    </Group>
+  );
+}
+
+/** A static link (`<a>`): href + open-in-new-tab (target/rel) + nofollow. Distinct
+ *  from a host action (a Data binding of kind "action"). */
+function LinkSection({ id, node }: { id: string; node: ElementNode }) {
+  const editor = useEditor();
+  const attrs = node.attrs ?? {};
+  const href = attrs.href != null ? String(attrs.href) : "";
+  const rel = attrs.rel != null ? String(attrs.rel) : "";
+  const newTab = attrs.target === "_blank";
+  const nofollow = /\bnofollow\b/.test(rel);
+  const setRel = (parts: string[]) => editor.setAttr(id, "rel", parts.length ? parts.join(" ") : undefined);
+  const setNewTab = (on: boolean) => {
+    editor.setAttr(id, "target", on ? "_blank" : undefined);
+    // A new tab needs noopener for safety; add/remove it alongside.
+    const parts = rel.split(/\s+/).filter(Boolean).filter((p) => p !== "noopener");
+    setRel(on ? [...parts, "noopener"] : parts);
+  };
+  const setNofollow = (on: boolean) => {
+    const parts = rel.split(/\s+/).filter(Boolean).filter((p) => p !== "nofollow");
+    setRel(on ? [...parts, "nofollow"] : parts);
+  };
+  return (
+    <Group label="Link">
+      <Row label="URL">
+        <CommitInput value={href} reseed={id} placeholder="https:// or /page or #anchor" onCommit={(v) => editor.setAttr(id, "href", v || undefined)} />
+      </Row>
+      <Row label="Open in new tab">
+        <Toggle size="sm" checked={newTab} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTab(e.target.checked)} />
+      </Row>
+      <Row label="Nofollow">
+        <Toggle size="sm" checked={nofollow} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNofollow(e.target.checked)} />
+      </Row>
+    </Group>
+  );
+}
+
+const DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "None" },
+  { value: "value", label: "Value (fill this node)" },
+  { value: "collection", label: "Collection (repeat children)" },
+  { value: "action", label: "Action (host handler)" },
+];
+
+/** Dynamic content — the node's single `DataBinding`. A kind selector plus an
+ *  opaque `ref` (silicaui never parses it; the host/sparx interprets it), and an
+ *  optional href for the action kind. Lowers to `data-sui-*` in `toHtml`. */
+function DataSection({ id, node }: { id: string; node: Node }) {
+  const editor = useEditor();
+  const data = node.kind !== "outlet" ? node.data : undefined;
+  const kind = data?.kind ?? "";
+  const ref = data?.ref ?? "";
+  const href = data?.kind === "action" ? data.href ?? "" : "";
+  const write = (k: string, r: string, h: string) => {
+    if (!k) return editor.setData(id, undefined);
+    if (k === "action") {
+      const b: DataBinding = { kind: "action", ref: r };
+      if (h) b.href = h;
+      editor.setData(id, b);
+    } else {
+      editor.setData(id, { kind: k as "value" | "collection", ref: r });
+    }
+  };
+  return (
+    <Group label="Data binding">
+      <Row label="Bind">
+        <NativeSelect size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href)}>
+          {DATA_KINDS.map((k) => (
+            <option key={k.value} value={k.value}>
+              {k.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </Row>
+      {kind && (
+        <Row label="Reference">
+          <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write(kind, v, href)} />
+        </Row>
+      )}
+      {kind === "action" && (
+        <Row label="Fallback href">
+          <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write(kind, ref, v)} />
+        </Row>
+      )}
+    </Group>
+  );
+}
+
+/** Accessibility attributes on an element — aria-label, role, tabindex, and (for
+ *  images) alt text. Each writes a whitelisted `attr` the projection emits verbatim. */
+function AccessibilitySection({ id, node, isImg }: { id: string; node: ElementNode; isImg: boolean }) {
+  const editor = useEditor();
+  const attrs = node.attrs ?? {};
+  const val = (k: string) => (attrs[k] != null ? String(attrs[k]) : "");
+  const set = (k: string) => (v: string) => editor.setAttr(id, k, v || undefined);
+  return (
+    <Group label="Accessibility">
+      {isImg && (
+        <Row label="Alt text">
+          <CommitInput value={val("alt")} reseed={id} placeholder="Describe the image" onCommit={set("alt")} />
+        </Row>
+      )}
+      <Row label="ARIA label">
+        <CommitInput value={val("aria-label")} reseed={id} placeholder="Accessible name" onCommit={set("aria-label")} />
+      </Row>
+      <Row label="Role">
+        <CommitInput value={val("role")} reseed={id} placeholder="e.g. button, region" onCommit={set("role")} />
+      </Row>
+      <Row label="Tab index">
+        <CommitInput value={val("tabindex")} reseed={id} type="number" placeholder="0, -1" onCommit={set("tabindex")} />
+      </Row>
+    </Group>
+  );
+}
+
+/** Common HTML attributes — the DOM id (for anchor targets) and title tooltip. */
+function AttributesSection({ id, node }: { id: string; node: ElementNode }) {
+  const editor = useEditor();
+  const attrs = node.attrs ?? {};
+  const val = (k: string) => (attrs[k] != null ? String(attrs[k]) : "");
+  const set = (k: string) => (v: string) => editor.setAttr(id, k, v || undefined);
+  return (
+    <Group label="Attributes">
+      <Row label="DOM id (anchor target)">
+        <CommitInput value={val("id")} reseed={id} placeholder="pricing" mono onCommit={set("id")} />
+      </Row>
+      <Row label="Title (tooltip)">
+        <CommitInput value={val("title")} reseed={id} onCommit={set("title")} />
+      </Row>
+    </Group>
+  );
+}
+
+/** Custom `data-*` attributes — a freeform key/value list stored in `attrs` under
+ *  the `data-` prefix. Editing a key renames the attribute; blanking a row (or its
+ *  key) removes it. A trailing blank row adds a new pair. */
+function CustomDataSection({ id, node }: { id: string; node: ElementNode }) {
+  const attrs = node.attrs ?? {};
+  const pairs = Object.entries(attrs)
+    .filter(([k]) => k.startsWith("data-"))
+    .map(([k, v]) => ({ key: k.slice("data-".length), value: String(v) }));
+  return (
+    <Group label="Custom data">
+      {pairs.length === 0 && (
+        <p className="mb-2 text-xs text-base-content/45">Add <code className="font-mono">data-*</code> attributes for host scripts.</p>
+      )}
+      {pairs.map((p) => (
+        <CustomDataRow key={p.key} id={id} attrs={attrs} existingKey={p.key} value={p.value} />
+      ))}
+      <CustomDataRow id={id} attrs={attrs} existingKey={null} value="" />
+    </Group>
+  );
+}
+
+/** One `data-*` row. An existing row edits/renames/clears its attribute; the blank
+ *  trailing row (existingKey === null) creates a new one once both fields are set. */
+function CustomDataRow({
+  id,
+  attrs,
+  existingKey,
+  value,
+}: {
+  id: string;
+  attrs: Record<string, string | number | boolean>;
+  existingKey: string | null;
+  value: string;
+}) {
+  const editor = useEditor();
+  const [k, setK] = React.useState(existingKey ?? "");
+  const [v, setV] = React.useState(value);
+  React.useEffect(() => {
+    setK(existingKey ?? "");
+    setV(value);
+  }, [existingKey, value, id]);
+
+  const commit = () => {
+    const key = k.trim().replace(/^data-/, "");
+    if (existingKey) {
+      // An existing row: a blank key removes it; a changed key renames it.
+      if (!key) return editor.setAttr(id, `data-${existingKey}`, undefined);
+      if (key !== existingKey) editor.setAttr(id, `data-${existingKey}`, undefined);
+      editor.setAttr(id, `data-${key}`, v);
+      return;
+    }
+    // The creator row materializes only once it has a key — and only from the
+    // VALUE field, so tabbing key→value doesn't write a half-filled pair.
+    if (!key) return;
+    editor.setAttr(id, `data-${key}`, v);
+    setK("");
+    setV("");
+  };
+  return (
+    <div className="mb-1.5 flex items-center gap-1 last:mb-0">
+      <Input
+        className="w-2/5 font-mono text-xs"
+        size="sm"
+        value={k}
+        placeholder="key"
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setK(e.target.value)}
+        onBlur={existingKey !== null ? commit : undefined}
+      />
+      <Input
+        className="flex-1 text-xs"
+        size="sm"
+        value={v}
+        placeholder="value"
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setV(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+      {existingKey !== null && (
+        <button
+          type="button"
+          title="Remove"
+          className="btn btn-xs btn-ghost flex-none text-error"
+          onClick={() => editor.setAttr(id, `data-${existingKey}`, undefined)}
+        >
+          <Icon name="close" />
+        </button>
+      )}
     </div>
   );
 }

@@ -74,7 +74,8 @@ test("editing a control's props in the Inspector updates the published markup", 
 
   await insert(page, "input");
   const input = canvas.locator("input[data-sui-id]").first();
-  await input.click(); // select → the Inspector shows the Input's prop editors
+  await input.click(); // select
+  await page.getByRole("button", { name: "Settings" }).click(); // props live in Settings
 
   // The Inspector shows a "Placeholder" row (label + control); edit it and the
   // change lowers to the canvas input's placeholder attribute.
@@ -83,9 +84,9 @@ test("editing a control's props in the Inspector updates the published markup", 
   await placeholder.blur(); // commit
   await expect(input).toHaveAttribute("placeholder", "you@example.com");
 
-  // The Required toggle (the only role=switch — the canvas control has no role) sets
-  // the boolean prop, which lowers to a bare `required` attribute on the element.
-  await page.locator('[role="switch"]').first().click();
+  // The Required toggle sets the boolean prop, which lowers to a bare `required`
+  // attribute on the element. Scope to its row (Settings also has a Visibility switch).
+  await page.locator("div.mb-2", { hasText: "Required" }).locator('[role="switch"]').click();
   await expect(input).toHaveAttribute("required", "");
 
   // Both edits flowed out through onChange.
