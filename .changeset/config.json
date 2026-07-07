@@ -8,7 +8,13 @@
       "silicaui-react",
       "silicaui-html",
       "silicaui-behaviors",
-      "silicaui-mcp"
+      "silicaui-mcp",
+      "silicaui-charts",
+      "silicaui-dnd",
+      "silicaui-editor",
+      "silicaui-panels",
+      "silicaui-table",
+      "silicaui-builder"
     ]
   ],
   "linked": [],
@@ -16,12 +22,6 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "silicaui-builder",
-    "playground",
-    "silicaui-charts",
-    "silicaui-dnd",
-    "silicaui-editor",
-    "silicaui-panels",
-    "silicaui-table"
+    "playground"
   ]
 }
