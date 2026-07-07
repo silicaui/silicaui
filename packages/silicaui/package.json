@@ -1,6 +1,6 @@
 {
   "name": "silicaui",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Silica UI's CSS layer — a Tailwind v4 plugin of themeable, semantic component classes.",
   "type": "module",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "silicaui-dnd",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Silica UI drag-and-drop — dnd-kit wrapped with a Silica-styled SortableList plus the low-level primitives.",
   "type": "module",
   "license": "MIT",
