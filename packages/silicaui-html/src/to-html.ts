@@ -19,7 +19,7 @@ import type {
   Template,
 } from "./schema";
 import { applyPrefix, attr, esc, VOID_ELEMENTS } from "./class-utils";
-import { atoms } from "./atoms";
+import { expandComponent } from "./component";
 
 export interface ToHtmlOptions {
   /** Applied to silicaui component classes only (`btn` → `st-btn`). */
@@ -66,26 +66,22 @@ function renderNode(node: Node, opts: ToHtmlOptions): string {
     return "<!--silicaui:outlet-->";
   }
 
-  const cls = node.class ? applyPrefix(node.class, opts.prefix ?? "") : "";
-  const childrenHtml = renderChildren(node.children, opts);
-  const meta = metaAttrs(node, opts);
-
+  // A component is a macro: expand it to its element (sub)tree and render THAT
+  // through the element path below. The expansion carries the source node's class
+  // + system metadata, so preview == production and new components cost no branch.
   if (node.kind === "component") {
-    const render = atoms[node.component];
-    if (!render) {
-      throw new Error(
-        `Unknown silicaui atom: "${node.component}". Register it in the atom registry.`,
-      );
-    }
-    return render({ node, cls, childrenHtml, metaAttrs: meta });
+    return renderNode(expandComponent(node), opts);
   }
 
   // element
+  const cls = node.class ? applyPrefix(node.class, opts.prefix ?? "") : "";
   const classAttr = cls ? ` class="${cls}"` : "";
   const attrsHtml = renderAttrs(node.attrs);
+  const meta = metaAttrs(node, opts);
   if (VOID_ELEMENTS.has(node.tag)) {
     return `<${node.tag}${classAttr}${attrsHtml}${meta}/>`;
   }
+  const childrenHtml = renderChildren(node.children, opts);
   return `<${node.tag}${classAttr}${attrsHtml}${meta}>${childrenHtml}</${node.tag}>`;
 }
 

@@ -11,7 +11,7 @@ import type { Node } from "silicaui-html";
 import { walk } from "silicaui-html";
 import { TreeView } from "silicaui-react";
 import type { TreeNode } from "silicaui-react";
-import { useDocument, useEditor, useSelection } from "./editor-context";
+import { useActiveRoot, useEditor, useSelection } from "./editor-context";
 import { Icon } from "./Icon";
 import { nodeIconName, nodeName, textHint } from "../node-display";
 
@@ -43,14 +43,15 @@ function containerIds(root: Node): string[] {
 }
 
 export function Navigator() {
-  const doc = useDocument();
+  const root = useActiveRoot();
   const editor = useEditor();
   const selectedId = useSelection();
 
-  const items = React.useMemo(() => [toTreeNode(doc.root)], [doc.root]);
+  const items = React.useMemo(() => [toTreeNode(root)], [root]);
   // Expansion is controlled so a node inserted under a collapsed parent still
-  // reveals itself; seed it open across the whole tree.
-  const [expanded, setExpanded] = React.useState<string[]>(() => containerIds(doc.root));
+  // reveals itself; seed it open across the whole tree. (Builder remounts the
+  // Navigator on a Page/Layout switch, so this reseeds for the new tree.)
+  const [expanded, setExpanded] = React.useState<string[]>(() => containerIds(root));
 
   return (
     <TreeView

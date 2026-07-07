@@ -59,6 +59,18 @@ export function editableText(node: Node): string | undefined {
   return typeof label === "string" ? label : undefined;
 }
 
+/**
+ * Whether a node can be edited in place on the canvas: it holds editable text
+ * (an element string child, or a component label/text prop) AND has no element
+ * children — so typing replaces plain text, never structure. Voids (img/hr/…)
+ * hold no text and so never qualify.
+ */
+export function inlineEditable(node: Node): boolean {
+  if (node.kind === "outlet") return false;
+  if ((node.children ?? []).some((c) => typeof c !== "string")) return false;
+  return editableText(node) !== undefined;
+}
+
 /** First bit of text content, truncated — a subtle hint of what a leaf holds. */
 export function textHint(node: Node): string | undefined {
   const raw = editableText(node);

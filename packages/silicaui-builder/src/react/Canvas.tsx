@@ -17,14 +17,15 @@
  * class here is a LITERAL string so the harness's `@source` scan safelists it.
  */
 import * as React from "react";
-import type { Child, Node, Theme } from "silicaui-html";
-import { rolesOf } from "silicaui-html";
-import { useDocument, useEditor, useSelection } from "./editor-context";
+import type { Child, ElementNode, Node, Theme } from "silicaui-html";
+import { expandComponent, rolesOf } from "silicaui-html";
+import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { acceptsChildren } from "../engine";
 import { customColorCss } from "../color-cascade";
 import { DRAG_MIME, decodeDrag } from "../dnd";
 import type { DropEdge } from "../dnd";
 import { paletteItemByKey } from "../palette";
+import { editableText, inlineEditable, nodeName } from "../node-display";
 
 /** Document theme tokens → inline CSS vars for the island (mirrors the board). */
 function themeVars(theme: Theme): React.CSSProperties {
@@ -41,24 +42,102 @@ const DEVICE_WIDTH: Record<string, string> = {
   mobile: "390px",
 };
 
-/** Component atoms that render as a plain tag carrying class + children. */
-const ATOM_TAG: Record<string, string> = {
-  Text: "p",
-  Badge: "span",
-  Card: "div",
-  Section: "section",
-  Container: "div",
-  Grid: "div",
-  Stack: "div",
-};
-
-const RATIO_CLASS: Record<string, string> = {
-  wide: "aspect-video",
-  square: "aspect-square",
-  portrait: "aspect-[3/4]",
-};
-
 const VOID = new Set(["img", "hr", "br", "input", "source", "track", "wbr", "col", "embed"]);
+
+/** A neutral placeholder class so an empty Icon (a span with no size) still reads
+ *  on the canvas — production has no such class, so this is canvas-only. */
+const ICON_PLACEHOLDER = "inline-block size-4 rounded bg-base-content/20";
+
+/** A component is a macro: expand it to the element (sub)tree a projection renders.
+ *  The canvas draws that element through its normal element path — so a new
+ *  component needs a def, not a render branch here. The expansion root always is an
+ *  element (the 12 atoms lower to one); a non-element root falls back to a div. */
+function asElement(node: Node): ElementNode {
+  if (node.kind !== "component") return node as ElementNode;
+  const ex = expandComponent(node);
+  return ex.kind === "element" ? ex : { kind: "element", tag: "div", class: node.class };
+}
+
+/** The concrete HTML tag a text node renders as — the expansion's own tag, so
+ *  inline editing edits the SAME element the user sees. */
+function textTag(node: Node): string {
+  if (node.kind === "element") return node.tag;
+  if (node.kind === "component") return asElement(node).tag;
+  return "div";
+}
+
+/**
+ * In-place text editing for a canvas text node. Renders the node's real tag as a
+ * `contentEditable` element and — crucially — passes NO React children: the seed
+ * text is written into the DOM once on mount, so React never reconciles the inner
+ * content and typing is never clobbered by an unrelated parent re-render (the
+ * classic contentEditable+React trap). Commits `textContent` on blur or Enter;
+ * Escape cancels. The commit is guarded to fire exactly once (blur can race Enter).
+ */
+const EditableText = React.memo(function EditableText({
+  tag,
+  className,
+  initial,
+  onCommit,
+  onCancel,
+}: {
+  tag: string;
+  className: string;
+  initial: string;
+  onCommit: (text: string) => void;
+  onCancel: () => void;
+}) {
+  const ref = React.useRef<HTMLElement | null>(null);
+  const done = React.useRef(false);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.textContent = initial;
+    el.focus();
+    // Select all so the first keystroke replaces the placeholder text.
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const commit = () => {
+    if (done.current) return;
+    done.current = true;
+    onCommit(ref.current?.textContent ?? "");
+  };
+  const cancel = () => {
+    if (done.current) return;
+    done.current = true;
+    onCancel();
+  };
+
+  return React.createElement(tag, {
+    ref,
+    className,
+    contentEditable: true,
+    suppressContentEditableWarning: true,
+    "data-sui-editing": "true",
+    // Keep clicks/drag-starts inside the field from reaching the canvas (which
+    // would deselect) or the node (which would start a drag).
+    onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        commit();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      }
+    },
+    onBlur: commit,
+  });
+});
 
 /** A node located in the render pass, with the context a drop needs. */
 interface NodeInfo {
@@ -83,10 +162,26 @@ interface RenderCtx {
   onSelect: (id: string, e: React.MouseEvent) => void;
   onHover: (id: string | undefined, e: React.MouseEvent) => void;
   dnd: DndCtx;
+  /** The text node currently being edited in place (contentEditable), if any. */
+  editingId: string | undefined;
+  /** Enter in-place edit for a text node. */
+  onEditStart: (id: string) => void;
+  /** Commit edited text (compared against current — a no-op edit adds no history). */
+  onEditCommit: (id: string, text: string) => void;
+  /** Abandon the in-place edit, keeping the original text. */
+  onEditCancel: () => void;
   /** The container currently showing a dashed drop-inside ring. */
   insideId: string | undefined;
   /** Where a drop-line renders: at `index` among `parentId`'s children. */
   lineGap: { parentId: string; index: number } | undefined;
+  /**
+   * What an Outlet renders: the OTHER layer's tree, and whether it shows inert
+   * (context) or live (editable). In Page mode the frame is context and the page
+   * inside the Outlet is editable; in Layout mode it's the reverse.
+   */
+  outlet?: { tree: Node; preview: boolean };
+  /** True while rendering the inert (non-editable) context layer. */
+  preview?: boolean;
 }
 
 /** Which edge of the hovered node a pointer at `clientY` targets. */
@@ -101,10 +196,15 @@ function computeEdge(clientY: number, rect: DOMRect, node: Node): DropEdge {
   return y < rect.height / 2 ? "before" : "after";
 }
 
-/** The selection/hover affordance — outline never disturbs layout. */
+/**
+ * The hover affordance — a light layout-safe outline. Selection is drawn by the
+ * `SelectionOverlay` (handles + label), so the selected node gets no inline ring;
+ * we also suppress the hover ring on it so the two don't stack.
+ */
 function ring(id: string | undefined, ctx: RenderCtx): string {
-  if (id && id === ctx.selectedId) return " outline outline-2 outline-primary -outline-offset-2";
-  if (id && id === ctx.hoveredId) return " outline outline-1 outline-primary/50 -outline-offset-1";
+  if (id && id === ctx.hoveredId && id !== ctx.selectedId) {
+    return " outline outline-1 outline-primary/40 -outline-offset-1";
+  }
   return "";
 }
 
@@ -119,6 +219,31 @@ function decorations(id: string | undefined, ctx: RenderCtx): string {
 /** A thin accent bar shown between siblings at the pending drop index. */
 function DropLine() {
   return <div className="pointer-events-none h-0.5 w-full rounded-full bg-accent" aria-hidden />;
+}
+
+/**
+ * A container with no visible content. Such a node collapses to zero height in
+ * real layout, leaving nothing to aim a drop at — so on the CANVAS (only) we give
+ * it a minimum drop area + a faint fill + this label. None of it touches
+ * `node.class`, so the exported markup stays exactly what the user authored.
+ */
+function isEmptyContainer(node: Node): boolean {
+  if (!acceptsChildren(node)) return false;
+  const kids = node.kind === "outlet" ? [] : node.children ?? [];
+  return !kids.some((c) => (typeof c === "string" ? c.trim().length > 0 : true));
+}
+
+/** Canvas-only decoration that makes an empty container a real drop target. */
+const EMPTY_DECOR = " min-h-14 bg-base-content/5";
+
+/** The placeholder shown inside an empty container (pointer-transparent so drops
+ *  land on the container, not the hint). */
+function EmptyHint() {
+  return (
+    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content/40">
+      Empty — drop something here
+    </span>
+  );
 }
 
 function renderChildren(children: Child[] | undefined, parentId: string, ctx: RenderCtx): React.ReactNode {
@@ -152,6 +277,29 @@ function CanvasNode({
   ctx: RenderCtx;
 }): React.ReactElement | null {
   if (node.kind === "outlet") {
+    // The Outlet is where the two layers meet: it renders the OTHER tree. When
+    // that tree is the context layer it's inert + badged (edit it in the other
+    // mode); when it's the active layer it renders live so you edit the page body
+    // sitting inside the real frame chrome. `outlet: undefined` in the child ctx
+    // stops a nested page's own Outlet (if any) from recursing.
+    if (ctx.outlet) {
+      const { tree, preview } = ctx.outlet;
+      const childCtx: RenderCtx = { ...ctx, preview, outlet: undefined };
+      const inner = <CanvasNode node={tree} parentId={undefined} index={0} ctx={childCtx} />;
+      if (preview) {
+        return (
+          <div className="pointer-events-none relative">
+            <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-selector bg-base-content/10 px-2 py-0.5 text-xs text-base-content/50">
+              Page content
+            </span>
+            {inner}
+          </div>
+        );
+      }
+      // Editable page body inside the (inert) frame chrome — re-enable pointer
+      // events so clicks/drags reach the page even though a frame ancestor is inert.
+      return <div className="pointer-events-auto">{inner}</div>;
+    }
     return (
       <div className="rounded-field border border-dashed border-base-300 p-4 text-center text-sm text-base-content/40">
         Layout outlet — page content renders here
@@ -160,16 +308,42 @@ function CanvasNode({
   }
 
   const id = node.id;
-  const cls = (node.class ?? "") + decorations(id, ctx);
+  const empty = !ctx.preview && isEmptyContainer(node);
+  const deco = ctx.preview ? "" : decorations(id, ctx);
+
+  // In-place text editing: this node's own tag becomes a contentEditable field.
+  // Short-circuit here so it renders as the raw element (no atom sugar, no drag
+  // wiring) for the duration of the edit. `outline-none` drops the browser's focus
+  // ring — the SelectionOverlay already frames it.
+  if (id && !ctx.preview && id === ctx.editingId && inlineEditable(node)) {
+    return (
+      <EditableText
+        tag={textTag(node)}
+        className={`${node.class ?? ""} outline-none`}
+        initial={editableText(node) ?? ""}
+        onCommit={(text) => ctx.onEditCommit(id, text)}
+        onCancel={ctx.onEditCancel}
+      />
+    );
+  }
+
   // Interaction + drag/drop props every node carries (needs a stamped id).
+  // Suppressed under `preview` — the page shown inside a frame Outlet is inert.
   const inter: Record<string, unknown> = {};
-  if (id) {
+  if (id && !ctx.preview) {
     const info: NodeInfo = { id, parentId, index, node };
     const draggable = parentId !== undefined; // the root can't be moved
     inter["data-sui-id"] = id;
     inter.draggable = draggable;
     inter.onClick = (e: React.MouseEvent) => ctx.onSelect(id, e);
     inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(id, e);
+    if (inlineEditable(node)) {
+      inter.onDoubleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ctx.onEditStart(id);
+      };
+    }
     inter.onDragStart = (e: React.DragEvent) => {
       if (!draggable) return;
       e.stopPropagation();
@@ -191,71 +365,73 @@ function CanvasNode({
     };
   }
 
-  if (node.kind === "component") {
-    const props = node.props ?? {};
-    // Button — <a> when it carries an href, else <button>; label is sugar for text.
-    if (node.component === "Button") {
-      const label = props.label as string | undefined;
-      const inner = node.children?.length ? renderChildren(node.children, id ?? "", ctx) : label;
-      if (props.href != null) {
-        return (
-          <a className={cls} href="#" {...inter}>
-            {inner}
-          </a>
-        );
-      }
-      return (
-        <button type="button" className={cls} {...inter}>
-          {inner}
-        </button>
-      );
-    }
-    // Image — self-closing <img>; ratio maps to an aspect utility.
-    if (node.component === "Image") {
-      const ratio = typeof props.ratio === "string" ? RATIO_CLASS[props.ratio] ?? "" : "";
-      const full = [node.class, ratio].filter(Boolean).join(" ") + decorations(id, ctx);
-      const src = (props.src as string | undefined) ?? PLACEHOLDER_IMG;
-      return <img className={full} src={src} alt={(props.alt as string) ?? ""} {...inter} />;
-    }
-    // Heading — <h1>…<h6> from props.level.
-    if (node.component === "Heading") {
-      const raw = Number(props.level ?? 2);
-      const level = Number.isInteger(raw) && raw >= 1 && raw <= 6 ? raw : 2;
-      const Tag = `h${level}` as "h1";
-      const inner = node.children?.length ? renderChildren(node.children, id ?? "", ctx) : (props.text as string);
-      return (
-        <Tag className={cls} {...inter}>
-          {inner}
-        </Tag>
-      );
-    }
-    // Icon — inert placeholder span (a runtime resolves the glyph downstream).
-    if (node.component === "Icon") {
-      return <span className={cls || "inline-block size-4 rounded bg-base-content/20"} aria-hidden {...inter} />;
-    }
-    if (node.component === "Divider") {
-      return <hr className={cls} {...inter} />;
-    }
-    // Generic tag atoms (Text/Badge/Card/Section/…): tag + class + text/children.
-    const Tag = (ATOM_TAG[node.component] ?? "div") as "div";
-    const inner = node.children?.length ? renderChildren(node.children, id ?? "", ctx) : (props.text as string | undefined);
-    return (
-      <Tag className={cls} {...inter}>
-        {inner}
-      </Tag>
-    );
-  }
+  // A component is a macro — expand it to its element (sub)tree and render THAT
+  // through the SAME element path a hand-authored element takes (the expansion
+  // carries the node's class + children). Interaction wiring (`inter`) stays bound
+  // to the component node's id, so the whole macro selects/drags as one unit. This
+  // is why a new component costs a def, never a render branch here.
+  const el = asElement(node);
+  // An empty Icon expands to a bare <span> with no size — fall back to a visible
+  // placeholder when the assembled class is empty (canvas-only; production has none).
+  const isIcon = node.kind === "component" && node.component === "Icon";
+  const cls =
+    ((el.class ?? "") + deco + (empty ? EMPTY_DECOR : "")) || (isIcon ? ICON_PLACEHOLDER : "");
+  const attrs = canvasAttrs(el);
 
-  // element
-  const attrs = sanitizeAttrs(node.attrs);
-  if (VOID.has(node.tag)) {
-    return React.createElement(node.tag, { className: cls || undefined, ...attrs, ...inter });
+  if (VOID.has(el.tag)) {
+    return React.createElement(el.tag, { className: cls || undefined, ...attrs, ...inter });
+  }
+  // <textarea> can't take children in React — surface its value as defaultValue so
+  // the canvas preview stays uncontrolled + warning-free (production uses children).
+  if (el.tag === "textarea") {
+    const text = textOf(el.children);
+    if (text) attrs.defaultValue = text;
+    return React.createElement(el.tag, { className: cls || undefined, ...attrs, ...inter });
   }
   return React.createElement(
-    node.tag,
+    el.tag,
     { className: cls || undefined, ...attrs, ...inter },
-    renderChildren(node.children, id ?? "", ctx),
+    empty ? <EmptyHint /> : renderChildren(el.children, id ?? "", ctx),
   );
+}
+
+/** Concatenate a node's direct string children (a control's text value). */
+function textOf(children: Child[] | undefined): string {
+  if (!children) return "";
+  return children.filter((c): c is string => typeof c === "string").join("");
+}
+
+/**
+ * The render-ready attributes for a canvas element: the expansion's own attrs,
+ * plus a canvas-only stand-in `src` so an unset Image still has presence on the
+ * design surface (production markup — via `toHtml` — omits it). `<a href>` is
+ * neutralized to "#" by `sanitizeAttrs` so a canvas click never navigates away.
+ */
+function canvasAttrs(el: ElementNode): Record<string, string | number | boolean> {
+  const attrs = sanitizeAttrs(el.attrs);
+  if (el.tag === "img" && attrs.src == null) attrs.src = PLACEHOLDER_IMG;
+  // Form controls: render UNCONTROLLED on the design surface. React warns if a
+  // form field gets `value`/`checked` without an `onChange`; the canvas is a static
+  // preview, so map them to their default* forms (production HTML keeps value/checked).
+  // Scoped to the controls themselves — an `<option value>` is a plain attribute,
+  // not controlled state, and must keep its `value` (React infers from it otherwise).
+  if (el.tag === "input" || el.tag === "select") {
+    rename(attrs, "value", "defaultValue");
+    rename(attrs, "checked", "defaultChecked");
+  }
+  return attrs;
+}
+
+/** Move `attrs[from]` to `attrs[to]` if present (canvas prop normalization). */
+function rename(
+  attrs: Record<string, string | number | boolean>,
+  from: string,
+  to: string,
+): void {
+  if (from in attrs) {
+    attrs[to] = attrs[from] as string | number | boolean;
+    delete attrs[from];
+  }
 }
 
 /** Keep only render-safe HTML attributes; neutralize live navigation on <a>. */
@@ -275,17 +451,118 @@ function sanitizeAttrs(
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ede9fe'/%3E%3Cstop offset='1' stop-color='%23c7d2fe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='240' fill='url(%23g)'/%3E%3C/svg%3E";
 
+/** The measured box (in board-local coords) the selection chrome draws around. */
+interface Box {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * The selection chrome — a Figma/Framer-style overlay drawn OVER the canvas, not
+ * baked into the node's classes: a crisp 1px accent frame, four corner handles,
+ * and a floating element-name tag. It measures the selected node's real rect
+ * (relative to the scrolling board) and re-measures on any edit / device / resize,
+ * so it tracks reflow. Pointer-inert, so it never eats clicks meant for a node.
+ */
+function SelectionOverlay({
+  boardRef,
+  selectedId,
+  label,
+  version,
+}: {
+  boardRef: React.RefObject<HTMLDivElement | null>;
+  selectedId: string | undefined;
+  label: string | undefined;
+  version: unknown;
+}) {
+  const [box, setBox] = React.useState<Box | null>(null);
+
+  React.useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board || !selectedId) {
+      setBox(null);
+      return;
+    }
+    const measure = () => {
+      const el = board.querySelector<HTMLElement>(`[data-sui-id="${CSS.escape(selectedId)}"]`);
+      if (!el) {
+        setBox(null);
+        return;
+      }
+      const b = board.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      // rect diff is scroll-agnostic (both shift together), and the overlay lives
+      // inside the board so it scrolls with the content.
+      setBox({ top: r.top - b.top, left: r.left - b.left, width: r.width, height: r.height });
+    };
+    measure();
+    // Late layout (web fonts, images, async reflow) → re-measure.
+    const ro = new ResizeObserver(measure);
+    ro.observe(board);
+    const el = board.querySelector<HTMLElement>(`[data-sui-id="${CSS.escape(selectedId)}"]`);
+    if (el) ro.observe(el);
+    return () => ro.disconnect();
+    // `version` (the live document) is in deps so a committed edit re-measures.
+  }, [boardRef, selectedId, version]);
+
+  if (!box) return null;
+  // Inflate the frame a few px beyond the node so it reads as "around" the element,
+  // not painted on its edge.
+  const INSET = 4;
+  // Each handle is anchored to a corner and pulled back by half its own size, so it
+  // sits centered on the corner regardless of handle size (no magic offsets).
+  const handle = "absolute size-1.5 rounded-[2px] bg-base-100 border border-primary shadow-sm";
+  return (
+    <div
+      className="pointer-events-none absolute z-20 border border-primary rounded-[4px]"
+      style={{
+        top: box.top - INSET,
+        left: box.left - INSET,
+        width: box.width + INSET * 2,
+        height: box.height + INSET * 2,
+      }}
+      aria-hidden
+    >
+      {label && (
+        <span className="absolute -top-[21px] left-0 max-w-[180px] truncate rounded-[3px] bg-primary px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-content shadow-sm">
+          {label}
+        </span>
+      )}
+      <span className={`${handle} top-0 left-0 -translate-x-1/2 -translate-y-1/2`} />
+      <span className={`${handle} top-0 right-0 translate-x-1/2 -translate-y-1/2`} />
+      <span className={`${handle} bottom-0 left-0 -translate-x-1/2 translate-y-1/2`} />
+      <span className={`${handle} bottom-0 right-0 translate-x-1/2 translate-y-1/2`} />
+    </div>
+  );
+}
+
 export function Canvas({ device = "desktop" }: { device?: string }) {
   const doc = useDocument();
   const editor = useEditor();
   const selectedId = useSelection();
+  const selectedNode = useSelectedNode();
+  const activeTree = useActiveTree();
+  const root = useActiveRoot();
+  const boardRef = React.useRef<HTMLDivElement | null>(null);
   const [hoveredId, setHoveredId] = React.useState<string | undefined>(undefined);
+  const [editingRaw, setEditingRaw] = React.useState<string | undefined>(undefined);
   const [draggingId, setDraggingId] = React.useState<string | undefined>(undefined);
   const [dropHint, setDropHint] = React.useState<
     { targetId: string; parentId: string | undefined; index: number; edge: DropEdge } | undefined
   >(undefined);
   const theme = doc.theme;
-  const rootId = doc.root.kind === "outlet" ? undefined : doc.root.id;
+  // Drops on the canvas margin append to the ACTIVE tree's root (the editable one).
+  const rootId = root.kind === "outlet" ? undefined : root.id;
+  // The canvas always renders the composed site: when a frame exists it's the
+  // shell, with the page in its Outlet; only which layer is editable flips with
+  // the mode. With no frame, the page renders bare (Layout mode mints one).
+  const frameRoot = doc.frame?.root;
+  const shellNode = frameRoot ?? doc.root;
+  const editingPage = activeTree === "page";
+  const shellPreview = frameRoot ? editingPage : false;
+  const outlet = frameRoot ? { tree: doc.root, preview: !editingPage } : undefined;
   const customCss = React.useMemo(() => customColorCss(theme, ".sui-canvas"), [theme]);
   // Every named role reaches the canvas the same way it reaches the board.
   void rolesOf(theme);
@@ -359,6 +636,11 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
       ? { parentId: dropHint.parentId, index: dropHint.edge === "before" ? dropHint.index : dropHint.index + 1 }
       : undefined;
 
+  // Resolve the edit target against the LIVE tree: a page/layout switch, or an
+  // undo that removed the node, silently ends the edit (no dangling contentEditable).
+  const editingNode = editingRaw ? editor.node(editingRaw) : undefined;
+  const editingId = editingNode && inlineEditable(editingNode) ? editingRaw : undefined;
+
   const ctx: RenderCtx = {
     selectedId,
     hoveredId,
@@ -372,8 +654,22 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
       setHoveredId(id);
     },
     dnd,
+    editingId,
+    onEditStart: (id) => {
+      editor.select(id);
+      setEditingRaw(id);
+    },
+    onEditCommit: (id, text) => {
+      const node = editor.node(id);
+      const current = node ? editableText(node) : undefined;
+      if (text !== current) editor.setText(id, text);
+      setEditingRaw(undefined);
+    },
+    onEditCancel: () => setEditingRaw(undefined),
     insideId,
     lineGap,
+    outlet,
+    preview: shellPreview,
   };
 
   return (
@@ -388,10 +684,17 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     >
       {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
       <div
-        className="mx-auto min-h-[440px] rounded-box border border-base-300 bg-base-100 shadow-[0_12px_40px_rgba(20,20,40,0.10)] transition-[max-width] duration-200"
+        ref={boardRef}
+        className="relative mx-auto min-h-[440px] rounded-box border border-base-300 bg-base-100 shadow-[0_12px_40px_rgba(20,20,40,0.10)] transition-[max-width] duration-200"
         style={{ maxWidth: DEVICE_WIDTH[device] ?? "100%" }}
       >
-        <CanvasNode node={doc.root} parentId={undefined} index={0} ctx={ctx} />
+        <CanvasNode node={shellNode} parentId={undefined} index={0} ctx={ctx} />
+        <SelectionOverlay
+          boardRef={boardRef}
+          selectedId={selectedId}
+          label={selectedNode ? nodeName(selectedNode) : undefined}
+          version={doc}
+        />
       </div>
     </div>
   );

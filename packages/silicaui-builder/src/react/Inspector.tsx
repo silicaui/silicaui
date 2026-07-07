@@ -12,9 +12,10 @@
  * utility a node can WEAR is a LITERAL string here so the harness safelists it.
  */
 import * as React from "react";
-import type { Node } from "silicaui-html";
-import { Input, Textarea } from "silicaui-react";
-import { useEditor, useSelectedNode } from "./editor-context";
+import type { ComponentNode, Node, Theme } from "silicaui-html";
+import { rolesOf, colorValue, SURFACE_TOKENS } from "silicaui-html";
+import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "silicaui-react";
+import { useEditor, useSelectedNode, useTheme } from "./editor-context";
 import { Icon } from "./Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 
@@ -24,26 +25,53 @@ const tokensOf = (cls: string | undefined): Set<string> => new Set((cls ?? "").s
 const activeIn = (cls: string | undefined, group: readonly string[]): string =>
   group.find((c) => tokensOf(cls).has(c)) ?? "";
 
+/** Title-case a color role name for a swatch tooltip ("base-content" → "Base content"). */
+const titleOf = (name: string): string => name.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
+/** One color swatch option — the class it toggles, its previewed value, its title. */
+interface ColorOption {
+  cls: string;
+  color: string;
+  title: string;
+}
+
+/**
+ * The color vocab is DERIVED from the live theme (not a hardcoded list), so every
+ * role `rolesOf` exposes — the eight semantic roles AND any custom color a user
+ * adds in the Theme editor (`brand`, …) — shows up automatically. Swatches preview
+ * the real theme value (via `colorValue`) rather than a `bg-*` class, so a custom
+ * color renders even though the chrome never compiled a `bg-brand` rule. The
+ * `text-*`/`bg-*`/`btn-*` classes these apply are painted on the canvas by the
+ * plugin (declared colors) or the runtime cascade (custom ones).
+ */
+const SWATCH_FALLBACK = "var(--color-base-300)";
+const roleColor = (theme: Theme, name: string, mode: "light" | "dark"): string =>
+  colorValue(theme, name, mode) ?? SWATCH_FALLBACK;
+
+function textColorOptions(theme: Theme, mode: "light" | "dark"): ColorOption[] {
+  return [
+    { cls: "text-base-content", color: roleColor(theme, "base-content", mode), title: "Content" },
+    ...rolesOf(theme).map((r) => ({ cls: `text-${r}`, color: roleColor(theme, r, mode), title: titleOf(r) })),
+  ];
+}
+
+function bgColorOptions(theme: Theme, mode: "light" | "dark"): ColorOption[] {
+  const surfaces = SURFACE_TOKENS.filter((s) => s !== "base-content").map((s) => ({
+    cls: `bg-${s}`,
+    color: roleColor(theme, s, mode),
+    title: titleOf(s),
+  }));
+  return [
+    ...surfaces,
+    ...rolesOf(theme).map((r) => ({ cls: `bg-${r}`, color: roleColor(theme, r, mode), title: titleOf(r) })),
+  ];
+}
+
+function btnColorOptions(theme: Theme, mode: "light" | "dark"): ColorOption[] {
+  return rolesOf(theme).map((r) => ({ cls: `btn-${r}`, color: roleColor(theme, r, mode), title: titleOf(r) }));
+}
+
 // ── control vocab (LITERAL classes — this block IS the canvas safelist) ───────
-const TEXT_COLORS: ReadonlyArray<{ cls: string; swatch: string; title: string }> = [
-  { cls: "text-base-content", swatch: "bg-base-content", title: "Content" },
-  { cls: "text-primary", swatch: "bg-primary", title: "Primary" },
-  { cls: "text-secondary", swatch: "bg-secondary", title: "Secondary" },
-  { cls: "text-accent", swatch: "bg-accent", title: "Accent" },
-  { cls: "text-info", swatch: "bg-info", title: "Info" },
-  { cls: "text-success", swatch: "bg-success", title: "Success" },
-  { cls: "text-warning", swatch: "bg-warning", title: "Warning" },
-  { cls: "text-error", swatch: "bg-error", title: "Error" },
-];
-const BG_COLORS: ReadonlyArray<{ cls: string; swatch: string; title: string }> = [
-  { cls: "bg-base-100", swatch: "bg-base-100", title: "Base 100" },
-  { cls: "bg-base-200", swatch: "bg-base-200", title: "Base 200" },
-  { cls: "bg-base-300", swatch: "bg-base-300", title: "Base 300" },
-  { cls: "bg-primary", swatch: "bg-primary", title: "Primary" },
-  { cls: "bg-secondary", swatch: "bg-secondary", title: "Secondary" },
-  { cls: "bg-accent", swatch: "bg-accent", title: "Accent" },
-  { cls: "bg-neutral", swatch: "bg-neutral", title: "Neutral" },
-];
 const FONT_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "text-xs", label: "XS" },
   { cls: "text-sm", label: "SM" },
@@ -79,16 +107,6 @@ const RADIUS: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "rounded-box", label: "Box" },
   { cls: "rounded-full", label: "Full" },
 ];
-const BTN_COLOR: ReadonlyArray<{ cls: string; swatch: string; title: string }> = [
-  { cls: "btn-primary", swatch: "bg-primary", title: "Primary" },
-  { cls: "btn-secondary", swatch: "bg-secondary", title: "Secondary" },
-  { cls: "btn-accent", swatch: "bg-accent", title: "Accent" },
-  { cls: "btn-neutral", swatch: "bg-neutral", title: "Neutral" },
-  { cls: "btn-info", swatch: "bg-info", title: "Info" },
-  { cls: "btn-success", swatch: "bg-success", title: "Success" },
-  { cls: "btn-warning", swatch: "bg-warning", title: "Warning" },
-  { cls: "btn-error", swatch: "bg-error", title: "Error" },
-];
 const BTN_VARIANT: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "btn-outline", label: "Outline" },
   { cls: "btn-ghost", label: "Ghost" },
@@ -101,6 +119,54 @@ const BTN_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "btn-md", label: "MD" },
   { cls: "btn-lg", label: "LG" },
 ];
+
+// ── form-control prop vocab ───────────────────────────────────────────────────
+// Which `props` each form component exposes for editing. Keyed by component name
+// (the same family-by-name pattern as the Button block); the values map straight
+// to the props the ComponentDef's `expand()` reads, so editing here changes the
+// published HTML. Options for Select are edited separately (a list, not a scalar).
+type PropControl = "text" | "number" | "toggle" | "select";
+interface PropField {
+  key: string;
+  label: string;
+  control: PropControl;
+  options?: readonly string[];
+  placeholder?: string;
+}
+const INPUT_TYPES = ["text", "email", "password", "number", "tel", "url", "search"] as const;
+const FORM_PROPS: Record<string, readonly PropField[]> = {
+  Input: [
+    { key: "type", label: "Type", control: "select", options: INPUT_TYPES },
+    { key: "placeholder", label: "Placeholder", control: "text" },
+    { key: "name", label: "Name", control: "text" },
+    { key: "required", label: "Required", control: "toggle" },
+  ],
+  Textarea: [
+    { key: "placeholder", label: "Placeholder", control: "text" },
+    { key: "name", label: "Name", control: "text" },
+    { key: "rows", label: "Rows", control: "number" },
+    { key: "required", label: "Required", control: "toggle" },
+  ],
+  Select: [
+    { key: "name", label: "Name", control: "text" },
+    { key: "required", label: "Required", control: "toggle" },
+  ],
+  Checkbox: [
+    { key: "name", label: "Name", control: "text" },
+    { key: "value", label: "Value", control: "text" },
+    { key: "checked", label: "Checked", control: "toggle" },
+    { key: "required", label: "Required", control: "toggle" },
+  ],
+  Radio: [
+    { key: "name", label: "Name", control: "text" },
+    { key: "value", label: "Value", control: "text" },
+    { key: "checked", label: "Checked", control: "toggle" },
+  ],
+  Toggle: [
+    { key: "name", label: "Name", control: "text" },
+    { key: "checked", label: "Checked", control: "toggle" },
+  ],
+};
 
 // ── small building blocks ─────────────────────────────────────────────────────
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
@@ -150,13 +216,14 @@ function ChipGroup({
   );
 }
 
-/** A wrapping row of color swatches; `Auto` (crossed) clears the group. */
+/** A wrapping row of color swatches; `Auto` (crossed) clears the group. Swatch
+ *  fills come from the theme value (inline style), so custom roles preview too. */
 function SwatchGroup({
   options,
   active,
   onPick,
 }: {
-  options: ReadonlyArray<{ cls: string; swatch: string; title: string }>;
+  options: ReadonlyArray<ColorOption>;
   active: string;
   onPick: (cls: string) => void;
 }) {
@@ -178,7 +245,8 @@ function SwatchGroup({
           type="button"
           title={o.title}
           onClick={() => onPick(o.cls)}
-          className={`size-6 rounded-field border border-base-300 ${o.swatch} ${
+          style={{ backgroundColor: o.color }}
+          className={`size-6 rounded-field border border-base-300 ${
             active === o.cls ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
           }`}
         />
@@ -191,14 +259,22 @@ function SwatchGroup({
 export function Inspector() {
   const editor = useEditor();
   const node = useSelectedNode();
+  const theme = useTheme();
+  const mode = theme.mode ?? "light";
+  // Theme-derived color vocab — recomputed as the theme (or its roles) change.
+  const textColors = React.useMemo(() => textColorOptions(theme, mode), [theme, mode]);
+  const bgColors = React.useMemo(() => bgColorOptions(theme, mode), [theme, mode]);
+  const btnColors = React.useMemo(() => btnColorOptions(theme, mode), [theme, mode]);
 
   if (!node || node.kind === "outlet" || !node.id) {
     return (
-      <div className="flex-1 min-h-0 grid place-items-center p-6 text-center text-sm text-base-content/45">
-        <div>
-          <Icon name="sliders" className="justify-center text-2xl text-base-content/25" />
-          <p className="mt-2">Select an element on the canvas to edit it.</p>
-        </div>
+      <div className="grid flex-1 min-h-0 place-items-center p-6">
+        <EmptyState
+          size="sm"
+          icon={<Icon name="sliders" />}
+          title="No selection"
+          description="Select an element on the canvas to edit it."
+        />
       </div>
     );
   }
@@ -220,7 +296,7 @@ export function Inspector() {
       {node.kind === "component" && node.component === "Button" && (
         <Group label="Button">
           <Row label="Color">
-            <SwatchGroup options={BTN_COLOR} active={activeIn(cls, BTN_COLOR.map((o) => o.cls))} onPick={(v) => setToken(BTN_COLOR.map((o) => o.cls), v)} />
+            <SwatchGroup options={btnColors} active={activeIn(cls, btnColors.map((o) => o.cls))} onPick={(v) => setToken(btnColors.map((o) => o.cls), v)} />
           </Row>
           <Row label="Style">
             <ChipGroup options={BTN_VARIANT} active={activeIn(cls, BTN_VARIANT.map((o) => o.cls))} onPick={(v) => setToken(BTN_VARIANT.map((o) => o.cls), v)} />
@@ -231,11 +307,15 @@ export function Inspector() {
         </Group>
       )}
 
+      {node.kind === "component" && node.component in FORM_PROPS && (
+        <PropsGroup id={id} node={node} />
+      )}
+
       {editableText(node) !== undefined && <ContentField id={id} node={node} />}
 
       <Group label="Text">
         <Row label="Color">
-          <SwatchGroup options={TEXT_COLORS} active={activeIn(cls, TEXT_COLORS.map((o) => o.cls))} onPick={(v) => setToken(TEXT_COLORS.map((o) => o.cls), v)} />
+          <SwatchGroup options={textColors} active={activeIn(cls, textColors.map((o) => o.cls))} onPick={(v) => setToken(textColors.map((o) => o.cls), v)} />
         </Row>
         <Row label="Size">
           <ChipGroup options={FONT_SIZE} active={activeIn(cls, FONT_SIZE.map((o) => o.cls))} onPick={(v) => setToken(FONT_SIZE.map((o) => o.cls), v)} />
@@ -250,7 +330,7 @@ export function Inspector() {
 
       <Group label="Surface">
         <Row label="Background">
-          <SwatchGroup options={BG_COLORS} active={activeIn(cls, BG_COLORS.map((o) => o.cls))} onPick={(v) => setToken(BG_COLORS.map((o) => o.cls), v)} />
+          <SwatchGroup options={bgColors} active={activeIn(cls, bgColors.map((o) => o.cls))} onPick={(v) => setToken(bgColors.map((o) => o.cls), v)} />
         </Row>
         <Row label="Padding">
           <ChipGroup options={PADDING} active={activeIn(cls, PADDING.map((o) => o.cls))} onPick={(v) => setToken(PADDING.map((o) => o.cls), v)} />
@@ -318,6 +398,157 @@ function ContentField({ id, node }: { id: string; node: Node }) {
       />
     </Group>
   );
+}
+
+// ── form-control props ────────────────────────────────────────────────────────
+/** The recognized-family block for a form control — its editable `props`. */
+function PropsGroup({ id, node }: { id: string; node: ComponentNode }) {
+  const fields = FORM_PROPS[node.component];
+  if (!fields) return null;
+  return (
+    <Group label={node.component}>
+      {fields.map((f) => (
+        <PropRow key={f.key} id={id} node={node} field={f} />
+      ))}
+      {node.component === "Select" && <OptionsProp id={id} node={node} />}
+    </Group>
+  );
+}
+
+/** One prop editor — a toggle, a fixed dropdown, or a debounced text/number input. */
+function PropRow({ id, node, field }: { id: string; node: ComponentNode; field: PropField }) {
+  const editor = useEditor();
+  const raw = node.props?.[field.key];
+
+  if (field.control === "toggle") {
+    return (
+      <Row label={field.label}>
+        <Toggle
+          size="sm"
+          checked={raw === true}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            editor.setProp(id, field.key, e.target.checked || undefined)
+          }
+        />
+      </Row>
+    );
+  }
+  if (field.control === "select") {
+    const value = raw != null ? String(raw) : field.options?.[0] ?? "";
+    return (
+      <Row label={field.label}>
+        <NativeSelect
+          size="sm"
+          value={value}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+            editor.setProp(id, field.key, e.target.value)
+          }
+        >
+          {field.options?.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </NativeSelect>
+      </Row>
+    );
+  }
+  return <TextProp id={id} field={field} value={raw != null ? String(raw) : ""} />;
+}
+
+/** A text/number prop — draft state committed on blur/Enter (one undo step). An
+ *  empty value clears the prop (deletes the key), so it falls back to its default. */
+function TextProp({ id, field, value }: { id: string; field: PropField; value: string }) {
+  const editor = useEditor();
+  const [draft, setDraft] = React.useState(value);
+  React.useEffect(() => setDraft(value), [value, id]);
+  const commit = () => {
+    if (draft === value) return;
+    if (field.control === "number") {
+      const n = draft.trim() === "" ? undefined : Number(draft);
+      editor.setProp(id, field.key, n != null && Number.isFinite(n) ? n : undefined);
+    } else {
+      editor.setProp(id, field.key, draft === "" ? undefined : draft);
+    }
+  };
+  return (
+    <Row label={field.label}>
+      <Input
+        className="w-full"
+        size="sm"
+        type={field.control === "number" ? "number" : "text"}
+        value={draft}
+        placeholder={field.placeholder}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+    </Row>
+  );
+}
+
+/** Select options as a newline list ("value | label", or one token for both).
+ *  Commits on blur / Cmd+Enter into the `props.options` array `expand()` reads. */
+function OptionsProp({ id, node }: { id: string; node: ComponentNode }) {
+  const editor = useEditor();
+  const value = optionsToText(node.props?.options);
+  const [draft, setDraft] = React.useState(value);
+  React.useEffect(() => setDraft(value), [value, id]);
+  const commit = () => {
+    if (draft !== value) editor.setProp(id, "options", textToOptions(draft));
+  };
+  return (
+    <Row label="Options">
+      <Textarea
+        className="w-full text-xs"
+        rows={4}
+        spellCheck={false}
+        placeholder={"One per line —\nvalue | Label"}
+        value={draft}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+    </Row>
+  );
+}
+
+/** `props.options` (objects or strings) → the newline-list editor text. */
+function optionsToText(options: unknown): string {
+  if (!Array.isArray(options)) return "";
+  return options
+    .map((o) => {
+      if (o != null && typeof o === "object") {
+        const oo = o as { value?: unknown; label?: unknown };
+        const label = oo.label != null ? String(oo.label) : "";
+        const val = oo.value != null ? String(oo.value) : "";
+        return val && val !== label ? `${val} | ${label}` : label || val;
+      }
+      return String(o);
+    })
+    .join("\n");
+}
+
+/** The editor text → a `props.options` array of `{ value, label }`. */
+function textToOptions(text: string): Array<{ value: string; label: string }> {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [a, b] = line.split("|").map((s) => s.trim());
+      return b ? { value: a ?? "", label: b } : { value: a ?? "", label: a ?? "" };
+    });
 }
 
 /** The raw class string — the low tier. Commits on blur / Enter so a half-typed

@@ -29,6 +29,11 @@ const ICON_BODY = {
   article: "<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\" /> <path d=\"M14 2v5a1 1 0 0 0 1 1h5\" /> <path d=\"M10 9H8\" /> <path d=\"M16 13H8\" /> <path d=\"M16 17H8\" />",
   aside: "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M15 3v18\" />",
   outlet: "<path d=\"M5 3a2 2 0 0 0-2 2\" /> <path d=\"M19 3a2 2 0 0 1 2 2\" /> <path d=\"M21 19a2 2 0 0 1-2 2\" /> <path d=\"M5 21a2 2 0 0 1-2-2\" /> <path d=\"M9 3h1\" /> <path d=\"M9 21h1\" /> <path d=\"M14 3h1\" /> <path d=\"M14 21h1\" /> <path d=\"M3 9v1\" /> <path d=\"M21 9v1\" /> <path d=\"M3 14v1\" /> <path d=\"M21 14v1\" />",
+  textarea: "<path d=\"m16 16-3 3 3 3\" /> <path d=\"M3 12h14.5a1 1 0 0 1 0 7H13\" /> <path d=\"M3 19h6\" /> <path d=\"M3 5h18\" />",
+  select: "<path d=\"m7 15 5 5 5-5\" /> <path d=\"m7 9 5-5 5 5\" />",
+  checkbox: "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"m9 12 2 2 4-4\" />",
+  radio: "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <circle cx=\"12\" cy=\"12\" r=\"1\" />",
+  toggle: "<circle cx=\"9\" cy=\"12\" r=\"3\" /> <rect width=\"20\" height=\"14\" x=\"2\" y=\"5\" rx=\"7\" />",
   lock: "<rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\" ry=\"2\" /> <path d=\"M7 11V7a5 5 0 0 1 10 0v4\" />",
   shared: "<path d=\"M9 17H7A5 5 0 0 1 7 7h2\" /> <path d=\"M15 7h2a5 5 0 1 1 0 10h-2\" /> <line x1=\"8\" x2=\"16\" y1=\"12\" y2=\"12\" />",
   undo: "<path d=\"M9 14 4 9l5-5\" /> <path d=\"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11\" />",
@@ -51,6 +56,9 @@ const ICON_BODY = {
   download: "<path d=\"M12 15V3\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /> <path d=\"m7 10 5 5 5-5\" />",
   check: "<path d=\"M20 6 9 17l-5-5\" />",
   droplet: "<path d=\"M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z\" />",
+  pencil: "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />",
+  trash: "<path d=\"M10 11v6\" /> <path d=\"M14 11v6\" /> <path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\" /> <path d=\"M3 6h18\" /> <path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\" />",
+  warning: "<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\" /> <path d=\"M12 9v4\" /> <path d=\"M12 17h.01\" />",
 } as const;
 
 /**

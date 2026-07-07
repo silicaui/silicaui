@@ -19,6 +19,9 @@ const USED = {
   box: "box", list: "list", item: "dot", form: "text-cursor-input", input: "text-cursor-input",
   label: "tag", nav: "menu", header: "panel-top", footer: "panel-bottom", main: "square",
   article: "file-text", aside: "panel-right", outlet: "square-dashed",
+  // form controls
+  textarea: "wrap-text", select: "chevrons-up-down", checkbox: "square-check",
+  radio: "circle-dot", toggle: "toggle-left",
   // chrome / ui
   lock: "lock", shared: "link-2", undo: "undo-2", redo: "redo-2", command: "command",
   plus: "plus", chevron: "chevron-right", close: "x", sun: "sun", moon: "moon",
@@ -26,7 +29,8 @@ const USED = {
   page: "file", layout: "panels-top-left", theme: "palette", dot: "circle",
   // theme editor
   shuffle: "shuffle", sliders: "sliders-horizontal", download: "download",
-  check: "check", droplet: "droplet",
+  check: "check", droplet: "droplet", pencil: "pencil", trash: "trash-2",
+  warning: "triangle-alert",
 };
 
 // Pull the inner markup out of each <svg>…</svg> (Lucide files share one root svg).

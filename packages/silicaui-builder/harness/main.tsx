@@ -41,11 +41,30 @@ const theme = {
   mode: "light",
 } as const;
 
+// Surface the data-out API on window so the harness (and Playwright) can observe
+// what a real host would persist/deploy: the latest onChange site + publish result.
+const bus = window as unknown as {
+  __ready: boolean;
+  __lastChange?: unknown;
+  __changeCount: number;
+  __published?: unknown;
+};
+bus.__changeCount = 0;
+
 createRoot(document.getElementById("app") as HTMLElement).render(
   <React.StrictMode>
-    <Builder document={stamp(heroSplitCta, theme)} />
+    <Builder
+      document={stamp(heroSplitCta, theme)}
+      onChange={(site) => {
+        bus.__lastChange = site;
+        bus.__changeCount += 1;
+      }}
+      onPublish={(payload) => {
+        bus.__published = payload;
+      }}
+    />
   </React.StrictMode>,
 );
 
 // Signal readiness for Playwright.
-(window as unknown as { __ready: boolean }).__ready = true;
+bus.__ready = true;

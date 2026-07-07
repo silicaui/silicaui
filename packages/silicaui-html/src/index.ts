@@ -34,16 +34,29 @@ export { toJson } from "./to-json";
 export { stamp, stampTree, stripIds, defaultMakeId } from "./stamp";
 export type { MakeId } from "./stamp";
 
+// The multi-page site container (§3): pages sharing one theme + frame.
+export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage, renderSite } from "./site";
+export type { RenderedPage } from "./site";
+
 // The block linter (§6.3).
 export { lintBlock, assertBlockClean } from "./lint";
 export type { LintIssue } from "./lint";
 
-// The atom registry (§4).
-export { atoms } from "./atoms";
-export type { AtomRenderer, AtomContext } from "./atoms";
+// The component registry (§4) — the single definition each silicaui component
+// derives from. A component is a macro that EXPANDS to an element subtree, so a
+// projection (toHtml) and the builder render it through their normal element
+// path; new components add a def, not a renderer branch.
+export {
+  expandComponent,
+  registerComponent,
+  getComponent,
+  listComponents,
+  BUILTIN_COMPONENTS,
+} from "./component";
+export type { ComponentDef } from "./component";
 
 // Tree traversal (shared with the builder).
-export { walk } from "./tree";
+export { walk, composeFrame } from "./tree";
 
 // The theme model (§5) — the shared source of truth for a theme's color roles,
 // scalar tokens, and the preset library. Consumed by the builder's theme editor

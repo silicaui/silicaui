@@ -211,9 +211,11 @@ toReact(Template): ReactComponent          // build-time codegen; props = the te
 toJson(node | Template | Document): object // the validated tree, as data
 ```
 
-- **`toHtml`** — walks the tree, emits tags/classes/attrs, resolves `component`
-  nodes through silicaui-html's **atom registry** (component name → markup + classes),
-  inlines slot default content, applies the host `prefix` to silicaui class names.
+- **`toHtml`** — walks the tree, emits tags/classes/attrs, and lowers each
+  `component` node through silicaui-html's **component registry**: a component is a
+  macro that *expands* to an element subtree, then renders through the same element
+  path (so a new component adds a `ComponentDef`, never a renderer branch). Inlines
+  slot default content, applies the host `prefix` to silicaui class names.
   Framework-free, copy-in, the production renderer.
 - **`toReact`** — a generated `silicaui-react` component whose props are the
   template's slots; renders the same tree with the active `<SilicaProvider>` prefix.
@@ -221,7 +223,7 @@ toJson(node | Template | Document): object // the validated tree, as data
 - **`toJson`** — the tree itself, validated, for structured hosts and the builder.
 
 **Preview == production is structural, not by convention:** the builder canvas
-renders via the *same* `toHtml`/atom-registry path that ships to production. There is
+renders via the *same* `toHtml`/component-registry path that ships to production. There is
 no separate canvas renderer to drift from the live output.
 
 ---
@@ -526,7 +528,7 @@ code.
   its rules/reset from leaking into the host UI. **One DOM** — selection, drag, and
   the inspector operate directly, with no cross-frame style injection, event
   proxying, or coordinate mapping.
-- **Renders via silicaui-html's `toHtml` / atom registry — the same path as
+- **Renders via silicaui-html's `toHtml` / component registry — the same path as
   production.** So *preview == production* is structural, not a promise a separate
   canvas renderer can break.
 - **Editor chrome** (selection outlines, drag handles, rulers) uses its **own token
@@ -682,5 +684,8 @@ the builder puts that layering back with the system that defines it.
   over `dash`) and alias the daisyUI names for compatibility; add field
   `filled`/`ghost` variants. (Vocabulary lives in the CSS layer.)
 - Improve the standalone `-content` fallback beyond a fixed lightness threshold.
-- Confirm the atom registry (component name → markup) as the shared contract between
-  `toHtml`, `toReact`, and the builder canvas.
+- ~~Confirm the atom registry (component name → markup) as the shared contract
+  between `toHtml`, `toReact`, and the builder canvas.~~ **Done** — it's the
+  `ComponentDef` **component registry**: each component is a macro that expands to an
+  element subtree, so every projection renders it through one element path and a new
+  component adds a def, not a renderer branch.

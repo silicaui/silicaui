@@ -5,12 +5,27 @@
  */
 import * as React from "react";
 import type { Document, Node, Theme } from "silicaui-html";
-import type { Editor } from "../engine";
+import type { ActiveTree, Editor, PagesView } from "../engine";
 
 const EditorContext = React.createContext<Editor | null>(null);
 
 export function EditorProvider({ editor, children }: { editor: Editor; children: React.ReactNode }) {
   return <EditorContext.Provider value={editor}>{children}</EditorContext.Provider>;
+}
+
+// The chrome's `[data-theme]` value. Base UI popups (dropdowns, dialogs) render in a
+// PORTAL at document.body — outside the chrome's theme island — so a portaled popup
+// must re-stamp this on its own root to recover the studio tokens (else base/primary
+// resolve to nothing). Threaded here so any chrome popup can read it.
+const StudioThemeContext = React.createContext<string>("studio");
+
+export function StudioThemeProvider({ value, children }: { value: string; children: React.ReactNode }) {
+  return <StudioThemeContext.Provider value={value}>{children}</StudioThemeContext.Provider>;
+}
+
+/** The chrome's `[data-theme]` name — stamp it on portaled popups to keep tokens. */
+export function useStudioTheme(): string {
+  return React.useContext(StudioThemeContext);
 }
 
 /** The shared engine. Mutate through it; reads go through the hooks below. */
@@ -56,6 +71,40 @@ export function useSavedThemes(): readonly Theme[] {
   );
 }
 
+/**
+ * The page roster + active page id (for the page switcher). The engine hands back
+ * a stable object that only changes when the roster or active page mutate, so
+ * getSnapshot is referentially safe and unrelated edits don't re-render the switcher.
+ */
+export function usePages(): PagesView {
+  const editor = useEditor();
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    () => editor.pagesView,
+  );
+}
+
+/** Which tree the spine edits — "page" body or "frame" shell (re-read on switch). */
+export function useActiveTree(): ActiveTree {
+  const editor = useEditor();
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    () => editor.activeTree,
+  );
+}
+
+/**
+ * The root of the currently-active tree: the page body, or the frame shell when
+ * Layout mode is on. Everything that renders/edits the tree (Canvas, Navigator,
+ * the selected-node lookup) reads through here so a single switch retargets the
+ * whole spine.
+ */
+export function useActiveRoot(): Node {
+  const doc = useDocument();
+  const which = useActiveTree();
+  return which === "frame" && doc.frame ? doc.frame.root : doc.root;
+}
+
 /** The selected node's id (undefined when nothing is selected). */
 export function useSelection(): string | undefined {
   const editor = useEditor();
@@ -71,9 +120,9 @@ export function useSelection(): string | undefined {
  * so consumers can read it freely but must mutate through the engine.
  */
 export function useSelectedNode(): Node | undefined {
-  const doc = useDocument();
+  const root = useActiveRoot();
   const id = useSelection();
-  return React.useMemo(() => (id ? findNode(doc.root, id) : undefined), [doc, id]);
+  return React.useMemo(() => (id ? findNode(root, id) : undefined), [root, id]);
 }
 
 /** Depth-first id lookup within an extracted tree (view-side; the engine owns writes). */

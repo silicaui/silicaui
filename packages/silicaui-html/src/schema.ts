@@ -150,11 +150,38 @@ export interface Frame {
   editable: boolean;
 }
 
-/** A live, editable, themed document — what loads into and extracts from the builder. */
+/** A live, editable, themed document — one page's tree in its theme/frame context.
+ *  This is the unit a projection (`toHtml`) turns into a single HTML page. A
+ *  multi-page site is a `Site`; each of its pages projects THROUGH a Document. */
 export interface Document {
   version: string;
   /** The editable tree — ids present. */
   root: Node;
   theme: Theme;
   frame?: Frame;
+}
+
+/** One page of a Site: a routable body tree with its own name + slug. The `root`
+ *  carries node ids (it's editable); the page `id` is its own space (not a node id). */
+export interface Page {
+  /** Stable page id — the key the editor switches/removes by (not a node id). */
+  id: string;
+  /** Human label shown in the page switcher + Navigator. */
+  name: string;
+  /** Route path, e.g. "/" or "/pricing". Unique within a site. */
+  slug: string;
+  /** The editable page body — ids present. */
+  root: Node;
+}
+
+/** A multi-page site: one or more `Page`s sharing a single theme + optional frame.
+ *  The shared shell (`frame`) wraps EVERY page; the theme applies site-wide. This
+ *  is what the builder loads/extracts once multi-page is in play — each page
+ *  projects to its own `Document` (see `pageDocument`) for HTML output/storage. */
+export interface Site {
+  version: string;
+  theme: Theme;
+  frame?: Frame;
+  /** At least one page; `pages[0]` is the home/default page. */
+  pages: Page[];
 }

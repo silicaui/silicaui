@@ -45,7 +45,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs"
+    "verify": "node verify.mjs",
+    "golden": "node golden.mjs"
   },
   "devDependencies": {
     "tsup": "^8.3.0",

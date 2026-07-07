@@ -1,14 +1,14 @@
 {
-  "name": "silicaui-panels",
-  "version": "1.0.0",
-  "description": "Silica UI resizable panels — react-resizable-panels wrapped with a Silica-styled resize handle.",
+  "name": "silicaui-behaviors",
+  "version": "0.1.0",
+  "description": "Silica UI's framework-agnostic runtime for the behavior marker contract — scans data-sui-* markers and wires interactivity for any host that renders plain markup.",
   "type": "module",
   "license": "MIT",
   "author": "WizeWorks",
   "repository": {
     "type": "git",
     "url": "https://github.com/silicaui/silicaui.git",
-    "directory": "packages/silicaui-panels"
+    "directory": "packages/silicaui-behaviors"
   },
   "homepage": "https://silicaui.com",
   "bugs": "https://github.com/silicaui/silicaui/issues",
@@ -17,7 +17,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -35,31 +36,19 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
-  },
-  "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18",
-    "silicaui-react": ">=0.0.0"
-  },
-  "dependencies": {
-    "react-resizable-panels": "^2.1.7"
+    "typecheck": "tsc --noEmit",
+    "verify": "node verify.mjs"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "silicaui-react": "workspace:*",
+    "jsdom": "^25.0.0",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   },
   "keywords": [
-    "react",
-    "resizable",
-    "panels",
-    "split-pane",
     "design-system",
+    "behaviors",
+    "runtime",
+    "vanilla",
     "silica"
   ]
 }

@@ -134,6 +134,15 @@ export interface SelectProps {
   className?: string;
   /** Class for the popup surface. */
   popupClassName?: string;
+  /**
+   * Extra props spread onto the popup surface. The popup renders in a PORTAL at
+   * document.body, so when the Select lives inside a scoped `[data-theme]` island
+   * pass `popupProps={{ "data-theme": "…" }}` to re-establish the theme tokens
+   * (custom props inherit through the DOM, not the portal boundary).
+   */
+  popupProps?: React.ComponentProps<typeof BaseSelect.Popup> & {
+    [key: `data-${string}`]: string;
+  };
   /** Accessible name when there's no associated visible label. */
   "aria-label"?: string;
   "aria-labelledby"?: string;
@@ -182,6 +191,7 @@ export function Select({
   alignItemWithTrigger = false,
   className,
   popupClassName,
+  popupProps,
   id,
   children,
   ...aria
@@ -242,7 +252,7 @@ export function Select({
           sideOffset={sideOffset}
           alignItemWithTrigger={alignItemWithTrigger}
         >
-          <BaseSelect.Popup className={cx(sc("select-popup"), popupClassName)}>
+          <BaseSelect.Popup {...popupProps} className={cx(sc("select-popup"), popupClassName)}>
             <BaseSelect.ScrollUpArrow
               className={cx(sc("select-scroll-arrow"))}
               data-direction="up"
