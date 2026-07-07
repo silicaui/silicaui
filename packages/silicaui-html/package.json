@@ -1,0 +1,61 @@
+{
+  "name": "silicaui-html",
+  "version": "0.1.0",
+  "description": "silicaui's framework-neutral node-tree source + HTML projection — the canonical Block/Document shape, the authoring kit, and toHtml.",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wize-works/silicaui.git",
+    "directory": "packages/silicaui-html"
+  },
+  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui-html#readme",
+  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./blocks": {
+      "types": "./dist/blocks/index.d.ts",
+      "import": "./dist/blocks/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./blocks": {
+        "types": "./dist/blocks/index.d.ts",
+        "import": "./dist/blocks/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "verify": "node verify.mjs"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "design-system",
+    "html",
+    "node-tree",
+    "blocks",
+    "silica"
+  ]
+}

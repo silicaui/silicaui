@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Silica's CSS layer — the SAME plugin every consumer uses. The builder chrome is
+   composed from these classes (utilities + component classes), so it dogfoods the
+   design system rather than a bespoke stylesheet. */
+@plugin "silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+/* The builder src is where the chrome's utility class strings live, and the canvas
+   content is generated at runtime (toHtml), so point the scanner at both sources
+   so every utility/component class actually gets generated. */
+@source "../src/**/*.{ts,tsx}";
+@source "../../silicaui-html/src/**/*.{ts,tsx}";
+
+/* Studio — the builder chrome's own fixed theme. Applied to
+   `[data-theme="studio"]`, isolated from the host page AND the canvas's editable
+   document theme (a nested island). */
+@plugin "silicaui/theme" {
+  name: studio;
+  --color-base-100: #ffffff;
+  --color-base-200: #f2f3f6;
+  --color-base-300: #e5e7eb;
+  --color-base-content: #1b1d22;
+  --color-primary: #7c3aed;
+  --color-primary-content: #ffffff;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+}
+
+html, body { height: 100%; }
+body { margin: 0; }

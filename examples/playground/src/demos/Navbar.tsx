@@ -1,0 +1,25 @@
+import { Navbar, NavbarStart, NavbarCenter, NavbarEnd, Button } from "silicaui-react";
+import { Section } from "../lib/Section";
+
+export function NavbarDemo() {
+    return (
+        <Section title="Real use · site header">
+            <Navbar className="rounded-box border border-base-300">
+                <NavbarStart>
+                    <span className="text-lg font-bold">◆ Silica</span>
+                </NavbarStart>
+                <NavbarCenter className="hidden gap-4 text-sm sm:flex">
+                    <a href="#">Docs</a>
+                    <a href="#">Components</a>
+                    <a href="#">Pricing</a>
+                </NavbarCenter>
+                <NavbarEnd>
+                    <Button variant="ghost" color="neutral">
+                        Sign in
+                    </Button>
+                    <Button color="primary">Get started</Button>
+                </NavbarEnd>
+            </Navbar>
+        </Section>
+    );
+}

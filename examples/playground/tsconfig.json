@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["react", "react-dom", "vite/client"],
+    "noEmit": true,
+    "paths": {
+      "silicaui-react": ["../../packages/silicaui-react/src/index.ts"],
+      "silicaui-charts": ["../../packages/silicaui-charts/src/index.ts"],
+      "silicaui-table": ["../../packages/silicaui-table/src/index.ts"],
+      "silicaui-editor": ["../../packages/silicaui-editor/src/index.ts"],
+      "silicaui-dnd": ["../../packages/silicaui-dnd/src/index.ts"],
+      "silicaui-panels": ["../../packages/silicaui-panels/src/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

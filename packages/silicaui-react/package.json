@@ -1,0 +1,67 @@
+{
+  "name": "silicaui-react",
+  "version": "0.1.0",
+  "description": "Silica UI's React layer — thin components over the Silica CSS classes.",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wize-works/silicaui.git",
+    "directory": "packages/silicaui-react"
+  },
+  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui-react#readme",
+  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "silicaui": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "react",
+    "components",
+    "design-system",
+    "tailwindcss",
+    "silica"
+  ],
+  "dependencies": {
+    "@base-ui-components/react": "1.0.0-rc.0"
+  }
+}

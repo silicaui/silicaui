@@ -1,0 +1,65 @@
+{
+  "name": "silicaui-panels",
+  "version": "0.1.0",
+  "description": "Silica UI resizable panels — react-resizable-panels wrapped with a Silica-styled resize handle.",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wize-works/silicaui.git",
+    "directory": "packages/silicaui-panels"
+  },
+  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui-panels#readme",
+  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "silicaui-react": ">=0.0.0"
+  },
+  "dependencies": {
+    "react-resizable-panels": "^2.1.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "silicaui-react": "workspace:*",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "react",
+    "resizable",
+    "panels",
+    "split-pane",
+    "design-system",
+    "silica"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "silicaui-builder",
+  "version": "0.0.0",
+  "private": true,
+  "description": "silicaui's visual builder — chrome built ON silicaui (Tailwind v4 plugin) + silicaui-react, over a framework-neutral document engine.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "harness": "vite harness",
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "silicaui": "workspace:*",
+    "silicaui-html": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "lucide-static": "^1.23.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "silicaui-react": "workspace:*",
+    "tailwindcss": "^4.3.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  },
+  "keywords": [
+    "builder",
+    "editor",
+    "design-system",
+    "silica"
+  ]
+}

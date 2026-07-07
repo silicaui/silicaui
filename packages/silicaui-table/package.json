@@ -1,0 +1,65 @@
+{
+  "name": "silicaui-table",
+  "version": "0.1.0",
+  "description": "Silica UI DataTable — TanStack Table wrapped in the Silica table CSS (sort, select, paginate).",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wize-works/silicaui.git",
+    "directory": "packages/silicaui-table"
+  },
+  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui-table#readme",
+  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "silicaui-react": ">=0.0.0"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.20.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "silicaui-react": "workspace:*",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "react",
+    "table",
+    "datatable",
+    "tanstack",
+    "design-system",
+    "silica"
+  ]
+}

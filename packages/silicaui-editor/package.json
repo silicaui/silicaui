@@ -1,0 +1,70 @@
+{
+  "name": "silicaui-editor",
+  "version": "0.1.0",
+  "description": "Silica UI rich-text editor — TipTap wrapped with a Silica-styled toolbar and content surface.",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wize-works/silicaui.git",
+    "directory": "packages/silicaui-editor"
+  },
+  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui-editor#readme",
+  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "silicaui-react": ">=0.0.0"
+  },
+  "dependencies": {
+    "@tiptap/react": "^2.10.0",
+    "@tiptap/pm": "^2.10.0",
+    "@tiptap/starter-kit": "^2.10.0",
+    "@tiptap/extension-link": "^2.10.0",
+    "@tiptap/extension-placeholder": "^2.10.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "silicaui-react": "workspace:*",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "react",
+    "rich-text",
+    "editor",
+    "tiptap",
+    "wysiwyg",
+    "design-system",
+    "silica"
+  ]
+}

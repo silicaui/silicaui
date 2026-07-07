@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["react", "react-dom"],
+    "paths": {
+      "silicaui-builder/react": ["./src/react/index.ts"],
+      "silicaui-builder": ["./src/index.ts"]
+    }
+  },
+  "include": ["src", "harness"]
+}

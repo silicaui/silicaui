@@ -1,0 +1,42 @@
+{
+  "name": "silicaui",
+  "version": "0.1.0",
+  "description": "Silica UI's CSS layer — a Tailwind v4 plugin of themeable, semantic component classes.",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wize-works/silicaui.git",
+    "directory": "packages/silicaui"
+  },
+  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui#readme",
+  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "sideEffects": true,
+  "exports": {
+    ".": "./src/index.js",
+    "./theme": "./src/theme-plugin.js",
+    "./color-utilities": "./src/color-utilities.js",
+    "./button": "./src/components/button.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./src/index.js",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "echo \"(no build step — ships as source)\"",
+    "typecheck": "echo \"(js plugin — no typecheck yet)\""
+  },
+  "peerDependencies": {
+    "tailwindcss": ">=4.3.0"
+  },
+  "keywords": [
+    "tailwindcss",
+    "tailwind-plugin",
+    "css",
+    "design-system",
+    "daisyui",
+    "silica"
+  ]
+}

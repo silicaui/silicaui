@@ -1,0 +1,56 @@
+# silicaui-dnd
+
+Silica UI drag-and-drop — [dnd-kit](https://dndkit.com/) wrapped in a
+Silica-styled `<SortableList>`, plus the full dnd-kit primitive set re-exported
+for custom drag surfaces.
+
+[![npm version](https://img.shields.io/npm/v/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-dnd)
+[![npm downloads](https://img.shields.io/npm/dm/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-dnd)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-dnd?style=flat-square)](https://bundlephobia.com/package/silicaui-dnd)
+[![license](https://img.shields.io/npm/l/silicaui-dnd.svg?style=flat-square)](https://github.com/wize-works/silicaui/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/wize-works/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/wize-works/silicaui/actions/workflows/ci.yml)
+
+## Install
+
+```bash
+pnpm add silicaui-dnd silicaui-react
+pnpm add -D silicaui tailwindcss
+```
+
+## Usage
+
+```tsx
+import { SortableList } from "silicaui-dnd";
+
+<SortableList
+  items={items}
+  getItemId={(item) => item.id}
+  onReorder={setItems}
+  renderItem={(item, ctx) => (
+    <div className={ctx.isDragging ? "opacity-50" : ""}>
+      <span {...ctx.handleProps}>⠿</span> {item.label}
+    </div>
+  )}
+/>
+```
+
+## `<SortableList>` props
+
+| Prop | Type |
+| --- | --- |
+| `items` | `T[]` — the ordered items |
+| `getItemId` | `(item: T) => string \| number` — stable id, used for drag identity + React key |
+| `onReorder` | `(items: T[]) => void` — called with the reordered array after a drag or keyboard move |
+| `renderItem` | `(item: T, ctx: SortableItemContext) => ReactNode` — `ctx.isDragging` + `ctx.handleProps` (spread onto your drag handle, or the whole row if no separate handle) |
+
+Also re-exports dnd-kit's core and sortable primitives — `DndContext`,
+`DragOverlay`, sensors (`PointerSensor`, `KeyboardSensor`, …),
+`SortableContext`, `useSortable`, `arrayMove`, collision strategies, and
+`CSS` — so you can build custom drag surfaces (kanban boards, canvas drops)
+without a separate dnd-kit install.
+
+## Links
+
+- [GitHub repo](https://github.com/wize-works/silicaui)
+- [Issues](https://github.com/wize-works/silicaui/issues)
+- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends

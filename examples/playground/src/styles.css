@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+
+/* Load Silica, and register a custom `brand` color to prove extensibility.
+   `prefix: sx-` namespaces every Silica class (→ .sx-btn, .sx-btn-primary, …)
+   to mirror the Sparx migration case. It must match <SilicaProvider prefix>
+   in app.tsx. */
+@plugin "silicaui" {
+    colors: primary, secondary, accent, neutral, info, success, warning, error, brand, silica, brand-duck;
+}
+
+@plugin "silicaui/theme" {
+    name: light;
+    /* Authored in hex on purpose — and with no `-content`, so Silica auto-derives
+     the foreground. Try changing this value and watch the text stay legible. */
+    --color-brand: #7c3aed;
+    --color-brand-content: #ffffff;
+    --color-silica: #1e293b;
+    --color-silica-content: #ffffff;
+    --color-brand-duck: #fcd34d;
+    --color-brand-duck-content: #000000;
+    --radius-selector: 0.25rem;
+    --radius-box: 1rem;
+    --radius-field: 0.25rem;
+}
+
+@plugin "silicaui/theme" {
+    name: dark;
+    --color-brand: #7c3aed;
+    --color-brand-content: #ffffff;
+    --color-silica: #1e293b;
+    --color-silica-content: #ffffff;
+    --radius-selector: 0.25rem;
+    --radius-box: 0.25rem;
+    --radius-field: 0.25rem;
+}
+
+/* Background + text color are now painted by Silica's theme base (the
+   `[data-theme]` rule), so no manual body paint is needed — just full height. */
+body {
+    min-height: 100dvh;
+}
