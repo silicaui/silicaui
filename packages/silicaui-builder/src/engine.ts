@@ -71,6 +71,23 @@ function isContainer(node: Node): node is Markable {
   return node.kind !== "outlet";
 }
 
+// Which nodes a new insertion nests INTO vs sits beside. Layout tags + the
+// container atoms accept children; text/leaf tags (h1, p, a, button, img, …) and
+// leaf atoms (Button, Image, Heading, …) take a sibling instead. This is the
+// heuristic behind selection-relative + drop-relative insertion.
+const CONTAINER_TAGS = new Set([
+  "div", "section", "main", "article", "aside", "header", "footer", "nav",
+  "ul", "ol", "li", "form", "figure", "blockquote", "dl", "fieldset",
+]);
+const CONTAINER_COMPONENTS = new Set(["Card", "Container", "Grid", "Stack", "Section"]);
+
+/** True when a node should receive an insertion as a CHILD (vs a sibling). */
+export function acceptsChildren(node: Node): boolean {
+  if (node.kind === "outlet") return false;
+  if (node.kind === "component") return CONTAINER_COMPONENTS.has(node.component);
+  return CONTAINER_TAGS.has(node.tag);
+}
+
 export class Editor {
   private doc: Document;
   private listeners = new Set<(e: ChangeEvent) => void>();
@@ -241,6 +258,28 @@ export class Editor {
     });
     if (newId) this.select(newId);
     return newId;
+  }
+
+  /**
+   * Insert `node` relative to a target (default: the current selection), the way
+   * a click-to-insert or a drop-on-node expects: if the target accepts children
+   * it lands INSIDE (appended), otherwise it lands as the target's next SIBLING.
+   * With no target it appends to the root. This is the palette's insert path.
+   */
+  insertRelative(node: Node, targetId?: string): string | undefined {
+    const target = targetId ?? this.selectedId;
+    const rootId = this.doc.root.kind === "outlet" ? undefined : this.doc.root.id;
+
+    if (!target) {
+      return acceptsChildren(this.doc.root) && rootId ? this.insert(node, rootId) : undefined;
+    }
+    const found = locate(this.doc.root, target);
+    if (!found) {
+      return acceptsChildren(this.doc.root) && rootId ? this.insert(node, rootId) : undefined;
+    }
+    if (acceptsChildren(found.node) && found.node.id) return this.insert(node, found.node.id);
+    if (found.parent?.id) return this.insert(node, found.parent.id, found.index + 1);
+    return undefined; // a leaf root with no parent — nowhere to place it
   }
 
   /** Remove a node (never the root). Selects its parent if it was selected. */

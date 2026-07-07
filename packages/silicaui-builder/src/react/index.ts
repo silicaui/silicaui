@@ -16,4 +16,5 @@ export {
 } from "./editor-context";
 export { Canvas } from "./Canvas";
 export { Navigator } from "./Navigator";
+export { Palette } from "./Palette";
 export { Inspector } from "./Inspector";

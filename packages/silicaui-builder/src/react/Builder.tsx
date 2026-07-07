@@ -19,6 +19,7 @@ import { ComponentBoard } from "./ComponentBoard";
 import { ThemeLibrary } from "./ThemeLibrary";
 import { Canvas } from "./Canvas";
 import { Navigator } from "./Navigator";
+import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
 import { Icon } from "./Icon";
 import type { IconName } from "../icons";
@@ -58,6 +59,7 @@ function Chrome() {
   const [mode, setMode] = React.useState<Mode>("page");
   const [device, setDevice] = React.useState("desktop");
   const [appearance, setAppearance] = React.useState<Appearance>("light");
+  const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
 
   return (
     <>
@@ -137,10 +139,17 @@ function Chrome() {
           ) : (
             <>
               <PanelHead>
-                <Icon name="list" /> Navigator
+                <ToggleGroup
+                  className="toggle-group-xs"
+                  value={[leftTab]}
+                  onValueChange={(v: string[]) => v.length && setLeftTab(last(v, leftTab) as "layers" | "insert")}
+                >
+                  <IconItem value="layers" icon="list">Layers</IconItem>
+                  <IconItem value="insert" icon="plus">Insert</IconItem>
+                </ToggleGroup>
               </PanelHead>
               <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
-                <Navigator />
+                {leftTab === "layers" ? <Navigator /> : <Palette />}
               </div>
             </>
           )}
