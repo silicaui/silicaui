@@ -4,6 +4,7 @@ Silica UI's `<DataTable>` — [TanStack Table](https://tanstack.com/table) wrapp
 in the Silica table CSS. Sorting, row selection, and pagination as simple
 boolean/number props over TanStack's typed column-def API.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-table)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-table)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-table?style=flat-square)](https://bundlephobia.com/package/silicaui-table)
@@ -53,6 +54,8 @@ types from `@tanstack/react-table`, so you can build typed columns without a
 direct TanStack install.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

@@ -10,7 +10,7 @@
     "url": "https://github.com/silicaui/silicaui.git",
     "directory": "packages/silicaui-dnd"
   },
-  "homepage": "https://github.com/silicaui/silicaui/tree/main/packages/silicaui-dnd#readme",
+  "homepage": "https://silicaui.com",
   "bugs": "https://github.com/silicaui/silicaui/issues",
   "sideEffects": false,
   "exports": {

@@ -10,7 +10,7 @@
     "url": "https://github.com/silicaui/silicaui.git",
     "directory": "packages/silicaui-editor"
   },
-  "homepage": "https://github.com/silicaui/silicaui/tree/main/packages/silicaui-editor#readme",
+  "homepage": "https://silicaui.com",
   "bugs": "https://github.com/silicaui/silicaui/issues",
   "sideEffects": false,
   "exports": {

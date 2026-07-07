@@ -6,6 +6,7 @@ interaction behavior (focus management, keyboard nav, positioning, a11y) to
 [Base UI](https://base-ui.com). No styling logic hides in JS: every visual
 variant is a class string, so the CSS and React layers never drift apart.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-react.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-react)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-react.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-react)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-react?style=flat-square)](https://bundlephobia.com/package/silicaui-react)
@@ -80,6 +81,8 @@ native-element prop passthrough, and a forwarded `ref`.
 Plus all native `<button>` attributes and a forwarded `ref`.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

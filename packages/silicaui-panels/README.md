@@ -4,6 +4,7 @@ Silica UI resizable panels — [react-resizable-panels](https://github.com/bvaug
 wrapped with a Silica-styled resize handle. Drop-in for split editors,
 sidebars, and any layout that needs a draggable divider.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-panels.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-panels)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-panels.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-panels)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-panels?style=flat-square)](https://bundlephobia.com/package/silicaui-panels)
@@ -45,6 +46,8 @@ prop/handle types, so you can do programmatic resize/collapse and layout
 persistence without a separate install.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

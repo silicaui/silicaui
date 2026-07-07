@@ -6,6 +6,7 @@ projection. This is the format the Silica builder and any structured host (a
 CMS, a static-site generator, an email renderer) read and write; React is a
 separate *projection* of the same tree, never the source of truth.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-html)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-html)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-html?style=flat-square)](https://bundlephobia.com/package/silicaui-html)
@@ -74,6 +75,8 @@ for the full spec — node schema, projections, theme model, and the builder
 engine seam.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

@@ -4,6 +4,7 @@ Silica UI charts — [Apache ECharts](https://echarts.apache.org/) wrapped in a
 single `<Chart>` component that **auto-themes to your Silica design tokens**.
 Full ECharts API, zero manual palette wiring.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-charts.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-charts)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-charts.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-charts)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-charts?style=flat-square)](https://bundlephobia.com/package/silicaui-charts)
@@ -52,6 +53,8 @@ Also ships `<Sparkline>` for compact inline trend charts, and re-exports
 `EChartsOption` so you can type `option` without a direct `echarts` import.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

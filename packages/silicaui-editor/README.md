@@ -4,6 +4,7 @@ Silica UI's `<RichTextEditor>` — [TipTap](https://tiptap.dev/) wrapped with a
 Silica-styled formatting toolbar and content surface. Controlled or
 uncontrolled, HTML in and out.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-editor.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-editor)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-editor.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-editor)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-editor?style=flat-square)](https://bundlephobia.com/package/silicaui-editor)
@@ -46,6 +47,8 @@ Also re-exports TipTap's `useEditor`, `EditorContent`, and `Editor` (plus
 commands imperatively — without a separate TipTap install.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

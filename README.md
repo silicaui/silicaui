@@ -1,5 +1,6 @@
 # Silica UI
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-react.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-react)
 [![license](https://img.shields.io/npm/l/silicaui.svg?style=flat-square)](./LICENSE)
@@ -62,6 +63,12 @@ pnpm changeset          # describe what changed and which packages it affects
 A bot opens a "Version Packages" PR batching pending changesets; merging it to
 `main` publishes the affected packages to npm. See
 [`.github/workflows/release.yml`](./.github/workflows/release.yml).
+
+## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
+- [GitHub repo](https://github.com/silicaui/silicaui)
+- [Issues](https://github.com/silicaui/silicaui/issues)
 
 ## License
 

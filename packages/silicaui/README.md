@@ -7,6 +7,7 @@ single `@plugin "silicaui"` line. Framework-agnostic — pair it with
 [`silicaui-react`](https://github.com/silicaui/silicaui/tree/main/packages/silicaui-react)
 or use the classes directly in any HTML.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui?style=flat-square)](https://bundlephobia.com/package/silicaui)
@@ -106,6 +107,8 @@ Every other component follows the same color/style/size/shape grammar — see th
 for the full design system.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)

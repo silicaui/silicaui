@@ -4,6 +4,7 @@ Silica UI drag-and-drop — [dnd-kit](https://dndkit.com/) wrapped in a
 Silica-styled `<SortableList>`, plus the full dnd-kit primitive set re-exported
 for custom drag surfaces.
 
+[![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
 [![npm version](https://img.shields.io/npm/v/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-dnd)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-dnd)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-dnd?style=flat-square)](https://bundlephobia.com/package/silicaui-dnd)
@@ -50,6 +51,8 @@ Also re-exports dnd-kit's core and sortable primitives — `DndContext`,
 without a separate dnd-kit install.
 
 ## Links
+
+- [silicaui.com](https://silicaui.com) — website & docs
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
