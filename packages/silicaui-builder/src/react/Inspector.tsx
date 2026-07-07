@@ -128,6 +128,21 @@ const MAX_WIDTH: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "max-w-5xl", label: "5XL" },
   { cls: "max-w-full", label: "Full" },
 ];
+// Horizontal position via auto side margins — how a width/max-width-constrained
+// block sits in its parent (e.g. `max-w-4xl` + `mx-auto` to center a section).
+const POSITION: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "mr-auto", label: "Left" },
+  { cls: "mx-auto", label: "Center" },
+  { cls: "ml-auto", label: "Right" },
+];
+// Self-alignment on the cross axis — only meaningful when the node's parent is
+// a flex or grid container, but offered unconditionally like the rest of this vocab.
+const SELF_ALIGN: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "self-start", label: "Start" },
+  { cls: "self-center", label: "Center" },
+  { cls: "self-end", label: "End" },
+  { cls: "self-stretch", label: "Stretch" },
+];
 const BTN_VARIANT: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "btn-outline", label: "Outline" },
   { cls: "btn-ghost", label: "Ghost" },
@@ -453,8 +468,6 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
     if (value) t.add(value);
     editor.setClass(id, [...t].join(" "));
   };
-  const centered = tokensOf(cls).has("mx-auto");
-
   return (
     <>
       {node.kind === "component" && node.component === "Button" && (
@@ -505,11 +518,11 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         <Row label="Max width">
           <ChipGroup options={MAX_WIDTH} active={activeIn(cls, MAX_WIDTH.map((o) => o.cls))} onPick={(v) => setToken(MAX_WIDTH.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Center horizontally">
-          <label className="flex items-center gap-2 text-xs text-base-content/60">
-            <Toggle size="sm" checked={centered} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToken(["mx-auto"], e.target.checked ? "mx-auto" : "")} />
-            <span>Auto side margins (<code className="font-mono">mx-auto</code>)</span>
-          </label>
+        <Row label="Position">
+          <ChipGroup options={POSITION} active={activeIn(cls, POSITION.map((o) => o.cls))} onPick={(v) => setToken(POSITION.map((o) => o.cls), v)} />
+        </Row>
+        <Row label="Self align">
+          <ChipGroup options={SELF_ALIGN} active={activeIn(cls, SELF_ALIGN.map((o) => o.cls))} onPick={(v) => setToken(SELF_ALIGN.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
