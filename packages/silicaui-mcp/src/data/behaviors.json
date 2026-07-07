@@ -34,5 +34,13 @@
   {
     "type": "toc",
     "description": "Shared implementation behind `scrollspy` and `toc`: `spy` parts are links (`href=\"#id\"`) tracked against the section they point to; the in-view one gets `aria-current=\"true\"` for a nav/TOC to style. `toc` differs only in its default intersection threshold (a smaller sliver of a heading counts as \"current\" for a table of contents than a full scrollspy section does)."
+  },
+  {
+    "type": "sidebar",
+    "description": "`sidebar` — a persistent nav panel that collapses IN PLACE to an icon rail (unlike `disclosure`, the root is never hidden — only its `data-collapsed` state changes, and CSS alone handles the width/label transition). Any number of `trigger` parts nested inside the root toggle it; `params.defaultCollapsed` seeds the initial state."
+  },
+  {
+    "type": "selection-list",
+    "description": "`selection-list` — a listbox of `item` parts (single- or multi-select, via `params.multiple`). Click (or Enter/Space on the focused item) toggles selection; the vanilla counterpart to silicaui-react's `SelectionList`. Roving tabindex + ↑/↓/Home/End mirror the React component's keyboard behavior."
   }
 ]

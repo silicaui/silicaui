@@ -481,6 +481,31 @@
     "select-xl",
     "select-xs"
   ],
+  "selection-list": [
+    "primary"
+  ],
+  "sidebar": [
+    "sidebar",
+    "sidebar-accent",
+    "sidebar-content",
+    "sidebar-error",
+    "sidebar-footer",
+    "sidebar-group",
+    "sidebar-group-label",
+    "sidebar-header",
+    "sidebar-header-brand",
+    "sidebar-info",
+    "sidebar-item",
+    "sidebar-item-icon",
+    "sidebar-item-label",
+    "sidebar-item-trailing",
+    "sidebar-neutral",
+    "sidebar-primary",
+    "sidebar-secondary",
+    "sidebar-success",
+    "sidebar-trigger",
+    "sidebar-warning"
+  ],
   "skeleton": [
     "primary"
   ],
@@ -670,6 +695,22 @@
     "wizard-steps",
     "wizard-success",
     "wizard-warning"
+  ],
+  "wordmark": [
+    "wordmark",
+    "wordmark-accent",
+    "wordmark-error",
+    "wordmark-info",
+    "wordmark-lg",
+    "wordmark-md",
+    "wordmark-neutral",
+    "wordmark-primary",
+    "wordmark-secondary",
+    "wordmark-sm",
+    "wordmark-success",
+    "wordmark-warning",
+    "wordmark-xl",
+    "wordmark-xs"
   ],
   "color-utilities": [
     "bg-accent",

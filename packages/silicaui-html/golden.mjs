@@ -19,155 +19,155 @@ const FIXTURE = fileURLToPath(new URL("./golden.fixture.txt", import.meta.url));
 // and every atom-specific prop precisely, including the pathological edges.
 const c = (component, extra = {}) => ({ kind: "component", component, ...extra });
 const e = (tag, extra = {}) => {
-  const { text, ...rest } = extra;
-  const node = { kind: "element", tag, ...rest };
-  if (text != null && node.children == null) node.children = [text];
-  return node;
+    const { text, ...rest } = extra;
+    const node = { kind: "element", tag, ...rest };
+    if (text != null && node.children == null) node.children = [text];
+    return node;
 };
 
 // A synthetic tree exercising every atom, every render branch, and every edge.
 const synthetic = e("section", {
-  class: "wrap card",
-  attrs: { "data-role": "root", hidden: false, tabindex: 0, "aria-live": true },
-  children: [
-    // ── Button: button (default type + label fallback), button (explicit type +
-    //    children), anchor (href + label), + metadata (id/action) ──
-    c("Button", { class: "btn btn-primary", props: { label: "Save & go >" } }),
-    c("Button", { class: "btn", props: { type: "submit" }, children: [e("span", { text: "Submit" })] }),
-    c("Button", { class: "btn btn-ghost", props: { href: "/pricing", label: "Pricing" } }),
-    c("Button", {
-      id: "b1",
-      class: "btn",
-      props: { label: "Buy" },
-      data: { kind: "action", ref: "checkout", href: "/buy" },
-    }),
-    // ── Image: full, bare defaults, ratio-only-no-class, portrait ──
-    c("Image", { class: "rounded-box w-full", props: { src: "/a.png", alt: "A photo", ratio: "wide" } }),
-    c("Image", { props: {} }),
-    c("Image", { props: { ratio: "square" } }),
-    c("Image", { class: "shadow", props: { src: "/p.png", alt: 'Quote "x" & <b>', ratio: "portrait" } }),
-    // ── Heading: explicit, default, clamp-high, clamp-low, children vs text ──
-    c("Heading", { class: "text-4xl", props: { level: 1, text: "Title" } }),
-    c("Heading", { props: { text: "Default level" } }),
-    c("Heading", { props: { level: 9, text: "Clamped high" } }),
-    c("Heading", { props: { level: 0, text: "Clamped low" } }),
-    c("Heading", { props: { level: 3 }, children: [e("em", { text: "Rich" })] }),
-    // ── Simple element atoms: text fallback, children, empty ──
-    c("Text", { class: "prose", props: { text: "A paragraph & more <tags>" } }),
-    c("Text", { children: [c("Badge", { class: "badge", props: { text: "New" } })] }),
-    c("Text", {}),
-    c("Badge", { class: "badge badge-accent", props: { text: "Hot" } }),
-    c("Card", { class: "card", children: [c("Heading", { props: { text: "In card" } })] }),
-    c("Section", { class: "py-8", props: { text: "Sec" } }),
-    c("Container", { class: "container", props: { text: "Cont" } }),
-    c("Grid", { class: "grid grid-cols-2", children: [c("Stack", { class: "stack", props: { text: "S" } })] }),
-    // ── Icon: name, no name, with class ──
-    c("Icon", { props: { name: "sparkles" } }),
-    c("Icon", {}),
-    c("Icon", { class: "size-6 text-primary", props: { name: "check" } }),
-    // ── Divider: with class, bare ──
-    c("Divider", { class: "divider" }),
-    c("Divider", {}),
-    // ── Form controls: Input (type + attrs + bool), default; Textarea (rows +
-    //    empty-children edge, then text value w/ esc); Select (options object +
-    //    string mix, empty, child-override); Checkbox/Radio/Toggle (checked/value/
-    //    disabled); Field + Form containers ──
-    c("Input", { class: "input", props: { type: "email", name: "email", placeholder: "you@x.com", required: true } }),
-    c("Input", { props: {} }),
-    c("Textarea", { class: "textarea", props: { placeholder: "Bio", rows: 4 }, children: [] }),
-    c("Textarea", { props: { text: "Preset & <val>" } }),
-    c("Select", { class: "select", props: { name: "n", options: [{ value: "a", label: "A" }, { value: "b", label: "B & C" }, "plain"] } }),
-    c("Select", { props: { options: [] } }),
-    c("Select", { class: "select", children: [e("option", { attrs: { value: "x" }, text: "X" })] }),
-    c("Checkbox", { class: "checkbox", props: { name: "agree", checked: true } }),
-    c("Radio", { class: "radio", props: { name: "r", value: "1" } }),
-    c("Toggle", { class: "toggle", props: { name: "t", disabled: true } }),
-    c("Field", { class: "field", children: [e("label", { class: "field-label", text: "Name" }), c("Input", { class: "input", props: {} })] }),
-    // Form: auto `form` behavior marker; props.action → action binding; an
-    // explicit `data`/`behavior` on the node is respected (never clobbered).
-    c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
-    c("Form", { class: "flex", props: { action: "subscribe" }, children: [c("Input", { class: "input", props: { name: "email", type: "email" } })] }),
-    c("Form", { id: "f3", class: "flex", props: { action: "ignored" }, data: { kind: "action", ref: "explicit" }, children: [] }),
-    // ── Nav/Feedback/Data components: items lists, prop-driven structures, edges ──
-    c("Breadcrumb", { class: "breadcrumb", props: { items: ["Home", "Library & Docs", "Data"] } }),
-    c("Breadcrumb", { props: { items: [] } }), // empty items → empty <ol>
-    c("Menu", { class: "menu w-56", props: { items: ["Dashboard", "Settings"] } }),
-    c("Steps", { class: "steps", props: { items: ["A", "B", "C"], current: 1 } }),
-    c("Steps", { class: "steps", props: { items: ["Only"] } }), // no current → none primary
-    c("Pagination", { class: "join", props: { pages: 3 } }),
-    c("Pagination", { class: "join", props: {} }), // default 3
-    c("Navbar", { class: "navbar", children: [e("div", { class: "navbar-start", text: "Brand" }), e("div", { class: "navbar-end", text: "Sign in" })] }),
-    c("Alert", { class: "alert alert-info", props: { text: "Heads up <b> & stuff" } }),
-    c("Alert", { class: "alert" }), // default message
-    c("Progress", { class: "progress", props: { value: 70 } }),
-    c("Progress", { class: "progress", props: {} }), // default 50 → w-1/2
-    c("Loading", { class: "loading loading-md" }),
-    c("Skeleton", { class: "skeleton h-24 w-full" }),
-    c("Status", { class: "status status-success" }),
-    c("Kbd", { class: "kbd", props: { text: "Ctrl" } }),
-    c("Stat", { class: "stats", props: { title: "Users", value: "1,204", desc: "↗ 12%" } }),
-    c("Stat", { class: "stats", props: { value: "42" } }), // value-only (no title/desc rows)
-    c("Avatar", { class: "avatar w-12 rounded-full", props: { src: "/me.png", alt: "Me & I" } }),
-    c("Avatar", { class: "avatar", props: {} }), // no src → alt="" only
-    c("Collapse", { class: "collapse", props: { title: "More", content: "Hidden body" } }),
-    c("Collapse", { class: "collapse", props: { title: "Custom" }, children: [e("p", { text: "Rich body & <x>" })] }),
-    c("Timeline", { class: "timeline", props: { items: ["Founded", "Launched"] } }),
-    c("Table", { class: "table", children: [e("thead", { children: [e("tr", { children: [e("th", { text: "Name" })] })] })] }),
-    // ── Metadata lowering across every DataBinding + behavior + part ──
-    e("div", { id: "n1", class: "menu", data: { kind: "value", ref: "user.name" } }),
-    e("ul", { id: "n2", data: { kind: "collection", ref: "items" }, children: [e("li", { text: "x" })] }),
-    e("a", { class: "link", data: { kind: "action", ref: "open", href: "/o" }, text: "Open" }),
-    c("Card", {
-      id: "car",
-      class: "carousel",
-      behavior: { type: "carousel", params: { loop: true, per: 2 } },
-      children: [c("Card", { class: "slide", part: "slide", props: { text: "1" } })],
-    }),
-    // ── Text-vs-children fallback edge: empty children array + text prop ──
-    c("Text", { class: "edge", children: [], props: { text: "fallback wins" } }),
-  ],
+    class: "wrap card",
+    attrs: { "data-role": "root", hidden: false, tabindex: 0, "aria-live": true },
+    children: [
+        // ── Button: button (default type + label fallback), button (explicit type +
+        //    children), anchor (href + label), + metadata (id/action) ──
+        c("Button", { class: "btn btn-primary", props: { label: "Save & go >" } }),
+        c("Button", { class: "btn", props: { type: "submit" }, children: [e("span", { text: "Submit" })] }),
+        c("Button", { class: "btn btn-ghost", props: { href: "/pricing", label: "Pricing" } }),
+        c("Button", {
+            id: "b1",
+            class: "btn",
+            props: { label: "Buy" },
+            data: { kind: "action", ref: "checkout", href: "/buy" },
+        }),
+        // ── Image: full, bare defaults, ratio-only-no-class, portrait ──
+        c("Image", { class: "rounded-box w-full", props: { src: "/a.png", alt: "A photo", ratio: "wide" } }),
+        c("Image", { props: {} }),
+        c("Image", { props: { ratio: "square" } }),
+        c("Image", { class: "shadow", props: { src: "/p.png", alt: 'Quote "x" & <b>', ratio: "portrait" } }),
+        // ── Heading: explicit, default, clamp-high, clamp-low, children vs text ──
+        c("Heading", { class: "text-4xl", props: { level: 1, text: "Title" } }),
+        c("Heading", { props: { text: "Default level" } }),
+        c("Heading", { props: { level: 9, text: "Clamped high" } }),
+        c("Heading", { props: { level: 0, text: "Clamped low" } }),
+        c("Heading", { props: { level: 3 }, children: [e("em", { text: "Rich" })] }),
+        // ── Simple element atoms: text fallback, children, empty ──
+        c("Text", { class: "prose", props: { text: "A paragraph & more <tags>" } }),
+        c("Text", { children: [c("Badge", { class: "badge", props: { text: "New" } })] }),
+        c("Text", {}),
+        c("Badge", { class: "badge badge-accent", props: { text: "Hot" } }),
+        c("Card", { class: "card", children: [c("Heading", { props: { text: "In card" } })] }),
+        c("Section", { class: "py-8", props: { text: "Sec" } }),
+        c("Container", { class: "container", props: { text: "Cont" } }),
+        c("Grid", { class: "grid grid-cols-2", children: [c("Stack", { class: "stack", props: { text: "S" } })] }),
+        // ── Icon: name, no name, with class ──
+        c("Icon", { props: { name: "sparkles" } }),
+        c("Icon", {}),
+        c("Icon", { class: "size-6 text-primary", props: { name: "check" } }),
+        // ── Divider: with class, bare ──
+        c("Divider", { class: "divider" }),
+        c("Divider", {}),
+        // ── Form controls: Input (type + attrs + bool), default; Textarea (rows +
+        //    empty-children edge, then text value w/ esc); Select (options object +
+        //    string mix, empty, child-override); Checkbox/Radio/Toggle (checked/value/
+        //    disabled); Field + Form containers ──
+        c("Input", { class: "input", props: { type: "email", name: "email", placeholder: "you@x.com", required: true } }),
+        c("Input", { props: {} }),
+        c("Textarea", { class: "textarea", props: { placeholder: "Bio", rows: 4 }, children: [] }),
+        c("Textarea", { props: { text: "Preset & <val>" } }),
+        c("Select", { class: "select", props: { name: "n", options: [{ value: "a", label: "A" }, { value: "b", label: "B & C" }, "plain"] } }),
+        c("Select", { props: { options: [] } }),
+        c("Select", { class: "select", children: [e("option", { attrs: { value: "x" }, text: "X" })] }),
+        c("Checkbox", { class: "checkbox", props: { name: "agree", checked: true } }),
+        c("Radio", { class: "radio", props: { name: "r", value: "1" } }),
+        c("Toggle", { class: "toggle", props: { name: "t", disabled: true } }),
+        c("Field", { class: "field", children: [e("label", { class: "field-label", text: "Name" }), c("Input", { class: "input", props: {} })] }),
+        // Form: auto `form` behavior marker; props.action → action binding; an
+        // explicit `data`/`behavior` on the node is respected (never clobbered).
+        c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
+        c("Form", { class: "flex", props: { action: "subscribe" }, children: [c("Input", { class: "input", props: { name: "email", type: "email" } })] }),
+        c("Form", { id: "f3", class: "flex", props: { action: "ignored" }, data: { kind: "action", ref: "explicit" }, children: [] }),
+        // ── Nav/Feedback/Data components: items lists, prop-driven structures, edges ──
+        c("Breadcrumb", { class: "breadcrumb", props: { items: ["Home", "Library & Docs", "Data"] } }),
+        c("Breadcrumb", { props: { items: [] } }), // empty items → empty <ol>
+        c("Menu", { class: "menu w-56", props: { items: ["Dashboard", "Settings"] } }),
+        c("Steps", { class: "steps", props: { items: ["A", "B", "C"], current: 1 } }),
+        c("Steps", { class: "steps", props: { items: ["Only"] } }), // no current → none primary
+        c("Pagination", { class: "join", props: { pages: 3 } }),
+        c("Pagination", { class: "join", props: {} }), // default 3
+        c("Navbar", { class: "navbar", children: [e("div", { class: "navbar-start", text: "SilicaUI" }), e("div", { class: "navbar-end", text: "Sign in" })] }),
+        c("Alert", { class: "alert alert-info", props: { text: "Heads up <b> & stuff" } }),
+        c("Alert", { class: "alert" }), // default message
+        c("Progress", { class: "progress", props: { value: 70 } }),
+        c("Progress", { class: "progress", props: {} }), // default 50 → w-1/2
+        c("Loading", { class: "loading loading-md" }),
+        c("Skeleton", { class: "skeleton h-24 w-full" }),
+        c("Status", { class: "status status-success" }),
+        c("Kbd", { class: "kbd", props: { text: "Ctrl" } }),
+        c("Stat", { class: "stats", props: { title: "Users", value: "1,204", desc: "↗ 12%" } }),
+        c("Stat", { class: "stats", props: { value: "42" } }), // value-only (no title/desc rows)
+        c("Avatar", { class: "avatar w-12 rounded-full", props: { src: "/me.png", alt: "Me & I" } }),
+        c("Avatar", { class: "avatar", props: {} }), // no src → alt="" only
+        c("Collapse", { class: "collapse", props: { title: "More", content: "Hidden body" } }),
+        c("Collapse", { class: "collapse", props: { title: "Custom" }, children: [e("p", { text: "Rich body & <x>" })] }),
+        c("Timeline", { class: "timeline", props: { items: ["Founded", "Launched"] } }),
+        c("Table", { class: "table", children: [e("thead", { children: [e("tr", { children: [e("th", { text: "Name" })] })] })] }),
+        // ── Metadata lowering across every DataBinding + behavior + part ──
+        e("div", { id: "n1", class: "menu", data: { kind: "value", ref: "user.name" } }),
+        e("ul", { id: "n2", data: { kind: "collection", ref: "items" }, children: [e("li", { text: "x" })] }),
+        e("a", { class: "link", data: { kind: "action", ref: "open", href: "/o" }, text: "Open" }),
+        c("Card", {
+            id: "car",
+            class: "carousel",
+            behavior: { type: "carousel", params: { loop: true, per: 2 } },
+            children: [c("Card", { class: "slide", part: "slide", props: { text: "1" } })],
+        }),
+        // ── Text-vs-children fallback edge: empty children array + text prop ──
+        c("Text", { class: "edge", children: [], props: { text: "fallback wins" } }),
+    ],
 });
 
 function renderCorpus() {
-  const parts = [];
-  const push = (label, html) => parts.push(`### ${label}\n${html}`);
-  // The three original blocks in all three render modes (plain / prefixed / ids).
-  for (const [name, blk] of [["hero", heroSplitCta], ["faq", faqAccordion], ["feat", featureGrid]]) {
-    push(`block:${name}:plain`, toHtml(blk));
-    push(`block:${name}:prefix`, toHtml(blk, { prefix: "st-" }));
-    push(`block:${name}:ids`, toHtml(blk, { ids: true }));
-  }
-  // Every registered block (plain + prefixed) — locks the whole marketing library's
-  // markup and proves the prefixer walks each block's class strings correctly.
-  for (const blk of listBlocks()) {
-    push(`lib:${blk.key}:plain`, toHtml(blk));
-    push(`lib:${blk.key}:prefix`, toHtml(blk, { prefix: "st-" }));
-  }
-  push("synthetic:plain", toHtml(synthetic));
-  push("synthetic:prefix", toHtml(synthetic, { prefix: "st-" }));
-  push("synthetic:ids", toHtml(synthetic, { ids: true }));
-  return parts.join("\n\n");
+    const parts = [];
+    const push = (label, html) => parts.push(`### ${label}\n${html}`);
+    // The three original blocks in all three render modes (plain / prefixed / ids).
+    for (const [name, blk] of [["hero", heroSplitCta], ["faq", faqAccordion], ["feat", featureGrid]]) {
+        push(`block:${name}:plain`, toHtml(blk));
+        push(`block:${name}:prefix`, toHtml(blk, { prefix: "st-" }));
+        push(`block:${name}:ids`, toHtml(blk, { ids: true }));
+    }
+    // Every registered block (plain + prefixed) — locks the whole marketing library's
+    // markup and proves the prefixer walks each block's class strings correctly.
+    for (const blk of listBlocks()) {
+        push(`lib:${blk.key}:plain`, toHtml(blk));
+        push(`lib:${blk.key}:prefix`, toHtml(blk, { prefix: "st-" }));
+    }
+    push("synthetic:plain", toHtml(synthetic));
+    push("synthetic:prefix", toHtml(synthetic, { prefix: "st-" }));
+    push("synthetic:ids", toHtml(synthetic, { ids: true }));
+    return parts.join("\n\n");
 }
 
 const out = renderCorpus();
 
 if (process.argv.includes("--write")) {
-  writeFileSync(FIXTURE, out, "utf8");
-  console.log(`✓ wrote golden fixture (${out.length} bytes) → golden.fixture.txt`);
-  process.exit(0);
+    writeFileSync(FIXTURE, out, "utf8");
+    console.log(`✓ wrote golden fixture (${out.length} bytes) → golden.fixture.txt`);
+    process.exit(0);
 }
 
 let expected;
 try {
-  expected = readFileSync(FIXTURE, "utf8");
+    expected = readFileSync(FIXTURE, "utf8");
 } catch {
-  console.error("✗ no golden.fixture.txt — run `node golden.mjs --write` first");
-  process.exit(1);
+    console.error("✗ no golden.fixture.txt — run `node golden.mjs --write` first");
+    process.exit(1);
 }
 
 if (out === expected) {
-  console.log("✅ golden: HTML projection is byte-identical to the fixture");
-  process.exit(0);
+    console.log("✅ golden: HTML projection is byte-identical to the fixture");
+    process.exit(0);
 }
 
 // Minimal first-diff report.

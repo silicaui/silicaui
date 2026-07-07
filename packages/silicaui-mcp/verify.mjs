@@ -53,7 +53,7 @@ const block = JSON.parse(text(await client.callTool({ name: "get_block", argumen
 check("get_block returns the full tree", block.root !== undefined);
 
 const behaviors = JSON.parse(text(await client.callTool({ name: "list_behaviors", arguments: {} })));
-check("list_behaviors returns 9 types", behaviors.length === 9);
+check("list_behaviors returns 11 types", behaviors.length === 11);
 
 const behavior = JSON.parse(text(await client.callTool({ name: "get_behavior", arguments: { type: "disclosure" } })));
 check("get_behavior returns a description", behavior.description.includes("trigger"));

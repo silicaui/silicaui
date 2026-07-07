@@ -1,5 +1,149 @@
 [
   {
+    "key": "navbar",
+    "name": "Navbar — brand, links, action",
+    "category": "nav",
+    "version": "1.0.0",
+    "description": "A site header: brand, inline navigation links, and a primary action.",
+    "tags": [
+      "nav",
+      "header",
+      "marketing"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "header",
+      "class": "@container bg-base-100 border-b border-base-200",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "a",
+              "class": "text-lg font-semibold text-base-content",
+              "attrs": {
+                "href": "#"
+              },
+              "children": [
+                "SilicaUI"
+              ],
+              "slot": {
+                "name": "brand",
+                "type": "text",
+                "label": "SilicaUI"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "nav",
+              "class": "hidden items-center gap-6 @md:flex",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Product"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Pricing"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Docs"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Company"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex items-center gap-3",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "hidden text-sm font-medium text-base-content/70 hover:text-base-content @sm:inline",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Sign in"
+                  ]
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-primary btn-sm",
+                  "props": {
+                    "label": "Get started"
+                  },
+                  "slot": {
+                    "name": "cta",
+                    "type": "link",
+                    "label": "Primary action"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "brand",
+        "type": "text",
+        "label": "SilicaUI"
+      },
+      {
+        "name": "cta",
+        "type": "link",
+        "label": "Primary action"
+      }
+    ]
+  },
+  {
     "key": "hero_split_cta",
     "name": "Hero — split with CTA",
     "category": "hero",
@@ -113,6 +257,1310 @@
         "name": "image",
         "type": "image",
         "label": "Hero image"
+      }
+    ]
+  },
+  {
+    "key": "feature_grid",
+    "name": "Feature grid — data-bound",
+    "category": "features",
+    "version": "1.0.0",
+    "description": "A responsive grid that repeats over a collection, binding each item's fields.",
+    "tags": [
+      "features",
+      "grid",
+      "dynamic"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "bg-base-100 @container p-8",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "h2",
+          "class": "text-2xl font-semibold text-base-content mb-6",
+          "children": [
+            "Everything you need"
+          ],
+          "slot": {
+            "name": "heading",
+            "type": "text",
+            "label": "Heading"
+          }
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "grid grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3 gap-6",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col gap-3 p-6 bg-base-200 rounded-box",
+              "children": [
+                {
+                  "kind": "component",
+                  "component": "Icon",
+                  "class": "text-primary text-2xl",
+                  "props": {
+                    "name": "sparkles"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "h3",
+                  "class": "text-lg font-semibold text-base-content",
+                  "children": [
+                    "Fast by default"
+                  ],
+                  "data": {
+                    "kind": "value",
+                    "ref": "feature.title"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-base-content/70",
+                  "children": [
+                    "Every page ships lean, so your store feels instant."
+                  ],
+                  "data": {
+                    "kind": "value",
+                    "ref": "feature.body"
+                  }
+                }
+              ]
+            }
+          ],
+          "data": {
+            "kind": "collection",
+            "ref": "features"
+          }
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading"
+      }
+    ]
+  },
+  {
+    "key": "feature_media",
+    "name": "Feature — media split",
+    "category": "features",
+    "version": "1.0.0",
+    "description": "A single feature: copy, checklist, and action beside a supporting image.",
+    "tags": [
+      "features",
+      "marketing",
+      "media"
+    ],
+    "colors": [
+      "base-100",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-100",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 px-6 py-16 @3xl:grid-cols-2",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col gap-4",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-sm font-semibold uppercase tracking-wide text-primary",
+                  "children": [
+                    "Workflow"
+                  ],
+                  "slot": {
+                    "name": "eyebrow",
+                    "type": "text",
+                    "label": "Eyebrow"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "h2",
+                  "class": "text-3xl font-semibold text-base-content @2xl:text-4xl",
+                  "children": [
+                    "Design, publish, and iterate in one place"
+                  ],
+                  "slot": {
+                    "name": "heading",
+                    "type": "text",
+                    "label": "Heading",
+                    "required": true
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-base-content/70",
+                  "children": [
+                    "No handoffs, no rebuilds. What you design is exactly what ships — and you can change it in seconds."
+                  ],
+                  "slot": {
+                    "name": "body",
+                    "type": "text",
+                    "label": "Body"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "ul",
+                  "class": "flex flex-col gap-2",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "li",
+                      "class": "flex items-center gap-2 text-base-content/80",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "span",
+                          "class": "inline-block size-1.5 rounded-full bg-primary"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "span",
+                          "children": [
+                            "Live container-query previews"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "li",
+                      "class": "flex items-center gap-2 text-base-content/80",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "span",
+                          "class": "inline-block size-1.5 rounded-full bg-primary"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "span",
+                          "children": [
+                            "One-click publish"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "li",
+                      "class": "flex items-center gap-2 text-base-content/80",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "span",
+                          "class": "inline-block size-1.5 rounded-full bg-primary"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "span",
+                          "children": [
+                            "Version history"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-primary mt-2 self-start",
+                  "props": {
+                    "label": "See how it works"
+                  },
+                  "slot": {
+                    "name": "cta",
+                    "type": "link",
+                    "label": "Action"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "component",
+              "component": "Image",
+              "class": "rounded-box w-full",
+              "props": {
+                "ratio": "square",
+                "alt": "Product screenshot"
+              },
+              "slot": {
+                "name": "image",
+                "type": "image",
+                "label": "Image"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "eyebrow",
+        "type": "text",
+        "label": "Eyebrow"
+      },
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading",
+        "required": true
+      },
+      {
+        "name": "body",
+        "type": "text",
+        "label": "Body"
+      },
+      {
+        "name": "cta",
+        "type": "link",
+        "label": "Action"
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "label": "Image"
+      }
+    ]
+  },
+  {
+    "key": "logo_cloud",
+    "name": "Logo cloud — trusted by",
+    "category": "logos",
+    "version": "1.0.0",
+    "description": "A social-proof strip of customer wordmarks under a caption.",
+    "tags": [
+      "logos",
+      "social-proof",
+      "marketing"
+    ],
+    "colors": [
+      "base-100",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-100",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-6 py-14",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "p",
+              "class": "text-sm font-medium uppercase tracking-wide text-base-content/50",
+              "children": [
+                "Trusted by teams at"
+              ],
+              "slot": {
+                "name": "caption",
+                "type": "text",
+                "label": "Caption"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-wrap items-center justify-center gap-x-10 gap-y-6",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "children": [
+                    "Meridian"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "children": [
+                    "Halcyon"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "children": [
+                    "Brightline"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "children": [
+                    "Loom & Co"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "children": [
+                    "Northgate"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "caption",
+        "type": "text",
+        "label": "Caption"
+      }
+    ]
+  },
+  {
+    "key": "stats_band",
+    "name": "Stats — metrics band",
+    "category": "stats",
+    "version": "1.0.0",
+    "description": "A row of headline metrics with big numbers and labels.",
+    "tags": [
+      "stats",
+      "metrics",
+      "social-proof"
+    ],
+    "colors": [
+      "base-100",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-100",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto grid w-full max-w-5xl grid-cols-2 gap-8 px-6 py-16 @2xl:grid-cols-4",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col items-center gap-1 text-center",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-4xl font-semibold text-base-content @2xl:text-5xl",
+                  "children": [
+                    "12k+"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-sm text-base-content/60",
+                  "children": [
+                    "Active stores"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col items-center gap-1 text-center",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-4xl font-semibold text-base-content @2xl:text-5xl",
+                  "children": [
+                    "99.99%"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-sm text-base-content/60",
+                  "children": [
+                    "Uptime"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col items-center gap-1 text-center",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-4xl font-semibold text-base-content @2xl:text-5xl",
+                  "children": [
+                    "40+"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-sm text-base-content/60",
+                  "children": [
+                    "Countries"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col items-center gap-1 text-center",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-4xl font-semibold text-base-content @2xl:text-5xl",
+                  "children": [
+                    "4.9/5"
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "span",
+                  "class": "text-sm text-base-content/60",
+                  "children": [
+                    "Average rating"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": []
+  },
+  {
+    "key": "testimonial_quote",
+    "name": "Testimonial — single quote",
+    "category": "testimonial",
+    "version": "1.0.0",
+    "description": "A large centered customer quote with an avatar and attribution.",
+    "tags": [
+      "testimonial",
+      "social-proof",
+      "quote"
+    ],
+    "colors": [
+      "base-100",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-100",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "figure",
+          "class": "mx-auto flex w-full max-w-3xl flex-col items-center gap-8 px-6 py-16 text-center",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "blockquote",
+              "class": "text-2xl font-medium leading-relaxed text-base-content @2xl:text-3xl",
+              "children": [
+                "“We shipped our storefront in a weekend and doubled conversions the first month. It genuinely changed how our team works.”"
+              ],
+              "slot": {
+                "name": "quote",
+                "type": "text",
+                "label": "Quote",
+                "required": true
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "figcaption",
+              "class": "flex items-center gap-4",
+              "children": [
+                {
+                  "kind": "component",
+                  "component": "Avatar",
+                  "class": "avatar w-12 rounded-full",
+                  "props": {
+                    "alt": ""
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "text-left",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "font-semibold text-base-content",
+                      "children": [
+                        "Dana Whitfield"
+                      ],
+                      "slot": {
+                        "name": "author",
+                        "type": "text",
+                        "label": "Author"
+                      }
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-sm text-base-content/60",
+                      "children": [
+                        "Head of Growth, Meridian"
+                      ],
+                      "slot": {
+                        "name": "role",
+                        "type": "text",
+                        "label": "Role"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "quote",
+        "type": "text",
+        "label": "Quote",
+        "required": true
+      },
+      {
+        "name": "author",
+        "type": "text",
+        "label": "Author"
+      },
+      {
+        "name": "role",
+        "type": "text",
+        "label": "Role"
+      }
+    ]
+  },
+  {
+    "key": "testimonials_grid",
+    "name": "Testimonials — grid of three",
+    "category": "testimonial",
+    "version": "1.0.0",
+    "description": "A three-up grid of customer testimonial cards.",
+    "tags": [
+      "testimonial",
+      "social-proof",
+      "grid"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-200/40",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto w-full max-w-6xl px-6 py-16",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "h2",
+              "class": "mb-10 text-center text-3xl font-semibold text-base-content",
+              "children": [
+                "Loved by teams everywhere"
+              ],
+              "slot": {
+                "name": "heading",
+                "type": "text",
+                "label": "Heading"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "grid grid-cols-1 gap-6 @xl:grid-cols-2 @3xl:grid-cols-3",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "figure",
+                  "class": "flex flex-col gap-4 rounded-box border border-base-200 bg-base-100 p-6",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "blockquote",
+                      "class": "text-base-content/80",
+                      "children": [
+                        "“Setup took an afternoon and support has been outstanding ever since.”"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "figcaption",
+                      "class": "mt-auto flex items-center gap-3",
+                      "children": [
+                        {
+                          "kind": "component",
+                          "component": "Avatar",
+                          "class": "avatar w-10 rounded-full",
+                          "props": {
+                            "alt": ""
+                          }
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "div",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "p",
+                              "class": "text-sm font-semibold text-base-content",
+                              "children": [
+                                "Priya Nair"
+                              ]
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "p",
+                              "class": "text-xs text-base-content/60",
+                              "children": [
+                                "Founder, Loom & Co"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "figure",
+                  "class": "flex flex-col gap-4 rounded-box border border-base-200 bg-base-100 p-6",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "blockquote",
+                      "class": "text-base-content/80",
+                      "children": [
+                        "“The editor is fast enough that our whole team actually uses it.”"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "figcaption",
+                      "class": "mt-auto flex items-center gap-3",
+                      "children": [
+                        {
+                          "kind": "component",
+                          "component": "Avatar",
+                          "class": "avatar w-10 rounded-full",
+                          "props": {
+                            "alt": ""
+                          }
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "div",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "p",
+                              "class": "text-sm font-semibold text-base-content",
+                              "children": [
+                                "Marcus Reed"
+                              ]
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "p",
+                              "class": "text-xs text-base-content/60",
+                              "children": [
+                                "Design Lead, Halcyon"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "figure",
+                  "class": "flex flex-col gap-4 rounded-box border border-base-200 bg-base-100 p-6",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "blockquote",
+                      "class": "text-base-content/80",
+                      "children": [
+                        "“We replaced three tools with this and never looked back.”"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "figcaption",
+                      "class": "mt-auto flex items-center gap-3",
+                      "children": [
+                        {
+                          "kind": "component",
+                          "component": "Avatar",
+                          "class": "avatar w-10 rounded-full",
+                          "props": {
+                            "alt": ""
+                          }
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "div",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "p",
+                              "class": "text-sm font-semibold text-base-content",
+                              "children": [
+                                "Sofia Álvarez"
+                              ]
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "p",
+                              "class": "text-xs text-base-content/60",
+                              "children": [
+                                "COO, Brightline"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading"
+      }
+    ]
+  },
+  {
+    "key": "pricing_tiers",
+    "name": "Pricing — three tiers",
+    "category": "pricing",
+    "version": "1.0.0",
+    "description": "A three-column pricing table with a featured middle plan.",
+    "tags": [
+      "pricing",
+      "plans",
+      "marketing"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-200/40",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto w-full max-w-6xl px-6 py-16",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "mb-10 flex flex-col items-center gap-3 text-center",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "h2",
+                  "class": "text-3xl font-semibold text-base-content",
+                  "children": [
+                    "Simple, transparent pricing"
+                  ],
+                  "slot": {
+                    "name": "heading",
+                    "type": "text",
+                    "label": "Heading"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "max-w-xl text-base-content/70",
+                  "children": [
+                    "Start free, then pick the plan that grows with you. Cancel anytime."
+                  ],
+                  "slot": {
+                    "name": "subhead",
+                    "type": "text",
+                    "label": "Subheadline"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "grid grid-cols-1 gap-6 @xl:grid-cols-2 @3xl:grid-cols-3",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-6 rounded-box border border-base-200 bg-base-100 p-8",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-1",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm font-semibold text-base-content",
+                          "children": [
+                            "Starter"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "div",
+                          "class": "flex items-baseline gap-1",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "text-4xl font-semibold text-base-content",
+                              "children": [
+                                "$0"
+                              ]
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "text-sm text-base-content/60",
+                              "children": [
+                                "/mo"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-col gap-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "1 project"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Community support"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Basic analytics"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Button",
+                      "class": "btn btn-outline mt-auto",
+                      "props": {
+                        "label": "Get started"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-6 rounded-box border-2 border-primary bg-base-100 p-8 shadow-lg",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-1",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm font-semibold text-base-content",
+                          "children": [
+                            "Pro"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "div",
+                          "class": "flex items-baseline gap-1",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "text-4xl font-semibold text-base-content",
+                              "children": [
+                                "$29"
+                              ]
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "text-sm text-base-content/60",
+                              "children": [
+                                "/mo"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-col gap-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Unlimited projects"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Priority support"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Advanced analytics"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Custom domain"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Button",
+                      "class": "btn btn-primary mt-auto",
+                      "props": {
+                        "label": "Start Pro trial"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-6 rounded-box border border-base-200 bg-base-100 p-8",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-1",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm font-semibold text-base-content",
+                          "children": [
+                            "Team"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "div",
+                          "class": "flex items-baseline gap-1",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "text-4xl font-semibold text-base-content",
+                              "children": [
+                                "$99"
+                              ]
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "text-sm text-base-content/60",
+                              "children": [
+                                "/mo"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-col gap-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "Everything in Pro"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "5 seats included"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "class": "inline-block size-1.5 rounded-full bg-primary"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "span",
+                              "children": [
+                                "SSO & audit logs"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Button",
+                      "class": "btn btn-outline mt-auto",
+                      "props": {
+                        "label": "Contact us"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading"
+      },
+      {
+        "name": "subhead",
+        "type": "text",
+        "label": "Subheadline"
       }
     ]
   },
@@ -259,19 +1707,18 @@
     ]
   },
   {
-    "key": "feature_grid",
-    "name": "Feature grid — data-bound",
-    "category": "features",
+    "key": "content_prose",
+    "name": "Content — prose section",
+    "category": "content",
     "version": "1.0.0",
-    "description": "A responsive grid that repeats over a collection, binding each item's fields.",
+    "description": "A titled long-form section with an eyebrow, heading, and two body columns.",
     "tags": [
-      "features",
-      "grid",
-      "dynamic"
+      "content",
+      "about",
+      "prose"
     ],
     "colors": [
       "base-100",
-      "base-200",
       "base-content",
       "primary"
     ],
@@ -280,70 +1727,275 @@
     "root": {
       "kind": "element",
       "tag": "section",
-      "class": "bg-base-100 @container p-8",
+      "class": "@container bg-base-100",
       "children": [
         {
           "kind": "element",
-          "tag": "h2",
-          "class": "text-2xl font-semibold text-base-content mb-6",
-          "children": [
-            "Everything you need"
-          ],
-          "slot": {
-            "name": "heading",
-            "type": "text",
-            "label": "Heading"
-          }
-        },
-        {
-          "kind": "element",
           "tag": "div",
-          "class": "grid grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3 gap-6",
+          "class": "mx-auto w-full max-w-4xl px-6 py-16",
           "children": [
             {
               "kind": "element",
+              "tag": "p",
+              "class": "mb-2 text-sm font-semibold uppercase tracking-wide text-primary",
+              "children": [
+                "Our story"
+              ],
+              "slot": {
+                "name": "eyebrow",
+                "type": "text",
+                "label": "Eyebrow"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "h2",
+              "class": "mb-6 text-3xl font-semibold text-base-content @2xl:text-4xl",
+              "children": [
+                "Built for people who make things"
+              ],
+              "slot": {
+                "name": "heading",
+                "type": "text",
+                "label": "Heading",
+                "required": true
+              }
+            },
+            {
+              "kind": "element",
               "tag": "div",
-              "class": "flex flex-col gap-3 p-6 bg-base-200 rounded-box",
+              "class": "grid grid-cols-1 gap-6 text-base-content/70 @2xl:grid-cols-2",
               "children": [
                 {
-                  "kind": "component",
-                  "component": "Icon",
-                  "class": "text-primary text-2xl",
-                  "props": {
-                    "name": "sparkles"
-                  }
-                },
-                {
                   "kind": "element",
-                  "tag": "h3",
-                  "class": "text-lg font-semibold text-base-content",
+                  "tag": "p",
                   "children": [
-                    "Fast by default"
-                  ],
-                  "data": {
-                    "kind": "value",
-                    "ref": "feature.title"
-                  }
+                    "We started with a simple belief: building for the web should feel as direct as sketching on paper. Every decision since has followed from that — fewer layers, faster feedback, no lock-in."
+                  ]
                 },
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "text-base-content/70",
                   "children": [
-                    "Every page ships lean, so your store feels instant."
-                  ],
-                  "data": {
-                    "kind": "value",
-                    "ref": "feature.body"
-                  }
+                    "Today thousands of teams use our tools to launch stores, sites, and docs in an afternoon. We're still small, still obsessed with the details, and still shipping every week."
+                  ]
                 }
               ]
             }
-          ],
-          "data": {
-            "kind": "collection",
-            "ref": "features"
-          }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "eyebrow",
+        "type": "text",
+        "label": "Eyebrow"
+      },
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading",
+        "required": true
+      }
+    ]
+  },
+  {
+    "key": "team_grid",
+    "name": "Team — member grid",
+    "category": "team",
+    "version": "1.0.0",
+    "description": "A grid of team members with avatars, names, and roles.",
+    "tags": [
+      "team",
+      "about",
+      "people"
+    ],
+    "colors": [
+      "base-100",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-100",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto w-full max-w-6xl px-6 py-16",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "h2",
+              "class": "mb-10 text-center text-3xl font-semibold text-base-content",
+              "children": [
+                "Meet the team"
+              ],
+              "slot": {
+                "name": "heading",
+                "type": "text",
+                "label": "Heading"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "grid grid-cols-2 gap-8 @xl:grid-cols-3 @3xl:grid-cols-4",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col items-center gap-3 text-center",
+                  "children": [
+                    {
+                      "kind": "component",
+                      "component": "Avatar",
+                      "class": "avatar w-20 rounded-full",
+                      "props": {
+                        "alt": ""
+                      }
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "font-semibold text-base-content",
+                          "children": [
+                            "Ada Okafor"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm text-base-content/60",
+                          "children": [
+                            "CEO"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col items-center gap-3 text-center",
+                  "children": [
+                    {
+                      "kind": "component",
+                      "component": "Avatar",
+                      "class": "avatar w-20 rounded-full",
+                      "props": {
+                        "alt": ""
+                      }
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "font-semibold text-base-content",
+                          "children": [
+                            "Ravi Menon"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm text-base-content/60",
+                          "children": [
+                            "CTO"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col items-center gap-3 text-center",
+                  "children": [
+                    {
+                      "kind": "component",
+                      "component": "Avatar",
+                      "class": "avatar w-20 rounded-full",
+                      "props": {
+                        "alt": ""
+                      }
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "font-semibold text-base-content",
+                          "children": [
+                            "Lena Fischer"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm text-base-content/60",
+                          "children": [
+                            "Head of Design"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col items-center gap-3 text-center",
+                  "children": [
+                    {
+                      "kind": "component",
+                      "component": "Avatar",
+                      "class": "avatar w-20 rounded-full",
+                      "props": {
+                        "alt": ""
+                      }
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "font-semibold text-base-content",
+                          "children": [
+                            "Tomás Silva"
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm text-base-content/60",
+                          "children": [
+                            "Head of Support"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -354,5 +2006,1017 @@
         "label": "Heading"
       }
     ]
+  },
+  {
+    "key": "contact_section",
+    "name": "Contact — form + details",
+    "category": "contact",
+    "version": "1.0.0",
+    "description": "A split contact section: copy and details beside a working, validating form.",
+    "tags": [
+      "contact",
+      "form",
+      "lead"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [
+      "form"
+    ],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-base-100",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto grid w-full max-w-5xl grid-cols-1 gap-10 px-6 py-16 @2xl:grid-cols-2",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col gap-4",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "h2",
+                  "class": "text-3xl font-semibold text-base-content",
+                  "children": [
+                    "Get in touch"
+                  ],
+                  "slot": {
+                    "name": "heading",
+                    "type": "text",
+                    "label": "Heading"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-base-content/70",
+                  "children": [
+                    "Tell us what you're building and we'll get back to you within one business day."
+                  ],
+                  "slot": {
+                    "name": "subhead",
+                    "type": "text",
+                    "label": "Subheadline"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "mt-2 flex flex-col gap-2 text-sm text-base-content/70",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "children": [
+                        "hello@silicaui.com"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "children": [
+                        "+1 (555) 012-3456"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "component",
+              "component": "Form",
+              "class": "flex flex-col gap-4",
+              "props": {
+                "action": "contact"
+              },
+              "children": [
+                {
+                  "kind": "component",
+                  "component": "Field",
+                  "class": "field",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "label",
+                      "class": "field-label",
+                      "children": [
+                        "Name"
+                      ]
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Input",
+                      "class": "input",
+                      "props": {
+                        "type": "text",
+                        "name": "name",
+                        "placeholder": "Your name",
+                        "required": true
+                      }
+                    }
+                  ]
+                },
+                {
+                  "kind": "component",
+                  "component": "Field",
+                  "class": "field",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "label",
+                      "class": "field-label",
+                      "children": [
+                        "Email"
+                      ]
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Input",
+                      "class": "input",
+                      "props": {
+                        "type": "email",
+                        "name": "email",
+                        "placeholder": "you@example.com",
+                        "required": true
+                      }
+                    }
+                  ]
+                },
+                {
+                  "kind": "component",
+                  "component": "Field",
+                  "class": "field",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "label",
+                      "class": "field-label",
+                      "children": [
+                        "Message"
+                      ]
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Textarea",
+                      "class": "textarea",
+                      "props": {
+                        "name": "message",
+                        "placeholder": "How can we help?",
+                        "rows": 4
+                      }
+                    }
+                  ]
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-primary",
+                  "props": {
+                    "label": "Send message",
+                    "type": "submit"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading"
+      },
+      {
+        "name": "subhead",
+        "type": "text",
+        "label": "Subheadline"
+      }
+    ]
+  },
+  {
+    "key": "cta_band",
+    "name": "CTA — centered band",
+    "category": "cta",
+    "version": "1.0.0",
+    "description": "A centered call-to-action band with a headline and primary/secondary actions.",
+    "tags": [
+      "cta",
+      "marketing",
+      "conversion"
+    ],
+    "colors": [
+      "primary",
+      "primary-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "@container bg-primary text-primary-content",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto flex w-full max-w-3xl flex-col items-center gap-6 px-6 py-16 text-center",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "h2",
+              "class": "text-3xl font-semibold @2xl:text-4xl",
+              "children": [
+                "Ready to build something great?"
+              ],
+              "slot": {
+                "name": "headline",
+                "type": "text",
+                "label": "Headline",
+                "required": true
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "p",
+              "class": "text-lg text-primary-content/80",
+              "children": [
+                "Start free today — no credit card, no setup, no lock-in."
+              ],
+              "slot": {
+                "name": "subhead",
+                "type": "text",
+                "label": "Subheadline"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col gap-3 @sm:flex-row",
+              "children": [
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-lg",
+                  "props": {
+                    "label": "Start free"
+                  },
+                  "slot": {
+                    "name": "primary",
+                    "type": "link",
+                    "label": "Primary action"
+                  }
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-lg btn-ghost",
+                  "props": {
+                    "label": "Talk to sales"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "headline",
+        "type": "text",
+        "label": "Headline",
+        "required": true
+      },
+      {
+        "name": "subhead",
+        "type": "text",
+        "label": "Subheadline"
+      },
+      {
+        "name": "primary",
+        "type": "link",
+        "label": "Primary action"
+      }
+    ]
+  },
+  {
+    "key": "footer",
+    "name": "Footer — columns + copyright",
+    "category": "footer",
+    "version": "1.0.0",
+    "description": "A multi-column site footer: brand blurb, link columns, and a copyright rule.",
+    "tags": [
+      "footer",
+      "nav",
+      "marketing"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "footer",
+      "class": "@container bg-base-100 border-t border-base-200",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "mx-auto w-full max-w-6xl px-6 py-12",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "grid grid-cols-1 gap-8 @md:grid-cols-2 @2xl:grid-cols-4",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-3",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-lg font-semibold text-base-content",
+                      "children": [
+                        "SilicaUI"
+                      ],
+                      "slot": {
+                        "name": "brand",
+                        "type": "text",
+                        "label": "SilicaUI"
+                      }
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-sm text-base-content/60",
+                      "children": [
+                        "The fastest way to launch and grow your online store."
+                      ],
+                      "slot": {
+                        "name": "blurb",
+                        "type": "text",
+                        "label": "Blurb"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-3",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-sm font-semibold text-base-content",
+                      "children": [
+                        "Product"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-col gap-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Features"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Pricing"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Integrations"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Changelog"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-3",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-sm font-semibold text-base-content",
+                      "children": [
+                        "Company"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-col gap-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "About"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Careers"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Blog"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Contact"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "flex flex-col gap-3",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-sm font-semibold text-base-content",
+                      "children": [
+                        "Legal"
+                      ]
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-col gap-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Privacy"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Terms"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Security"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "mt-10 border-t border-base-200 pt-6",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-sm text-base-content/50",
+                  "children": [
+                    "© 2026 SilicaUI, Inc. All rights reserved."
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "brand",
+        "type": "text",
+        "label": "SilicaUI"
+      },
+      {
+        "name": "blurb",
+        "type": "text",
+        "label": "Blurb"
+      }
+    ]
+  },
+  {
+    "key": "tabs",
+    "name": "Tabs — panels",
+    "category": "tabs",
+    "version": "1.0.0",
+    "description": "An exclusive tab strip over stacked panels, with arrow-key navigation.",
+    "tags": [
+      "tabs",
+      "interactive",
+      "disclosure"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [
+      "tabs"
+    ],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "div",
+      "class": "bg-base-100 @container",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "flex gap-1 border-b border-base-200",
+          "attrs": {
+            "role": "tablist"
+          },
+          "children": [
+            {
+              "kind": "element",
+              "tag": "button",
+              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-primary text-primary",
+              "attrs": {
+                "type": "button",
+                "role": "tab",
+                "aria-selected": "true",
+                "tabindex": 0
+              },
+              "children": [
+                "Overview"
+              ],
+              "part": "tab"
+            },
+            {
+              "kind": "element",
+              "tag": "button",
+              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-transparent text-base-content/60",
+              "attrs": {
+                "type": "button",
+                "role": "tab",
+                "aria-selected": "false",
+                "tabindex": -1
+              },
+              "children": [
+                "Features"
+              ],
+              "part": "tab"
+            },
+            {
+              "kind": "element",
+              "tag": "button",
+              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-transparent text-base-content/60",
+              "attrs": {
+                "type": "button",
+                "role": "tab",
+                "aria-selected": "false",
+                "tabindex": -1
+              },
+              "children": [
+                "Pricing"
+              ],
+              "part": "tab"
+            }
+          ]
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "p-4 text-base-content/80",
+          "attrs": {
+            "role": "tabpanel"
+          },
+          "children": [
+            "A quick summary of what this product does and who it's for."
+          ],
+          "part": "panel"
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "p-4 text-base-content/80",
+          "attrs": {
+            "role": "tabpanel",
+            "hidden": true
+          },
+          "children": [
+            "The capabilities that set it apart, described point by point."
+          ],
+          "part": "panel"
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "p-4 text-base-content/80",
+          "attrs": {
+            "role": "tabpanel",
+            "hidden": true
+          },
+          "children": [
+            "Straightforward plans that scale as your team grows."
+          ],
+          "part": "panel"
+        }
+      ],
+      "behavior": {
+        "type": "tabs"
+      }
+    },
+    "slots": []
+  },
+  {
+    "key": "accordion",
+    "name": "Accordion — sections",
+    "category": "accordion",
+    "version": "1.0.0",
+    "description": "A multi-open disclosure list; each section expands independently.",
+    "tags": [
+      "accordion",
+      "interactive",
+      "disclosure"
+    ],
+    "colors": [
+      "base-200",
+      "base-content"
+    ],
+    "behaviors": [
+      "disclosure"
+    ],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "div",
+      "class": "flex flex-col gap-2 @container",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "border border-base-200 rounded-box",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "button",
+              "class": "w-full flex items-center justify-between gap-4 text-left p-4 font-medium text-base-content",
+              "attrs": {
+                "type": "button"
+              },
+              "children": [
+                "What's included"
+              ],
+              "part": "trigger"
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "p-4 pt-0 text-base-content/70",
+              "children": [
+                "Everything in the core plan, plus priority support and analytics."
+              ],
+              "part": "panel"
+            }
+          ]
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "border border-base-200 rounded-box",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "button",
+              "class": "w-full flex items-center justify-between gap-4 text-left p-4 font-medium text-base-content",
+              "attrs": {
+                "type": "button"
+              },
+              "children": [
+                "How billing works"
+              ],
+              "part": "trigger"
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "p-4 pt-0 text-base-content/70",
+              "attrs": {
+                "hidden": true
+              },
+              "children": [
+                "You're charged monthly and can change or cancel your plan anytime."
+              ],
+              "part": "panel"
+            }
+          ]
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "border border-base-200 rounded-box",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "button",
+              "class": "w-full flex items-center justify-between gap-4 text-left p-4 font-medium text-base-content",
+              "attrs": {
+                "type": "button"
+              },
+              "children": [
+                "Can I export my data?"
+              ],
+              "part": "trigger"
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "p-4 pt-0 text-base-content/70",
+              "attrs": {
+                "hidden": true
+              },
+              "children": [
+                "Yes — export to CSV or JSON from your dashboard whenever you like."
+              ],
+              "part": "panel"
+            }
+          ]
+        }
+      ],
+      "behavior": {
+        "type": "disclosure"
+      }
+    },
+    "slots": []
+  },
+  {
+    "key": "dropdown",
+    "name": "Dropdown — menu",
+    "category": "dropdown",
+    "version": "1.0.0",
+    "description": "A button that opens a menu of actions, with keyboard and dismiss support.",
+    "tags": [
+      "dropdown",
+      "menu",
+      "interactive"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content"
+    ],
+    "behaviors": [
+      "menu"
+    ],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "div",
+      "class": "relative inline-block @container",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "button",
+          "class": "btn btn-primary",
+          "attrs": {
+            "type": "button"
+          },
+          "children": [
+            "Options"
+          ],
+          "part": "trigger"
+        },
+        {
+          "kind": "element",
+          "tag": "ul",
+          "class": "menu absolute mt-2 w-52 p-2 z-10 bg-base-100 rounded-box border border-base-200 shadow-lg",
+          "attrs": {
+            "hidden": true
+          },
+          "children": [
+            {
+              "kind": "element",
+              "tag": "li",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block px-3 py-2 rounded-btn text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Profile"
+                  ],
+                  "part": "item"
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "li",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block px-3 py-2 rounded-btn text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Settings"
+                  ],
+                  "part": "item"
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "li",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block px-3 py-2 rounded-btn text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Sign out"
+                  ],
+                  "part": "item"
+                }
+              ]
+            }
+          ],
+          "part": "panel"
+        }
+      ],
+      "behavior": {
+        "type": "menu"
+      }
+    },
+    "slots": []
   }
 ]

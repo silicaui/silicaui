@@ -325,7 +325,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   // Simple element atoms.
   elementDef("Text", "content", "text", "p"),
   elementDef("Badge", "content", "label", "span"),
-  elementDef("Wordmark", "content", "text", "span"),
+  elementDef("Wordmark", "content", "wordmark", "span"),
   elementDef("Card", "layout", "box", "div", true),
   elementDef("Section", "layout", "section", "section", true),
   elementDef("Container", "layout", "box", "div", true),
@@ -366,7 +366,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   // with zero authored wiring; `props.defaultCollapsed` seeds the initial state.
   {
     name: "Sidebar",
-    category: "layout",
+    category: "nav",
     label: "Sidebar",
     icon: "sidebar",
     container: true,
@@ -389,10 +389,71 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     name: "SidebarTrigger",
     category: "nav",
     label: "Sidebar toggle",
-    icon: "sidebar",
+    icon: "sidebarTrigger",
     expand: (n) => {
       const out = lower(n, "button", { attrs: { type: "button", "aria-label": "Toggle sidebar" } });
       if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+
+  // SelectionList — a selectable listbox (single- or multi-select), items driven
+  // by props (not authored children, like Breadcrumb/Steps). Always carries the
+  // `selection-list` behavior so it's clickable/keyboard-navigable once published,
+  // with zero authored wiring. `props.items`: `{id, label, description?}[]` (or
+  // plain strings); `props.multiple`; `props.selected`: array of selected ids.
+  {
+    name: "SelectionList",
+    category: "form",
+    label: "Selection List",
+    icon: "selectionList",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const multiple = p.multiple === true;
+      const selected = new Set(
+        (Array.isArray(p.selected) ? p.selected : []).map((v) => String(v)),
+      );
+      const raw = Array.isArray(p.items) ? p.items : [];
+      const items = raw.map((entry, i) => {
+        const o =
+          entry != null && typeof entry === "object"
+            ? (entry as { id?: unknown; label?: unknown; description?: unknown })
+            : { id: String(entry), label: String(entry) };
+        const id = o.id != null ? String(o.id) : `item-${i}`;
+        const label = o.label != null ? String(o.label) : id;
+        const description = o.description != null ? String(o.description) : undefined;
+        return { id, label, description };
+      });
+
+      const lis = items.map((item): ElementNode => {
+        const isSelected = selected.has(item.id);
+        const body: Child[] = [elc("span", "selection-list-item-label", [item.label])];
+        if (item.description != null) {
+          body.push(elc("span", "selection-list-item-description", [item.description]));
+        }
+        const indicator = elc("input", multiple ? "checkbox" : "radio", undefined, {
+          type: multiple ? "checkbox" : "radio",
+          tabindex: -1,
+          "aria-hidden": "true",
+          ...(isSelected ? { checked: true } : {}),
+        });
+        const li = elc(
+          "li",
+          "selection-list-item",
+          [indicator, elc("span", "selection-list-item-body", body)],
+          { role: "option", "aria-selected": String(isSelected), "data-id": item.id },
+        );
+        li.part = "item";
+        return li;
+      });
+
+      const out = lower(n, "ul", {
+        attrs: { role: "listbox", ...(multiple ? { "aria-multiselectable": "true" } : {}) },
+        children: lis,
+      });
+      if (!out.behavior) {
+        out.behavior = { type: "selection-list", params: { multiple } };
+      }
       return out;
     },
   },

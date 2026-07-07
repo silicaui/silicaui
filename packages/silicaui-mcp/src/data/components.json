@@ -1915,7 +1915,7 @@
         ]
       }
     ],
-    "usageExample": "import { useState } from \"react\";\nimport {\n    Input,\n    Field,\n    FieldLabel,\n    FieldControl,\n    FieldDescription,\n    FieldError,\n    FloatingLabel,\n    Button,\n} from \"silicaui-react\";\nimport { Section, Row, Stack } from \"../lib/Section\";\nimport { SIZES } from \"../lib/data\";\n\nexport function InputDemo() {\n    const [email, setEmail] = useState(\"not-an-email\");\n    const invalid = email.length > 0 && !email.includes(\"@\");\n\n    return (\n        <>\n            <Section title=\"Colors\">\n                <Stack className=\"max-w-md\">\n                    <Input placeholder=\"Default (focus for primary ring)\" />\n                    <Input color=\"primary\" placeholder=\"Primary\" />\n                    <Input color=\"success\" placeholder=\"Success\" />\n                    <Input color=\"error\" placeholder=\"Error\" defaultValue=\"not-an-email\" />\n                    <Input color=\"brand\" placeholder=\"Brand\" />\n                    <Input disabled placeholder=\"Disabled\" />\n                </Stack>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <Stack className=\"max-w-md\">\n                    {SIZES.map((size) => (\n                        <Input key={size} size={size} placeholder={size} />\n                    ))}\n                </Stack>\n            </Section>\n\n            <Section title=\"Real form · Field + validation\">\n                <div className=\"max-w-sm rounded-box border border-base-300 bg-base-100 p-5 shadow-sm\">\n                    <div className=\"flex flex-col gap-4\">\n                        <Field\n                            validationMode=\"onChange\"\n                            validate={() => (invalid ? \"Enter a valid email address\" : null)}\n                        >\n                            <FieldLabel>Work email</FieldLabel>\n                            <FieldControl\n                                type=\"email\"\n                                value={email}\n                                onChange={(e) => setEmail(e.target.value)}\n                                placeholder=\"you@company.com\"\n                            />\n                            <FieldDescription>\n                                We'll send a magic link to sign in.\n                            </FieldDescription>\n                            <FieldError />\n                        </Field>\n                        <FloatingLabel label=\"Company name\">\n                            <Input />\n                        </FloatingLabel>\n                        <Row>\n                            <Button color=\"primary\" block>\n                                Continue\n                            </Button>\n                        </Row>\n                    </div>\n                </div>\n            </Section>\n        </>\n    );\n}"
+    "usageExample": "import { useState } from \"react\";\nimport {\n    Input,\n    Field,\n    FieldLabel,\n    FieldControl,\n    FieldDescription,\n    FieldError,\n    FloatingLabel,\n    Button,\n} from \"silicaui-react\";\nimport { Section, Row, Stack } from \"../lib/Section\";\nimport { SIZES } from \"../lib/data\";\n\nexport function InputDemo() {\n    const [email, setEmail] = useState(\"not-an-email\");\n    const invalid = email.length > 0 && !email.includes(\"@\");\n\n    return (\n        <>\n            <Section title=\"Colors\">\n                <Stack className=\"max-w-md\">\n                    <Input placeholder=\"Default (focus for primary ring)\" />\n                    <Input color=\"primary\" placeholder=\"Primary\" />\n                    <Input color=\"success\" placeholder=\"Success\" />\n                    <Input color=\"error\" placeholder=\"Error\" defaultValue=\"not-an-email\" />\n                    <Input color=\"brand\" placeholder=\"SilicaUI\" />\n                    <Input disabled placeholder=\"Disabled\" />\n                </Stack>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <Stack className=\"max-w-md\">\n                    {SIZES.map((size) => (\n                        <Input key={size} size={size} placeholder={size} />\n                    ))}\n                </Stack>\n            </Section>\n\n            <Section title=\"Real form · Field + validation\">\n                <div className=\"max-w-sm rounded-box border border-base-300 bg-base-100 p-5 shadow-sm\">\n                    <div className=\"flex flex-col gap-4\">\n                        <Field\n                            validationMode=\"onChange\"\n                            validate={() => (invalid ? \"Enter a valid email address\" : null)}\n                        >\n                            <FieldLabel>Work email</FieldLabel>\n                            <FieldControl\n                                type=\"email\"\n                                value={email}\n                                onChange={(e) => setEmail(e.target.value)}\n                                placeholder=\"you@company.com\"\n                            />\n                            <FieldDescription>\n                                We'll send a magic link to sign in.\n                            </FieldDescription>\n                            <FieldError />\n                        </Field>\n                        <FloatingLabel label=\"Company name\">\n                            <Input />\n                        </FloatingLabel>\n                        <Row>\n                            <Button color=\"primary\" block>\n                                Continue\n                            </Button>\n                        </Row>\n                    </div>\n                </div>\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "Join",
@@ -2406,6 +2406,52 @@
       }
     ],
     "usageExample": "import { NativeSelect } from \"silicaui-react\";\nimport { Section, Row, Stack } from \"../lib/Section\";\nimport { SIZES } from \"../lib/data\";\n\nexport function SelectDemo() {\n    return (\n        <>\n            <Section title=\"Colors\">\n                <Stack className=\"max-w-md\">\n                    <NativeSelect defaultValue=\"\">\n                        <option value=\"\" disabled>\n                            Pick a framework…\n                        </option>\n                        <option>React</option>\n                        <option>Svelte</option>\n                        <option>Vue</option>\n                        <option>Solid</option>\n                    </NativeSelect>\n                    <NativeSelect color=\"primary\" defaultValue=\"React\">\n                        <option>React</option>\n                        <option>Svelte</option>\n                        <option>Vue</option>\n                    </NativeSelect>\n                    <NativeSelect color=\"success\" defaultValue=\"React\">\n                        <option>React</option>\n                        <option>Svelte</option>\n                    </NativeSelect>\n                    <NativeSelect color=\"error\" defaultValue=\"React\">\n                        <option>React</option>\n                        <option>Svelte</option>\n                    </NativeSelect>\n                    <NativeSelect disabled defaultValue=\"React\">\n                        <option>React</option>\n                    </NativeSelect>\n                </Stack>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <Row>\n                    {SIZES.map((size) => (\n                        <NativeSelect key={size} size={size} defaultValue={size}>\n                            <option>{size}</option>\n                        </NativeSelect>\n                    ))}\n                </Row>\n            </Section>\n\n            <Section title=\"Real use · shipping region\">\n                <div className=\"grid max-w-sm gap-3 rounded-box border border-base-300 bg-base-100 p-5 shadow-sm\">\n                    <label className=\"flex flex-col gap-1.5 text-sm\">\n                        Country\n                        <NativeSelect color=\"primary\" defaultValue=\"US\">\n                            <option value=\"US\">United States</option>\n                            <option value=\"CA\">Canada</option>\n                            <option value=\"MX\">Mexico</option>\n                            <option value=\"UK\">United Kingdom</option>\n                        </NativeSelect>\n                    </label>\n                    <label className=\"flex flex-col gap-1.5 text-sm\">\n                        Shipping speed\n                        <NativeSelect defaultValue=\"standard\">\n                            <option value=\"standard\">Standard (5–7 days)</option>\n                            <option value=\"express\">Express (2–3 days)</option>\n                            <option value=\"overnight\">Overnight</option>\n                        </NativeSelect>\n                    </label>\n                </div>\n            </Section>\n        </>\n    );\n}"
+  },
+  {
+    "name": "SelectionList",
+    "package": "silicaui-react",
+    "category": "Data input",
+    "sourceFile": "silicaui-react/src/selection-list.tsx",
+    "description": "Silica SelectionList — a selectable list of rows (single- or multi-select), each with a leading `Checkbox`/`Radio` indicator that mirrors row state. Full keyboard support: ↑/↓ move focus, Home/End jump, Enter/Space toggles the focused row (roving tabindex, ARIA `listbox`/`option` pattern). <SelectionList items={[{ id: \"a\", label: \"Alpha\" }, { id: \"b\", label: \"Beta\" }]} multiple defaultValue={[\"a\"]} onValueChange={setSelected} />",
+    "props": [
+      {
+        "name": "SelectionListProps",
+        "extends": "extends Omit<React.HTMLAttributes<HTMLUListElement>, \"onSelect\" | \"defaultValue\">",
+        "members": [
+          {
+            "name": "items",
+            "optional": false,
+            "type": "SelectionListItem[]",
+            "doc": "The row data."
+          },
+          {
+            "name": "multiple",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Allow more than one row selected at once. Default `false` (single-select)."
+          },
+          {
+            "name": "value",
+            "optional": true,
+            "type": "string[]",
+            "doc": "Controlled array of selected ids."
+          },
+          {
+            "name": "defaultValue",
+            "optional": true,
+            "type": "string[]",
+            "doc": "Uncontrolled initial selected ids."
+          },
+          {
+            "name": "onValueChange",
+            "optional": true,
+            "type": "(value: string[]) => void",
+            "doc": "Fires with the new array of selected ids."
+          }
+        ]
+      }
+    ],
+    "usageExample": "import { useState } from \"react\";\nimport { SelectionList } from \"silicaui-react\";\nimport type { SelectionListItem } from \"silicaui-react\";\nimport { Section, Row } from \"../lib/Section\";\n\nconst PlanIcon = (\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"1.75\" strokeLinecap=\"round\" strokeLinejoin=\"round\">\n        <rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" />\n        <path d=\"M3 9h18\" />\n    </svg>\n);\n\nconst PLANS: SelectionListItem[] = [\n    { id: \"free\", label: \"Free\", description: \"For trying things out\", icon: PlanIcon },\n    { id: \"pro\", label: \"Pro\", description: \"For growing teams\", icon: PlanIcon },\n    { id: \"enterprise\", label: \"Enterprise\", description: \"Custom limits & support\", icon: PlanIcon },\n];\n\nconst NOTIFICATIONS: SelectionListItem[] = [\n    { id: \"email\", label: \"Email\", description: \"Order + shipping updates\" },\n    { id: \"sms\", label: \"SMS\", description: \"Delivery alerts only\" },\n    { id: \"push\", label: \"Push\", description: \"Real-time on this device\" },\n    { id: \"digest\", label: \"Weekly digest\", description: \"Coming soon\", disabled: true },\n];\n\nexport function SelectionListDemo() {\n    const [plan, setPlan] = useState<string[]>([\"pro\"]);\n    const [channels, setChannels] = useState<string[]>([\"email\", \"push\"]);\n\n    return (\n        <>\n            <Section title=\"Real use · single-select plan picker\">\n                <Row>\n                    <SelectionList\n                        items={PLANS}\n                        value={plan}\n                        onValueChange={setPlan}\n                        className=\"w-72\"\n                    />\n                </Row>\n            </Section>\n\n            <Section title=\"Multi-select · notification channels\">\n                <Row>\n                    <SelectionList\n                        items={NOTIFICATIONS}\n                        multiple\n                        value={channels}\n                        onValueChange={setChannels}\n                        className=\"w-72\"\n                    />\n                </Row>\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "Slider",
@@ -2934,6 +2980,134 @@
       }
     ],
     "usageExample": "import { useState } from \"react\";\nimport { Pagination } from \"silicaui-react\";\nimport { Section } from \"../lib/Section\";\nimport { COLORS } from \"../lib/data\";\n\nexport function PaginationDemo() {\n    const [page, setPage] = useState(4);\n\n    return (\n        <>\n            <Section title=\"Colors\">\n                <div className=\"flex flex-col gap-3\">\n                    {COLORS.slice(0, 6).map((color) => (\n                        <Pagination\n                            key={color}\n                            color={color}\n                            page={3}\n                            count={10}\n                            onChange={() => {}}\n                        />\n                    ))}\n                </div>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <div className=\"flex flex-col gap-3\">\n                    {([\"xs\", \"sm\", \"md\", \"lg\"] as const).map((size) => (\n                        <Pagination\n                            key={size}\n                            size={size}\n                            color=\"primary\"\n                            page={3}\n                            count={10}\n                            onChange={() => {}}\n                        />\n                    ))}\n                </div>\n            </Section>\n\n            <Section title=\"Real use · interactive search results\">\n                <div className=\"flex max-w-lg flex-col gap-3\">\n                    <p className=\"text-sm opacity-70\">\n                        Showing page {page} of 12 — 118 results\n                    </p>\n                    <Pagination\n                        color=\"primary\"\n                        page={page}\n                        count={12}\n                        onChange={setPage}\n                    />\n                </div>\n            </Section>\n        </>\n    );\n}"
+  },
+  {
+    "name": "Sidebar",
+    "package": "silicaui-react",
+    "category": "Navigation",
+    "sourceFile": "silicaui-react/src/sidebar.tsx",
+    "description": "Silica Sidebar — a persistent layout nav panel, distinct from `Drawer` (which overlays content and dismisses). A Sidebar never overlays: it collapses IN PLACE to a narrow icon rail. <Sidebar> <SidebarHeader> <SidebarHeaderBrand><Wordmark>Acme</Wordmark></SidebarHeaderBrand> <SidebarTrigger /> </SidebarHeader> <SidebarContent> <SidebarGroup> <SidebarGroupLabel>Workspace</SidebarGroupLabel> <SidebarItem icon={<HomeIcon />} active>Dashboard</SidebarItem> <SidebarItem icon={<SettingsIcon />}>Settings</SidebarItem> </SidebarGroup> </SidebarContent> </Sidebar>",
+    "props": [
+      {
+        "name": "SidebarProviderProps",
+        "members": [
+          {
+            "name": "children",
+            "optional": false,
+            "type": "React.ReactNode",
+            "doc": ""
+          },
+          {
+            "name": "collapsed",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Controlled collapsed state."
+          },
+          {
+            "name": "defaultCollapsed",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Uncontrolled initial collapsed state. Default `false`."
+          },
+          {
+            "name": "onCollapsedChange",
+            "optional": true,
+            "type": "(collapsed: boolean) => void",
+            "doc": ""
+          }
+        ]
+      },
+      {
+        "name": "SidebarProps",
+        "extends": "extends React.HTMLAttributes<HTMLElement>",
+        "members": [
+          {
+            "name": "side",
+            "optional": true,
+            "type": "SidebarSide",
+            "doc": "Which edge the panel sits on. Default `left`."
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "SilicaColor",
+            "doc": "Accent color for the active `SidebarItem`; maps to `sidebar-<color>`."
+          },
+          {
+            "name": "collapsed",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Explicit collapsed override. When omitted, reads the ancestor `SidebarProvider` (defaults to expanded if neither is present)."
+          }
+        ]
+      },
+      {
+        "name": "SidebarHeaderProps",
+        "members": []
+      },
+      {
+        "name": "SidebarHeaderBrandProps",
+        "members": []
+      },
+      {
+        "name": "SidebarContentProps",
+        "members": []
+      },
+      {
+        "name": "SidebarFooterProps",
+        "members": []
+      },
+      {
+        "name": "SidebarGroupProps",
+        "members": []
+      },
+      {
+        "name": "SidebarGroupLabelProps",
+        "members": []
+      },
+      {
+        "name": "SidebarItemProps",
+        "extends": "extends Omit<React.HTMLAttributes<HTMLElement>, \"color\">",
+        "members": [
+          {
+            "name": "icon",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": "Leading icon."
+          },
+          {
+            "name": "trailing",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": "Trailing content (badge, chevron); hidden when collapsed."
+          },
+          {
+            "name": "active",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Highlights the row with the sidebar's accent color."
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": ""
+          },
+          {
+            "name": "as",
+            "optional": true,
+            "type": "React.ElementType",
+            "doc": "Render as a different element, typically `\"a\"` for real navigation."
+          }
+        ]
+      },
+      {
+        "name": "SidebarTriggerProps",
+        "extends": "extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, \"type\">",
+        "members": []
+      }
+    ],
+    "usageExample": "import { useState } from \"react\";\nimport {\n    SidebarProvider,\n    Sidebar,\n    SidebarHeader,\n    SidebarHeaderBrand,\n    SidebarContent,\n    SidebarFooter,\n    SidebarGroup,\n    SidebarGroupLabel,\n    SidebarItem,\n    SidebarTrigger,\n    Wordmark,\n    Avatar,\n} from \"silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nconst HomeIcon = (\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"1.75\" strokeLinecap=\"round\" strokeLinejoin=\"round\">\n        <path d=\"M3 12 12 3l9 9\" /> <path d=\"M5 10v10h14V10\" />\n    </svg>\n);\nconst SearchIcon = (\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"1.75\" strokeLinecap=\"round\" strokeLinejoin=\"round\">\n        <circle cx=\"11\" cy=\"11\" r=\"8\" /> <path d=\"m21 21-4.3-4.3\" />\n    </svg>\n);\nconst UsersIcon = (\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"1.75\" strokeLinecap=\"round\" strokeLinejoin=\"round\">\n        <path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\" /> <circle cx=\"9\" cy=\"7\" r=\"4\" />\n        <path d=\"M22 21v-2a4 4 0 0 0-3-3.87\" /> <path d=\"M16 3.13a4 4 0 0 1 0 7.75\" />\n    </svg>\n);\nconst SettingsIcon = (\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"1.75\" strokeLinecap=\"round\" strokeLinejoin=\"round\">\n        <path d=\"M14 17H5\" /> <path d=\"M19 7h-9\" /> <circle cx=\"17\" cy=\"17\" r=\"3\" /> <circle cx=\"7\" cy=\"7\" r=\"3\" />\n    </svg>\n);\n\nfunction AppShell() {\n    const [active, setActive] = useState(\"dashboard\");\n\n    return (\n        <div className=\"flex h-[26rem] w-full max-w-2xl overflow-hidden rounded-box border border-base-200\">\n            <Sidebar>\n                <SidebarHeader>\n                    <SidebarHeaderBrand>\n                        <Wordmark size=\"sm\" color=\"primary\">Acme</Wordmark>\n                    </SidebarHeaderBrand>\n                    <SidebarTrigger />\n                </SidebarHeader>\n                <SidebarContent>\n                    <SidebarGroup>\n                        <SidebarGroupLabel>Workspace</SidebarGroupLabel>\n                        <SidebarItem\n                            icon={HomeIcon}\n                            active={active === \"dashboard\"}\n                            onClick={() => setActive(\"dashboard\")}\n                        >\n                            Dashboard\n                        </SidebarItem>\n                        <SidebarItem\n                            icon={SearchIcon}\n                            active={active === \"search\"}\n                            onClick={() => setActive(\"search\")}\n                        >\n                            Search\n                        </SidebarItem>\n                        <SidebarItem\n                            icon={UsersIcon}\n                            active={active === \"team\"}\n                            onClick={() => setActive(\"team\")}\n                            trailing={<span className=\"badge badge-primary badge-xs\">4</span>}\n                        >\n                            Team\n                        </SidebarItem>\n                    </SidebarGroup>\n                    <SidebarGroup>\n                        <SidebarGroupLabel>Account</SidebarGroupLabel>\n                        <SidebarItem\n                            icon={SettingsIcon}\n                            active={active === \"settings\"}\n                            onClick={() => setActive(\"settings\")}\n                        >\n                            Settings\n                        </SidebarItem>\n                    </SidebarGroup>\n                </SidebarContent>\n                <SidebarFooter>\n                    <SidebarItem icon={<Avatar size=\"xs\">AL</Avatar>}>Ada Lovelace</SidebarItem>\n                </SidebarFooter>\n            </Sidebar>\n\n            <div className=\"flex flex-1 flex-col gap-3 overflow-y-auto p-6\">\n                <div className=\"flex items-center gap-2\">\n                    <SidebarTrigger />\n                    <h4 className=\"text-sm font-semibold capitalize\">{active}</h4>\n                </div>\n                <p className=\"text-sm opacity-70\">\n                    The trigger above lives OUTSIDE the sidebar (in this main content\n                    area) yet still toggles it — both triggers share one\n                    SidebarProvider.\n                </p>\n            </div>\n        </div>\n    );\n}\n\nexport function SidebarDemo() {\n    return (\n        <Section title=\"Real use · app shell (collapsible, cross-tree trigger)\">\n            <SidebarProvider>\n                <AppShell />\n            </SidebarProvider>\n        </Section>\n    );\n}"
   },
   {
     "name": "Steps",
@@ -4165,6 +4339,50 @@
       }
     ],
     "usageExample": "import { Prose } from \"silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nexport function ProseDemo() {\n    return (\n        <>\n            <Section title=\"Real use · rendered article body\">\n                <Prose>\n                    <h2>Launch checklist</h2>\n                    <p>\n                        Draft the announcement in <strong>rich text</strong> — headings,\n                        lists, and links all export as clean HTML.\n                    </p>\n                    <ul>\n                        <li>Write the copy</li>\n                        <li>Add screenshots</li>\n                        <li>\n                            Link the <a href=\"#\">changelog</a>\n                        </li>\n                    </ul>\n                    <blockquote>Ship small, ship often.</blockquote>\n                    <p>\n                        Inline <code>code</code> and block code both pick up themed\n                        styling automatically.\n                    </p>\n                </Prose>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <div className=\"flex flex-col gap-6\">\n                    {([\"sm\", \"lg\"] as const).map((size) => (\n                        <Prose key={size} size={size}>\n                            <p>\n                                <code>size=&quot;{size}&quot;</code> rescales the whole block\n                                by one root font-size.\n                            </p>\n                        </Prose>\n                    ))}\n                </div>\n            </Section>\n        </>\n    );\n}"
+  },
+  {
+    "name": "Wordmark",
+    "package": "silicaui-react",
+    "category": "Typography",
+    "sourceFile": "silicaui-react/src/wordmark.tsx",
+    "description": "Silica Wordmark — a stylized logotype for a brand/product name. Wrap a highlighted portion in `<WordmarkAccent>` for a two-tone mark (e.g. the \"UI\" in \"Silica UI\"); a leading icon/glyph works as a plain child too. <Wordmark>Silica<WordmarkAccent>UI</WordmarkAccent></Wordmark> <Wordmark as=\"a\" href=\"/\" color=\"primary\"><LogoMark />Acme</Wordmark>",
+    "props": [
+      {
+        "name": "WordmarkProps",
+        "extends": "extends React.HTMLAttributes<HTMLElement>",
+        "members": [
+          {
+            "name": "color",
+            "optional": true,
+            "type": "SilicaColor",
+            "doc": "Solid accent color for the whole mark; maps to `wordmark-<color>`."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "SilicaSize",
+            "doc": "Default `md`."
+          },
+          {
+            "name": "as",
+            "optional": true,
+            "type": "React.ElementType",
+            "doc": "Render as a different element — typically `\"a\"` when the mark links home."
+          },
+          {
+            "name": "href",
+            "optional": true,
+            "type": "string",
+            "doc": "Link target, when `as=\"a\"`."
+          }
+        ]
+      },
+      {
+        "name": "WordmarkAccentProps",
+        "members": []
+      }
+    ],
+    "usageExample": "import { Wordmark, WordmarkAccent } from \"silicaui-react\";\nimport { Section, Row } from \"../lib/Section\";\n\nconst Mark = (\n    <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\" strokeLinecap=\"round\" strokeLinejoin=\"round\">\n        <path d=\"M12 2 2 7l10 5 10-5-10-5Z\" />\n        <path d=\"m2 17 10 5 10-5\" />\n        <path d=\"m2 12 10 5 10-5\" />\n    </svg>\n);\n\nexport function WordmarkDemo() {\n    return (\n        <>\n            <Section title=\"Real use · brand logotype\">\n                <Row>\n                    <Wordmark>\n                        Silica<WordmarkAccent>UI</WordmarkAccent>\n                    </Wordmark>\n                    <Wordmark as=\"a\" href=\"#\" color=\"primary\">\n                        {Mark}\n                        Acme\n                    </Wordmark>\n                </Row>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <Row>\n                    <Wordmark size=\"xs\">Silica</Wordmark>\n                    <Wordmark size=\"sm\">Silica</Wordmark>\n                    <Wordmark size=\"md\">Silica</Wordmark>\n                    <Wordmark size=\"lg\">Silica</Wordmark>\n                    <Wordmark size=\"xl\">Silica</Wordmark>\n                </Row>\n            </Section>\n\n            <Section title=\"Colors\">\n                <Row>\n                    <Wordmark>Base</Wordmark>\n                    <Wordmark color=\"primary\">Primary</Wordmark>\n                    <Wordmark color=\"secondary\">Secondary</Wordmark>\n                    <Wordmark color=\"accent\">Accent</Wordmark>\n                </Row>\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "Chart",

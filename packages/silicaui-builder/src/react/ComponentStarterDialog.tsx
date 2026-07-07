@@ -51,12 +51,16 @@ export function NewComponentButton({ trigger }: { trigger: React.ReactElement })
           <DialogDescription className="text-sm text-base-content/60">
             Start blank, or from a ready-made section you can then customize.
           </DialogDescription>
-          <div className="mt-3">
+          <div className="relative mt-3">
+            <Icon
+              name="search"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/45"
+            />
             <Input
               // eslint-disable-next-line jsx-a11y/no-autofocus -- a picker: focus goes to search
               autoFocus
               type="search"
-              className="w-full"
+              className="w-full pl-8"
               size="sm"
               placeholder="Search starters…"
               value={q}

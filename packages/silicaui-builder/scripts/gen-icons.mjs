@@ -45,6 +45,9 @@ const USED = {
   // inspector settings tab
   settings: "settings-2", eye: "eye", eyeOff: "eye-off", code: "code",
   accessibility: "accessibility", database: "database", hash: "hash",
+  // gap-fill components
+  sidebar: "panel-left", sidebarTrigger: "panel-left-close",
+  wordmark: "case-sensitive", selectionList: "list-checks",
 };
 
 // Pull the inner markup out of each <svg>…</svg> (Lucide files share one root svg).

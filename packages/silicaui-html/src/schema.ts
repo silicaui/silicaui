@@ -118,7 +118,8 @@ export type BehaviorType =
   | "dismiss"
   | "toc"
   | "form"
-  | "sidebar";
+  | "sidebar"
+  | "selection-list";
 
 export type BehaviorRole =
   | "track"

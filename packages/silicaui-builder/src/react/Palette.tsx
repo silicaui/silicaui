@@ -14,6 +14,7 @@
  * STYLING RULE (hard): Tailwind utilities + silicaui classes + baked <Icon> only.
  */
 import * as React from "react";
+import { Input } from "silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
 import { Icon } from "./Icon";
 import { paletteGroups } from "../palette";
@@ -189,28 +190,30 @@ export function Palette() {
 
   return (
     <div className="flex flex-col gap-3 px-1.5 py-2">
-      <div className="px-1">
-        <label className="input input-sm flex items-center gap-2">
-          <Icon name="search" className="text-base-content/45" />
-          <input
-            type="search"
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              const top = results?.[0];
-              if (e.key === "Enter" && top) {
-                editor.insertRelative(top.item.make());
-              } else if (e.key === "Escape" && query) {
-                e.stopPropagation();
-                setQuery("");
-              }
-            }}
-            placeholder="Search components…"
-            className="grow"
-            aria-label="Search the insert catalog"
-          />
-        </label>
+      <div className="relative px-1">
+        <Icon
+          name="search"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/45"
+        />
+        <Input
+          type="search"
+          size="sm"
+          autoFocus
+          value={query}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            const top = results?.[0];
+            if (e.key === "Enter" && top) {
+              editor.insertRelative(top.item.make());
+            } else if (e.key === "Escape" && query) {
+              e.stopPropagation();
+              setQuery("");
+            }
+          }}
+          placeholder="Search components…"
+          className="w-full pl-8"
+          aria-label="Search the insert catalog"
+        />
       </div>
 
       {results ? (

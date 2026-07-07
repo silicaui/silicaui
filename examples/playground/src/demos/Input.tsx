@@ -24,7 +24,7 @@ export function InputDemo() {
                     <Input color="primary" placeholder="Primary" />
                     <Input color="success" placeholder="Success" />
                     <Input color="error" placeholder="Error" defaultValue="not-an-email" />
-                    <Input color="brand" placeholder="Brand" />
+                    <Input color="brand" placeholder="SilicaUI" />
                     <Input disabled placeholder="Disabled" />
                 </Stack>
             </Section>

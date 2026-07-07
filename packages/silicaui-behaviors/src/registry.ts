@@ -8,6 +8,7 @@ import { scrollspy, toc } from "./behaviors/scrollspy";
 import { counter } from "./behaviors/counter";
 import { tabs } from "./behaviors/tabs";
 import { sidebar } from "./behaviors/sidebar";
+import { selectionList } from "./behaviors/selection-list";
 import type { BehaviorHandler, BehaviorType } from "./types";
 
 /** The closed dispatch table — one handler per `BehaviorType` (architecture §7). */
@@ -23,4 +24,5 @@ export const HANDLERS: Record<BehaviorType, BehaviorHandler> = {
   toc,
   form,
   sidebar,
+  "selection-list": selectionList,
 };

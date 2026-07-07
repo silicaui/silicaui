@@ -107,6 +107,27 @@ const RADIUS: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "rounded-box", label: "Box" },
   { cls: "rounded-full", label: "Full" },
 ];
+// Sizing utilities a layout object can wear. Literal strings (the canvas safelist).
+const WIDTH: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "w-full", label: "Full" },
+  { cls: "w-1/2", label: "1/2" },
+  { cls: "w-1/3", label: "1/3" },
+  { cls: "w-2/3", label: "2/3" },
+  { cls: "w-fit", label: "Fit" },
+];
+const MAX_WIDTH: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "max-w-none", label: "None" },
+  { cls: "max-w-xs", label: "XS" },
+  { cls: "max-w-sm", label: "SM" },
+  { cls: "max-w-md", label: "MD" },
+  { cls: "max-w-lg", label: "LG" },
+  { cls: "max-w-xl", label: "XL" },
+  { cls: "max-w-2xl", label: "2XL" },
+  { cls: "max-w-3xl", label: "3XL" },
+  { cls: "max-w-4xl", label: "4XL" },
+  { cls: "max-w-5xl", label: "5XL" },
+  { cls: "max-w-full", label: "Full" },
+];
 const BTN_VARIANT: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "btn-outline", label: "Outline" },
   { cls: "btn-ghost", label: "Ghost" },
@@ -199,6 +220,10 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
     { key: "content", label: "Content", control: "text" },
   ],
   Timeline: [{ key: "items", label: "Items", control: "list" }],
+
+  // ── gap-fill components ──
+  Sidebar: [{ key: "defaultCollapsed", label: "Start collapsed", control: "toggle" }],
+  SelectionList: [{ key: "multiple", label: "Multi-select", control: "toggle" }],
 };
 
 // ── small building blocks ─────────────────────────────────────────────────────
@@ -288,6 +313,51 @@ function SwatchGroup({
   );
 }
 
+/**
+ * Corner-radius picker — square swatches that PREVIEW each option's real corner
+ * (the same visual language as the Theme editor's Radius control), rather than a
+ * text chip. The `rounded-field` / `rounded-box` previews use the live theme's own
+ * radius tokens, so a swatch shows the actual corner the canvas will render; `Auto`
+ * (crossed) clears the class back to the element's default. Same `{active,onPick}`
+ * contract as ChipGroup, so it drops into the one-class-set model unchanged.
+ */
+function RadiusSwatchGroup({
+  options,
+  active,
+  onPick,
+}: {
+  options: ReadonlyArray<{ cls: string; label: string; radius: string }>;
+  active: string;
+  onPick: (cls: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        title="Auto"
+        onClick={() => onPick("")}
+        className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/40 ${
+          active === "" ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+        }`}
+      >
+        <Icon name="close" className="text-[10px]" />
+      </button>
+      {options.map((o) => (
+        <button
+          key={o.cls}
+          type="button"
+          title={o.label}
+          onClick={() => onPick(o.cls)}
+          style={{ borderTopLeftRadius: o.radius }}
+          className={`size-[30px] border bg-base-200 ${
+            active === o.cls ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ── the panel ─────────────────────────────────────────────────────────────────
 type InspectorTab = "design" | "settings";
 
@@ -364,6 +434,17 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   const textColors = React.useMemo(() => textColorOptions(theme, mode), [theme, mode]);
   const bgColors = React.useMemo(() => bgColorOptions(theme, mode), [theme, mode]);
   const btnColors = React.useMemo(() => btnColorOptions(theme, mode), [theme, mode]);
+  // Corner swatches preview each class against the live theme's real radius tokens,
+  // so `Field` / `Box` show the actual corner the canvas renders.
+  const radiusOpts = React.useMemo(
+    () => [
+      { cls: "rounded-none", label: "None", radius: "0" },
+      { cls: "rounded-field", label: "Field", radius: theme.tokens?.["--radius-field"] ?? "0.25rem" },
+      { cls: "rounded-box", label: "Box", radius: theme.tokens?.["--radius-box"] ?? "0.5rem" },
+      { cls: "rounded-full", label: "Full", radius: "14px" },
+    ],
+    [theme],
+  );
 
   const cls = node.kind !== "outlet" ? node.class ?? "" : "";
   const setToken = (group: readonly string[], value: string) => {
@@ -372,6 +453,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
     if (value) t.add(value);
     editor.setClass(id, [...t].join(" "));
   };
+  const centered = tokensOf(cls).has("mx-auto");
 
   return (
     <>
@@ -412,7 +494,22 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
           <ChipGroup options={PADDING} active={activeIn(cls, PADDING.map((o) => o.cls))} onPick={(v) => setToken(PADDING.map((o) => o.cls), v)} />
         </Row>
         <Row label="Corners">
-          <ChipGroup options={RADIUS} active={activeIn(cls, RADIUS.map((o) => o.cls))} onPick={(v) => setToken(RADIUS.map((o) => o.cls), v)} />
+          <RadiusSwatchGroup options={radiusOpts} active={activeIn(cls, RADIUS.map((o) => o.cls))} onPick={(v) => setToken(RADIUS.map((o) => o.cls), v)} />
+        </Row>
+      </Group>
+
+      <Group label="Layout">
+        <Row label="Width">
+          <ChipGroup options={WIDTH} active={activeIn(cls, WIDTH.map((o) => o.cls))} onPick={(v) => setToken(WIDTH.map((o) => o.cls), v)} />
+        </Row>
+        <Row label="Max width">
+          <ChipGroup options={MAX_WIDTH} active={activeIn(cls, MAX_WIDTH.map((o) => o.cls))} onPick={(v) => setToken(MAX_WIDTH.map((o) => o.cls), v)} />
+        </Row>
+        <Row label="Center horizontally">
+          <label className="flex items-center gap-2 text-xs text-base-content/60">
+            <Toggle size="sm" checked={centered} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToken(["mx-auto"], e.target.checked ? "mx-auto" : "")} />
+            <span>Auto side margins (<code className="font-mono">mx-auto</code>)</span>
+          </label>
         </Row>
       </Group>
 
@@ -1028,6 +1125,7 @@ function PropsGroup({ id, node }: { id: string; node: ComponentNode }) {
         <PropRow key={f.key} id={id} node={node} field={f} />
       ))}
       {node.component === "Select" && <OptionsProp id={id} node={node} />}
+      {node.component === "SelectionList" && <SelectionListItemsProp id={id} node={node} />}
     </Group>
   );
 }
@@ -1213,6 +1311,107 @@ function textToOptions(text: string): Array<{ value: string; label: string }> {
       const [a, b] = line.split("|").map((s) => s.trim());
       return b ? { value: a ?? "", label: b } : { value: a ?? "", label: a ?? "" };
     });
+}
+
+/** SelectionList `props.items` (`{id,label,description?}[]`) as "id | Label |
+ *  Description" lines, plus `props.selected` as a comma-separated id list. */
+function SelectionListItemsProp({ id, node }: { id: string; node: ComponentNode }) {
+  const editor = useEditor();
+  const itemsText = selectionItemsToText(node.props?.items);
+  const [itemsDraft, setItemsDraft] = React.useState(itemsText);
+  React.useEffect(() => setItemsDraft(itemsText), [itemsText, id]);
+  const commitItems = () => {
+    if (itemsDraft !== itemsText) editor.setProp(id, "items", textToSelectionItems(itemsDraft));
+  };
+
+  const selectedText = idsToText(node.props?.selected);
+  const [selectedDraft, setSelectedDraft] = React.useState(selectedText);
+  React.useEffect(() => setSelectedDraft(selectedText), [selectedText, id]);
+  const commitSelected = () => {
+    if (selectedDraft !== selectedText) editor.setProp(id, "selected", textToIds(selectedDraft));
+  };
+
+  return (
+    <>
+      <Row label="Items">
+        <Textarea
+          className="w-full text-xs"
+          rows={4}
+          spellCheck={false}
+          placeholder={"One per line —\nid | Label | Description"}
+          value={itemsDraft}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setItemsDraft(e.target.value)}
+          onBlur={commitItems}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              commitItems();
+            }
+          }}
+        />
+      </Row>
+      <Row label="Selected ids">
+        <Input
+          className="w-full"
+          size="sm"
+          placeholder="e.g. pro"
+          value={selectedDraft}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDraft(e.target.value)}
+          onBlur={commitSelected}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitSelected();
+            }
+          }}
+        />
+      </Row>
+    </>
+  );
+}
+
+/** `props.items` (SelectionList) ↔ "id | Label | Description" editor text. */
+function selectionItemsToText(items: unknown): string {
+  if (!Array.isArray(items)) return "";
+  return items
+    .map((raw) => {
+      if (raw == null || typeof raw !== "object") return String(raw);
+      const o = raw as { id?: unknown; label?: unknown; description?: unknown };
+      const id = o.id != null ? String(o.id) : "";
+      const label = o.label != null ? String(o.label) : id;
+      const desc = o.description != null ? String(o.description) : "";
+      const parts = [id, label, desc];
+      while (parts.length > 1 && !parts[parts.length - 1]) parts.pop();
+      return parts.join(" | ");
+    })
+    .join("\n");
+}
+
+/** The editor text → a `props.items` array of `{ id, label, description? }`. */
+function textToSelectionItems(
+  text: string,
+): Array<{ id: string; label: string; description?: string }> {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [a, b, c] = line.split("|").map((s) => s.trim());
+      const id = a ?? "";
+      const label = b || id;
+      return c ? { id, label, description: c } : { id, label };
+    });
+}
+
+/** `props.selected` (SelectionList) ↔ a comma-separated id list. */
+function idsToText(ids: unknown): string {
+  return Array.isArray(ids) ? ids.map(String).join(", ") : "";
+}
+function textToIds(text: string): string[] {
+  return text
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** The raw class string — the low tier. Commits on blur / Enter so a half-typed

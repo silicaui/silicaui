@@ -42,12 +42,12 @@ interaction patterns:
 | --- | --- |
 | **Actions** | `Button` `DropdownMenu` `Swap` |
 | **Data display** | `Accordion` `Avatar` `Badge` `Card` `Carousel` `Chat` `Collapse` `Countdown` `Diff` `Kbd` `List` `Mockup` `PreviewCard` `Stat` `Table` `Timeline` |
-| **Data input** | `Autocomplete` `Calendar` `Checkbox` `CheckboxGroup` `ColorPicker` `Combobox` `DatePicker` `Field` `Fieldset` `FileInput` `Filter` `Form` `Input` `Join` `Label` `NativeSelect` `NumberField` `Radio` `RadioGroup` `Range` `Rating` `Select` `Slider` `Switch` `TagInput` `Textarea` `Toggle` `ToggleGroup` `Validator` |
-| **Navigation** | `Breadcrumb` `Dock` `Link` `Menu` `Menubar` `Navbar` `NavigationMenu` `Pagination` `Steps` `Tabs` |
+| **Data input** | `Autocomplete` `Calendar` `Checkbox` `CheckboxGroup` `ColorPicker` `Combobox` `DatePicker` `Field` `Fieldset` `FileInput` `Filter` `Form` `Input` `Join` `Label` `NativeSelect` `NumberField` `Radio` `RadioGroup` `Range` `Rating` `Select` `SelectionList` `Slider` `Switch` `TagInput` `Textarea` `Toggle` `ToggleGroup` `Validator` |
+| **Navigation** | `Breadcrumb` `Dock` `Link` `Menu` `Menubar` `Navbar` `NavigationMenu` `Pagination` `Sidebar` `Steps` `Tabs` |
 | **Feedback & overlay** | `Alert` `AlertDialog` `ContextMenu` `Dialog` `Drawer` `Indicator` `Loading` `Popover` `Progress` `RadialProgress` `Skeleton` `Toast` `Tooltip` |
 | **Layout** | `Divider` `Footer` `Hero` `Mask` `ScrollArea` `Stack` |
 | **Advanced / composite** | `CommandPalette` `Dropzone` `EmptyState` `ThemeController` `Toolbar` `TreeView` `Wizard` |
-| **Typography** | `Typography` `Prose` |
+| **Typography** | `Typography` `Prose` `Wordmark` |
 
 Composite components with heavier engines are separate packages so this
 package stays dependency-light — install them alongside `silicaui-react` when

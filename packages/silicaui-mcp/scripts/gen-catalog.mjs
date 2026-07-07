@@ -150,6 +150,8 @@ const BEHAVIOR_FILES = {
   counter: "counter.ts",
   dismiss: "dismiss.ts",
   toc: "scrollspy.ts",
+  sidebar: "sidebar.ts",
+  "selection-list": "selection-list.ts",
 };
 writeJson(
   "behaviors.json",

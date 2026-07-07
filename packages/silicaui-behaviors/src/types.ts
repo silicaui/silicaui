@@ -16,7 +16,8 @@ export type BehaviorType =
   | "dismiss"
   | "toc"
   | "form"
-  | "sidebar";
+  | "sidebar"
+  | "selection-list";
 
 /** A gathered form value: one control's value, or many for a repeated name. */
 export type FormValue = string | string[];
