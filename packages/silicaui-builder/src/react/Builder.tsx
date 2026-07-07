@@ -22,13 +22,14 @@ import { ComponentBoard } from "./ComponentBoard";
 import { ThemeLibrary } from "./ThemeLibrary";
 import { Canvas } from "./Canvas";
 import { PagesPanel } from "./PagesPanel";
+import { ComponentsPanel } from "./ComponentsPanel";
 import { Navigator } from "./Navigator";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
 import { Icon } from "./Icon";
 import type { IconName } from "../icons";
 
-type Mode = "page" | "layout" | "theme";
+type Mode = "page" | "layout" | "component" | "theme";
 type Appearance = "light" | "dark";
 
 /** Recoverable canvas fallback — a bad node/atom threw while rendering. Offers to
@@ -128,15 +129,27 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
   // off in Theme mode where there's no node selection.
   useEditorShortcuts(mode !== "theme");
 
-  // Page ↔ Layout retargets the whole editing spine at the page body vs the site
-  // frame. Done synchronously here (not in an effect) so the active tree is already
-  // switched by the time the rails re-render — otherwise the Navigator would seed
-  // its expansion from the old tree. Theme mode edits tokens, not nodes, so it
-  // leaves the active tree alone.
+  // Page ↔ Layout ↔ Component retargets the whole editing spine at the page body,
+  // the site frame, or a component master. Done synchronously here (not in an
+  // effect) so the active tree is already switched by the time the rails re-render.
+  // Theme mode edits tokens, not nodes, so it leaves the active tree alone.
   const changeMode = (next: Mode) => {
     setMode(next);
-    if (next !== "theme") editor.setActiveTree(next === "layout" ? "frame" : "page");
+    if (next === "page") editor.setActiveTree("page");
+    else if (next === "layout") editor.setActiveTree("frame");
+    else if (next === "component") {
+      // Land in an editor: keep the open component, else open the first one. With
+      // none, the canvas shows the "create a component" empty state.
+      if (!editor.editingSymbol && editor.symbols[0]) editor.enterSymbol(editor.symbols[0].id);
+    }
   };
+
+  // "Edit component" (from an instance's Inspector or a palette row) opens a master
+  // via the engine directly — pull the chrome into Component mode to match, so the
+  // mode toggle + rails always reflect what's actually being edited.
+  React.useEffect(() => {
+    if (editingSymbol && mode !== "component" && mode !== "theme") setMode("component");
+  }, [editingSymbol, mode]);
 
   return (
     <>
@@ -148,14 +161,17 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
         </div>
 
         <ToggleGroup
-          className="toggle-group-sm"
+          className="toggle-group-sm toggle-group-primary"
           aria-label="Editor mode"
           value={[mode]}
           onValueChange={(v: string[]) => v.length && changeMode(last(v, mode) as Mode)}
         >
-          <IconItem value="page" icon="page">Page</IconItem>
-          <IconItem value="layout" icon="layout">Layout</IconItem>
+          {/* Widest scope → narrowest: whole-site theme, shared layout, one page,
+              one reusable component. */}
           <IconItem value="theme" icon="theme">Theme</IconItem>
+          <IconItem value="layout" icon="layout">Layout</IconItem>
+          <IconItem value="page" icon="page">Page</IconItem>
+          <IconItem value="component" icon="box">Component</IconItem>
         </ToggleGroup>
 
         <Button variant="ghost" size="sm" aria-label="Undo" disabled={!canUndo} onClick={() => editor.undo()}>
@@ -204,26 +220,6 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
         </Button>
       </header>
 
-      {/* symbol-editing banner — the whole spine is retargeted at a component
-          master; edits here propagate to every instance. Leave via Done (or the
-          mode toggle, which exits the master). */}
-      {editingSymbol && (
-        <div
-          className="flex items-center gap-2 h-9 flex-none px-3.5 bg-secondary/12 border-b border-secondary/30 text-sm"
-          data-testid="symbol-banner"
-        >
-          <Icon name="box" className="text-secondary" />
-          <span>
-            Editing component <span className="font-semibold">{editingSymbol.name}</span> — changes apply to every
-            instance.
-          </span>
-          <span className="flex-1" />
-          <Button size="sm" color="secondary" onClick={() => editor.exitSymbol()}>
-            Done
-          </Button>
-        </div>
-      )}
-
       {/* body */}
       <div className="grid flex-1 min-h-0 grid-cols-[264px_1fr_320px]">
         {/* left */}
@@ -237,6 +233,30 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
               <div className="flex-1 min-h-0 overflow-auto">
                 <ThemeEditor />
               </div>
+            </>
+          ) : mode === "component" ? (
+            <>
+              {/* The component library sits above Layers/Insert; the tree tools show
+                  only once a component is open (there's a master to edit). */}
+              <ComponentsPanel />
+              {editingSymbol && (
+                <>
+                  <PanelHead>
+                    <ToggleGroup
+                      className="toggle-group-xs"
+                      aria-label="Left panel"
+                      value={[leftTab]}
+                      onValueChange={(v: string[]) => v.length && setLeftTab(last(v, leftTab) as "layers" | "insert")}
+                    >
+                      <IconItem value="layers" icon="list">Layers</IconItem>
+                      <IconItem value="insert" icon="plus">Insert</IconItem>
+                    </ToggleGroup>
+                  </PanelHead>
+                  <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
+                    {leftTab === "layers" ? <Navigator key={`component:${editingSymbol.id}`} /> : <Palette />}
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <>
@@ -266,6 +286,19 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
         <section className="flex flex-col min-w-0 min-h-0">
           {mode === "theme" ? (
             <ComponentBoard />
+          ) : mode === "component" && !editingSymbol ? (
+            <div className="grid flex-1 min-h-0 place-items-center bg-base-200 p-8">
+              <EmptyState
+                icon={<Icon name="box" />}
+                title="No component open"
+                description="Pick a component on the left, create a new one, or select an element on a page and save it as a component."
+                actions={
+                  <Button size="sm" color="primary" onClick={() => editor.createBlankSymbol()}>
+                    <Icon name="plus" /> New component
+                  </Button>
+                }
+              />
+            </div>
           ) : (
             <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
               <Canvas device={device} />

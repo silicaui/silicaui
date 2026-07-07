@@ -450,6 +450,14 @@ function InstancePanel({ id, symbolId, node }: { id: string; symbolId: string; n
             Detach
           </button>
         </div>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost w-full mt-2 text-error"
+          title="Delete this component everywhere — every instance is unlinked into a real copy"
+          onClick={() => editor.deleteSymbol(symbolId)}
+        >
+          <Icon name="trash" /> Delete component
+        </button>
       </Group>
       <OverridesGroup instanceId={id} node={node} symbolId={symbolId} />
       <Group label="Node">

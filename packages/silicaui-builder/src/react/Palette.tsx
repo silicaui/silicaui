@@ -102,27 +102,49 @@ function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string 
   );
 }
 
-/** A saved-symbol row: click inserts an instance, drag drops one at a precise spot.
+/** A saved-symbol row: click inserts an instance, drag drops one at a precise spot,
+ *  and hover reveals manage actions (edit the master / delete the component).
  *  Distinct from a catalog `ItemRow` — a symbol inserts through the engine's
- *  instance path (not a static `make()`), so it stays linked to its master. */
+ *  instance path (not a static `make()`), so it stays linked to its master.
+ *  Deleting is SAFE: it detaches every instance into a real copy (no content loss). */
 function SymbolRow({ id, name }: { id: string; name: string }) {
   const editor = useEditor();
   return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
-      draggable
-      data-insert-key={`symbol:${id}`}
-      onDragStart={(e) => {
-        e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `symbol:${id}` }));
-        e.dataTransfer.effectAllowed = "copy";
-      }}
-      onClick={() => editor.insertSymbolInstance(id)}
-    >
-      <Icon name="box" className="text-secondary" />
-      <span className="truncate">{name}</span>
-      <span aria-hidden className="ml-auto shrink-0 text-secondary/60">◆</span>
-    </button>
+    <div className="group flex items-center gap-0.5 rounded-btn hover:bg-base-200">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm flex-1 min-w-0 justify-start gap-2 font-normal hover:bg-transparent"
+        draggable
+        data-insert-key={`symbol:${id}`}
+        title={`Insert an instance of ${name}`}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `symbol:${id}` }));
+          e.dataTransfer.effectAllowed = "copy";
+        }}
+        onClick={() => editor.insertSymbolInstance(id)}
+      >
+        <Icon name="box" className="text-secondary" />
+        <span className="truncate">{name}</span>
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
+        title="Edit component"
+        data-testid={`symbol-edit:${id}`}
+        onClick={() => editor.enterSymbol(id)}
+      >
+        <Icon name="pencil" />
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
+        title="Delete component (unlinks every instance)"
+        data-testid={`symbol-delete:${id}`}
+        onClick={() => editor.deleteSymbol(id)}
+      >
+        <Icon name="trash" />
+      </button>
+    </div>
   );
 }
 

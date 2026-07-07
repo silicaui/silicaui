@@ -18,7 +18,7 @@
  */
 import * as React from "react";
 import type { Child, ElementNode, Node, Theme } from "silicaui-html";
-import { applyOverrides, expandComponent, rolesOf } from "silicaui-html";
+import { applyOverrides, expandComponent, rolesOf, walk } from "silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
@@ -33,6 +33,30 @@ import { editableText, inlineEditable, nodeName } from "../node-display";
 function nodeForInsertKey(editor: Editor, key: string): Node | undefined {
   if (key.startsWith("symbol:")) return editor.makeInstanceNode(key.slice("symbol:".length));
   return paletteItemByKey(key)?.make();
+}
+
+/** A composite selection/edit key that targets a node INSIDE an instance. */
+const COMPOSITE = "::";
+function isComposite(key: string | undefined): key is string {
+  return !!key && key.includes(COMPOSITE);
+}
+/** Split `instanceId::masterId`. */
+function splitComposite(key: string): { instanceId: string; masterId: string } {
+  const at = key.indexOf(COMPOSITE);
+  return { instanceId: key.slice(0, at), masterId: key.slice(at + COMPOSITE.length) };
+}
+/** The MASTER node a composite key points at (for inline-edit + default text). */
+function masterNodeOf(editor: Editor, key: string): Node | undefined {
+  const { instanceId, masterId } = splitComposite(key);
+  const inst = editor.node(instanceId);
+  const symbolId = inst && inst.kind !== "outlet" ? inst.instanceOf : undefined;
+  const root = symbolId ? editor.symbol(symbolId)?.root : undefined;
+  if (!root) return undefined;
+  let hit: Node | undefined;
+  walk(root, (n) => {
+    if (!hit && n.kind !== "outlet" && n.id === masterId) hit = n;
+  });
+  return hit;
 }
 
 /** Document theme tokens → inline CSS vars for the island (mirrors the board). */
@@ -195,6 +219,9 @@ interface RenderCtx {
   /** The chain of symbol ids currently being expanded — breaks a self-referential
    *  instance (a symbol dropped into its own master) instead of recursing forever. */
   symbolPath?: readonly string[];
+  /** Set while rendering INSIDE an instance's expanded master: selection/edit keys
+   *  become composite (`instanceId::masterId`) and edits route to overrides. */
+  instance?: { id: string };
 }
 
 /** Which edge of the hovered node a pointer at `clientY` targets. */
@@ -343,61 +370,84 @@ function CanvasNode({
   }
 
   const id = node.id;
-  const empty = !ctx.preview && isEmptyContainer(node);
-  const deco = ctx.preview ? "" : decorations(id, ctx);
+  // Inside an instance we're rendering a clone of the master, whose nodes carry the
+  // MASTER's ids — shared across every instance. So the selection/edit KEY is
+  // composite (`instanceId::masterId`), unique per instance and the same key an
+  // override is stored under. Outside an instance the key is just the node id.
+  const inInstance = ctx.instance;
+  const key = inInstance && id ? `${inInstance.id}::${id}` : id;
+  const empty = !ctx.preview && !inInstance && isEmptyContainer(node);
+  const deco = ctx.preview ? "" : decorations(key, ctx);
 
   // In-place text editing: this node's own tag becomes a contentEditable field.
   // Short-circuit here so it renders as the raw element (no atom sugar, no drag
   // wiring) for the duration of the edit. `outline-none` drops the browser's focus
-  // ring — the SelectionOverlay already frames it.
-  if (id && !ctx.preview && id === ctx.editingId && inlineEditable(node)) {
+  // ring — the SelectionOverlay already frames it. Inside an instance, committing
+  // writes a per-instance OVERRIDE (routed by the composite key), not a master edit.
+  if (key && !ctx.preview && key === ctx.editingId && inlineEditable(node)) {
     return (
       <EditableText
         tag={textTag(node)}
         className={`${node.class ?? ""} outline-none`}
         initial={editableText(node) ?? ""}
-        onCommit={(text) => ctx.onEditCommit(id, text)}
+        onCommit={(text) => ctx.onEditCommit(key, text)}
         onCancel={ctx.onEditCancel}
       />
     );
   }
 
-  // Interaction + drag/drop props every node carries (needs a stamped id).
-  // Suppressed under `preview` — the page shown inside a frame Outlet is inert.
+  // Interaction props. Suppressed under `preview` (inert context layer).
   const inter: Record<string, unknown> = {};
-  if (id && !ctx.preview) {
-    const info: NodeInfo = { id, parentId, index, node };
-    const draggable = parentId !== undefined; // the root can't be moved
-    inter["data-sui-id"] = id;
-    inter.draggable = draggable;
-    inter.onClick = (e: React.MouseEvent) => ctx.onSelect(id, e);
-    inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(id, e);
-    if (inlineEditable(node)) {
-      inter.onDoubleClick = (e: React.MouseEvent) => {
+  if (key && !ctx.preview) {
+    if (inInstance) {
+      // Inside an instance the whole instance is the selectable UNIT — click/hover
+      // an inner node targets the INSTANCE. Double-clicking text drills in to edit
+      // it in place, which writes a per-instance OVERRIDE (routed by the composite
+      // key), never a master edit. Inner nodes are never draggable (structure is
+      // the master's).
+      inter.onClick = (e: React.MouseEvent) => ctx.onSelect(inInstance.id, e);
+      inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(inInstance.id, e);
+      if (inlineEditable(node)) {
+        inter.onDoubleClick = (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          ctx.onEditStart(key);
+        };
+      }
+    } else if (id) {
+      const info: NodeInfo = { id, parentId, index, node };
+      const draggable = parentId !== undefined; // the root can't be moved
+      inter["data-sui-id"] = id;
+      inter.draggable = draggable;
+      inter.onClick = (e: React.MouseEvent) => ctx.onSelect(id, e);
+      inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(id, e);
+      if (inlineEditable(node)) {
+        inter.onDoubleClick = (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          ctx.onEditStart(id);
+        };
+      }
+      inter.onDragStart = (e: React.DragEvent) => {
+        if (!draggable) return;
+        e.stopPropagation();
+        ctx.dnd.onDragStart(id, e);
+      };
+      inter.onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        ctx.onEditStart(id);
+        ctx.dnd.onDragOver(info, e);
+      };
+      inter.onDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ctx.dnd.onDrop(info, e);
+      };
+      inter.onDragEnd = (e: React.DragEvent) => {
+        e.stopPropagation();
+        ctx.dnd.onDragEnd();
       };
     }
-    inter.onDragStart = (e: React.DragEvent) => {
-      if (!draggable) return;
-      e.stopPropagation();
-      ctx.dnd.onDragStart(id, e);
-    };
-    inter.onDragOver = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ctx.dnd.onDragOver(info, e);
-    };
-    inter.onDrop = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ctx.dnd.onDrop(info, e);
-    };
-    inter.onDragEnd = (e: React.DragEvent) => {
-      e.stopPropagation();
-      ctx.dnd.onDragEnd();
-    };
   }
 
   // A symbol INSTANCE — expand it to a fresh render of its master, INERT inside
@@ -411,9 +461,15 @@ function CanvasNode({
     // Bake this instance's per-instance overrides over a clone of the master, so a
     // customized instance reads its own text on the canvas (output flattens the same).
     const master = rawMaster ? applyOverrides(structuredClone(rawMaster), node.overrides) : undefined;
+    // Drill-in: a TOP-LEVEL instance on the editable surface renders its master
+    // INTERACTIVE (click to select an inner node, double-click text to override it
+    // in place). Nested instances, or an instance in an inert context layer, render
+    // the master read-only (preview) — no drilling deeper than one level.
+    const canDrill = !ctx.preview && !inInstance;
     const innerCtx: RenderCtx = {
       ...ctx,
-      preview: true,
+      preview: !canDrill,
+      instance: canDrill && id ? { id } : ctx.instance,
       outlet: undefined,
       symbolPath: [...(ctx.symbolPath ?? []), node.instanceOf],
     };
@@ -740,7 +796,12 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
 
   // Resolve the edit target against the LIVE tree: a page/layout switch, or an
   // undo that removed the node, silently ends the edit (no dangling contentEditable).
-  const editingNode = editingRaw ? editor.node(editingRaw) : undefined;
+  // A composite key (editing INSIDE an instance) resolves to its master node.
+  const editingNode = editingRaw
+    ? isComposite(editingRaw)
+      ? masterNodeOf(editor, editingRaw)
+      : editor.node(editingRaw)
+    : undefined;
   const editingId = editingNode && inlineEditable(editingNode) ? editingRaw : undefined;
 
   const ctx: RenderCtx = {
@@ -758,10 +819,22 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     dnd,
     editingId,
     onEditStart: (id) => {
-      editor.select(id);
+      // Drilling into an instance keeps the INSTANCE selected (the atomic unit);
+      // the edit target is the composite key, tracked separately in editingRaw.
+      editor.select(isComposite(id) ? splitComposite(id).instanceId : id);
       setEditingRaw(id);
     },
     onEditCommit: (id, text) => {
+      if (isComposite(id)) {
+        // Editing inside an instance → write a per-instance override. Text equal to
+        // the master default (or empty) clears the override instead of pinning it.
+        const { instanceId, masterId } = splitComposite(id);
+        const master = masterNodeOf(editor, id);
+        const def = master ? editableText(master) : undefined;
+        editor.setInstanceOverrideText(instanceId, masterId, text === "" || text === def ? undefined : text);
+        setEditingRaw(undefined);
+        return;
+      }
       const node = editor.node(id);
       const current = node ? editableText(node) : undefined;
       if (text !== current) editor.setText(id, text);

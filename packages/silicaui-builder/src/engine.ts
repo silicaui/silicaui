@@ -383,6 +383,34 @@ export class Editor {
     return { kind: "element", tag: "div", instanceOf: symbolId, label: sym.name };
   }
 
+  /**
+   * Create a brand-new blank component (a starter master) and OPEN it for editing.
+   * The "create from scratch" path (vs `createSymbol`, which lifts existing nodes).
+   * Undoable. Returns the new symbol id. Starter classes are LITERAL here so the
+   * canvas safelist scanner emits them.
+   */
+  createBlankSymbol(name?: string): string {
+    const label = name?.trim() || `Component ${this.symbolsViewCache.length + 1}`;
+    const symId = defaultMakeId();
+    const master = stampTree(
+      el("div", "flex flex-col gap-3 p-6", {
+        children: [
+          el("h3", "text-lg font-semibold text-base-content", { text: "New component" }),
+          el("p", "text-base-content/70", { text: "Add elements from the Insert panel." }),
+        ],
+      }),
+    );
+    this.pushHistory();
+    (this.site.symbols ??= {})[symId] = { id: symId, name: label, root: master };
+    this.editingSymbolId = symId;
+    this.active = "symbol";
+    this.selectedId = undefined;
+    this.syncSymbols();
+    this.emit("symbols");
+    this.emit("active");
+    return symId;
+  }
+
   /** Insert an instance of `symbolId` relative to the selection (palette click). */
   insertSymbolInstance(symbolId: string, targetId?: string): string | undefined {
     const instance = this.makeInstanceNode(symbolId);

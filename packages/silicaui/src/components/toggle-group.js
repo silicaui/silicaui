@@ -67,6 +67,23 @@ export function toggleGroup(prefix = "") {
       },
     },
 
+    // ---- Color: a colored active pill (default is a colorless base-100 pill) --
+    // `.toggle-group-primary` (etc.) tints the SELECTED item in a semantic color,
+    // so a segmented control can signal its active choice more strongly. Sits on
+    // the track and cascades to the pressed item.
+    [`${sel("-primary")} ${sel("-item")}[data-pressed]`]: {
+      backgroundColor: "var(--color-primary)",
+      color: "var(--color-primary-content)",
+    },
+    [`${sel("-secondary")} ${sel("-item")}[data-pressed]`]: {
+      backgroundColor: "var(--color-secondary)",
+      color: "var(--color-secondary-content)",
+    },
+    [`${sel("-accent")} ${sel("-item")}[data-pressed]`]: {
+      backgroundColor: "var(--color-accent)",
+      color: "var(--color-accent-content)",
+    },
+
     // ---- Sizes (re-scale the track padding + items) ------------------------
     // Mirrors the button/kbd size vocabulary (xs · sm · [md] · lg). The size
     // class sits on the track and cascades to its items.
