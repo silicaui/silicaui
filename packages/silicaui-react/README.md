@@ -9,8 +9,8 @@ variant is a class string, so the CSS and React layers never drift apart.
 [![npm version](https://img.shields.io/npm/v/silicaui-react.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-react)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-react.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-react)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-react?style=flat-square)](https://bundlephobia.com/package/silicaui-react)
-[![license](https://img.shields.io/npm/l/silicaui-react.svg?style=flat-square)](https://github.com/wize-works/silicaui/blob/main/LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/wize-works/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/wize-works/silicaui/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/silicaui-react.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
@@ -81,6 +81,6 @@ Plus all native `<button>` attributes and a forwarded `ref`.
 
 ## Links
 
-- [GitHub repo](https://github.com/wize-works/silicaui)
-- [Issues](https://github.com/wize-works/silicaui/issues)
+- [GitHub repo](https://github.com/silicaui/silicaui)
+- [Issues](https://github.com/silicaui/silicaui/issues)
 - [`silicaui`](https://www.npmjs.com/package/silicaui) — the CSS layer this package styles with

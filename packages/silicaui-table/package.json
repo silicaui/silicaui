@@ -7,11 +7,11 @@
   "author": "WizeWorks",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wize-works/silicaui.git",
+    "url": "https://github.com/silicaui/silicaui.git",
     "directory": "packages/silicaui-table"
   },
-  "homepage": "https://github.com/wize-works/silicaui/tree/main/packages/silicaui-table#readme",
-  "bugs": "https://github.com/wize-works/silicaui/issues",
+  "homepage": "https://github.com/silicaui/silicaui/tree/main/packages/silicaui-table#readme",
+  "bugs": "https://github.com/silicaui/silicaui/issues",
   "sideEffects": false,
   "exports": {
     ".": {

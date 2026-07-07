@@ -7,8 +7,8 @@ boolean/number props over TanStack's typed column-def API.
 [![npm version](https://img.shields.io/npm/v/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-table)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-table)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-table?style=flat-square)](https://bundlephobia.com/package/silicaui-table)
-[![license](https://img.shields.io/npm/l/silicaui-table.svg?style=flat-square)](https://github.com/wize-works/silicaui/blob/main/LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/wize-works/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/wize-works/silicaui/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/silicaui-table.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
@@ -54,6 +54,6 @@ direct TanStack install.
 
 ## Links
 
-- [GitHub repo](https://github.com/wize-works/silicaui)
-- [Issues](https://github.com/wize-works/silicaui/issues)
+- [GitHub repo](https://github.com/silicaui/silicaui)
+- [Issues](https://github.com/silicaui/silicaui/issues)
 - [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends

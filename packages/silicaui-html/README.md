@@ -9,8 +9,8 @@ separate *projection* of the same tree, never the source of truth.
 [![npm version](https://img.shields.io/npm/v/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-html)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-html)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-html?style=flat-square)](https://bundlephobia.com/package/silicaui-html)
-[![license](https://img.shields.io/npm/l/silicaui-html.svg?style=flat-square)](https://github.com/wize-works/silicaui/blob/main/LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/wize-works/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/wize-works/silicaui/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/silicaui-html.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
@@ -69,11 +69,11 @@ import { heroSplitCta, faqAccordion, featureGrid } from "silicaui-html/blocks";
 | `walk` | Tree traversal, shared with the Silica builder |
 | `SURFACE_TOKENS`, `SEMANTIC_ROLES`, `SCALAR_TOKENS`, `THEME_PRESETS`, `rolesOf`, `colorValue`, `presetByName` | The theme model — the source of truth for a theme's color roles, scalar tokens, and preset library |
 
-See the [architecture doc](https://github.com/wize-works/silicaui/blob/main/docs/silicaui-architecture.md)
+See the [architecture doc](https://github.com/silicaui/silicaui/blob/main/docs/silicaui-architecture.md)
 for the full spec — node schema, projections, theme model, and the builder
 engine seam.
 
 ## Links
 
-- [GitHub repo](https://github.com/wize-works/silicaui)
-- [Issues](https://github.com/wize-works/silicaui/issues)
+- [GitHub repo](https://github.com/silicaui/silicaui)
+- [Issues](https://github.com/silicaui/silicaui/issues)

@@ -7,8 +7,8 @@ uncontrolled, HTML in and out.
 [![npm version](https://img.shields.io/npm/v/silicaui-editor.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-editor)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui-editor.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-editor)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-editor?style=flat-square)](https://bundlephobia.com/package/silicaui-editor)
-[![license](https://img.shields.io/npm/l/silicaui-editor.svg?style=flat-square)](https://github.com/wize-works/silicaui/blob/main/LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/wize-works/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/wize-works/silicaui/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/silicaui-editor.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
@@ -47,6 +47,6 @@ commands imperatively — without a separate TipTap install.
 
 ## Links
 
-- [GitHub repo](https://github.com/wize-works/silicaui)
-- [Issues](https://github.com/wize-works/silicaui/issues)
+- [GitHub repo](https://github.com/silicaui/silicaui)
+- [Issues](https://github.com/silicaui/silicaui/issues)
 - [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends

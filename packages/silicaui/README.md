@@ -4,14 +4,14 @@ The CSS layer of **Silica UI** — a Tailwind CSS v4 plugin that ships semantic,
 themeable component classes (`btn`, `btn-primary`, `card`, `dialog`, …) built on
 an extensible OKLCH color-token engine. CSS-first: no `tailwind.config`, just a
 single `@plugin "silicaui"` line. Framework-agnostic — pair it with
-[`silicaui-react`](https://github.com/wize-works/silicaui/tree/main/packages/silicaui-react)
+[`silicaui-react`](https://github.com/silicaui/silicaui/tree/main/packages/silicaui-react)
 or use the classes directly in any HTML.
 
 [![npm version](https://img.shields.io/npm/v/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
 [![npm downloads](https://img.shields.io/npm/dm/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui?style=flat-square)](https://bundlephobia.com/package/silicaui)
-[![license](https://img.shields.io/npm/l/silicaui.svg?style=flat-square)](https://github.com/wize-works/silicaui/blob/main/LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/wize-works/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/wize-works/silicaui/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/silicaui.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
@@ -102,11 +102,11 @@ TipTap, dnd-kit).
 | State | `btn-active` · `btn-disabled`, `aria-busy="true"` for loading |
 
 Every other component follows the same color/style/size/shape grammar — see the
-[architecture doc](https://github.com/wize-works/silicaui/blob/main/docs/silicaui-architecture.md)
+[architecture doc](https://github.com/silicaui/silicaui/blob/main/docs/silicaui-architecture.md)
 for the full design system.
 
 ## Links
 
-- [GitHub repo](https://github.com/wize-works/silicaui)
-- [Issues](https://github.com/wize-works/silicaui/issues)
+- [GitHub repo](https://github.com/silicaui/silicaui)
+- [Issues](https://github.com/silicaui/silicaui/issues)
 - [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the React layer
