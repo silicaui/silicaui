@@ -1,0 +1,38 @@
+[
+  {
+    "type": "carousel",
+    "description": "`carousel` — a `track` of `slide`s with optional `prev`/`next` buttons and `dot` pagination. `params.autoplay` (+ `params.interval`, default 5000ms) advances automatically, pausing on hover; suppressed entirely in preview and when the user prefers reduced motion (§7, §9.8)."
+  },
+  {
+    "type": "disclosure",
+    "description": "`disclosure` — trigger/panel pairs, correlated by document order (architecture §7: \"parts correlate to their root by structural nesting, never by id\"). With `params.single`, opening one pair closes every other pair under the same root (single-open accordion); otherwise each pair toggles independently."
+  },
+  {
+    "type": "tabs",
+    "description": "`tabs` — a `tab`/`panel` list, exclusive selection, with roving arrow-key navigation (Left/Right, Up/Down, Home/End) per the standard tabs pattern. Pairing is positional (Nth `tab` ↔ Nth `panel`), same nesting-scoped lookup as `disclosure`."
+  },
+  {
+    "type": "menu",
+    "description": "`menu` — a click-triggered popup (dropdown/mega-menu): a `trigger` opens a `panel` of `item` parts. Escape and outside-click dismiss; Up/Down/Home/End rove focus across items while open. This is the vanilla counterpart to silicaui-react's Base-UI-backed `DropdownMenu` — same authored markers, same `.dropdown*` classes, no React required."
+  },
+  {
+    "type": "marquee",
+    "description": "`marquee` — an auto-scrolling ticker. The motion itself is a CSS animation authored on the component (§7 prefers CSS-only where it suffices); this handler only wires `params.pauseOnHover` (default `true`) and keeps the animation paused for editor preview, matching the autoplay-suppression rule (§9.8) without a JS animation loop of its own."
+  },
+  {
+    "type": "scrollspy",
+    "description": "Shared implementation behind `scrollspy` and `toc`: `spy` parts are links (`href=\"#id\"`) tracked against the section they point to; the in-view one gets `aria-current=\"true\"` for a nav/TOC to style. `toc` differs only in its default intersection threshold (a smaller sliver of a heading counts as \"current\" for a table of contents than a full scrollspy section does)."
+  },
+  {
+    "type": "counter",
+    "description": "`counter` — animates the root's own text content from 0 to a target number once it scrolls into view. `params.target` overrides the parsed initial text (so authored content can show the final value statically); `duration` defaults to 1500ms. Suppressed (jumps straight to the final value) in preview, under reduced motion, or without `IntersectionObserver`."
+  },
+  {
+    "type": "dismiss",
+    "description": "`dismiss` — a self-dismissing widget (alert, toast): clicking its `trigger` hides or removes the root. `params.remove` (default `true`) removes the element outright; `false` just sets `hidden` (e.g. to keep layout stable)."
+  },
+  {
+    "type": "toc",
+    "description": "Shared implementation behind `scrollspy` and `toc`: `spy` parts are links (`href=\"#id\"`) tracked against the section they point to; the in-view one gets `aria-current=\"true\"` for a nav/TOC to style. `toc` differs only in its default intersection threshold (a smaller sliver of a heading counts as \"current\" for a table of contents than a full scrollspy section does)."
+  }
+]

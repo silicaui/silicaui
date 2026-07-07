@@ -1,0 +1,358 @@
+[
+  {
+    "key": "hero_split_cta",
+    "name": "Hero — split with CTA",
+    "category": "hero",
+    "version": "1.0.0",
+    "description": "Two-column hero: copy + primary action on the left, image on the right.",
+    "tags": [
+      "hero",
+      "marketing",
+      "cta"
+    ],
+    "colors": [
+      "primary",
+      "base-100",
+      "base-content"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "bg-base-100 @container",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "grid grid-cols-1 @3xl:grid-cols-2 gap-8 items-center p-8",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col gap-4",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "h1",
+                  "class": "text-4xl @3xl:text-5xl font-semibold text-base-content",
+                  "children": [
+                    "Ship your store in an afternoon"
+                  ],
+                  "slot": {
+                    "name": "headline",
+                    "type": "text",
+                    "label": "Headline",
+                    "required": true
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-lg text-base-content/70",
+                  "children": [
+                    "Everything you need to sell online — no code, no wrangling."
+                  ],
+                  "slot": {
+                    "name": "subhead",
+                    "type": "text",
+                    "label": "Subheadline"
+                  }
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-primary btn-lg",
+                  "props": {
+                    "label": "Start free"
+                  },
+                  "slot": {
+                    "name": "cta",
+                    "type": "link",
+                    "label": "Primary button"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "component",
+              "component": "Image",
+              "class": "rounded-box w-full",
+              "props": {
+                "ratio": "wide",
+                "alt": "Product preview"
+              },
+              "slot": {
+                "name": "image",
+                "type": "image",
+                "label": "Hero image"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "headline",
+        "type": "text",
+        "label": "Headline",
+        "required": true
+      },
+      {
+        "name": "subhead",
+        "type": "text",
+        "label": "Subheadline"
+      },
+      {
+        "name": "cta",
+        "type": "link",
+        "label": "Primary button"
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "label": "Hero image"
+      }
+    ]
+  },
+  {
+    "key": "faq_accordion",
+    "name": "FAQ — accordion",
+    "category": "faq",
+    "version": "1.0.0",
+    "description": "Single-open disclosure list of question/answer pairs.",
+    "tags": [
+      "faq",
+      "accordion",
+      "disclosure"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content"
+    ],
+    "behaviors": [
+      "disclosure"
+    ],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "bg-base-100 @container p-8",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "h2",
+          "class": "text-2xl font-semibold text-base-content mb-6",
+          "children": [
+            "Frequently asked questions"
+          ],
+          "slot": {
+            "name": "heading",
+            "type": "text",
+            "label": "Heading"
+          }
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "flex flex-col gap-2",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "border border-base-200 rounded-box",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "button",
+                  "class": "w-full text-left p-4 font-medium text-base-content",
+                  "children": [
+                    "Do I need to know how to code?"
+                  ],
+                  "part": "trigger"
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "p-4 pt-0 text-base-content/70",
+                  "children": [
+                    "Nope — everything is visual."
+                  ],
+                  "part": "panel"
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "border border-base-200 rounded-box",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "button",
+                  "class": "w-full text-left p-4 font-medium text-base-content",
+                  "children": [
+                    "Can I use my own domain?"
+                  ],
+                  "part": "trigger"
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "p-4 pt-0 text-base-content/70",
+                  "attrs": {
+                    "hidden": true
+                  },
+                  "children": [
+                    "Yes, connect any domain you already own."
+                  ],
+                  "part": "panel"
+                }
+              ]
+            },
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "border border-base-200 rounded-box",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "button",
+                  "class": "w-full text-left p-4 font-medium text-base-content",
+                  "children": [
+                    "Is there a free plan?"
+                  ],
+                  "part": "trigger"
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "p-4 pt-0 text-base-content/70",
+                  "attrs": {
+                    "hidden": true
+                  },
+                  "children": [
+                    "Yes — start free and upgrade whenever you're ready."
+                  ],
+                  "part": "panel"
+                }
+              ]
+            }
+          ],
+          "behavior": {
+            "type": "disclosure",
+            "params": {
+              "single": true
+            }
+          }
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading"
+      }
+    ]
+  },
+  {
+    "key": "feature_grid",
+    "name": "Feature grid — data-bound",
+    "category": "features",
+    "version": "1.0.0",
+    "description": "A responsive grid that repeats over a collection, binding each item's fields.",
+    "tags": [
+      "features",
+      "grid",
+      "dynamic"
+    ],
+    "colors": [
+      "base-100",
+      "base-200",
+      "base-content",
+      "primary"
+    ],
+    "behaviors": [],
+    "emailEligible": false,
+    "root": {
+      "kind": "element",
+      "tag": "section",
+      "class": "bg-base-100 @container p-8",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "h2",
+          "class": "text-2xl font-semibold text-base-content mb-6",
+          "children": [
+            "Everything you need"
+          ],
+          "slot": {
+            "name": "heading",
+            "type": "text",
+            "label": "Heading"
+          }
+        },
+        {
+          "kind": "element",
+          "tag": "div",
+          "class": "grid grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3 gap-6",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "flex flex-col gap-3 p-6 bg-base-200 rounded-box",
+              "children": [
+                {
+                  "kind": "component",
+                  "component": "Icon",
+                  "class": "text-primary text-2xl",
+                  "props": {
+                    "name": "sparkles"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "h3",
+                  "class": "text-lg font-semibold text-base-content",
+                  "children": [
+                    "Fast by default"
+                  ],
+                  "data": {
+                    "kind": "value",
+                    "ref": "feature.title"
+                  }
+                },
+                {
+                  "kind": "element",
+                  "tag": "p",
+                  "class": "text-base-content/70",
+                  "children": [
+                    "Every page ships lean, so your store feels instant."
+                  ],
+                  "data": {
+                    "kind": "value",
+                    "ref": "feature.body"
+                  }
+                }
+              ]
+            }
+          ],
+          "data": {
+            "kind": "collection",
+            "ref": "features"
+          }
+        }
+      ]
+    },
+    "slots": [
+      {
+        "name": "heading",
+        "type": "text",
+        "label": "Heading"
+      }
+    ]
+  }
+]

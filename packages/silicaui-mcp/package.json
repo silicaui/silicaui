@@ -1,0 +1,63 @@
+{
+  "name": "silicaui-mcp",
+  "version": "0.1.0",
+  "description": "A local MCP server that lets AI coding assistants query the Silica UI design system — real class names, component props, blocks, and behaviors — instead of guessing.",
+  "type": "module",
+  "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/silicaui/silicaui.git",
+    "directory": "packages/silicaui-mcp"
+  },
+  "homepage": "https://silicaui.com",
+  "bugs": "https://github.com/silicaui/silicaui/issues",
+  "sideEffects": false,
+  "bin": {
+    "silicaui-mcp": "bin/silicaui-mcp.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/server.d.ts",
+        "import": "./dist/server.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "gen": "node scripts/gen-catalog.mjs",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "verify": "node verify.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "design-system",
+    "silica",
+    "ai",
+    "claude"
+  ]
+}
