@@ -24,10 +24,15 @@ export function chat(colors, prefix = "") {
       paddingBlock: "0.25rem",
     },
 
-    // Avatar column spans the header/bubble/footer rows.
+    // Avatar column spans the header/bubble/footer rows, top-aligned so it
+    // lines up with the FIRST row of content — the message itself in the
+    // common (`ChatMessage`) case of bubble-then-footer, or the name/time
+    // header in the primitive header-then-bubble composition. Either way,
+    // the avatar reads as attached to whatever's on top, not stranded
+    // against a short trailing metadata line.
     [sel("-image")]: {
       gridRow: "1 / -1",
-      alignSelf: "end",
+      alignSelf: "start",
     },
     // Everything but the avatar lives in the content column.
     [`${sel()} > *:not(${sel("-image")})`]: {

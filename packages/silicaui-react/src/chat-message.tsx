@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
-import { Chat, ChatImage, ChatHeader, ChatBubble, ChatFooter } from "./chat";
+import { Chat, ChatImage, ChatBubble, ChatFooter } from "./chat";
 import type { ChatSide, ChatBubbleColor } from "./chat";
 import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from "./collapsible";
 
@@ -13,7 +13,7 @@ export interface ChatMessageProps {
   time?: React.ReactNode;
   /** Bubble color; maps to `chat-bubble-<color>`. */
   color?: ChatBubbleColor;
-  /** A trailing line under the bubble, e.g. "Delivered" or "Read 2:30 PM". */
+  /** An extra trailing line after the name/time row, e.g. "Delivered". */
   metadata?: React.ReactNode;
   /**
    * Suppress the avatar + name/time row — for a consecutive message from the
@@ -26,10 +26,13 @@ export interface ChatMessageProps {
 
 /**
  * Silica ChatMessage — a friendlier entry point over the `Chat`/`ChatImage`/
- * `ChatHeader`/`ChatBubble`/`ChatFooter` primitives, for the common case of
- * "one message, maybe with an avatar and metadata" without composing five
- * parts by hand each time. Reach for the primitives directly when you need
- * more control (e.g. custom header content).
+ * `ChatBubble`/`ChatFooter` primitives, for the common case of "one message,
+ * maybe with an avatar and metadata" without composing four parts by hand
+ * each time. Reach for the primitives directly when you need more control
+ * (e.g. a Slack-style name/time row ABOVE the bubble via `ChatHeader` —
+ * `ChatMessage` itself puts name/time in the footer, after the bubble, to
+ * match a modern messaging-app read: the message is the point, the
+ * timestamp is a quiet trailing detail).
  *
  *   <ChatMessage side="start" avatar={<Avatar>OW</Avatar>} name="Obi-Wan" time="12:45">
  *     You were the chosen one!
@@ -52,13 +55,13 @@ export function ChatMessage({
   return (
     <Chat side={side} className={className}>
       {avatar && !compact && <ChatImage>{avatar}</ChatImage>}
+      <ChatBubble color={color}>{children}</ChatBubble>
       {!compact && (name != null || time != null) && (
-        <ChatHeader>
+        <ChatFooter>
           {name}
           {time != null && <time className="opacity-60"> {time}</time>}
-        </ChatHeader>
+        </ChatFooter>
       )}
-      <ChatBubble color={color}>{children}</ChatBubble>
       {metadata != null && <ChatFooter>{metadata}</ChatFooter>}
     </Chat>
   );

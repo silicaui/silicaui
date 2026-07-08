@@ -561,7 +561,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
     "sourceFile": "silicaui-react/src/chat-message.tsx",
-    "description": "Silica ChatMessage — a friendlier entry point over the `Chat`/`ChatImage`/ `ChatHeader`/`ChatBubble`/`ChatFooter` primitives, for the common case of \"one message, maybe with an avatar and metadata\" without composing five parts by hand each time. Reach for the primitives directly when you need more control (e.g. custom header content). <ChatMessage side=\"start\" avatar={<Avatar>OW</Avatar>} name=\"Obi-Wan\" time=\"12:45\"> You were the chosen one! </ChatMessage> <ChatMessage side=\"end\" color=\"primary\" metadata=\"Delivered\"> I hate you! </ChatMessage>",
+    "description": "Silica ChatMessage — a friendlier entry point over the `Chat`/`ChatImage`/ `ChatBubble`/`ChatFooter` primitives, for the common case of \"one message, maybe with an avatar and metadata\" without composing four parts by hand each time. Reach for the primitives directly when you need more control (e.g. a Slack-style name/time row ABOVE the bubble via `ChatHeader` — `ChatMessage` itself puts name/time in the footer, after the bubble, to match a modern messaging-app read: the message is the point, the timestamp is a quiet trailing detail). <ChatMessage side=\"start\" avatar={<Avatar>OW</Avatar>} name=\"Obi-Wan\" time=\"12:45\"> You were the chosen one! </ChatMessage> <ChatMessage side=\"end\" color=\"primary\" metadata=\"Delivered\"> I hate you! </ChatMessage>",
     "props": [
       {
         "name": "ChatMessageProps",
@@ -600,7 +600,7 @@
             "name": "metadata",
             "optional": true,
             "type": "React.ReactNode",
-            "doc": "A trailing line under the bubble, e.g. \"Delivered\" or \"Read 2:30 PM\"."
+            "doc": "An extra trailing line after the name/time row, e.g. \"Delivered\"."
           },
           {
             "name": "compact",
@@ -747,7 +747,7 @@
             "name": "metadata",
             "optional": true,
             "type": "React.ReactNode",
-            "doc": "A trailing line under the bubble, e.g. \"Delivered\" or \"Read 2:30 PM\"."
+            "doc": "An extra trailing line after the name/time row, e.g. \"Delivered\"."
           },
           {
             "name": "compact",
@@ -894,7 +894,7 @@
             "name": "metadata",
             "optional": true,
             "type": "React.ReactNode",
-            "doc": "A trailing line under the bubble, e.g. \"Delivered\" or \"Read 2:30 PM\"."
+            "doc": "An extra trailing line after the name/time row, e.g. \"Delivered\"."
           },
           {
             "name": "compact",
@@ -1041,7 +1041,7 @@
             "name": "metadata",
             "optional": true,
             "type": "React.ReactNode",
-            "doc": "A trailing line under the bubble, e.g. \"Delivered\" or \"Read 2:30 PM\"."
+            "doc": "An extra trailing line after the name/time row, e.g. \"Delivered\"."
           },
           {
             "name": "compact",
