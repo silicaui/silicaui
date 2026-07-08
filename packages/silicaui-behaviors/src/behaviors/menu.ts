@@ -1,14 +1,18 @@
-import { DisposeBag, ownParts, PART_ATTR } from "../dom";
+import { DisposeBag, ownParts, parseParams, PART_ATTR } from "../dom";
 import type { BehaviorHandler } from "../types";
 
 /**
- * `menu` — a click-triggered popup (dropdown/mega-menu): a `trigger` opens a
- * `panel` of `item` parts. Escape and outside-click dismiss; Up/Down/Home/End
- * rove focus across items while open. This is the vanilla counterpart to
- * @wizeworks/silicaui-react's Base-UI-backed `DropdownMenu` — same authored markers,
- * same `.dropdown*` classes, no React required.
+ * `menu` — a triggered popup (dropdown/mega-menu/context-menu) of `item`
+ * parts: `params.trigger` (default `"click"`) can be `"context"` (right-click
+ * — ContextMenu; positions the panel at the pointer instead of the trigger
+ * rect). Escape and outside-click dismiss; Up/Down/Home/End rove focus across
+ * items while open. This is the vanilla counterpart to @wizeworks/silicaui-react's
+ * Base-UI-backed `DropdownMenu`/`ContextMenu` — same authored markers, same
+ * `.dropdown*` classes, no React required.
  */
 export const menu: BehaviorHandler = (root, opts) => {
+  const params = parseParams(root);
+  const isContext = params.trigger === "context";
   const trigger = ownParts(root, "trigger")[0];
   const panel = ownParts(root, "panel")[0];
   const bag = new DisposeBag();
@@ -36,7 +40,14 @@ export const menu: BehaviorHandler = (root, opts) => {
     if (focusTrigger) (trigger as HTMLElement).focus?.();
   };
 
-  const open = () => {
+  const open = (at?: { x: number; y: number }) => {
+    if (at) {
+      const el = panel as HTMLElement;
+      el.style.position = "fixed";
+      el.style.zIndex = "50";
+      el.style.left = `${at.x}px`;
+      el.style.top = `${at.y}px`;
+    }
     panel.removeAttribute("hidden");
     trigger.setAttribute("aria-expanded", "true");
     (getItems()[0] as HTMLElement | undefined)?.focus?.();
@@ -46,7 +57,15 @@ export const menu: BehaviorHandler = (root, opts) => {
   // without first opening the menu (§9.8).
   if (opts.preview) panel.removeAttribute("hidden");
 
-  bag.listen(trigger, "click", () => (isOpen() ? close(false) : open()));
+  if (isContext) {
+    bag.listen(trigger, "contextmenu", (ev) => {
+      const e = ev as MouseEvent;
+      e.preventDefault();
+      open({ x: e.clientX, y: e.clientY });
+    });
+  } else {
+    bag.listen(trigger, "click", () => (isOpen() ? close(false) : open()));
+  }
 
   bag.listen(root, "keydown", (ev) => {
     const e = ev as KeyboardEvent;

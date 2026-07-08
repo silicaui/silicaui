@@ -119,7 +119,25 @@ export type BehaviorType =
   | "toc"
   | "form"
   | "sidebar"
-  | "selection-list";
+  | "selection-list"
+  | "modal"
+  | "popover"
+  | "combobox"
+  | "date-segment"
+  | "pin-input"
+  | "calendar"
+  | "tree"
+  | "wizard"
+  | "number-field"
+  | "toggle-group"
+  | "scroll-area"
+  | "overflow-list"
+  | "dropzone"
+  | "slider"
+  | "switch"
+  | "rating"
+  | "theme-toggle"
+  | "phone-input";
 
 export type BehaviorRole =
   | "track"
@@ -132,7 +150,24 @@ export type BehaviorRole =
   | "panel"
   | "item"
   | "tab"
-  | "spy";
+  | "spy"
+  | "backdrop"
+  | "close"
+  | "search"
+  | "segment"
+  | "cell"
+  | "grid"
+  | "day"
+  | "title"
+  | "node"
+  | "toggle"
+  | "step"
+  | "increment"
+  | "decrement"
+  | "thumb"
+  | "input"
+  | "list"
+  | "country";
 
 /** An authored, id-free, reusable template (a block or a user-saved component). */
 export interface Template {

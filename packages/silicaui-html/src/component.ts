@@ -152,6 +152,19 @@ function itemsOf(node: ComponentNode): string[] {
   return Array.isArray(raw) ? raw.map(String) : [];
 }
 
+/** `props.items` for Combobox/Autocomplete/MultiSelect: bare strings or
+ *  `{value, label}` objects, normalized to `{value, label}` (default 'string
+ *  is value+label' matches the React components' own `defaultLabel`). */
+function valueLabelItems(raw: unknown): Array<{ value: string; label: string }> {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map((entry) => {
+    const o = entry != null && typeof entry === "object" ? (entry as { value?: unknown; label?: unknown }) : undefined;
+    const value = o?.value != null ? String(o.value) : String(entry);
+    const label = o?.label != null ? String(o.label) : value;
+    return { value, label };
+  });
+}
+
 /** Determinate Progress fill → a LITERAL width utility (no inline style; the raw
  *  strings must be present in-source so the harness `@source` scan safelists them).
  *  The value snaps to the nearest bucket. */
@@ -171,6 +184,316 @@ function progressWidth(value: number): string {
   }
   return best[1];
 }
+
+/** Builds a Combobox/Autocomplete/MultiSelect `expand()`: the whole
+ *  input+popup+options structure from `props.items`, since these are
+ *  single, self-contained React components (an `items` prop, not authored
+ *  child nodes) — see the registrations below. `mode` becomes the
+ *  `combobox` behavior's `params.mode`. */
+function comboboxExpand(mode: "select" | "freetext" | "multiple") {
+  return (n: ComponentNode): Node => {
+    const p = n.props ?? {};
+    const items = valueLabelItems(p.items);
+    const rawSelected = mode === "multiple" ? (p.value ?? p.defaultValue) : [p.value ?? p.defaultValue];
+    const selected = new Set((Array.isArray(rawSelected) ? rawSelected : rawSelected != null ? [rawSelected] : []).map(String));
+
+    const optionEls: ElementNode[] = items.map((item) => {
+      const isSelected = selected.has(item.value);
+      const attrs: NonNullable<ElementNode["attrs"]> = {
+        role: "option",
+        "data-value": item.value,
+        "aria-selected": String(isSelected),
+      };
+      if (isSelected && mode === "multiple") attrs.hidden = true;
+      const opt = elc("div", "select-item", [item.label], attrs);
+      opt.part = "item";
+      return opt;
+    });
+    const panelChildren: Child[] = optionEls.length
+      ? optionEls
+      : [elc("div", "combobox-empty", [String(p.emptyMessage ?? "No results found.")])];
+    const panel = elc("div", "select-popup", panelChildren, { role: "listbox", hidden: true });
+    panel.part = "panel";
+
+    const singleLabel = mode === "multiple" ? undefined : items.find((i) => selected.has(i.value))?.label;
+    const inputAttrs = formAttrs(
+      n,
+      {
+        type: "text",
+        role: "combobox",
+        "aria-expanded": "false",
+        autocomplete: "off",
+        ...(singleLabel ? { value: singleLabel } : {}),
+      },
+      ["name", "placeholder", "required", "disabled"],
+    );
+    const input = elc("input", "combobox-input", undefined, inputAttrs);
+
+    const children: Child[] = [input, panel];
+    if (mode === "multiple") {
+      const chips = items
+        .filter((i) => selected.has(i.value))
+        .map((i) =>
+          elc("span", "multi-select-chip", [
+            i.label,
+            elc("button", "multi-select-chip-remove", ["×"], {
+              type: "button",
+              "aria-label": `Remove ${i.label}`,
+              "data-remove-value": i.value,
+            }),
+          ], { "data-chip-value": i.value }),
+        );
+      children.unshift(elc("div", "multi-select-chips", chips));
+    }
+
+    const out = lower(n, "div", { children });
+    if (!out.behavior) out.behavior = { type: "combobox", params: { mode } };
+    return out;
+  };
+}
+
+interface SegmentCfg {
+  kind: "segment";
+  role: string;
+  digits: number;
+  min?: number;
+  max?: number;
+  cycle?: string[];
+}
+interface LiteralCfg {
+  kind: "literal";
+  text: string;
+}
+
+/** One `data-segment` cell, configured for `date-segment`'s digit-buffer /
+ *  cycle logic to read at hydrate time (see `component.ts`'s expand-time
+ *  Intl-derived segment order — same "compute via Intl, don't hardcode
+ *  MM/DD/YYYY" rule `Timestamp` already established). */
+function segmentEl(cfg: SegmentCfg, value: number | null): ElementNode {
+  const attrs: NonNullable<ElementNode["attrs"]> = { role: "spinbutton", tabindex: 0, "data-role": cfg.role };
+  if (cfg.cycle) attrs["data-cycle"] = JSON.stringify(cfg.cycle);
+  else {
+    attrs["data-min"] = cfg.min ?? 0;
+    attrs["data-max"] = cfg.max ?? 0;
+    attrs["data-digits"] = cfg.digits;
+  }
+  if (value != null) attrs["aria-valuenow"] = value;
+  const el = elc("span", "segment-field-segment", undefined, attrs);
+  el.part = "segment";
+  return el;
+}
+function literalEl(text: string): ElementNode {
+  return elc("span", "segment-field-literal", [text], { "aria-hidden": "true" });
+}
+
+/** `new Date("YYYY-MM-DD")` parses as UTC midnight, which reads back a day
+ *  early in any timezone behind UTC once `.getDate()` runs in local time —
+ *  a date-only string is parsed as local components instead; anything else
+ *  (a full ISO datetime, a `Date` instance) goes through `new Date()` as-is. */
+function parseDateLike(v: unknown): Date | null {
+  if (v instanceof Date) return v;
+  if (typeof v !== "string") return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+function partsFromDateValue(v: unknown): { month?: number; day?: number; year?: number } | null {
+  const d = parseDateLike(v);
+  if (!d) return null;
+  return { month: d.getMonth() + 1, day: d.getDate(), year: d.getFullYear() };
+}
+
+/** Segment order + literal separators for a date, derived from `Intl` for
+ *  the given locale — never hardcoded to MM/DD/YYYY. */
+function buildDateSegments(locale?: string): Array<SegmentCfg | LiteralCfg> {
+  const parts = new Intl.DateTimeFormat(locale, { year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(
+    new Date(2000, 0, 2),
+  );
+  const out: Array<SegmentCfg | LiteralCfg> = [];
+  for (const part of parts) {
+    if (part.type === "month") out.push({ kind: "segment", role: "month", digits: 2, min: 1, max: 12 });
+    else if (part.type === "day") out.push({ kind: "segment", role: "day", digits: 2, min: 1, max: 31 });
+    else if (part.type === "year") out.push({ kind: "segment", role: "year", digits: 4, min: 1, max: 9999 });
+    else if (part.type === "literal") out.push({ kind: "literal", text: part.value });
+  }
+  return out;
+}
+function dateSegmentChildren(locale: string | undefined, dateValue: unknown): Child[] {
+  const parts = partsFromDateValue(dateValue) as Record<string, number> | null;
+  return buildDateSegments(locale).map((cfg) =>
+    cfg.kind === "literal" ? literalEl(cfg.text) : segmentEl(cfg, parts?.[cfg.role] ?? null),
+  );
+}
+
+/** Segment order + literals for a time, derived from `Intl` given
+ *  `hourCycle`/`showSeconds` (mirrors `resolveHour12`'s locale-fallback rule). */
+function buildTimeSegments(locale: string | undefined, hourCycle: 12 | 24 | undefined, showSeconds: boolean): Array<SegmentCfg | LiteralCfg> {
+  const hour12 = hourCycle === 12 ? true : hourCycle === 24 ? false : new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions().hour12;
+  const sample = new Date(2000, 0, 1, 13, 5, 9);
+  const parts = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(showSeconds ? { second: "2-digit" } : {}),
+    hour12,
+  }).formatToParts(sample);
+  const out: Array<SegmentCfg | LiteralCfg> = [];
+  for (const part of parts) {
+    if (part.type === "hour") out.push({ kind: "segment", role: "hour", digits: 2, min: hour12 ? 1 : 0, max: hour12 ? 12 : 23 });
+    else if (part.type === "minute") out.push({ kind: "segment", role: "minute", digits: 2, min: 0, max: 59 });
+    else if (part.type === "second") out.push({ kind: "segment", role: "second", digits: 2, min: 0, max: 59 });
+    else if (part.type === "dayPeriod") out.push({ kind: "segment", role: "period", digits: 0, cycle: ["AM", "PM"] });
+    else if (part.type === "literal") out.push({ kind: "literal", text: part.value });
+  }
+  return out;
+}
+
+/** The invented calendar-grid shell (header w/ prev/next/title + an empty
+ *  grid the `calendar` behavior populates at hydrate time — see
+ *  `calendar.ts`; day cells can't be authored statically since they depend
+ *  on which month is showing). Shared by `Calendar` and the
+ *  `DatePicker`/`DateRangePicker` popover content, which nest this same
+ *  shell as an inner `calendar`-behavior root inside their own `panel`. */
+function calendarParts(): { header: ElementNode; grid: ElementNode; hidden: ElementNode } {
+  const grid = elc("div", "calendar-grid", undefined, { role: "grid" });
+  grid.part = "grid";
+  const title = elc("div", "calendar-title", undefined, { "aria-live": "polite" });
+  title.part = "title";
+  const prev = elc("button", "calendar-nav", ["‹"], { type: "button", "aria-label": "Previous month" });
+  prev.part = "prev";
+  const next = elc("button", "calendar-nav", ["›"], { type: "button", "aria-label": "Next month" });
+  next.part = "next";
+  const header = elc("div", "calendar-header", [prev, title, next]);
+  const hidden = elc("input", undefined, undefined, { type: "hidden" });
+  return { header, grid, hidden };
+}
+function calendarParamsFromProps(p: Record<string, unknown>): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
+  if (p.mode === "range") params.mode = "range";
+  if (typeof p.weekStartsOn === "number") params.weekStartsOn = p.weekStartsOn;
+  const value = p.value ?? p.defaultValue;
+  if (typeof value === "string") params.defaultValue = value;
+  return params;
+}
+
+/** Builds a Range/Slider `expand()`: both are single self-contained React
+ *  components (Root>Control>Track>Indicator+Thumb[], `value`/`defaultValue`
+ *  shape decides thumb count) — same "auto-generate from props" precedent
+ *  as `SelectionList`/`Carousel`'s invented structure. `kind` only changes
+ *  the class-name prefix (Range = compact, Slider = rich w/ `showValue`). */
+function sliderExpand(kind: "range" | "slider") {
+  return (n: ComponentNode): Node => {
+    const p = n.props ?? {};
+    const min = typeof p.min === "number" ? p.min : 0;
+    const max = typeof p.max === "number" ? p.max : 100;
+    const step = typeof p.step === "number" ? p.step : 1;
+    const raw = p.value ?? p.defaultValue;
+    const values = (Array.isArray(raw) ? raw : [typeof raw === "number" ? raw : min]).map(Number);
+
+    const thumbs = values.map((v) => {
+      const t = elc("div", `${kind}-thumb`, undefined, {
+        role: "slider",
+        tabindex: 0,
+        "aria-valuemin": min,
+        "aria-valuemax": max,
+        "aria-valuenow": v,
+      });
+      t.part = "thumb";
+      return t;
+    });
+    const hiddenInputs = values.map((v) =>
+      elc("input", undefined, undefined, { type: "hidden", value: v, ...(p.name != null ? { name: String(p.name) } : {}) }),
+    );
+    const indicator = elc("div", `${kind}-indicator`);
+    const track = elc("div", `${kind}-track`, [indicator, ...thumbs]);
+    track.part = "track";
+    const control = elc("div", `${kind}-control`, [track]);
+
+    const children: Child[] = [control, ...hiddenInputs];
+    if (kind === "slider" && p.showValue === true) {
+      children.unshift(elc("output", "slider-value", [String(values[0] ?? "")]));
+    }
+    const out = lower(n, "div", { children });
+    if (!out.behavior) out.behavior = { type: "slider", params: { min, max, step } };
+    return out;
+  };
+}
+
+/** Builds a Dropzone/FileUpload `expand()`: root itself is the draggable/
+ *  clickable target (matches `dropzone.ts`'s expectation that drag/drop/
+ *  click listeners attach to `root`), carrying a hidden `input` and (for
+ *  FileUpload only) a `list` part the behavior renders managed file rows
+ *  into. */
+function dropzoneExpand(withList: boolean) {
+  return (n: ComponentNode): Node => {
+    const p = n.props ?? {};
+    const inputAttrs: NonNullable<ElementNode["attrs"]> = { type: "file", tabindex: -1 };
+    if (p.accept != null) inputAttrs.accept = String(p.accept);
+    if (p.multiple !== false) inputAttrs.multiple = true;
+    if (p.disabled === true) inputAttrs.disabled = true;
+    const input = elc("input", "dropzone-input", undefined, inputAttrs);
+    input.part = "input";
+
+    const body: Child[] =
+      n.children && n.children.length
+        ? n.children
+        : [
+            elc("span", "dropzone-icon", ["⬆"]),
+            elc("span", "dropzone-title", [String(p.title ?? "Drop files here, or click to browse")]),
+            ...(p.hint != null ? [elc("span", "dropzone-hint", [String(p.hint)])] : []),
+          ];
+
+    const children: Child[] = [input, ...body];
+    if (withList) {
+      const list = elc("div", "dropzone-file-list");
+      list.part = "list";
+      children.push(list);
+    }
+
+    const attrs: NonNullable<ElementNode["attrs"]> = { role: "button", tabindex: p.disabled === true ? -1 : 0 };
+    if (p.disabled === true) attrs["aria-disabled"] = "true";
+    const out = lower(n, "div", { attrs, children });
+    if (!out.behavior) {
+      const params: Record<string, unknown> = {};
+      if (p.accept != null) params.accept = String(p.accept);
+      if (typeof p.maxSize === "number") params.maxSize = p.maxSize;
+      out.behavior = { type: "dropzone", params };
+    }
+    return out;
+  };
+}
+
+/** A curated, dependency-free calling-code default for `PhoneInput` — a
+ *  trimmed set (the full ~100-country list lives in
+ *  `silicaui-react/lib/countries.ts`; a host passes `props.countries` to
+ *  extend/replace this, same escape hatch the React component offers). */
+const DEFAULT_COUNTRIES: Array<{ iso2: string; name: string; dial: string }> = [
+  { iso2: "US", name: "United States", dial: "1" },
+  { iso2: "CA", name: "Canada", dial: "1" },
+  { iso2: "MX", name: "Mexico", dial: "52" },
+  { iso2: "GB", name: "United Kingdom", dial: "44" },
+  { iso2: "IE", name: "Ireland", dial: "353" },
+  { iso2: "FR", name: "France", dial: "33" },
+  { iso2: "DE", name: "Germany", dial: "49" },
+  { iso2: "ES", name: "Spain", dial: "34" },
+  { iso2: "IT", name: "Italy", dial: "39" },
+  { iso2: "NL", name: "Netherlands", dial: "31" },
+  { iso2: "PT", name: "Portugal", dial: "351" },
+  { iso2: "CH", name: "Switzerland", dial: "41" },
+  { iso2: "SE", name: "Sweden", dial: "46" },
+  { iso2: "NO", name: "Norway", dial: "47" },
+  { iso2: "DK", name: "Denmark", dial: "45" },
+  { iso2: "FI", name: "Finland", dial: "358" },
+  { iso2: "PL", name: "Poland", dial: "48" },
+  { iso2: "BR", name: "Brazil", dial: "55" },
+  { iso2: "AR", name: "Argentina", dial: "54" },
+  { iso2: "IN", name: "India", dial: "91" },
+  { iso2: "CN", name: "China", dial: "86" },
+  { iso2: "JP", name: "Japan", dial: "81" },
+  { iso2: "KR", name: "South Korea", dial: "82" },
+  { iso2: "AU", name: "Australia", dial: "61" },
+  { iso2: "NZ", name: "New Zealand", dial: "64" },
+  { iso2: "ZA", name: "South Africa", dial: "27" },
+];
 
 /** RadialProgress's `--value` fill, bucketed to literal `[--value:N]` utility
  *  classes (5% steps) — the arbitrary-property equivalent of `PROGRESS_WIDTHS`,
@@ -791,7 +1114,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     icon: "box",
     expand: (n) => {
       const iso = String(n.props?.value ?? "");
-      const date = iso ? new Date(iso) : null;
+      const date = iso ? parseDateLike(iso) : null;
       const valid = date && !Number.isNaN(date.getTime());
       let text = iso;
       if (valid) {
@@ -1161,6 +1484,1382 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       if (!out.behavior) out.behavior = { type: "toc" };
       return out;
     },
+  },
+
+  // ── interactive: new primitives (2026-07-08 bucket-2b sync pass) ──────────
+  // `modal` — Dialog/Drawer/AlertDialog/Lightbox/CommandPalette all share one
+  // Root(behavior) > Trigger(part=trigger) + Backdrop(part=backdrop) +
+  // Content(part=panel) + Close(part=close) shape; Lightbox layers `slide`/
+  // `prev`/`next`/`title`(counter) parts and CommandPalette layers `search`/
+  // `item` parts on the SAME behavior type rather than getting their own —
+  // see `modal.ts`. Header/Footer/Group/Label sub-parts are NOT registered
+  // (plain docking-bar divs — same sub-part rule as Card's CardBody).
+  {
+    name: "Dialog",
+    category: "overlay",
+    label: "Dialog",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "modal" };
+      return out;
+    },
+  },
+  {
+    name: "DialogTrigger",
+    category: "overlay",
+    label: "Dialog trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "DialogBackdrop",
+    category: "overlay",
+    label: "Dialog backdrop",
+    icon: "box",
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true } });
+      if (!out.part) out.part = "backdrop";
+      return out;
+    },
+  },
+  {
+    name: "DialogContent",
+    category: "overlay",
+    label: "Dialog content",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", {
+        attrs: { hidden: true, role: "dialog", "aria-modal": "true" },
+        children: n.children,
+      });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "DialogClose",
+    category: "overlay",
+    label: "Dialog close",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  elementDef("DialogTitle", "overlay", "heading", "h2"),
+  elementDef("DialogDescription", "overlay", "text", "p"),
+
+  // Drawer — identical shape to Dialog; `props.side` becomes a `data-side`
+  // attribute on the panel for the CSS to slide from (render-neutral to the
+  // behavior itself).
+  {
+    name: "Drawer",
+    category: "overlay",
+    label: "Drawer",
+    icon: "sidebar",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "modal" };
+      return out;
+    },
+  },
+  {
+    name: "DrawerTrigger",
+    category: "overlay",
+    label: "Drawer trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "DrawerBackdrop",
+    category: "overlay",
+    label: "Drawer backdrop",
+    icon: "box",
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true } });
+      if (!out.part) out.part = "backdrop";
+      return out;
+    },
+  },
+  {
+    name: "DrawerContent",
+    category: "overlay",
+    label: "Drawer content",
+    icon: "sidebar",
+    container: true,
+    expand: (n) => {
+      const side = String(n.props?.side ?? "left");
+      const out = lower(n, "div", {
+        attrs: { hidden: true, "data-side": side, role: "dialog", "aria-modal": "true" },
+        children: n.children,
+      });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "DrawerClose",
+    category: "overlay",
+    label: "Drawer close",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  elementDef("DrawerTitle", "overlay", "heading", "h2"),
+  elementDef("DrawerDescription", "overlay", "text", "p"),
+
+  // AlertDialog — same shape, `params.dismissible: false` (backdrop is inert
+  // — clicking it does NOT close, only Escape/an explicit close does, per the
+  // ARIA alert-dialog pattern). Action/Cancel are both `close` parts — a
+  // host's own click listener on Action still runs before this one closes it.
+  {
+    name: "AlertDialog",
+    category: "overlay",
+    label: "Alert dialog",
+    icon: "warning",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "modal", params: { dismissible: false } };
+      return out;
+    },
+  },
+  {
+    name: "AlertDialogTrigger",
+    category: "overlay",
+    label: "Alert dialog trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "AlertDialogBackdrop",
+    category: "overlay",
+    label: "Alert dialog backdrop",
+    icon: "box",
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true } });
+      if (!out.part) out.part = "backdrop";
+      return out;
+    },
+  },
+  {
+    name: "AlertDialogContent",
+    category: "overlay",
+    label: "Alert dialog content",
+    icon: "warning",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", {
+        attrs: { hidden: true, role: "alertdialog", "aria-modal": "true" },
+        children: n.children,
+      });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "AlertDialogClose",
+    category: "overlay",
+    label: "Alert dialog close",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  {
+    name: "AlertDialogCancel",
+    category: "overlay",
+    label: "Alert dialog cancel",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  {
+    name: "AlertDialogAction",
+    category: "overlay",
+    label: "Alert dialog action",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  elementDef("AlertDialogTitle", "overlay", "heading", "h2"),
+  elementDef("AlertDialogDescription", "overlay", "text", "p"),
+
+  // Lightbox — trigger[i] opens slide[i] (positional pairing, like `tabs`);
+  // Counter reuses the `title` role (same "text this behavior keeps in sync"
+  // convention `calendar`'s month label uses).
+  {
+    name: "Lightbox",
+    category: "media",
+    label: "Lightbox",
+    icon: "image",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "modal" };
+      return out;
+    },
+  },
+  {
+    name: "LightboxTrigger",
+    category: "media",
+    label: "Lightbox trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "LightboxBackdrop",
+    category: "media",
+    label: "Lightbox backdrop",
+    icon: "box",
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true } });
+      if (!out.part) out.part = "backdrop";
+      return out;
+    },
+  },
+  {
+    name: "LightboxContent",
+    category: "media",
+    label: "Lightbox content",
+    icon: "image",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", {
+        attrs: { hidden: true, role: "dialog", "aria-modal": "true", "aria-label": "Image viewer" },
+        children: n.children,
+      });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "LightboxSlide",
+    category: "media",
+    label: "Lightbox slide",
+    icon: "image",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.part) out.part = "slide";
+      return out;
+    },
+  },
+  {
+    name: "LightboxPrev",
+    category: "media",
+    label: "Lightbox previous",
+    icon: "button",
+    expand: (n) => {
+      const out = lower(n, "button", {
+        attrs: { type: "button", "aria-label": "Previous image" },
+        children: textChildren(n, "text") ?? ["‹"],
+      });
+      if (!out.part) out.part = "prev";
+      return out;
+    },
+  },
+  {
+    name: "LightboxNext",
+    category: "media",
+    label: "Lightbox next",
+    icon: "button",
+    expand: (n) => {
+      const out = lower(n, "button", {
+        attrs: { type: "button", "aria-label": "Next image" },
+        children: textChildren(n, "text") ?? ["›"],
+      });
+      if (!out.part) out.part = "next";
+      return out;
+    },
+  },
+  {
+    name: "LightboxClose",
+    category: "media",
+    label: "Lightbox close",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", {
+        attrs: { type: "button", "aria-label": "Close" },
+        children: n.children,
+      });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  {
+    name: "LightboxCounter",
+    category: "media",
+    label: "Lightbox counter",
+    icon: "box",
+    expand: (n) => {
+      const out = lower(n, "span");
+      if (!out.part) out.part = "title";
+      return out;
+    },
+  },
+
+  // CommandPalette — `params.hotkey` binds ⌘K/Ctrl+K globally (default
+  // `true`; `props.hotkey === false` disables it). Input/Item reuse the
+  // `search`/`item` parts `modal.ts` optionally wires filter+arrow-nav for.
+  {
+    name: "CommandPalette",
+    category: "overlay",
+    label: "Command palette",
+    icon: "search",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) {
+        const hotkey = n.props?.hotkey;
+        out.behavior = { type: "modal", params: { hotkey: hotkey === false ? false : hotkey ?? true } };
+      }
+      return out;
+    },
+  },
+  {
+    name: "CommandPaletteBackdrop",
+    category: "overlay",
+    label: "Command palette backdrop",
+    icon: "box",
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true } });
+      if (!out.part) out.part = "backdrop";
+      return out;
+    },
+  },
+  {
+    name: "CommandPaletteContent",
+    category: "overlay",
+    label: "Command palette content",
+    icon: "search",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", {
+        attrs: { hidden: true, role: "dialog", "aria-modal": "true", "aria-label": "Command palette" },
+        children: n.children,
+      });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "CommandPaletteInput",
+    category: "overlay",
+    label: "Command palette input",
+    icon: "input",
+    expand: (n) => {
+      const out = lower(n, "input", {
+        attrs: formAttrs(n, { type: "text", placeholder: "Type a command or search…" }, ["placeholder"]),
+      });
+      if (!out.part) out.part = "search";
+      return out;
+    },
+  },
+  {
+    name: "CommandPaletteItem",
+    category: "overlay",
+    label: "Command palette item",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { role: "option" }, children: n.children });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // `popover` — anchored trigger/panel pairs; positioning is computed at
+  // runtime (see `popover.ts`), same precedent as `carousel`'s
+  // `track.style.transform`. Popover/Tooltip/PreviewCard differ only by
+  // `params.trigger` — real parameters, not a papered-over mismatch.
+  {
+    name: "Popover",
+    category: "overlay",
+    label: "Popover",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "popover" };
+      return out;
+    },
+  },
+  {
+    name: "PopoverTrigger",
+    category: "overlay",
+    label: "Popover trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "PopoverContent",
+    category: "overlay",
+    label: "Popover content",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true, role: "dialog" }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "PopoverClose",
+    category: "overlay",
+    label: "Popover close",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "close";
+      return out;
+    },
+  },
+  elementDef("PopoverTitle", "overlay", "heading", "h3"),
+  elementDef("PopoverDescription", "overlay", "text", "p"),
+
+  // Tooltip — `params.trigger: "hover"`; the trigger wraps an arbitrary
+  // element (Base UI merges hover/focus onto it directly — a framework-free
+  // host instead gets a small inline wrapper, a documented simplification).
+  {
+    name: "Tooltip",
+    category: "overlay",
+    label: "Tooltip",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "popover", params: { trigger: "hover" } };
+      return out;
+    },
+  },
+  {
+    name: "TooltipTrigger",
+    category: "overlay",
+    label: "Tooltip trigger",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "span", { children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "TooltipContent",
+    category: "overlay",
+    label: "Tooltip content",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true, role: "tooltip" }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // PreviewCard — same shape as Tooltip (hover trigger), rich card content
+  // rather than a short text label.
+  {
+    name: "PreviewCard",
+    category: "overlay",
+    label: "Preview card",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "popover", params: { trigger: "hover" } };
+      return out;
+    },
+  },
+  {
+    name: "PreviewCardTrigger",
+    category: "overlay",
+    label: "Preview card trigger",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "span", { children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "PreviewCardContent",
+    category: "overlay",
+    label: "Preview card content",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // ContextMenu — reuses `menu` (not `popover`): its content is a flat
+  // action-item list that wants the SAME arrow-key/Home/End roving focus
+  // DropdownMenu already has, not a rich anchored panel. `params.trigger:
+  // "context"` swaps the open event to `contextmenu` and positions at the
+  // pointer instead of the trigger rect (see `menu.ts`).
+  {
+    name: "ContextMenu",
+    category: "overlay",
+    label: "Context menu",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "menu", params: { trigger: "context" } };
+      return out;
+    },
+  },
+  {
+    name: "ContextMenuTrigger",
+    category: "overlay",
+    label: "Context menu area",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "ContextMenuContent",
+    category: "overlay",
+    label: "Context menu content",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true, role: "menu" }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "ContextMenuItem",
+    category: "overlay",
+    label: "Context menu item",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button", role: "menuitem" }, children: n.children });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // Menubar — each menu is its OWN independent `menu` root (a documented
+  // simplification: no bar-wide single-open coordination or hover-to-switch
+  // in vanilla, since sibling behavior roots can't see each other — but
+  // every menu still fully opens/closes/roves/dismisses on its own).
+  elementDef("Menubar", "nav", "nav", "div", true),
+  {
+    name: "MenubarMenu",
+    category: "nav",
+    label: "Menu",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "menu" };
+      return out;
+    },
+  },
+  {
+    name: "MenubarTrigger",
+    category: "nav",
+    label: "Menubar trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "MenubarContent",
+    category: "nav",
+    label: "Menubar content",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true, role: "menu" }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "MenubarItem",
+    category: "nav",
+    label: "Menubar item",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button", role: "menuitem" }, children: n.children });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // NavigationMenu — each item is its own independent `popover` root
+  // (`hover` trigger; same bar-wide-coordination simplification as Menubar).
+  // Content is rich mega-menu markup, not a flat item list, so this reuses
+  // `popover` (no item roving assumed) rather than `menu`.
+  elementDef("NavigationMenu", "nav", "nav", "nav", true),
+  {
+    name: "NavigationMenuItem",
+    category: "nav",
+    label: "Navigation menu item",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "popover", params: { trigger: "hover" } };
+      return out;
+    },
+  },
+  {
+    name: "NavigationMenuTrigger",
+    category: "nav",
+    label: "Navigation menu trigger",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "NavigationMenuContent",
+    category: "nav",
+    label: "Navigation menu content",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "NavigationMenuLink",
+    category: "nav",
+    label: "Navigation menu link",
+    icon: "nav",
+    container: true,
+    expand: (n) => lower(n, "a", { attrs: { href: String(n.props?.href ?? "#") }, children: n.children }),
+  },
+
+  // `combobox` — Combobox/Autocomplete/MultiSelect are all SINGLE, self-
+  // contained React components with an `items` prop (like `Select`, not a
+  // Root/Trigger/Content compound tree), so their vanilla macros follow the
+  // same shape: build the whole input+popup+options structure from
+  // `props.items` (unauthored structural sugar, same precedent as
+  // `Carousel`'s invented track/dots). Only `params.mode` differs.
+  {
+    name: "Combobox",
+    category: "form",
+    label: "Combobox",
+    icon: "select",
+    expand: comboboxExpand("select"),
+  },
+  {
+    name: "Autocomplete",
+    category: "form",
+    label: "Autocomplete",
+    icon: "select",
+    expand: comboboxExpand("freetext"),
+  },
+  {
+    name: "MultiSelect",
+    category: "form",
+    label: "Multi select",
+    icon: "select",
+    expand: comboboxExpand("multiple"),
+  },
+
+  // `date-segment` — DateInput/DateTimeInput/TimeInput carry the behavior on
+  // their own root; DateRangeInput is two INDEPENDENT `date-segment` roots
+  // nested side by side (hydrate() scans the whole document for behavior
+  // roots, not just top-level ones, so both wire up with zero extra code).
+  {
+    name: "DateInput",
+    category: "form",
+    label: "Date input",
+    icon: "input",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const locale = typeof p.locale === "string" ? p.locale : undefined;
+      const children = dateSegmentChildren(locale, p.value ?? p.defaultValue);
+      const hidden = elc("input", undefined, undefined, {
+        type: "hidden",
+        ...(p.name != null ? { name: String(p.name) } : {}),
+      });
+      const out = lower(n, "div", { attrs: { role: "group" }, children: [...children, hidden] });
+      if (!out.behavior) out.behavior = { type: "date-segment" };
+      return out;
+    },
+  },
+  {
+    name: "DateRangeInput",
+    category: "form",
+    label: "Date range input",
+    icon: "input",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const locale = typeof p.locale === "string" ? p.locale : undefined;
+      const range = (p.value ?? p.defaultValue) as { start?: unknown; end?: unknown } | undefined;
+      const startGroup = elc("div", "segment-field-group", dateSegmentChildren(locale, range?.start), { role: "group" });
+      startGroup.behavior = { type: "date-segment" };
+      const endGroup = elc("div", "segment-field-group", dateSegmentChildren(locale, range?.end), { role: "group" });
+      endGroup.behavior = { type: "date-segment" };
+      return lower(n, "div", { children: [startGroup, literalEl("–"), endGroup] });
+    },
+  },
+  {
+    name: "DateTimeInput",
+    category: "form",
+    label: "Date & time input",
+    icon: "input",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const locale = typeof p.locale === "string" ? p.locale : undefined;
+      const dateChildren = dateSegmentChildren(locale, p.value ?? p.defaultValue);
+      const timeChildren = buildTimeSegments(
+        locale,
+        p.hourCycle === 12 || p.hourCycle === 24 ? p.hourCycle : undefined,
+        p.showSeconds === true,
+      ).map((cfg) => (cfg.kind === "literal" ? literalEl(cfg.text) : segmentEl(cfg, null)));
+      const hidden = elc("input", undefined, undefined, {
+        type: "hidden",
+        ...(p.name != null ? { name: String(p.name) } : {}),
+      });
+      const out = lower(n, "div", {
+        attrs: { role: "group" },
+        children: [...dateChildren, literalEl(" "), ...timeChildren, hidden],
+      });
+      if (!out.behavior) out.behavior = { type: "date-segment" };
+      return out;
+    },
+  },
+  {
+    name: "TimeInput",
+    category: "form",
+    label: "Time input",
+    icon: "input",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const locale = typeof p.locale === "string" ? p.locale : undefined;
+      const cfgs = buildTimeSegments(
+        locale,
+        p.hourCycle === 12 || p.hourCycle === 24 ? p.hourCycle : undefined,
+        p.showSeconds === true,
+      );
+      const children = cfgs.map((cfg) => (cfg.kind === "literal" ? literalEl(cfg.text) : segmentEl(cfg, null)));
+      const hidden = elc("input", undefined, undefined, {
+        type: "hidden",
+        ...(p.name != null ? { name: String(p.name) } : {}),
+      });
+      const out = lower(n, "div", { attrs: { role: "group" }, children: [...children, hidden] });
+      if (!out.behavior) out.behavior = { type: "date-segment" };
+      return out;
+    },
+  },
+
+  // `pin-input` — real single-char `<input>` cells (index-based), unlike
+  // `date-segment`'s buffer-accumulate model — see `pin-input.ts`.
+  {
+    name: "PinInput",
+    category: "form",
+    label: "PIN input",
+    icon: "input",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const length = Math.max(1, Math.floor(Number(p.length ?? 6)));
+      const numeric = p.mode !== "text";
+      const initial = typeof p.value === "string" ? p.value : typeof p.defaultValue === "string" ? p.defaultValue : "";
+      const cells = Array.from({ length }, (_, i) => {
+        const attrs: NonNullable<ElementNode["attrs"]> = {
+          type: "text",
+          inputmode: numeric ? "numeric" : "text",
+          maxlength: 1,
+          "aria-label": `Digit ${i + 1}`,
+        };
+        const ch = initial[i];
+        if (ch) {
+          attrs.value = ch;
+          attrs["data-filled"] = true;
+        }
+        const cell = elc("input", "pin-input-cell", undefined, attrs);
+        cell.part = "cell";
+        return cell;
+      });
+      const hidden = elc("input", undefined, undefined, {
+        type: "hidden",
+        value: initial,
+        ...(p.name != null ? { name: String(p.name) } : {}),
+      });
+      const out = lower(n, "div", {
+        attrs: { role: "group", "aria-label": String(p["aria-label"] ?? "Verification code") },
+        children: [...cells, hidden],
+      });
+      if (!out.behavior) out.behavior = { type: "pin-input" };
+      return out;
+    },
+  },
+
+  // `calendar` — Calendar carries the behavior directly; DatePicker/
+  // DateRangePicker are the SAME calendar shell nested inside a `popover`
+  // root's panel (a `calendar` behavior root nested inside a `popover` one —
+  // `ownParts` already stops at nested behavior boundaries, so this needs no
+  // extra code, same composition trick as Lightbox nesting inside `modal`).
+  {
+    name: "Calendar",
+    category: "form",
+    label: "Calendar",
+    icon: "calendar",
+    expand: (n) => {
+      const { header, grid, hidden } = calendarParts();
+      const out = lower(n, "div", { children: [header, grid, hidden] });
+      if (!out.behavior) out.behavior = { type: "calendar", params: calendarParamsFromProps(n.props ?? {}) };
+      return out;
+    },
+  },
+  {
+    name: "DatePicker",
+    category: "form",
+    label: "Date picker",
+    icon: "calendar",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "popover" };
+      return out;
+    },
+  },
+  {
+    name: "DatePickerTrigger",
+    category: "form",
+    label: "Date picker trigger",
+    icon: "calendar",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "DatePickerContent",
+    category: "form",
+    label: "Date picker content",
+    icon: "calendar",
+    expand: (n) => {
+      const { header, grid, hidden } = calendarParts();
+      const inner = elc("div", "calendar", [header, grid, hidden]);
+      inner.behavior = { type: "calendar", params: calendarParamsFromProps(n.props ?? {}) };
+      const out = lower(n, "div", { attrs: { hidden: true }, children: [inner] });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "DateRangePicker",
+    category: "form",
+    label: "Date range picker",
+    icon: "calendar",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "popover" };
+      return out;
+    },
+  },
+  {
+    name: "DateRangePickerTrigger",
+    category: "form",
+    label: "Date range picker trigger",
+    icon: "calendar",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "DateRangePickerContent",
+    category: "form",
+    label: "Date range picker content",
+    icon: "calendar",
+    expand: (n) => {
+      const params = calendarParamsFromProps(n.props ?? {});
+      params.mode = "range";
+      const { header, grid, hidden } = calendarParts();
+      const inner = elc("div", "calendar", [header, grid, hidden]);
+      inner.behavior = { type: "calendar", params };
+      const out = lower(n, "div", { attrs: { hidden: true }, children: [inner] });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // `tree` — TreeGroup defaults hidden unless `defaultExpanded`, same
+  // convention `AccordionPanel`/`CollapsiblePanel` established (the
+  // behavior only READS existing hidden state on hydrate, never forces it).
+  {
+    name: "TreeView",
+    category: "data",
+    label: "Tree view",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "ul", { attrs: { role: "tree" }, children: n.children });
+      if (!out.behavior) out.behavior = { type: "tree" };
+      return out;
+    },
+  },
+  {
+    name: "TreeNode",
+    category: "data",
+    label: "Tree node",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "li", { attrs: { role: "treeitem" }, children: n.children });
+      if (!out.part) out.part = "node";
+      return out;
+    },
+  },
+  {
+    name: "TreeToggle",
+    category: "data",
+    label: "Tree toggle",
+    icon: "button",
+    expand: (n) => {
+      const out = lower(n, "button", {
+        attrs: { type: "button", "aria-hidden": "true", tabindex: -1 },
+        children: textChildren(n, "text") ?? ["▸"],
+      });
+      if (!out.part) out.part = "toggle";
+      return out;
+    },
+  },
+  {
+    name: "TreeGroup",
+    category: "data",
+    label: "Tree group",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = { role: "group" };
+      if (n.props?.defaultExpanded !== true) attrs.hidden = true;
+      return lower(n, "ul", { attrs, children: n.children });
+    },
+  },
+
+  // `wizard` — Back/Next reuse the `prev`/`next` roles (already exist).
+  {
+    name: "Wizard",
+    category: "data",
+    label: "Wizard",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "wizard", params: { linear: n.props?.linear !== false } };
+      return out;
+    },
+  },
+  {
+    name: "WizardStep",
+    category: "data",
+    label: "Wizard step",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = { type: "button" };
+      if (n.props?.disabled === true) attrs["data-disabled"] = "true";
+      const out = lower(n, "button", { attrs, children: n.children });
+      if (!out.part) out.part = "step";
+      return out;
+    },
+  },
+  {
+    name: "WizardPanel",
+    category: "data",
+    label: "Wizard panel",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "WizardBack",
+    category: "data",
+    label: "Wizard back",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: textChildren(n, "text") ?? ["Back"] });
+      if (!out.part) out.part = "prev";
+      return out;
+    },
+  },
+  {
+    name: "WizardNext",
+    category: "data",
+    label: "Wizard next",
+    icon: "button",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = { type: "button" };
+      if (n.props?.nextLabel != null) attrs["data-next-label"] = String(n.props.nextLabel);
+      if (n.props?.finishLabel != null) attrs["data-finish-label"] = String(n.props.finishLabel);
+      const out = lower(n, "button", { attrs, children: textChildren(n, "text") ?? ["Next"] });
+      if (!out.part) out.part = "next";
+      return out;
+    },
+  },
+
+  // `number-field` — native `<input type=number>`, no Base-UI-only CSS
+  // selectors to work around (confirmed via the CSS check this pass).
+  {
+    name: "NumberField",
+    category: "form",
+    label: "Number field",
+    icon: "input",
+    container: true,
+    expand: (n) => {
+      const attrs = formAttrs(n, { type: "number" }, [
+        "name",
+        "min",
+        "max",
+        "step",
+        "value",
+        "required",
+        "disabled",
+        "placeholder",
+      ]);
+      const input = elc("input", "number-field-input", undefined, attrs);
+      const dec = elc("button", "number-field-decrement", ["–"], { type: "button", "aria-label": "Decrease" });
+      dec.part = "decrement";
+      const inc = elc("button", "number-field-increment", ["+"], { type: "button", "aria-label": "Increase" });
+      inc.part = "increment";
+      const out = lower(n, "div", { children: [dec, input, inc] });
+      if (!out.behavior) out.behavior = { type: "number-field" };
+      return out;
+    },
+  },
+
+  // `toggle-group` — a toolbar of toggle buttons, NOT a listbox (distinct
+  // ARIA pattern from `SelectionList`: `aria-pressed` on real buttons).
+  {
+    name: "ToggleGroup",
+    category: "form",
+    label: "Toggle group",
+    icon: "toggle",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const out = lower(n, "div", { attrs: { role: "group" }, children: n.children });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = {};
+        if (p.multiple === true) params.multiple = true;
+        if (p.orientation === "vertical") params.orientation = "vertical";
+        out.behavior = { type: "toggle-group", params };
+      }
+      return out;
+    },
+  },
+  {
+    name: "ToggleGroupItem",
+    category: "form",
+    label: "Toggle group item",
+    icon: "toggle",
+    container: true,
+    expand: (n) => {
+      const pressed = n.props?.pressed === true;
+      const attrs: NonNullable<ElementNode["attrs"]> = { type: "button", "aria-pressed": String(pressed) };
+      if (pressed) attrs["data-pressed"] = true;
+      const out = lower(n, "button", { attrs, children: n.children });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // `slider` — Range (compact) and Slider (rich, `showValue`) are both
+  // single self-contained components; see `sliderExpand`. Base UI's three
+  // addressable Track/Indicator/Thumb nodes are rebuilt here since a bare
+  // `<input type=range>` has no such structure (confirmed via the CSS check
+  // this pass) — real pointer-drag + keyboard geometry, not a native fallback.
+  { name: "Range", category: "form", label: "Range", icon: "input", expand: sliderExpand("range") },
+  { name: "Slider", category: "form", label: "Slider", icon: "input", expand: sliderExpand("slider") },
+
+  // `switch` — a `role=switch` element the CSS keys off `[data-checked]`
+  // for (Base UI's synthetic attribute, ported verbatim — a bare
+  // `<input type=checkbox>` would NOT match `.switch`'s selectors).
+  {
+    name: "Switch",
+    category: "form",
+    label: "Switch",
+    icon: "toggle",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const checked = p.checked === true || p.defaultChecked === true;
+      const inputAttrs: NonNullable<ElementNode["attrs"]> = { type: "checkbox" };
+      if (checked) inputAttrs.checked = true;
+      if (p.name != null) inputAttrs.name = String(p.name);
+      if (p.disabled === true) inputAttrs.disabled = true;
+      const input = elc("input", "switch-input", undefined, inputAttrs);
+      const attrs: NonNullable<ElementNode["attrs"]> = { role: "switch", tabindex: 0, "aria-checked": String(checked) };
+      if (checked) attrs["data-checked"] = true;
+      if (p.disabled === true) attrs["aria-disabled"] = "true";
+      const out = lower(n, "span", { attrs, children: [input] });
+      if (!out.behavior) out.behavior = { type: "switch" };
+      return out;
+    },
+  },
+
+  // `rating` — not Base UI-backed in React either (plain JSX-set
+  // `data-filled`), so this ports near 1:1.
+  {
+    name: "Rating",
+    category: "form",
+    label: "Rating",
+    icon: "star",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const max = Math.max(1, Math.floor(Number(p.max ?? 5)));
+      const value = Number(p.value ?? p.defaultValue ?? 0);
+      const stars = Array.from({ length: max }, (_, i) => {
+        const filled = i < value;
+        const star = elc("button", "rating-star", undefined, {
+          type: "button",
+          role: "radio",
+          "aria-checked": String(filled),
+          "data-filled": String(filled),
+          "aria-label": `${i + 1} star${i === 0 ? "" : "s"}`,
+        });
+        star.part = "item";
+        return star;
+      });
+      const hidden = elc("input", undefined, undefined, {
+        type: "hidden",
+        value: String(value),
+        ...(p.name != null ? { name: String(p.name) } : {}),
+      });
+      const out = lower(n, "div", { attrs: { role: "radiogroup" }, children: [...stars, hidden] });
+      if (!out.behavior) out.behavior = { type: "rating" };
+      return out;
+    },
+  },
+
+  // `scroll-area` — a real `overflow:auto` `track` (CSS hides its native
+  // scrollbar) with a custom `thumb` the behavior sizes/positions from the
+  // viewport/content ratio — not achievable as a pure-CSS trick (confirmed
+  // this pass).
+  {
+    name: "ScrollArea",
+    category: "layout",
+    label: "Scroll area",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const track = elc("div", "scroll-area-viewport", n.children);
+      track.part = "track";
+      const thumb = elc("div", "scroll-area-thumb");
+      thumb.part = "thumb";
+      const out = lower(n, "div", { children: [track, thumb] });
+      if (!out.behavior) out.behavior = { type: "scroll-area" };
+      return out;
+    },
+  },
+
+  // `overflow-list` — real `item`s reparent into the `panel` behind a "+N"
+  // `trigger` once they don't fit; `params.maxVisible` forces a fixed count
+  // when real layout isn't available (see `overflow-list.ts`).
+  {
+    name: "OverflowList",
+    category: "layout",
+    label: "Overflow list",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const trigger = elc("button", "overflow-list-trigger", undefined, {
+        type: "button",
+        hidden: true,
+        "aria-haspopup": "true",
+      });
+      trigger.part = "trigger";
+      const panel = elc("div", "overflow-list-panel", undefined, { role: "menu", hidden: true });
+      panel.part = "panel";
+      const out = lower(n, "div", { children: [...(n.children ?? []), trigger, panel] });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = {};
+        if (typeof p.maxVisible === "number") params.maxVisible = p.maxVisible;
+        out.behavior = { type: "overflow-list", params };
+      }
+      return out;
+    },
+  },
+  {
+    name: "OverflowListItem",
+    category: "layout",
+    label: "Overflow list item",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // `dropzone` — Dropzone is bare (presentational only, host owns the file
+  // list via `onFiles`-equivalent listening for `sui:file`); FileUpload adds
+  // a managed `list` part the behavior renders thumbnail/name/remove rows
+  // into directly (the one place a behavior owns real create-your-own-markup
+  // state, same precedent as `Carousel`'s track/dots).
+  { name: "Dropzone", category: "form", label: "Dropzone", icon: "input", container: true, expand: dropzoneExpand(false) },
+  { name: "FileUpload", category: "form", label: "File upload", icon: "input", container: true, expand: dropzoneExpand(true) },
+
+  // `phone-input` — a country `<select>` (options carry `data-dial`) joined
+  // with a digits `input`; the country list is plain static data, ported
+  // verbatim (no React-only mechanism was involved in the original).
+  {
+    name: "PhoneInput",
+    category: "form",
+    label: "Phone input",
+    icon: "input",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const list =
+        Array.isArray(p.countries) && p.countries.length
+          ? (p.countries as Array<{ iso2: string; name: string; dial: string }>)
+          : DEFAULT_COUNTRIES;
+      const selectedIso = String(p.country ?? p.defaultCountry ?? "US");
+      const options = list.map((c) => {
+        const attrs: NonNullable<ElementNode["attrs"]> = { value: c.iso2, "data-dial": c.dial };
+        if (c.iso2 === selectedIso) attrs.selected = true;
+        return elc("option", undefined, [`+${c.dial} ${c.name}`], attrs);
+      });
+      const country = elc("select", "phone-input-country", options, { "aria-label": "Country code" });
+      country.part = "country";
+
+      const inputAttrs = formAttrs(n, { type: "tel" }, ["name", "placeholder", "required", "disabled"]);
+      const value = p.value ?? p.defaultValue;
+      if (typeof value === "string") inputAttrs.value = value;
+      const input = elc("input", "phone-input-number", undefined, inputAttrs);
+      input.part = "input";
+
+      const hidden = elc("input", undefined, undefined, {
+        type: "hidden",
+        ...(p.name != null ? { name: `${String(p.name)}-e164` } : {}),
+      });
+      const out = lower(n, "div", { children: [country, input, hidden] });
+      if (!out.behavior) out.behavior = { type: "phone-input" };
+      return out;
+    },
+  },
+
+  // `theme-toggle` — thin wiring over the existing `setTheme`/`getTheme`
+  // primitives (see `theme-toggle.ts`); there was no new state machine to
+  // build here, just a registration.
+  {
+    name: "ThemeController",
+    category: "form",
+    label: "Theme controller",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const out = lower(n, "button", { attrs: { type: "button" }, children: textChildren(n, "text") ?? n.children });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = {};
+        if (Array.isArray(p.themes) && p.themes.length) params.themes = p.themes.map(String);
+        out.behavior = { type: "theme-toggle", params };
+      }
+      return out;
+    },
+  },
+
+  // Overlay — pure CSS (`[data-reveal="hover"]:hover .overlay-scrim`); no
+  // behavior at all (confirmed this pass). OverlayScrim is a real sub-atom
+  // (not a plain div) because `data-placement` is behavior-relevant to the
+  // CSS, same rule that earned ToolbarSeparator its own atom.
+  {
+    name: "Overlay",
+    category: "media",
+    label: "Overlay",
+    icon: "image",
+    container: true,
+    expand: (n) => lower(n, "div", { attrs: { "data-reveal": String(n.props?.reveal ?? "always") }, children: n.children }),
+  },
+  {
+    name: "OverlayScrim",
+    category: "media",
+    label: "Overlay scrim",
+    icon: "image",
+    container: true,
+    expand: (n) => lower(n, "div", { attrs: { "data-placement": String(n.props?.placement ?? "bottom") }, children: n.children }),
   },
 ];
 

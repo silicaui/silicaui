@@ -17,7 +17,25 @@ export type BehaviorType =
   | "toc"
   | "form"
   | "sidebar"
-  | "selection-list";
+  | "selection-list"
+  | "modal"
+  | "popover"
+  | "combobox"
+  | "date-segment"
+  | "pin-input"
+  | "calendar"
+  | "tree"
+  | "wizard"
+  | "number-field"
+  | "toggle-group"
+  | "scroll-area"
+  | "overflow-list"
+  | "dropzone"
+  | "slider"
+  | "switch"
+  | "rating"
+  | "theme-toggle"
+  | "phone-input";
 
 /** A gathered form value: one control's value, or many for a repeated name. */
 export type FormValue = string | string[];
