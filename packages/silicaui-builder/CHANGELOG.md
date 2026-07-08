@@ -1,5 +1,13 @@
 # @wizeworks/silicaui-builder
 
+## 0.5.2
+
+### Patch Changes
+
+- a39ad19: Restructure `silicaui-builder`'s source tree to make room for an email editor alongside the existing site editor: editor-agnostic chrome (icon system, `Icon`, `ErrorBoundary`) moved to `src/shared/`, and the site editor's engine + React chrome moved to `src/site/`. The public API (`@wizeworks/silicaui-builder` and `@wizeworks/silicaui-builder/react`) is unchanged — internal move only, verified against the full e2e suite.
+  - @wizeworks/silicaui@0.5.2
+  - @wizeworks/silicaui-html@0.5.2
+
 ## 0.5.1
 
 ### Patch Changes
