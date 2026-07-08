@@ -11,10 +11,10 @@
  * insert it. Search matches label, key, and hint so "cta", "pricing", or "sub"
  * all land their block. Empty query restores the normal grouped browse view.
  *
- * STYLING RULE (hard): Tailwind utilities + silicaui classes + baked <Icon> only.
+ * STYLING RULE (hard): Tailwind utilities + @wizeworks/silicaui classes + baked <Icon> only.
  */
 import * as React from "react";
-import { Input } from "silicaui-react";
+import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
 import { Icon } from "./Icon";
 import { paletteGroups } from "../palette";

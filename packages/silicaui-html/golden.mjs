@@ -5,7 +5,7 @@
 //   node golden.mjs           → verify current output matches the committed fixture
 //   node golden.mjs --write   → (re)capture the fixture (only after an INTENDED change)
 //
-// Run against built output: `pnpm --filter silicaui-html build && node golden.mjs`.
+// Run against built output: `pnpm --filter @wizeworks/silicaui-html build && node golden.mjs`.
 // This exists to prove the ComponentDef/expand refactor is behavior-preserving:
 // capture on the old code, refactor, rebuild, verify — zero diff.
 import { readFileSync, writeFileSync } from "node:fs";

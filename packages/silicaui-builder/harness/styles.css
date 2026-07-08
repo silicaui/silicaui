@@ -3,7 +3,7 @@
 /* Silica's CSS layer — the SAME plugin every consumer uses. The builder chrome is
    composed from these classes (utilities + component classes), so it dogfoods the
    design system rather than a bespoke stylesheet. */
-@plugin "silicaui" {
+@plugin "@wizeworks/silicaui" {
   colors: primary, secondary, accent, neutral, info, success, warning, error;
 }
 
@@ -16,7 +16,7 @@
 /* Studio — the builder chrome's own fixed theme. Applied to
    `[data-theme="studio"]`, isolated from the host page AND the canvas's editable
    document theme (a nested island). */
-@plugin "silicaui/theme" {
+@plugin "@wizeworks/silicaui/theme" {
   name: studio;
   --color-base-100: oklch(98% 0.003 250);
   --color-base-200: oklch(95% 0.004 250);

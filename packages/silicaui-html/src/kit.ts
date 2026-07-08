@@ -35,7 +35,7 @@ export function el(
   return node;
 }
 
-/** Build a silicaui component atom node. */
+/** Build a @wizeworks/silicaui component atom node. */
 export function atom(
   component: string,
   cls?: string,

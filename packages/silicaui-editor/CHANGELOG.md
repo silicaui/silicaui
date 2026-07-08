@@ -1,1 +1,1 @@
-# silicaui-editor
+# @wizeworks/silicaui-editor

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Slider } from "silicaui-react";
+import { Slider } from "@wizeworks/silicaui-react";
 import { Section, LabeledRow } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

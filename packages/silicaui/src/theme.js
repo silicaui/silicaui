@@ -37,7 +37,7 @@ export function buildBase() {
       // Base font size: 16px. `100%` (not a fixed `16px`) DECLARES the anchor
       // while honoring a user who raised their browser's default — the whole rem
       // type scale (`text-md` = 1rem = 16px, see index.js) then scales with it.
-      // Stated here on purpose so 16px is silicaui's decision, not an accident of
+      // Stated here on purpose so 16px is @wizeworks/silicaui's decision, not an accident of
       // the UA default.
       fontSize: "100%",
       // Typeface tokens. System stacks by default — zero network load, native
@@ -82,8 +82,8 @@ export function buildBase() {
       // override reaches the whole island (chrome, canvas, board) — never a host
       // page you didn't opt into.
       fontFamily: "var(--font-sans)",
-      // Anchor body text to silicaui's 16px base. A themed surface IS the
-      // silicaui context, so it establishes the standard reading size even when
+      // Anchor body text to @wizeworks/silicaui's 16px base. A themed surface IS the
+      // @wizeworks/silicaui context, so it establishes the standard reading size even when
       // nested inside a denser host (e.g. the builder's 14px chrome) — the preview
       // then matches a real page. `1rem` (not px) still tracks a raised UA
       // default. Explicit `text-*` utilities (utilities layer) override per node.

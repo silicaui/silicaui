@@ -5,7 +5,7 @@
  * structural.
  *
  * System metadata is lowered here: `behavior`/`part`/`data` markers become
- * `data-sui-*` attributes a runtime (silicaui-behaviors) wires. `slot` markers
+ * `data-sui-*` attributes a runtime (@wizeworks/silicaui-behaviors) wires. `slot` markers
  * are builder metadata and stay inert in HTML (defaults render). With `ids: true`
  * each node's id is emitted as `data-sui-id` so the builder canvas can map DOM
  * back to nodes — off by default, so production output stays clean.
@@ -22,7 +22,7 @@ import { applyPrefix, attr, esc, VOID_ELEMENTS } from "./class-utils";
 import { expandComponent } from "./component";
 
 export interface ToHtmlOptions {
-  /** Applied to silicaui component classes only (`btn` → `st-btn`). */
+  /** Applied to @wizeworks/silicaui component classes only (`btn` → `st-btn`). */
   prefix?: string;
   /** Emit `data-sui-id` for nodes that carry an id (builder canvas mapping). */
   ids?: boolean;
@@ -63,7 +63,7 @@ function metaAttrs(node: ElementNode | ComponentNode, opts: ToHtmlOptions): stri
 function renderNode(node: Node, opts: ToHtmlOptions): string {
   if (node.kind === "outlet") {
     // Composed by a Frame (a builder concern). In a bare tree it's an inert marker.
-    return "<!--silicaui:outlet-->";
+    return "<!--@wizeworks/silicaui:outlet-->";
   }
 
   // A component is a macro: expand it to its element (sub)tree and render THAT

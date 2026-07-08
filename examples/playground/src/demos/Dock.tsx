@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dock, DockItem, DockLabel } from "silicaui-react";
+import { Dock, DockItem, DockLabel } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

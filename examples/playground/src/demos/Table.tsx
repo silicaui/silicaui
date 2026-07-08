@@ -1,4 +1,4 @@
-import { Table, Badge } from "silicaui-react";
+import { Table, Badge } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const ROWS = [

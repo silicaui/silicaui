@@ -1,4 +1,4 @@
-import { Fieldset, FieldsetLegend, FieldsetLabel, Input } from "silicaui-react";
+import { Fieldset, FieldsetLegend, FieldsetLabel, Input } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function FieldsetDemo() {

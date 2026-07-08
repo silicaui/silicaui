@@ -2,7 +2,7 @@ import {
     ResizablePanelGroup,
     ResizablePanel,
     ResizeHandle,
-} from "silicaui-panels";
+} from "@wizeworks/silicaui-panels";
 import { Section } from "../lib/Section";
 
 export function ResizablePanelsDemo() {

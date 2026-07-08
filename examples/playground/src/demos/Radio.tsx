@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Radio } from "silicaui-react";
+import { Radio } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { ColorVariantSizeGrid } from "../lib/ColorGrid";
 

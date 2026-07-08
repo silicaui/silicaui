@@ -1,5 +1,5 @@
 {
-  "name": "silicaui-editor",
+  "name": "@wizeworks/silicaui-editor",
   "version": "0.3.0",
   "description": "Silica UI rich-text editor — TipTap wrapped with a Silica-styled toolbar and content surface.",
   "type": "module",
@@ -40,7 +40,7 @@
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18",
-    "silicaui-react": ">=0.0.0"
+    "@wizeworks/silicaui-react": ">=0.0.0"
   },
   "dependencies": {
     "@tiptap/react": "^2.10.0",
@@ -54,7 +54,7 @@
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "silicaui-react": "workspace:*",
+    "@wizeworks/silicaui-react": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   },

@@ -6,7 +6,7 @@
  * a bordered scroll container, sortable-header buttons with a caret that lights
  * up per sort direction, a selected-row tint, a sticky header, skeleton/empty
  * bodies, and a pagination toolbar. The React `<DataTable>` (in the optional
- * `silicaui-table` package) drives TanStack Table and hangs these classes on the
+ * `@wizeworks/silicaui-table` package) drives TanStack Table and hangs these classes on the
  * markup.
  *
  * Colored: a `.data-table-<name>` class only sets `--dt-accent`, which the sort

@@ -4,7 +4,7 @@ import type { BehaviorHandler } from "../types";
 /**
  * `selection-list` — a listbox of `item` parts (single- or multi-select, via
  * `params.multiple`). Click (or Enter/Space on the focused item) toggles
- * selection; the vanilla counterpart to silicaui-react's `SelectionList`. Roving
+ * selection; the vanilla counterpart to @wizeworks/silicaui-react's `SelectionList`. Roving
  * tabindex + ↑/↓/Home/End mirror the React component's keyboard behavior.
  */
 export const selectionList: BehaviorHandler = (root, opts) => {

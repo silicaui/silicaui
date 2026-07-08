@@ -7,7 +7,7 @@
  *
  * A class component is unavoidable here (only class boundaries catch render
  * errors); the FALLBACK is a normal function component, so it can use hooks and
- * silicaui components like anything else in the chrome.
+ * @wizeworks/silicaui components like anything else in the chrome.
  */
 import * as React from "react";
 
@@ -29,7 +29,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     // Surface it for debugging; a host can wrap console to forward these.
-    console.error("[silicaui-builder] render error:", error, info.componentStack);
+    console.error("[@wizeworks/silicaui-builder] render error:", error, info.componentStack);
   }
 
   reset = (): void => this.setState({ error: null });

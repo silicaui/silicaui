@@ -1,5 +1,5 @@
 import { Fragment, type ComponentType, type ReactNode } from "react";
-import type { SilicaColor, SilicaSize } from "silicaui-react";
+import type { SilicaColor, SilicaSize } from "@wizeworks/silicaui-react";
 import { Section, Row } from "./Section";
 import { COLORS, SIZES } from "./data";
 

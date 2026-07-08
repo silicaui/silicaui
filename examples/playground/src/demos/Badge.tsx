@@ -1,4 +1,4 @@
-import { Badge } from "silicaui-react";
+import { Badge } from "@wizeworks/silicaui-react";
 import { ColorVariantSizeGrid } from "../lib/ColorGrid";
 
 export function BadgeDemo() {

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { TreeView } from "silicaui-react";
-import type { TreeNode } from "silicaui-react";
+import { TreeView } from "@wizeworks/silicaui-react";
+import type { TreeNode } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const FolderIcon = (

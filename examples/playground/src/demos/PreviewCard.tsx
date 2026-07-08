@@ -1,4 +1,4 @@
-import { PreviewCard, Link, Avatar } from "silicaui-react";
+import { PreviewCard, Link, Avatar } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function PreviewCardDemo() {

@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
  * the workspace packages straight from source — so specs test the current source,
  * no build step) on a dedicated, deterministic port and drives it headless.
  *
- * Run: `pnpm --filter silicaui-builder e2e`. A dev harness on 5178 is left alone —
+ * Run: `pnpm --filter @wizeworks/silicaui-builder e2e`. A dev harness on 5178 is left alone —
  * e2e uses its own port (`--strictPort` so it never silently drifts).
  */
 const PORT = 5190;

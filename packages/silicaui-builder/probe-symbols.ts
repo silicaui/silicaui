@@ -6,8 +6,8 @@
  * run under node (see the runner in the shell command).
  */
 import { Editor } from "./src/engine";
-import { el, stampTree, toHtml, walk } from "silicaui-html";
-import type { Node, Theme } from "silicaui-html";
+import { el, stampTree, toHtml, walk } from "@wizeworks/silicaui-html";
+import type { Node, Theme } from "@wizeworks/silicaui-html";
 
 let failures = 0;
 function check(name: string, cond: boolean): void {

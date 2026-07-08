@@ -10,8 +10,8 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "silicaui-html";
-import { applyOverrides, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "silicaui-html";
+import type { ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
+import { applyOverrides, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "@wizeworks/silicaui-html";
 import { defaultFrameRoot } from "./frame";
 
 /** A node that carries id/class/children — everything except an outlet. */
@@ -734,7 +734,7 @@ export class Editor {
   /**
    * Set (or clear, with undefined) a node's dynamic-content binding. The union is
    * "at most one" by construction, so this replaces any existing binding wholesale.
-   * The `ref` is opaque — silicaui never parses it; a host (sparx) interprets it.
+   * The `ref` is opaque — @wizeworks/silicaui never parses it; a host (sparx) interprets it.
    * Lowers to `data-sui-bind` / `-repeat` / `-action` (+ `href`) in `toHtml`.
    */
   setData(id: string, binding: DataBinding | undefined): void {

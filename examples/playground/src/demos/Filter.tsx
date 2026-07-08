@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, FilterItem } from "silicaui-react";
+import { Filter, FilterItem } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

@@ -8,5 +8,5 @@ export default defineConfig({
   sourcemap: true,
   treeshake: true,
   // Keep peers + the headless table engine external so the consumer dedupes them.
-  external: ["react", "react-dom", "silicaui-react", /^@tanstack\//],
+  external: ["react", "react-dom", "@wizeworks/silicaui-react", /^@tanstack\//],
 });

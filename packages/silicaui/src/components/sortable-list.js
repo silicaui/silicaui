@@ -4,7 +4,7 @@
  * dnd-kit owns the drag behavior (sensors, collision, keyboard, transforms);
  * this styles the list rows and the drag handle, plus the lifted look while a row
  * is being dragged (`[data-dragging]`). The React `<SortableList>` (in the
- * optional `silicaui-dnd` package) drives dnd-kit and hangs these classes on the
+ * optional `@wizeworks/silicaui-dnd` package) drives dnd-kit and hangs these classes on the
  * markup; `transform`/`transition` are applied inline by dnd-kit, so this module
  * deliberately doesn't set them.
  *

@@ -3,7 +3,7 @@ import * as React from "react";
 /**
  * Runtime configuration shared by all Silica React components.
  *
- * `prefix` MUST match the `prefix` you set on `@plugin "silicaui"` in your CSS.
+ * `prefix` MUST match the `prefix` you set on `@plugin "@wizeworks/silicaui"` in your CSS.
  * The CSS plugin emits `.<prefix>btn`; these components rebuild those class
  * names at runtime, so both sides have to agree on the prefix.
  */

@@ -1,27 +1,27 @@
-# silicaui-charts
+# @wizeworks/silicaui-charts
 
 Silica UI charts — [Apache ECharts](https://echarts.apache.org/) wrapped in a
 single `<Chart>` component that **auto-themes to your Silica design tokens**.
 Full ECharts API, zero manual palette wiring.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-charts.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-charts)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui-charts.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-charts)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-charts?style=flat-square)](https://bundlephobia.com/package/silicaui-charts)
-[![license](https://img.shields.io/npm/l/silicaui-charts.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-charts.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-charts)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui-charts.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-charts)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wizeworks/silicaui-charts?style=flat-square)](https://bundlephobia.com/package/@wizeworks/silicaui-charts)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-charts.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
 ```bash
-pnpm add silicaui-charts silicaui-react
-pnpm add -D silicaui tailwindcss
+pnpm add @wizeworks/silicaui-charts @wizeworks/silicaui-react
+pnpm add -D @wizeworks/silicaui tailwindcss
 ```
 
 ## Usage
 
 ```tsx
-import { Chart } from "silicaui-charts";
+import { Chart } from "@wizeworks/silicaui-charts";
 
 <Chart
   style={{ height: 320 }}
@@ -58,4 +58,4 @@ Also ships `<Sparkline>` for compact inline trend charts, and re-exports
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
-- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends
+- [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react) — the component layer this package extends

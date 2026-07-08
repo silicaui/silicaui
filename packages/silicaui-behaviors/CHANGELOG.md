@@ -1,1 +1,1 @@
-# silicaui-behaviors
+# @wizeworks/silicaui-behaviors

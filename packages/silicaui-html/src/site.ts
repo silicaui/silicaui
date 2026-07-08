@@ -107,7 +107,7 @@ export function renderPage(site: Site, pageId: string, opts?: ToHtmlOptions): st
 /**
  * Render EVERY page of the site to composed HTML — the whole-site export the
  * builder hands its host on publish. The host maps each `slug` to a route/file
- * and owns hosting; silicaui just produces the markup + the structured `Site`.
+ * and owns hosting; @wizeworks/silicaui just produces the markup + the structured `Site`.
  */
 export function renderSite(site: Site, opts?: ToHtmlOptions): RenderedPage[] {
   return site.pages.map((p) => ({

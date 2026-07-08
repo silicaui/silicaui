@@ -1,4 +1,4 @@
-import { Hero, HeroContent, HeroOverlay, Button } from "silicaui-react";
+import { Hero, HeroContent, HeroOverlay, Button } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function HeroDemo() {

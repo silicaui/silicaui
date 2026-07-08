@@ -5,7 +5,7 @@ import {
     SelectGroup,
     SelectGroupLabel,
     SelectSeparator,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function SelectMenuDemo() {

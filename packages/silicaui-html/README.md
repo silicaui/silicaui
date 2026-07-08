@@ -1,22 +1,22 @@
-# silicaui-html
+# @wizeworks/silicaui-html
 
-silicaui's **framework-neutral node-tree source** — the canonical
+@wizeworks/silicaui's **framework-neutral node-tree source** — the canonical
 `Block`/`Document` shape, an authoring kit for building it, and a `toHtml`
 projection. This is the format the Silica builder and any structured host (a
 CMS, a static-site generator, an email renderer) read and write; React is a
 separate *projection* of the same tree, never the source of truth.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-html)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-html)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-html?style=flat-square)](https://bundlephobia.com/package/silicaui-html)
-[![license](https://img.shields.io/npm/l/silicaui-html.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-html)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui-html.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-html)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wizeworks/silicaui-html?style=flat-square)](https://bundlephobia.com/package/@wizeworks/silicaui-html)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-html.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
 ```bash
-pnpm add silicaui-html
+pnpm add @wizeworks/silicaui-html
 ```
 
 ## Why a node tree, not JSX
@@ -34,7 +34,7 @@ pnpm add silicaui-html
 ## Usage
 
 ```ts
-import { el, atom, block, stamp, toHtml } from "silicaui-html";
+import { el, atom, block, stamp, toHtml } from "@wizeworks/silicaui-html";
 
 const hero = block({
   root: el("section", "hero", {
@@ -54,7 +54,7 @@ Composed patterns (hero sections, FAQ accordions, feature grids) ship
 pre-built under the `blocks` subpath:
 
 ```ts
-import { heroSplitCta, faqAccordion, featureGrid } from "silicaui-html/blocks";
+import { heroSplitCta, faqAccordion, featureGrid } from "@wizeworks/silicaui-html/blocks";
 ```
 
 ## What's in the package

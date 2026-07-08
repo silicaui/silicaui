@@ -1,4 +1,4 @@
-import { Indicator, IndicatorItem, Badge, Button, Status } from "silicaui-react";
+import { Indicator, IndicatorItem, Badge, Button, Status } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function IndicatorDemo() {

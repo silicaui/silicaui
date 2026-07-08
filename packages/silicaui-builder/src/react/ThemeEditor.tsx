@@ -1,16 +1,16 @@
 /**
  * The Theme editor (left panel in Theme mode). A 4-up COLOR TILE grid (surfaces +
  * every role from `rolesOf`, so N named colors flow in) whose tiles open
- * silicaui-react's OKLCH `ColorPicker`; discrete RADIUS pickers; EFFECTS toggles
- * (Depth/Noise); and a Field-size step. Styled ONLY with Tailwind + silicaui
- * classes; every control is a real silicaui-react component; every glyph is a
+ * @wizeworks/silicaui-react's OKLCH `ColorPicker`; discrete RADIUS pickers; EFFECTS toggles
+ * (Depth/Noise); and a Field-size step. Styled ONLY with Tailwind + @wizeworks/silicaui
+ * classes; every control is a real @wizeworks/silicaui-react component; every glyph is a
  * baked `<Icon>`. Writes the whole theme through `editor.setTheme` so the canvas +
  * board repaint live.
  */
 import * as React from "react";
-import type { Theme } from "silicaui-html";
-import { SURFACE_TOKENS, rolesOf, colorValue, presetByName } from "silicaui-html";
-import { ColorPicker, Switch, ToggleGroup, ToggleGroupItem, Input, Button } from "silicaui-react";
+import type { Theme } from "@wizeworks/silicaui-html";
+import { SURFACE_TOKENS, rolesOf, colorValue, presetByName } from "@wizeworks/silicaui-html";
+import { ColorPicker, Switch, ToggleGroup, ToggleGroupItem, Input, Button } from "@wizeworks/silicaui-react";
 import { useEditor, useTheme } from "./editor-context";
 import { randomizePalette, themeToCss, isCustomRole } from "../theme-ops";
 import { Icon } from "./Icon";
@@ -24,7 +24,7 @@ const inkOn = (value: string): string =>
   value === "transparent" ? "currentColor" : `oklch(from ${value} clamp(0, (0.62 - l) * 1000, 1) 0 0)`;
 
 /**
- * A color's effective value, falling back to silicaui's default palette. Presets
+ * A color's effective value, falling back to @wizeworks/silicaui's default palette. Presets
  * intentionally omit `-content` tokens (see `themes.ts`), so a `name-content`
  * with no explicit override anywhere falls back to an auto-derived ink on top of
  * its paired base color — mirroring the runtime's `contentVar` fallback.

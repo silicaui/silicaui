@@ -1,18 +1,18 @@
 /**
  * The Builder shell — the embeddable editor chrome.
  *
- * STYLING RULE (hard): every visual is a Tailwind utility or a silicaui component
+ * STYLING RULE (hard): every visual is a Tailwind utility or a @wizeworks/silicaui component
  * class, and every glyph is a baked `<Icon>`. There is NO bespoke `.sui-*`
- * stylesheet. silicaui is a Tailwind v4 plugin, so the chrome IS silicaui —
+ * stylesheet. @wizeworks/silicaui is a Tailwind v4 plugin, so the chrome IS @wizeworks/silicaui —
  * surfaces (`bg-base-100`, `border-base-300`), text (`text-base-content`), accents
- * (`text-primary`), and real silicaui-react components carry their own classes. The
+ * (`text-primary`), and real @wizeworks/silicaui-react components carry their own classes. The
  * shell is its own `[data-theme="studio"]` island, isolated from the host page and
  * from the canvas/board document theme.
  */
 import * as React from "react";
-import type { Document as SuiDocument, RenderedPage, Site } from "silicaui-html";
-import { renderSite } from "silicaui-html";
-import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "silicaui-react";
+import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/silicaui-html";
+import { renderSite } from "@wizeworks/silicaui-html";
+import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizeworks/silicaui-react";
 import { Editor } from "../engine";
 import { DraftStore } from "../persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
@@ -159,7 +159,7 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
       <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
         <div className="flex items-center gap-2 font-semibold tracking-tight mr-1">
           <span className="size-4 rounded-md bg-linear-to-br from-primary to-secondary" />
-          silicaui <span className="text-base-content/45 font-medium">builder</span>
+          @wizeworks/silicaui <span className="text-base-content/45 font-medium">builder</span>
         </div>
 
         <ToggleGroup
@@ -377,7 +377,7 @@ export interface BuilderProps {
   persistKey?: string | null;
 }
 
-const DEFAULT_PERSIST_KEY = "silicaui-builder";
+const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
 
 /** The full builder. Mount it anywhere; it fills its host container. */
 export function Builder({

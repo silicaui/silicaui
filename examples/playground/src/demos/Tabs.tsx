@@ -5,7 +5,7 @@ import {
     TabsPanel,
     Input,
     Button,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

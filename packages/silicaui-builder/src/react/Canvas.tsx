@@ -13,12 +13,12 @@
  * ring on a container. Palette drags insert a new node; node drags move an
  * existing one (the engine cycle-guards moves).
  *
- * STYLING RULE (hard): Tailwind utilities + silicaui classes only, and every
+ * STYLING RULE (hard): Tailwind utilities + @wizeworks/silicaui classes only, and every
  * class here is a LITERAL string so the harness's `@source` scan safelists it.
  */
 import * as React from "react";
-import type { Child, ElementNode, Node, Theme } from "silicaui-html";
-import { applyOverrides, expandComponent, rolesOf, walk } from "silicaui-html";
+import type { Child, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
+import { applyOverrides, expandComponent, rolesOf, walk } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";

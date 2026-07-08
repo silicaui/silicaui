@@ -12,8 +12,8 @@ import type {
   RowSelectionState,
   PaginationState,
 } from "@tanstack/react-table";
-import { cx, useSilicaClass } from "silicaui-react";
-import type { SilicaColor, SilicaSize } from "silicaui-react";
+import { cx, useSilicaClass } from "@wizeworks/silicaui-react";
+import type { SilicaColor, SilicaSize } from "@wizeworks/silicaui-react";
 
 /** A TanStack column definition, re-exported so consumers type columns without a direct import. */
 export type DataTableColumn<TData, TValue = unknown> = ColumnDef<TData, TValue>;
@@ -72,7 +72,7 @@ function SortIcon() {
  * (headless); everything visual — sort carets, selection column, selected-row
  * tint, sticky header, pagination toolbar, empty + loading states — is Silica.
  *
- * Ships in the optional `silicaui-table` package so the core React library stays
+ * Ships in the optional `@wizeworks/silicaui-table` package so the core React library stays
  * dependency-free.
  */
 export function DataTable<TData>({

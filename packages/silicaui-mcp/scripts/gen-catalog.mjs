@@ -1,8 +1,9 @@
-// Generates the static catalog `silicaui-mcp` ships with — real class names,
-// tokens, blocks, behaviors, and component docs, extracted straight from the
-// monorepo's source (never hand-authored, so it can't drift into fiction).
-// Run via `pnpm --filter silicaui-mcp gen`; output is committed under
-// src/data/ (same discipline as silicaui-builder's gen-icons.mjs).
+// Generates the static catalog `@wizeworks/silicaui-mcp` ships with — real
+// class names, tokens, blocks, behaviors, and component docs, extracted
+// straight from the monorepo's source (never hand-authored, so it can't
+// drift into fiction).
+// Run via `pnpm --filter @wizeworks/silicaui-mcp gen`; output is committed
+// under src/data/ (same discipline as silicaui-builder's gen-icons.mjs).
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -14,6 +15,13 @@ const packagesRoot = path.join(pkgRoot, "..");
 const repoRoot = path.join(packagesRoot, "..");
 const dataDir = path.join(pkgRoot, "src", "data");
 mkdirSync(dataDir, { recursive: true });
+
+// Folder names on disk stay unscoped (packages/silicaui-react/...); only the
+// published/installable identity gets the @wizeworks scope. `scoped()` and
+// `mention()` do that conversion at the point data is written to the catalog,
+// never at the point a path is built from a folder name.
+const scoped = (n) => `@wizeworks/${n}`;
+const mention = (s) => s.replace(/\bsilicaui(-[a-z]+)?\b/g, (m) => `@wizeworks/${m}`);
 
 function writeJson(name, data) {
   writeFileSync(path.join(dataDir, name), JSON.stringify(data, null, 2) + "\n");
@@ -57,7 +65,15 @@ for (const p of PACKAGES) {
     p.version = "unknown";
   }
 }
-writeJson("packages.json", PACKAGES);
+writeJson(
+  "packages.json",
+  PACKAGES.map((p) => ({
+    ...p,
+    name: scoped(p.name),
+    purpose: mention(p.purpose),
+    install: p.install ? mention(p.install) : p.install,
+  })),
+);
 
 // ── tokens.json ──────────────────────────────────────────────────────────
 console.log("tokens.json");
@@ -124,7 +140,7 @@ try {
   );
   writeJson("blocks.json", listBlocks());
 } catch (err) {
-  console.warn(`  ! failed to load silicaui-html blocks (build it first: pnpm --filter silicaui-html build): ${err.message}`);
+  console.warn(`  ! failed to load silicaui-html blocks (build it first: pnpm --filter @wizeworks/silicaui-html build): ${err.message}`);
   writeJson("blocks.json", []);
 }
 
@@ -266,7 +282,7 @@ for (const meta of [...componentMeta, ...wrapperMeta]) {
 
   components.push({
     name: meta.name,
-    package: meta.package,
+    package: scoped(meta.package),
     category: meta.category,
     sourceFile: `${meta.package}/src/${fileRel}`,
     description: parsed.description,

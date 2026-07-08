@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NumberField } from "silicaui-react";
+import { NumberField } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function NumberFieldDemo() {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckboxGroup, CheckboxOption } from "silicaui-react";
+import { CheckboxGroup, CheckboxOption } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function CheckboxGroupDemo() {

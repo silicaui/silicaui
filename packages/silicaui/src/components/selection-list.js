@@ -4,7 +4,7 @@
  *
  * Colorless: the selected row reads `--color-primary` for its tint, matching
  * `tree-view.js`'s convention. The indicator itself is a real `.checkbox`/
- * `.radio` element (silicaui-react reuses those components directly), so this
+ * `.radio` element (@wizeworks/silicaui-react reuses those components directly), so this
  * module only styles the row/label/description chrome around it.
  *
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)

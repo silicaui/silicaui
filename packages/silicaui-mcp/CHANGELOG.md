@@ -1,1 +1,1 @@
-# silicaui-mcp
+# @wizeworks/silicaui-mcp

@@ -4,7 +4,7 @@
  * caching each snapshot so getSnapshot stays referentially stable between commits.
  */
 import * as React from "react";
-import type { Document, Node, SymbolDef, Theme } from "silicaui-html";
+import type { Document, Node, SymbolDef, Theme } from "@wizeworks/silicaui-html";
 import type { ActiveTree, Editor, PagesView } from "../engine";
 
 const EditorContext = React.createContext<Editor | null>(null);

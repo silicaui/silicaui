@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SelectionList } from "silicaui-react";
-import type { SelectionListItem } from "silicaui-react";
+import { SelectionList } from "@wizeworks/silicaui-react";
+import type { SelectionListItem } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 const PlanIcon = (

@@ -3,7 +3,7 @@ import { contentVar } from "./lib/auto-content.js";
 /**
  * Color UTILITIES as pure var-setters — `.text-<c>`, `.bg-<c>`, `.border-<c>`.
  *
- * silicaui already emits component VARIANTS (`.btn-<c>`) for the whole `colors:`
+ * @wizeworks/silicaui already emits component VARIANTS (`.btn-<c>`) for the whole `colors:`
  * list via addBase, so they exist for any declared color with no scanning. Color
  * utilities, by contrast, historically came only from Tailwind's registered
  * `theme.colors` (the built-in set) and were tree-shaken against scanned source —
@@ -12,7 +12,7 @@ import { contentVar } from "./lib/auto-content.js";
  *
  * Emitting them here as var-setters (same mechanism as variants) closes that gap:
  * every color in the list gets the full trio, for ALL N named colors, with no
- * safelist. This is silicaui's core promise — "n named colors cascade through
+ * safelist. This is @wizeworks/silicaui's core promise — "n named colors cascade through
  * everything" — made literally true. Tailwind's own utilities (opacity modifiers
  * like `bg-primary/50`) still layer on top for the registered colors; these are
  * additive and never fight them (utilities layer wins over base).

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ToggleGroup, ToggleGroupItem } from "silicaui-react";
+import { ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function ToggleGroupDemo() {

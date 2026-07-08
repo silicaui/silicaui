@@ -6,16 +6,16 @@
  * The shell is composed from the real, validated `navbar` and `footer` BLOCK
  * templates (the same ones the Insert palette offers), so a new site's layout is
  * already built from our components — fully editable in place — rather than a
- * bespoke stand-in. The block roots live in `silicaui-html/src` (scanned by the
+ * bespoke stand-in. The block roots live in `@wizeworks/silicaui-html/src` (scanned by the
  * harness `@source`), so their utilities are safelisted for the canvas.
  *
  * STYLING RULE (hard): every class authored HERE is a LITERAL string (the wrapper
  * + the defensive fallbacks) so the `@source` scan safelists them — same rule as
  * the palette, Canvas, and Inspector.
  */
-import type { Node } from "silicaui-html";
-import { el, outlet } from "silicaui-html";
-import { getBlock } from "silicaui-html/blocks";
+import type { Node } from "@wizeworks/silicaui-html";
+import { el, outlet } from "@wizeworks/silicaui-html";
+import { getBlock } from "@wizeworks/silicaui-html/blocks";
 
 /** A fresh clone of a block's root, or `fallback()` if the block is unavailable.
  *  Cloned so the shared template singleton is never mutated by frame editing. */

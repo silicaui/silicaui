@@ -1,1 +1,1 @@
-# silicaui-table
+# @wizeworks/silicaui-table

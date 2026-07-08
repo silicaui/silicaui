@@ -1,4 +1,4 @@
-import { Divider, Button } from "silicaui-react";
+import { Divider, Button } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function DividerDemo() {

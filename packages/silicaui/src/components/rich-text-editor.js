@@ -5,7 +5,7 @@
  * bordered box, a wrapping toolbar of toggle buttons (active state reads
  * `--color-primary`), and the editable content surface (`.ProseMirror`) with
  * sensible prose typography + a placeholder. The React `<RichTextEditor>` (in the
- * optional `silicaui-editor` package) drives TipTap and hangs these classes on
+ * optional `@wizeworks/silicaui-editor` package) drives TipTap and hangs these classes on
  * the markup.
  *
  * Colorless: the active/pressed toolbar button reads `--color-primary`, same

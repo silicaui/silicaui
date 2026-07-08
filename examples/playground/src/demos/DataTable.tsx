@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Badge } from "silicaui-react";
-import type { SilicaColor } from "silicaui-react";
-import { DataTable } from "silicaui-table";
-import type { DataTableColumn } from "silicaui-table";
-import { Sparkline } from "silicaui-charts";
+import { Badge } from "@wizeworks/silicaui-react";
+import type { SilicaColor } from "@wizeworks/silicaui-react";
+import { DataTable } from "@wizeworks/silicaui-table";
+import type { DataTableColumn } from "@wizeworks/silicaui-table";
+import { Sparkline } from "@wizeworks/silicaui-charts";
 import { Section } from "../lib/Section";
 
 interface TeamRow {

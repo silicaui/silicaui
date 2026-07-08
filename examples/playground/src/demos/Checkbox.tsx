@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Checkbox } from "silicaui-react";
+import { Checkbox } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { ColorVariantSizeGrid } from "../lib/ColorGrid";
 

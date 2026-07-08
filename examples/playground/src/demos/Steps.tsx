@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Steps, Step, Button } from "silicaui-react";
+import { Steps, Step, Button } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

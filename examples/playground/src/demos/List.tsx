@@ -1,4 +1,4 @@
-import { List, ListRow, ListColGrow, ListTitle, Avatar, Button } from "silicaui-react";
+import { List, ListRow, ListColGrow, ListTitle, Avatar, Button } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const MEMBERS = [

@@ -1,5 +1,5 @@
 {
-  "name": "silicaui-panels",
+  "name": "@wizeworks/silicaui-panels",
   "version": "0.3.0",
   "description": "Silica UI resizable panels — react-resizable-panels wrapped with a Silica-styled resize handle.",
   "type": "module",
@@ -40,7 +40,7 @@
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18",
-    "silicaui-react": ">=0.0.0"
+    "@wizeworks/silicaui-react": ">=0.0.0"
   },
   "dependencies": {
     "react-resizable-panels": "^2.1.7"
@@ -50,7 +50,7 @@
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "silicaui-react": "workspace:*",
+    "@wizeworks/silicaui-react": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RichTextEditor } from "silicaui-editor";
+import { RichTextEditor } from "@wizeworks/silicaui-editor";
 import { Section } from "../lib/Section";
 
 export function RichTextEditorDemo() {

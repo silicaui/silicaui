@@ -1,4 +1,4 @@
-import { Avatar, AvatarGroup } from "silicaui-react";
+import { Avatar, AvatarGroup } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { COLORS, SIZES } from "../lib/data";
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dropzone } from "silicaui-react";
+import { Dropzone } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function DropzoneDemo() {

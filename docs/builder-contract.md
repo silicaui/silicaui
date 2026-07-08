@@ -1,10 +1,10 @@
-# silicaui-builder — Engine & Host Contract
+# @wizeworks/silicaui-builder — Engine & Host Contract
 
 **Version:** 1.0
 **Author:** Brandon Korous / WizeWorks
 **Last Updated:** 2026-07-05
 
-> **Purpose.** `silicaui-builder` is a **domain-blind visual editor for silicaui documents**. It loads a document (a silicaui node tree + a theme), lets a human manipulate it directly (select, drag, edit, add blocks, tune the theme), and extracts the document back — in the *same shape it loaded*. It knows silicaui: nodes, classes, tokens, themes, slots, blocks, behaviors. It knows **nothing** about products, CMS entries, orders, tenants, versioning, or publishing. Every one of those enters through a single **host adapter** as opaque references and callbacks.
+> **Purpose.** `@wizeworks/silicaui-builder` is a **domain-blind visual editor for @wizeworks/silicaui documents**. It loads a document (a @wizeworks/silicaui node tree + a theme), lets a human manipulate it directly (select, drag, edit, add blocks, tune the theme), and extracts the document back — in the *same shape it loaded*. It knows @wizeworks/silicaui: nodes, classes, tokens, themes, slots, blocks, behaviors. It knows **nothing** about products, CMS entries, orders, tenants, versioning, or publishing. Every one of those enters through a single **host adapter** as opaque references and callbacks.
 >
 > **Read this first, one line:** the contract is two surfaces — **the document it loads/extracts** (§2) and **the host seam it plugs into** (§5). Get those two right and the builder is a focused tool that any host can mount; get them wrong and you rebuild the fused everything-machine under a new name. The whole design is: *the engine is generic, the host is specific, and the boundary between them is opaque references.*
 
@@ -15,13 +15,13 @@
 The current sparx builder is "OK" because the editing engine is **fused** with every sparx domain. This contract exists to un-fuse it.
 
 **The engine owns (its whole job):**
-- Render a silicaui document faithfully — **preview == production** (same silicaui, same `[data-theme]`, same behaviors).
+- Render a @wizeworks/silicaui document faithfully — **preview == production** (same @wizeworks/silicaui, same `[data-theme]`, same behaviors).
 - Direct manipulation: select, multi-select, drag-reorder/re-parent, edit props + classes, add/remove/duplicate/paste nodes.
-- The **palette** (stamp silicaui blocks + components), the **layers tree**, the **inspector framework**.
+- The **palette** (stamp @wizeworks/silicaui blocks + components), the **layers tree**, the **inspector framework**.
 - **Theme editing** (the `[data-theme]` token set the canvas renders under).
 - Responsive **device preview** (container-query widths), **undo/redo**, keyboard + a11y.
-- **Behavior preview** (silicaui-behaviors, autoplay suppressed for authoring).
-- The **`[data-theme]` island + `@scope` isolation** (§8) — because that's silicaui's own model, not a host concern.
+- **Behavior preview** (@wizeworks/silicaui-behaviors, autoplay suppressed for authoring).
+- The **`[data-theme]` island + `@scope` isolation** (§8) — because that's @wizeworks/silicaui's own model, not a host concern.
 - **Load and extract** a clean, portable document.
 
 **The engine does NOT own (all of it is a host plug):**
@@ -37,10 +37,10 @@ If a capability is about *how a great site is built and edited*, it's the engine
 
 ## 1. The one-shape principle
 
-There is exactly **one** node shape, and it is the same shape in four places: what loads, what extracts, what persists, and what silicaui-blocks are authored in. **No translation layer, ever.**
+There is exactly **one** node shape, and it is the same shape in four places: what loads, what extracts, what persists, and what @wizeworks/silicaui-blocks are authored in. **No translation layer, ever.**
 
 ```
-silicaui-blocks (id-free templates)
+@wizeworks/silicaui-blocks (id-free templates)
         │  stamp → mint ids
         ▼
 BuilderDocument.root  ═══ loaded ═══► [ EDIT ] ═══ extracted ═══►  BuilderDocument.root
@@ -66,10 +66,10 @@ interface BuilderDocument {
 
 interface BuilderNode {
   id: string;                   // GLOBALLY-UNIQUE instance id — selection, React keys, dnd ids.
-                                // (This is the ONE addition over a silicaui-blocks BlockNode,
+                                // (This is the ONE addition over a @wizeworks/silicaui-blocks BlockNode,
                                 //  which is id-free. Stamping a block mints these.)
   type: string;                 // 'el:<tag>' (raw element) | '<SilicaComponent>' (Button, Card, …)
-  class?: string;               // silicaui classes + allowed utilities — the ONLY styling surface
+  class?: string;               // @wizeworks/silicaui classes + allowed utilities — the ONLY styling surface
   props?: Record<string, unknown>;  // text, whitelisted attrs, component props, + markers (§3)
   children?: BuilderNode[];
 }
@@ -88,10 +88,10 @@ interface DocumentFrame {
 
 Notes that matter:
 
-- **`id` is the only delta from a silicaui-blocks node.** Blocks are id-free templates; document nodes are live instances that need stable identity for selection and drag. Ids must be **globally unique and persisted** (not a per-session counter) — the same invariant sparx already learned the hard way, because ids double as React keys and dnd-kit sortable ids.
-- **`class` is the sole styling channel.** No inline style object, no second styling surface. Everything — layout, spacing, surface, skin — is silicaui classes + the allowed utility subset (the host's allowlist gates them, §5).
+- **`id` is the only delta from a @wizeworks/silicaui-blocks node.** Blocks are id-free templates; document nodes are live instances that need stable identity for selection and drag. Ids must be **globally unique and persisted** (not a per-session counter) — the same invariant sparx already learned the hard way, because ids double as React keys and dnd-kit sortable ids.
+- **`class` is the sole styling channel.** No inline style object, no second styling surface. Everything — layout, spacing, surface, skin — is @wizeworks/silicaui classes + the allowed utility subset (the host's allowlist gates them, §5).
 - **`frame` is how a page edits inside its layout.** The engine renders `frame.root` as a backdrop (locked or editable) and drops `root` at the frame's single `Outlet` node — the same composition the site ships, so header/footer/nav preview correctly. Omit it to edit a bare tree (or to edit the layout *as* the root).
-- **`theme` loads and extracts too.** A theme panel edits `theme.tokens`; the mutated theme comes back in `extract()`. The theme is native silicaui — a token map applied via `[data-theme]`.
+- **`theme` loads and extracts too.** A theme panel edits `theme.tokens`; the mutated theme comes back in `extract()`. The theme is native @wizeworks/silicaui — a token map applied via `[data-theme]`.
 
 ---
 
@@ -156,7 +156,7 @@ interface BuilderHost {
   resolveBinding?(ref: string, scope: DataScope): Resolved | Promise<Resolved>;
   resolveCollection?(ref: string, scope: DataScope): unknown[] | Promise<unknown[]>;
 
-  // CATALOG — what the Add palette offers. Default: the silicaui-blocks index.
+  // CATALOG — what the Add palette offers. Default: the @wizeworks/silicaui-blocks index.
   // The host curates (hide some, add domain composites, reorder categories).
   catalog(): CatalogEntry[];
 
@@ -188,9 +188,9 @@ That's it. Six methods, three of them optional. A host that implements `catalog`
 
 ## 6. Engine owns vs. host owns (the focus table)
 
-| Concern | Engine (`silicaui-builder`) | Host (sparx) |
+| Concern | Engine (`@wizeworks/silicaui-builder`) | Host (sparx) |
 |---|:---:|:---:|
-| Render silicaui tree faithfully (preview==prod) | ● | |
+| Render @wizeworks/silicaui tree faithfully (preview==prod) | ● | |
 | Select / drag / edit / add / duplicate | ● | |
 | Palette, layers tree, inspector *framework* | ● | |
 | Theme editing (`[data-theme]` tokens) | ● | |
@@ -208,14 +208,14 @@ The rule of thumb: **the engine is about *editing*; the host is about *meaning a
 
 ---
 
-## 7. Relationship to the rest of silicaui
+## 7. Relationship to the rest of @wizeworks/silicaui
 
-`silicaui-builder` completes the family and consumes the others natively:
+`@wizeworks/silicaui-builder` completes the family and consumes the others natively:
 
-- **silicaui (CSS)** — the classes the document is made of; the canvas renders under it.
-- **silicaui-blocks** — the palette's default catalog. Because a block is the same node shape (minus ids), **stamping is native** — no adapter, just mint ids (§1). The `block → document node` transform *is* the only translation in the system.
-- **silicaui-behaviors** — the runtime the canvas previews (autoplay suppressed) and the live site runs.
-- **silicaui-react** — not required by the engine; a host may render extracted documents through it on React surfaces, but the engine renders the tree directly.
+- **@wizeworks/silicaui (CSS)** — the classes the document is made of; the canvas renders under it.
+- **@wizeworks/silicaui-blocks** — the palette's default catalog. Because a block is the same node shape (minus ids), **stamping is native** — no adapter, just mint ids (§1). The `block → document node` transform *is* the only translation in the system.
+- **@wizeworks/silicaui-behaviors** — the runtime the canvas previews (autoplay suppressed) and the live site runs.
+- **@wizeworks/silicaui-react** — not required by the engine; a host may render extracted documents through it on React surfaces, but the engine renders the tree directly.
 
 One node shape flows through all of them. That's the consistency that makes the whole thing tractable.
 
@@ -223,13 +223,13 @@ One node shape flows through all of them. That's the consistency that makes the 
 
 ## 8. Isolation is native, not a host hack
 
-The engine renders the document as a **`[data-theme]` themed island** (the canvas root carries `theme.name`; its tokens shadow the host's for everything inside) and **`@scope`s** the document's rules/reset so they don't leak into the surrounding host UI. This is not new machinery — it is **silicaui's own island model** (a themed subtree inside a differently-themed host), which today's sparx builder reimplements by hand. Owning the builder in silicaui puts that layering back with the model that defines it. The host provides the theme values; the engine does the isolation. (Editor chrome the engine draws inside the canvas uses its own token lane, never the document's palette — the same discipline that keeps a selection outline from inheriting a tenant's colors.)
+The engine renders the document as a **`[data-theme]` themed island** (the canvas root carries `theme.name`; its tokens shadow the host's for everything inside) and **`@scope`s** the document's rules/reset so they don't leak into the surrounding host UI. This is not new machinery — it is **@wizeworks/silicaui's own island model** (a themed subtree inside a differently-themed host), which today's sparx builder reimplements by hand. Owning the builder in @wizeworks/silicaui puts that layering back with the model that defines it. The host provides the theme values; the engine does the isolation. (Editor chrome the engine draws inside the canvas uses its own token lane, never the document's palette — the same discipline that keeps a selection outline from inheriting a tenant's colors.)
 
 ---
 
 ## 9. Definition of done — the minimal buildable surface
 
-- [ ] `BuilderDocument` / `BuilderNode` / `ThemeConfig` / `DocumentFrame` types (§2), one shape shared with silicaui-blocks (+ `id`).
+- [ ] `BuilderDocument` / `BuilderNode` / `ThemeConfig` / `DocumentFrame` types (§2), one shape shared with @wizeworks/silicaui-blocks (+ `id`).
 - [ ] `mountBuilder(el, { document, host })` → `BuilderHandle` with `extract()` symmetric to load (§4).
 - [ ] The three dynamic primitives (`bind` / `repeat` / `action`) as **opaque** markers resolved only through the host (§3).
 - [ ] `BuilderHost` (§5): `catalog` + `validateClass` + `onChange` required; `resolveBinding` + `resolveCollection` + `inspectorPanels` + `pickAsset` optional.

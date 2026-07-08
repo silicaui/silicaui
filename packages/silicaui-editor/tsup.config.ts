@@ -13,7 +13,7 @@ export default defineConfig({
   external: [
     "react",
     "react-dom",
-    "silicaui-react",
+    "@wizeworks/silicaui-react",
     /^@tiptap\//,
     /^prosemirror-/,
   ],

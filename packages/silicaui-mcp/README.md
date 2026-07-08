@@ -1,4 +1,4 @@
-# silicaui-mcp
+# @wizeworks/silicaui-mcp
 
 A local [MCP](https://modelcontextprotocol.io) server for **Silica UI**. It gives
 your AI coding assistant real, extracted-from-source answers about the design
@@ -6,9 +6,9 @@ system — exact CSS class names, real component props, working usage examples,
 composed blocks, and the behavior contract — instead of guessing.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-mcp.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui-mcp.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-mcp)
-[![license](https://img.shields.io/npm/l/silicaui-mcp.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-mcp.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui-mcp.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-mcp)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-mcp.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Why
@@ -25,7 +25,7 @@ or `btn-purple`, this catches it before it ships.
 **Claude Code:**
 
 ```bash
-claude mcp add silicaui -- npx -y silicaui-mcp
+claude mcp add @wizeworks/silicaui -- npx -y @wizeworks/silicaui-mcp
 ```
 
 **Claude Desktop / other `.mcp.json`-style clients** — add to your MCP config:
@@ -33,9 +33,9 @@ claude mcp add silicaui -- npx -y silicaui-mcp
 ```json
 {
   "mcpServers": {
-    "silicaui": {
+    "@wizeworks/silicaui": {
       "command": "npx",
-      "args": ["-y", "silicaui-mcp"]
+      "args": ["-y", "@wizeworks/silicaui-mcp"]
     }
   }
 }
@@ -47,9 +47,9 @@ add to `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "silicaui": {
+    "@wizeworks/silicaui": {
       "command": "npx",
-      "args": ["-y", "silicaui-mcp"]
+      "args": ["-y", "@wizeworks/silicaui-mcp"]
     }
   }
 }
@@ -76,10 +76,10 @@ server answers with is bundled in the package.
 
 This server ships a **static catalog**, regenerated from the Silica UI monorepo
 and published in step with the rest of the family. It doesn't read your
-project's actual installed `silicaui` version — for the fast-moving, mostly
+project's actual installed `@wizeworks/silicaui` version — for the fast-moving, mostly
 additive pre-1.0 stage that's a fine trade for zero setup and zero dependency on
 your project's module resolution. If you're pinned to an older Silica UI
-version and hit a mismatch, pin `silicaui-mcp` to a matching release too.
+version and hit a mismatch, pin `@wizeworks/silicaui-mcp` to a matching release too.
 
 ## Links
 

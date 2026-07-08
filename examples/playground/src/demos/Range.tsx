@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Range } from "silicaui-react";
+import { Range } from "@wizeworks/silicaui-react";
 import { Section, LabeledRow } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

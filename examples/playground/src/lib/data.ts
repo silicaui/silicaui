@@ -1,4 +1,4 @@
-import type { ButtonColor, ButtonVariant } from "silicaui-react";
+import type { ButtonColor, ButtonVariant } from "@wizeworks/silicaui-react";
 
 /**
  * The full color roster the playground exercises. The last three

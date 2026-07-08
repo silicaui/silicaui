@@ -5,7 +5,7 @@ import {
     AlertDescription,
     AlertActions,
     Button,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section, Stack } from "../lib/Section";
 import { InfoIcon, CheckIcon, WarnIcon, XIcon } from "../lib/icons";
 import { SIZES } from "../lib/data";

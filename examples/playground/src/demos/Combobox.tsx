@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Combobox } from "silicaui-react";
+import { Combobox } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 const US_STATES = [

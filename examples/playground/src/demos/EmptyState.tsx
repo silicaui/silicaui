@@ -1,4 +1,4 @@
-import { EmptyState, Button } from "silicaui-react";
+import { EmptyState, Button } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 function InboxIcon() {

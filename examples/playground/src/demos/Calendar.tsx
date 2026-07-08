@@ -3,8 +3,8 @@ import {
     Calendar,
     DatePicker,
     DateRangePicker,
-} from "silicaui-react";
-import type { DateRange } from "silicaui-react";
+} from "@wizeworks/silicaui-react";
+import type { DateRange } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

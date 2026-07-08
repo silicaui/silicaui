@@ -1,4 +1,4 @@
-import { Tooltip, TooltipProvider, Button } from "silicaui-react";
+import { Tooltip, TooltipProvider, Button } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function TooltipDemo() {

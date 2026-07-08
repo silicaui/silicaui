@@ -1,9 +1,9 @@
 import "./styles.css";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { Builder } from "silicaui-builder/react";
-import { stamp } from "silicaui-html";
-import { heroSplitCta } from "silicaui-html/blocks";
+import { Builder } from "@wizeworks/silicaui-builder/react";
+import { stamp } from "@wizeworks/silicaui-html";
+import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
 
 // The editable DOCUMENT theme — a complete "lightsilica" palette (every surface +
 // role) so the Theme editor's tile grid and the component board are fully

@@ -1,1 +1,1 @@
-# silicaui-charts
+# @wizeworks/silicaui-charts

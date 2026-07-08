@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ColorPicker, Button } from "silicaui-react";
+import { ColorPicker, Button } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function ColorPickerDemo() {

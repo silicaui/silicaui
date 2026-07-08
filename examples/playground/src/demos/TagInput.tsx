@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TagInput } from "silicaui-react";
+import { TagInput } from "@wizeworks/silicaui-react";
 import { Section, Stack } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

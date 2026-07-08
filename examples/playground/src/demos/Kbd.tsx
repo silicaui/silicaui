@@ -1,4 +1,4 @@
-import { Kbd } from "silicaui-react";
+import { Kbd } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { SIZES } from "../lib/data";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SortableList } from "silicaui-dnd";
-import { useSilicaClass } from "silicaui-react";
+import { SortableList } from "@wizeworks/silicaui-dnd";
+import { useSilicaClass } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 interface SectionBlock {

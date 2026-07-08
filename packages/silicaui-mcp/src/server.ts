@@ -95,7 +95,7 @@ function blockSummary(b: BlockData) {
 
 export function createServer(): McpServer {
   const server = new McpServer({
-    name: "silicaui-mcp",
+    name: "@wizeworks/silicaui-mcp",
     version: "0.1.0",
   });
 
@@ -104,7 +104,7 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI packages",
       description:
-        "List every package in the Silica UI family (silicaui, silicaui-react, silicaui-html, silicaui-behaviors, and the wrapper packages), with purpose, install command, and version.",
+        "List every package in the Silica UI family (@wizeworks/silicaui, @wizeworks/silicaui-react, @wizeworks/silicaui-html, @wizeworks/silicaui-behaviors, and the wrapper packages), with purpose, install command, and version.",
       inputSchema: {},
     },
     async () => ({
@@ -117,9 +117,9 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI components",
       description:
-        "List component names, categories, and source packages. Optionally filter to one package (e.g. 'silicaui-react', 'silicaui-charts').",
+        "List component names, categories, and source packages. Optionally filter to one package (e.g. '@wizeworks/silicaui-react', '@wizeworks/silicaui-charts').",
       inputSchema: {
-        package: z.string().optional().describe("Filter to one package name, e.g. 'silicaui-react'."),
+        package: z.string().optional().describe("Filter to one package name, e.g. '@wizeworks/silicaui-react'."),
       },
     },
     async ({ package: pkg }) => {
@@ -171,7 +171,7 @@ export function createServer(): McpServer {
         component: z
           .string()
           .optional()
-          .describe("A core silicaui component name, e.g. 'button'. Omit to list every component's classes."),
+          .describe("A core @wizeworks/silicaui component name, e.g. 'button'. Omit to list every component's classes."),
       },
     },
     async ({ component }) => {
@@ -211,7 +211,7 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI composed blocks",
       description:
-        "List composed page blocks from silicaui-html (hero sections, FAQs, feature grids, …) without their full node tree. Optionally filter by category or tag.",
+        "List composed page blocks from @wizeworks/silicaui-html (hero sections, FAQs, feature grids, …) without their full node tree. Optionally filter by category or tag.",
       inputSchema: {
         category: z.string().optional(),
         tag: z.string().optional(),
@@ -257,7 +257,7 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI behavior types",
       description:
-        "List the closed set of interactive behaviors (carousel, disclosure, tabs, menu, marquee, scrollspy, counter, dismiss, toc) that silicaui-behaviors hydrates from data-sui-* markers.",
+        "List the closed set of interactive behaviors (carousel, disclosure, tabs, menu, marquee, scrollspy, counter, dismiss, toc) that @wizeworks/silicaui-behaviors hydrates from data-sui-* markers.",
       inputSchema: {},
     },
     async () => ({ content: [{ type: "text", text: JSON.stringify(behaviors, null, 2) }] }),

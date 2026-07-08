@@ -1,7 +1,7 @@
 /**
  * The block linter (architecture spec §6.3, §10). Validates a block's class
  * strings against the banned surface so a conformant block is *guaranteed* to
- * pass a host's class gate — drift caught in silicaui CI, not a consumer's.
+ * pass a host's class gate — drift caught in @wizeworks/silicaui CI, not a consumer's.
  *
  * This enforces the security-load-bearing denylist (`fixed`, arbitrary `z-[…]`,
  * `content-[…]`, `url(…)`), bans viewport variants in blocks (the element-canvas

@@ -1,7 +1,7 @@
 /**
  * Hero — split with CTA. The proof block: authored once as a neutral tree,
  * consumable three ways (HTML / React / block.json). Uses only already-shipping
- * silicaui classes so it doesn't depend on in-flight vocabulary work.
+ * @wizeworks/silicaui classes so it doesn't depend on in-flight vocabulary work.
  *
  * Responsive via container queries (`@container` on the section establishes the
  * container; `@3xl:` collapses the two-column grid on narrow containers) — never

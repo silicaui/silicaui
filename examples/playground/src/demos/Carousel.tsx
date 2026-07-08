@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Carousel, CarouselItem } from "silicaui-react";
+import { Carousel, CarouselItem } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const SLIDES = ["primary", "secondary", "accent", "info", "success"] as const;

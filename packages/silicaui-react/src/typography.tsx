@@ -3,7 +3,7 @@ import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 
 /**
- * Typography components for silicaui's UI type ramp (see the `typography` plugin
+ * Typography components for @wizeworks/silicaui's UI type ramp (see the `typography` plugin
  * module). They keep the *semantic* element and its *visual* size independent: a
  * `<Heading level={1} size={3}>` is an `<h1>` for the document outline but reads
  * as an h3. With no `size`, a heading just inherits its tag's global default, so

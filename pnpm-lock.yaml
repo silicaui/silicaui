@@ -14,30 +14,30 @@ importers:
 
   examples/playground:
     dependencies:
+      '@wizeworks/silicaui-charts':
+        specifier: workspace:*
+        version: link:../../packages/silicaui-charts
+      '@wizeworks/silicaui-dnd':
+        specifier: workspace:*
+        version: link:../../packages/silicaui-dnd
+      '@wizeworks/silicaui-editor':
+        specifier: workspace:*
+        version: link:../../packages/silicaui-editor
+      '@wizeworks/silicaui-panels':
+        specifier: workspace:*
+        version: link:../../packages/silicaui-panels
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../../packages/silicaui-react
+      '@wizeworks/silicaui-table':
+        specifier: workspace:*
+        version: link:../../packages/silicaui-table
       react:
         specifier: ^19.0.0
         version: 19.2.7
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-charts:
-        specifier: workspace:*
-        version: link:../../packages/silicaui-charts
-      silicaui-dnd:
-        specifier: workspace:*
-        version: link:../../packages/silicaui-dnd
-      silicaui-editor:
-        specifier: workspace:*
-        version: link:../../packages/silicaui-editor
-      silicaui-panels:
-        specifier: workspace:*
-        version: link:../../packages/silicaui-panels
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../../packages/silicaui-react
-      silicaui-table:
-        specifier: workspace:*
-        version: link:../../packages/silicaui-table
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.3.0
@@ -54,7 +54,7 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.0
         version: 4.7.0(vite@6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0))
-      silicaui:
+      '@wizeworks/silicaui':
         specifier: workspace:*
         version: link:../../packages/silicaui
       tailwindcss:
@@ -87,10 +87,10 @@ importers:
 
   packages/silicaui-builder:
     dependencies:
-      silicaui:
+      '@wizeworks/silicaui':
         specifier: workspace:*
         version: link:../silicaui
-      silicaui-html:
+      '@wizeworks/silicaui-html':
         specifier: workspace:*
         version: link:../silicaui-html
     devDependencies:
@@ -109,6 +109,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0))
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../silicaui-react
       lucide-static:
         specifier: ^1.23.0
         version: 1.23.0
@@ -118,9 +121,6 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../silicaui-react
       tailwindcss:
         specifier: ^4.3.0
         version: 4.3.2
@@ -146,15 +146,15 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.17)
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../silicaui-react
       react:
         specifier: ^19.0.0
         version: 19.2.7
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../silicaui-react
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)
@@ -180,15 +180,15 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.17)
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../silicaui-react
       react:
         specifier: ^19.0.0
         version: 19.2.7
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../silicaui-react
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)
@@ -220,15 +220,15 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.17)
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../silicaui-react
       react:
         specifier: ^19.0.0
         version: 19.2.7
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../silicaui-react
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)
@@ -276,15 +276,15 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.17)
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../silicaui-react
       react:
         specifier: ^19.0.0
         version: 19.2.7
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../silicaui-react
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)
@@ -329,15 +329,15 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.17)
+      '@wizeworks/silicaui-react':
+        specifier: workspace:*
+        version: link:../silicaui-react
       react:
         specifier: ^19.0.0
         version: 19.2.7
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
-      silicaui-react:
-        specifier: workspace:*
-        version: link:../silicaui-react
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.16)(typescript@5.9.3)

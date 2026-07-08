@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pagination } from "silicaui-react";
+import { Pagination } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

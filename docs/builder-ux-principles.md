@@ -1,7 +1,7 @@
-# silicaui-builder — UX Design Principles & Prior-Art Synthesis
+# @wizeworks/silicaui-builder — UX Design Principles & Prior-Art Synthesis
 
 > **Status:** design authority (v0.1, 2026-07-06). Companion to `silicaui-architecture.md`.
-> This document is the *product/UX* authority for silicaui-builder, the way
+> This document is the *product/UX* authority for @wizeworks/silicaui-builder, the way
 > `silicaui-architecture.md` is the *technical* authority. It exists because the
 > engine + element canvas are proven, and the next phase — the authoring surface
 > (tree, inspector, palette, drag-and-drop) — is a **UX problem, not an engineering
@@ -53,7 +53,7 @@ Each is stated as **finding → evidence → our decision.**
   restraint (~30 modules) earns trust where Elementor's option-dump loses beginners.
 - **Decision:** The inspector is a **two-tier utility composer**: novice tier = visual
   controls only (never type a class), pro tier = raw class-string editor with autocomplete
-  over the silicaui + utility vocabulary. Both edit the *same* underlying class set, live-synced.
+  over the @wizeworks/silicaui + utility vocabulary. Both edit the *same* underlying class set, live-synced.
 
 ### 2. Container-query "design once" is the headline wedge; the separate mobile editor is the category's worst wound.
 - **Finding:** "Design twice" (a separate per-breakpoint layout pass) is the single most-hated
@@ -198,7 +198,7 @@ trap the market has already sprung. Treat this as a standing guardrail on scope.
 | 13 | **A forked classic-vs-advanced product** | The meta-trap (§1.10). Disclosure inside one editor instead. |
 | 14 | **Non-linear / branching undo** | Users expect a single linear chain they can rock back and forth. |
 | 15 | **A divergent preview / iframe render path** | Framer/Builder.io lose trust to builder-vs-published mismatch. Our real-DOM canvas is WYSIWYG; don't break it. |
-| 16 | **Dev-gating** (mandatory component/model setup before a novice can build) | Builder.io/Plasmic's low-floor failure. Our prebuilt silicaui component classes mean novices never hit an "ask a developer" wall. |
+| 16 | **Dev-gating** (mandatory component/model setup before a novice can build) | Builder.io/Plasmic's low-floor failure. Our prebuilt @wizeworks/silicaui component classes mean novices never hit an "ask a developer" wall. |
 | 17 | **Overly granular "anything-in-anything" blocks** | Shopify's own guidance: granularity adds complexity to code *and* editing. Favor a curated palette of meaningful sections. |
 
 ---
@@ -321,7 +321,7 @@ Sea of Sameness). It is also what lets us *refuse* every anti-feature in §2 wit
 
 Everyone who chased low-floor-high-ceiling with **freedom** lost the floor. Everyone who chased it with
 a **second product** blurred both. We win it with **disclosure over one constrained-but-escapable
-vocabulary** — which is exactly what silicaui already is.
+vocabulary** — which is exactly what @wizeworks/silicaui already is.
 
 ---
 

@@ -12,7 +12,7 @@ import {
     SidebarTrigger,
     Wordmark,
     Avatar,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const HomeIcon = (

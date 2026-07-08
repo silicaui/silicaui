@@ -1,5 +1,5 @@
-import { Chart, Sparkline } from "silicaui-charts";
-import type { EChartsOption } from "silicaui-charts";
+import { Chart, Sparkline } from "@wizeworks/silicaui-charts";
+import type { EChartsOption } from "@wizeworks/silicaui-charts";
 import { Section, Row } from "../lib/Section";
 
 const REVENUE_OPTION: EChartsOption = {

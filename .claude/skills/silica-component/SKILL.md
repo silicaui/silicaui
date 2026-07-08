@@ -22,7 +22,7 @@ Silica UI = two layers that ship together:
   CSS classes and delegate behavior to **Base UI** for interactive components.
 
 Playground for dogfooding/verification: `examples/playground` (Vite). It aliases
-`silicaui-react` to source and consumes `silicaui` from source, so **no package
+`@wizeworks/silicaui-react` to source and consumes `@wizeworks/silicaui` from source, so **no package
 build is needed** — edits are live in a fresh `vite build`.
 
 Work in this order: **CSS module → React wrapper → wire both barrels → playground demo → VERIFY → clean up.**
@@ -122,7 +122,7 @@ Rules:
 ## 3. Interactive components — wrap Base UI
 
 Base UI (`@base-ui-components/react@1.0.0-rc.0`) is a regular dependency of
-silicaui-react; tsup already externalizes it (`/^@base-ui-components\//`). Base
+@wizeworks/silicaui-react; tsup already externalizes it (`/^@base-ui-components\//`). Base
 UI owns behavior; Silica owns the CSS surface attached via `className`.
 
 **Before writing, inspect the real component in the pnpm store** (names/attrs
@@ -213,19 +213,19 @@ repo clean.
 ## 7. Dependency-heavy components → an opt-in SIBLING package
 
 When a composite needs a real third-party engine (charts, rich text, DnD, a
-table engine), DON'T add the dep to `silicaui-react` — the core stays lean. Wrap
+table engine), DON'T add the dep to `@wizeworks/silicaui-react` — the core stays lean. Wrap
 best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped:
-`silicaui-charts`=ECharts, `silicaui-table`=TanStack Table). Pattern:
+`@wizeworks/silicaui-charts`=ECharts, `@wizeworks/silicaui-table`=TanStack Table). Pattern:
 
 - `dependencies`: the engine only. `peerDependencies`: `react`, `react-dom`,
-  `silicaui-react`. `devDependencies`: `silicaui-react: workspace:*` + tsup/ts.
-- Import `{ cx, useSilicaClass }` FROM `silicaui-react` (the barrel now exports
+  `@wizeworks/silicaui-react`. `devDependencies`: `@wizeworks/silicaui-react: workspace:*` + tsup/ts.
+- Import `{ cx, useSilicaClass }` FROM `@wizeworks/silicaui-react` (the barrel now exports
   `cx`) so the package shares the SAME `SilicaProvider` context — never re-create
   the config context.
-- tsup `external: ["react","react-dom","silicaui-react", /^<engine>/]`; tsconfig
-  `paths: { silicaui-react: ["../silicaui-react/src/index.ts"] }` (typecheck vs
+- tsup `external: ["react","react-dom","@wizeworks/silicaui-react", /^<engine>/]`; tsconfig
+  `paths: { @wizeworks/silicaui-react: ["../silicaui-react/src/index.ts"] }` (typecheck vs
   source, no core build needed).
-- CSS still goes in the `silicaui` plugin (`data-table.js`, `chart.js`, …) — one
+- CSS still goes in the `@wizeworks/silicaui` plugin (`data-table.js`, `chart.js`, …) — one
   design system.
 - Playground consumes from source: add BOTH a `vite.config.ts` alias AND a
   `tsconfig.json` `paths` entry (tsc ignores vite aliases), plus a `workspace:*`
@@ -308,7 +308,7 @@ best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped
       `EmptyState` takes `title?: ReactNode`, but `HTMLAttributes` already has
       `title?: string`, so `extends Omit<React.HTMLAttributes<…>, "title">` (else
       TS2430 "incorrectly extends"). Same trap for any `color`/`content`/etc. slot.
-- [ ] **ECharts (silicaui-charts)** bakes its theme in at `init()` and reads plain
+- [ ] **ECharts (@wizeworks/silicaui-charts)** bakes its theme in at `init()` and reads plain
       color strings, not CSS vars — so `buildSilicaEChartsTheme(el)` resolves the
       live `--color-*` tokens via `getComputedStyle` and the `<Chart>` re-inits
       (MutationObserver on `<html>` `data-theme`/`class`/`style` + `matchMedia`
@@ -317,7 +317,7 @@ best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped
       per-instance theme name (`React.useId`) so concurrent charts don't clobber.
       Verify canvases exist with non-zero `.width`/`.height`, then re-screenshot
       after a `data-theme='dark'` flip to confirm the re-theme.
-- [ ] **DataTable (silicaui-table)** = TanStack Table (headless) + `.table`/
+- [ ] **DataTable (@wizeworks/silicaui-table)** = TanStack Table (headless) + `.table`/
       `.data-table` CSS. It's a GENERIC function component (not `forwardRef`) to
       keep the `<TData>` param clean. Type columns as `DataTableColumn<T>[]` and
       read `row.original` (fully typed) in cells rather than `getValue()` (unknown).
@@ -347,7 +347,7 @@ best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped
       Dropzone's `data-dragging`, a `click`, etc.) in the SAME `browser_evaluate`
       returns the pre-commit value — React hasn't re-rendered yet. Dispatch in one
       tool call, read in the next. (Same root cause as the DataTable note above.)
-- [ ] **TipTap (silicaui-editor)**: `useEditor({ immediatelyRender: false })` so it's
+- [ ] **TipTap (@wizeworks/silicaui-editor)**: `useEditor({ immediatelyRender: false })` so it's
       SSR-safe (Sparx SSRs — else a hydration mismatch). Controlled value in =
       `editor.commands.setContent(value, false)` (the `false` skips emitting an
       update → no loop) and ONLY when `value !== editor.getHTML()` (else the cursor
@@ -360,7 +360,7 @@ best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped
       `export *`s all of core). Verify by typing + a toolbar command (Undo reverts):
       Playwright `.fill()` on a contenteditable REPLACES the text (wipes marks), so
       assert `onValueChange` fired + the controlled round-trip survived, not the mark.
-- [ ] **dnd-kit (silicaui-dnd)**: `SortableList<T>` is a generic function component.
+- [ ] **dnd-kit (@wizeworks/silicaui-dnd)**: `SortableList<T>` is a generic function component.
       dnd-kit's `attributes` + `listeners` types don't line up with React's handler
       unions — merge them into the `handleProps` you hand consumers with ONE localized
       `as React.HTMLAttributes<HTMLElement>` cast (no `any` leak). `PointerSensor`
@@ -368,7 +368,7 @@ best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped
       add `KeyboardSensor` + `sortableKeyboardCoordinates` for a11y. Verify reorder via
       KEYBOARD (focus handle → Space to pick up → Arrow to move → Space to drop) and
       assert `onReorder` updated state — deterministic, unlike synthesizing a pointer drag.
-- [ ] **react-resizable-panels (silicaui-panels)**: thin passthrough wrappers around
+- [ ] **react-resizable-panels (@wizeworks/silicaui-panels)**: thin passthrough wrappers around
       `PanelGroup`/`Panel`/`PanelResizeHandle`. The group carries
       `data-panel-group-direction` (`horizontal`/`vertical`) — drive handle orientation
       off the group ancestor (`.resizable-group[data-panel-group-direction="horizontal"] > .resizable-handle`),

@@ -1,4 +1,4 @@
-import { Prose } from "silicaui-react";
+import { Prose } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function ProseDemo() {

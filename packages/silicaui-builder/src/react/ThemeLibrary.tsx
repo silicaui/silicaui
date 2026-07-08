@@ -2,13 +2,13 @@
  * The Themes library (right panel in Theme mode). Three sections, matching how a
  * site theme actually lives: THIS SITE — the saved-theme library you snapshot the
  * current edit into (apply / delete); SILICAUI PRESETS — the shipped starting
- * points; OUTPUT — export the active theme as the same `[data-theme]` CSS silicaui
- * emits. Styled ONLY with Tailwind + silicaui classes; every glyph is a baked
+ * points; OUTPUT — export the active theme as the same `[data-theme]` CSS @wizeworks/silicaui
+ * emits. Styled ONLY with Tailwind + @wizeworks/silicaui classes; every glyph is a baked
  * `<Icon>`. Applying/saving routes through the engine so editor + board repaint.
  */
 import * as React from "react";
-import type { Theme } from "silicaui-html";
-import { THEME_PRESETS, colorValue } from "silicaui-html";
+import type { Theme } from "@wizeworks/silicaui-html";
+import { THEME_PRESETS, colorValue } from "@wizeworks/silicaui-html";
 import { useEditor, useTheme, useSavedThemes } from "./editor-context";
 import { themeToCss } from "../theme-ops";
 import { Icon } from "./Icon";
@@ -105,7 +105,7 @@ export function ThemeLibrary() {
         ))}
       </div>
 
-      <div className={SUBHEAD}>silicaui presets</div>
+      <div className={SUBHEAD}>@wizeworks/silicaui presets</div>
       <div className="px-2">
         {THEME_PRESETS.map((p) => (
           <ThemeRow

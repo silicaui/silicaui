@@ -7,14 +7,14 @@
  * value swaps out the group's other members; "Auto" clears the group back to the
  * theme default.
  *
- * STYLING RULE (hard): every control is a silicaui class (`btn`, `input`,
+ * STYLING RULE (hard): every control is a @wizeworks/silicaui class (`btn`, `input`,
  * `textarea`, swatch previews via `bg-*`) or a Tailwind utility, and every
  * utility a node can WEAR is a LITERAL string here so the harness safelists it.
  */
 import * as React from "react";
-import type { ComponentNode, DataBinding, ElementNode, Node, Theme } from "silicaui-html";
-import { rolesOf, colorValue, SURFACE_TOKENS, walk } from "silicaui-html";
-import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "silicaui-react";
+import type { ComponentNode, DataBinding, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
+import { rolesOf, colorValue, SURFACE_TOKENS, walk } from "@wizeworks/silicaui-html";
+import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
 import { Icon } from "./Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
@@ -733,7 +733,7 @@ const DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
 ];
 
 /** Dynamic content — the node's single `DataBinding`. A kind selector plus an
- *  opaque `ref` (silicaui never parses it; the host/sparx interprets it), and an
+ *  opaque `ref` (@wizeworks/silicaui never parses it; the host/sparx interprets it), and an
  *  optional href for the action kind. Lowers to `data-sui-*` in `toHtml`. */
 function DataSection({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();

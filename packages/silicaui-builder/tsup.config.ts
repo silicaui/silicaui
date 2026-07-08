@@ -12,8 +12,8 @@ export default defineConfig({
     "react",
     "react-dom",
     /^react\//,
-    /^silicaui-html(\/|$)/,
-    /^silicaui-react(\/|$)/,
-    /^silicaui(\/|$)/,
+    /^@wizeworks\/silicaui-html(\/|$)/,
+    /^@wizeworks\/silicaui-react(\/|$)/,
+    /^@wizeworks\/silicaui(\/|$)/,
   ],
 });

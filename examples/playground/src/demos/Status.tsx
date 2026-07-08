@@ -1,4 +1,4 @@
-import { Status } from "silicaui-react";
+import { Status } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { COLORS, SIZES } from "../lib/data";
 

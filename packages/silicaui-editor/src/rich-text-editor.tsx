@@ -3,7 +3,7 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import { cx, useSilicaClass } from "silicaui-react";
+import { cx, useSilicaClass } from "@wizeworks/silicaui-react";
 
 export interface RichTextEditorProps {
   /** Controlled HTML value. */

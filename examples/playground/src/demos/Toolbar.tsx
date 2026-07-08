@@ -5,7 +5,7 @@ import {
     ToolbarGroup,
     ToolbarLink,
     ToolbarSeparator,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 function BoldIcon() {

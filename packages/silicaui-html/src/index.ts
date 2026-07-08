@@ -1,8 +1,8 @@
 /**
- * silicaui-html — the framework-neutral node-tree source + projections.
+ * @wizeworks/silicaui-html — the framework-neutral node-tree source + projections.
  *
  * See `docs/silicaui-architecture.md` for the canonical spec. Blocks (composed
- * patterns) live under the `silicaui-html/blocks` subpath.
+ * patterns) live under the `@wizeworks/silicaui-html/blocks` subpath.
  */
 
 // Schema (§3) — types only.
@@ -42,7 +42,7 @@ export type { RenderedPage } from "./site";
 export { lintBlock, assertBlockClean } from "./lint";
 export type { LintIssue } from "./lint";
 
-// The component registry (§4) — the single definition each silicaui component
+// The component registry (§4) — the single definition each @wizeworks/silicaui component
 // derives from. A component is a macro that EXPANDS to an element subtree, so a
 // projection (toHtml) and the builder render it through their normal element
 // path; new components add a def, not a renderer branch.

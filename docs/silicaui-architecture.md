@@ -1,16 +1,16 @@
-# silicaui — Architecture & Integration Spec
+# @wizeworks/silicaui — Architecture & Integration Spec
 
 **Version:** 0.2 — complete first draft (all sections; ready for implementation)
 **Author:** Brandon Korous / WizeWorks
 **Last Updated:** 2026-07-06
-**Status:** This is the **canonical** spec for the silicaui family. It is the design
+**Status:** This is the **canonical** spec for the @wizeworks/silicaui family. It is the design
 authority. Consumers (sparx first) conform to it — not the reverse.
 
-> **Purpose.** silicaui is a WizeWorks product: a universal, themeable design
+> **Purpose.** @wizeworks/silicaui is a WizeWorks product: a universal, themeable design
 > system **plus** a visual builder authored for that system. This document is its
 > single source of truth — the node schema, the projections, the theme model, the
 > data/behavior contracts, the builder engine, and the seam a host plugs into. It is
-> written **consumer-agnostic**: silicaui serves any host (a CMS, a commerce
+> written **consumer-agnostic**: @wizeworks/silicaui serves any host (a CMS, a commerce
 > platform, a docs site, a static-site generator, an email renderer). Where a
 > specific host needs to adapt, that mapping is quarantined to the appendix.
 >
@@ -22,9 +22,9 @@ authority. Consumers (sparx first) conform to it — not the reverse.
 
 ---
 
-## 0. Stance — silicaui is the product
+## 0. Stance — @wizeworks/silicaui is the product
 
-silicaui is built for a **universe of consumers**, not for any one platform. The
+@wizeworks/silicaui is built for a **universe of consumers**, not for any one platform. The
 first and reference consumer is sparx, and sparx's needs are a valuable **source of
 requirements** — multi-tenant theming, dynamic data, a security boundary for
 user/AI-authored content, forms, dark mode, a builder. But sparx is **not** a source
@@ -41,9 +41,9 @@ of design. We take the *requirements*; we reject the *implementation*.
    container-relative responsiveness for portable blocks, the `[data-theme]` island
    isolation. We keep these because they are right for *any* consumer.
 3. **A host's actual domain → stays behind the adapter.** Products, CMS entries,
-   endpoints, persistence, tenancy. Opaque references. Never silicaui's concern.
+   endpoints, persistence, tenancy. Opaque references. Never @wizeworks/silicaui's concern.
 
-Where a consumer's prior art capped the ceiling, we go **beyond** it — e.g. silicaui
+Where a consumer's prior art capped the ceiling, we go **beyond** it — e.g. @wizeworks/silicaui
 must produce legible foregrounds **standalone** (a universal consumer has no
 dashboard to inject WCAG contrast), with an injected value winning when present.
 
@@ -56,7 +56,7 @@ dashboard to inject WCAG contrast), with an injected value winning when present.
   the whole system is `template → document` (mint ids), and it runs at stamp,
   duplicate, and paste — nowhere else.
 - **`class` is the sole styling surface.** No inline `style`, no style object, no
-  second channel. Layout, spacing, surface, and skin are all silicaui classes + an
+  second channel. Layout, spacing, surface, and skin are all @wizeworks/silicaui classes + an
   allowed utility subset. This is what makes the tree portable, themeable, and
   **governable** (a host gates class strings at one choke point).
 - **The tree is framework-neutral and JSON-serializable.** No functions, no JSX. JSX
@@ -65,7 +65,7 @@ dashboard to inject WCAG contrast), with an injected value winning when present.
   *output* projection, never the source.
 - **Themeable by `[data-theme]` islands.** A themed subtree can nest inside a
   differently-themed host; tokens resolve by nearest-ancestor inheritance. This is
-  silicaui's native isolation model and it is what the builder canvas reuses.
+  @wizeworks/silicaui's native isolation model and it is what the builder canvas reuses.
 - **Container-relative, not viewport-relative, for portable layout.** A block
   responds to *its own* width, so it behaves identically full-width, in a column, or
   in a narrow builder canvas. (The base *component* classes bake in neither; see §5
@@ -79,22 +79,22 @@ dashboard to inject WCAG contrast), with an injected value winning when present.
 ## 2. The package family
 
 ```
-silicaui          Tailwind v4 plugin — tokens + component CLASSES        the vocabulary
+@wizeworks/silicaui          Tailwind v4 plugin — tokens + component CLASSES        the vocabulary
    │              (addBase only; ships NO utilities → widens no allowlist)
-   ├── silicaui-react     typed React components over the classes        one projection
+   ├── @wizeworks/silicaui-react     typed React components over the classes        one projection
    │
-   ├── silicaui-html      framework-neutral NODE-TREE source (the el/atom/slot/
+   ├── @wizeworks/silicaui-html      framework-neutral NODE-TREE source (the el/atom/slot/
    │        │             behave/part kit) + the HTML projection. Renders plain
-   │        │             native elements with silicaui classes — NOT web components.
+   │        │             native elements with @wizeworks/silicaui classes — NOT web components.
    │        └── /blocks    composed patterns (navbar, hero, pricing, footer)
    │
-   ├── silicaui-behaviors  framework-agnostic runtime for the behavior markers
+   ├── @wizeworks/silicaui-behaviors  framework-agnostic runtime for the behavior markers
    │
-   └── silicaui-builder    domain-blind visual editor for silicaui documents
+   └── @wizeworks/silicaui-builder    domain-blind visual editor for @wizeworks/silicaui documents
 ```
 
-One node shape (§3) flows through all of them. `silicaui-html` is where the schema,
-the authoring kit, and the projections live; `silicaui-builder` consumes them.
+One node shape (§3) flows through all of them. `@wizeworks/silicaui-html` is where the schema,
+the authoring kit, and the projections live; `@wizeworks/silicaui-builder` consumes them.
 
 ---
 
@@ -117,14 +117,14 @@ interface NodeBase {
   /** GLOBALLY-UNIQUE instance id. Present on DOCUMENT nodes (selection, React keys,
    *  dnd ids); ABSENT on template/block nodes. Minted on stamp, duplicate, paste. */
   id?: string;
-  /** The ONLY styling surface: silicaui component classes + the allowed utility
+  /** The ONLY styling surface: @wizeworks/silicaui component classes + the allowed utility
    *  subset. A host gates these (§8). No inline style, ever. */
   class?: string;
   children?: Child[];
 
   // ── system metadata — typed, and NEVER mixed into attrs/props ──────────────
   /** Dynamic content. At most one binding; the union makes "at most one"
-   *  structural instead of a runtime rule. Opaque `ref` — silicaui never parses
+   *  structural instead of a runtime rule. Opaque `ref` — @wizeworks/silicaui never parses
    *  it (§8). Absent → the node renders its own static content. */
   data?: DataBinding;
   /** Marks this node as an editable region for a builder/host (§6-blocks). */
@@ -143,7 +143,7 @@ interface ElementNode extends NodeBase {
 
 interface ComponentNode extends NodeBase {
   kind: 'component';
-  component: string;                             // a silicaui atom: 'Button','Card','Image',…
+  component: string;                             // a @wizeworks/silicaui atom: 'Button','Card','Image',…
   props?: Record<string, unknown>;               // the component's OWN typed API
 }
 
@@ -200,7 +200,7 @@ system.
 
 ## 4. Projections
 
-silicaui owns the generators; a consumer never writes them. All projections are
+@wizeworks/silicaui owns the generators; a consumer never writes them. All projections are
 **byte-faithful** to the one authored tree — a node that renders differently across
 projections is a generator bug, caught by snapshot tests, not something a consumer
 debugs.
@@ -212,12 +212,12 @@ toJson(node | Template | Document): object // the validated tree, as data
 ```
 
 - **`toHtml`** — walks the tree, emits tags/classes/attrs, and lowers each
-  `component` node through silicaui-html's **component registry**: a component is a
+  `component` node through @wizeworks/silicaui-html's **component registry**: a component is a
   macro that *expands* to an element subtree, then renders through the same element
   path (so a new component adds a `ComponentDef`, never a renderer branch). Inlines
-  slot default content, applies the host `prefix` to silicaui class names.
+  slot default content, applies the host `prefix` to @wizeworks/silicaui class names.
   Framework-free, copy-in, the production renderer.
-- **`toReact`** — a generated `silicaui-react` component whose props are the
+- **`toReact`** — a generated `@wizeworks/silicaui-react` component whose props are the
   template's slots; renders the same tree with the active `<SilicaProvider>` prefix.
   React is *output*.
 - **`toJson`** — the tree itself, validated, for structured hosts and the builder.
@@ -230,7 +230,7 @@ no separate canvas renderer to drift from the live output.
 
 ## 5. The theme model
 
-A theme is a native silicaui token set applied via `[data-theme]`. It **loads and
+A theme is a native @wizeworks/silicaui token set applied via `[data-theme]`. It **loads and
 extracts** with the document, and it carries **both modes** — because a consumer can
 override brand identity per light/dark mode, and dark is not derivable from light in
 the renderer (it's authored/host-computed).
@@ -250,9 +250,9 @@ interface Theme {
   (+ `dark` overrides) to that element's `[data-theme]` block; nothing else moves.
 - **`-content` (foreground) is a consumed, default-backed var.** Every foreground
   resolves `var(--color-<name>-content, <fallback>)`: an injected token wins; the
-  fallback covers the standalone case. **silicaui ships a genuinely good standalone
+  fallback covers the standalone case. **@wizeworks/silicaui ships a genuinely good standalone
   fallback** (a consumer without a contrast engine still gets legible text); a host
-  with a WCAG derivation injects and wins. silicaui never hardcodes a foreground.
+  with a WCAG derivation injects and wins. @wizeworks/silicaui never hardcodes a foreground.
 - **Everything else derives in-CSS** off the base var: hover/active/tint via
   `color-mix(in oklab …)`. No baked color literal reaches the output — the sole
   resolved hex lives in the applied `[data-theme]` token block.
@@ -263,9 +263,9 @@ interface Theme {
 
 ## 6. Blocks — the composed tier
 
-A **block** is an opinionated, pre-composed arrangement of silicaui primitives (a
+A **block** is an opinionated, pre-composed arrangement of @wizeworks/silicaui primitives (a
 marketing navbar, a hero, a pricing table, a footer) — the "Tailwind-UI-rival" tier.
-Owning blocks *in silicaui* is the point of the family: a consuming platform stops
+Owning blocks *in @wizeworks/silicaui* is the point of the family: a consuming platform stops
 *authoring, skinning, and visually testing a component library inside itself* and just
 **imports** one.
 
@@ -320,9 +320,9 @@ richer the slots, the more useful to a builder.
 
 ### 6.3 The linter (conformance guarantee)
 
-silicaui ships a **block linter** that validates every block's `class` strings against
+@wizeworks/silicaui ships a **block linter** that validates every block's `class` strings against
 the allowed surface (§6.4) at build time. A conformant block is therefore *guaranteed*
-to pass a host's class gate untouched, and any drift is caught in **silicaui's** CI,
+to pass a host's class gate untouched, and any drift is caught in **@wizeworks/silicaui's** CI,
 not a consumer's. It also enforces the authoring bar: container-query responsive (no
 viewport variants), one root, realistic copy (no lorem, **no uppercase "eyebrow"
 kickers** — house rule), and email-degradability for `emailEligible` blocks.
@@ -335,7 +335,7 @@ major**: renaming a component class, a token, or a block `key` is a **major** ch
 Within a major, changes are **additive only** (new blocks, new *optional* slots, new
 colors) — never a rename, never a removed slot.
 
-- **Allowed:** silicaui component classes; token utilities (resolve to theme vars —
+- **Allowed:** @wizeworks/silicaui component classes; token utilities (resolve to theme vars —
   surfaces/ink, brand/semantic each with a `-content`, radius, shadow, motion); the
   standard spacing/layout scale; **container queries** for responsiveness.
 - **Banned (a host gate rejects; never author):** `fixed`, arbitrary `z-[…]`,
@@ -343,7 +343,7 @@ colors) — never a rename, never a removed slot.
 
 ### 6.5 The index
 
-silicaui assembles all blocks into a validated index: `listBlocks()` / `getBlock(key)`
+@wizeworks/silicaui assembles all blocks into a validated index: `listBlocks()` / `getBlock(key)`
 with category/tag filters, and `catalogSummary(block)` (the manifest without the tree)
 for lightweight listings and a host's palette. A block's declared `colors`,
 `behaviors`, `emailEligible`, and `slots` let a consumer validate compatibility
@@ -379,7 +379,7 @@ Example params: `carousel { autoplay?, interval? }`, `disclosure { single? }`,
 **Rules:**
 
 - **The marker names are the contract; the lowering is each runtime's business.**
-  silicaui's own `silicaui-behaviors` runtime lowers `behavior`/`part` to `data-sui-*`;
+  @wizeworks/silicaui's own `@wizeworks/silicaui-behaviors` runtime lowers `behavior`/`part` to `data-sui-*`;
   a host runtime lowers the *identical* markers to its own prefix. Same names → **one
   authored block drives either runtime.**
 - **Parts correlate to their root by structural nesting, never by id** — so the
@@ -395,11 +395,11 @@ Example params: `carousel { autoplay?, interval? }`, `disclosure { single? }`,
   genuinely JS-driven composites (autoplay carousel, mega-menu, single-open accordion,
   JS tabs, scroll-adaptive nav).
 
-**The runtime (`silicaui-behaviors`).** A small, closed, framework-agnostic package: it
+**The runtime (`@wizeworks/silicaui-behaviors`).** A small, closed, framework-agnostic package: it
 scans for lowered markers and wires them, runs in both surfaces, and depends on no
 client framework. It is what the builder canvas previews and the live site runs — the
 *same* markers — so a structured host that renders markup (not React) stays fully
-interactive without Base UI. (silicaui-react drives the same interactions through Base
+interactive without Base UI. (@wizeworks/silicaui-react drives the same interactions through Base
 UI for React hosts; both honor the same authored markers.)
 
 ---
@@ -407,9 +407,9 @@ UI for React hosts; both honor the same authored markers.)
 ## 8. Data & host integration — the seam
 
 Dynamic content enters through **three opaque primitives** (§3's `data` union) and a
-few host callbacks. silicaui never parses a `ref` — it hands it to the host and
+few host callbacks. @wizeworks/silicaui never parses a `ref` — it hands it to the host and
 renders what comes back. This opacity is the keystone: a CMS, a commerce backend,
-and a static site each implement the same small contract (or none), and silicaui
+and a static site each implement the same small contract (or none), and @wizeworks/silicaui
 gains no domain code.
 
 ### 8.1 The render-time resolver
@@ -428,14 +428,14 @@ type Resolved  = { value: unknown; label?: string };  // `label` = what a builde
 type DataScope = { path: string[] };                  // opaque repeat ancestry; the host interprets it
 ```
 
-- **`value`** — silicaui calls `resolveValue(ref, scope)` and renders `value` into the
+- **`value`** — @wizeworks/silicaui calls `resolveValue(ref, scope)` and renders `value` into the
   node's **primary content** (text for text elements, `src`/`href` for media/links,
   the primary prop for a component). No resolver / no result → the node's static
   placeholder renders. A builder additionally paints a "bound" affordance labeled
   `label`.
-- **`collection`** — silicaui calls `resolveCollection(ref, scope)` → an array of
+- **`collection`** — @wizeworks/silicaui calls `resolveCollection(ref, scope)` → an array of
   **item scopes**, renders `children` once per scope, and threads each scope down so
-  nested `value` bindings resolve per item. **silicaui owns the repetition; the host
+  nested `value` bindings resolve per item. **@wizeworks/silicaui owns the repetition; the host
   owns the data** (and correlates scope → record internally, so the item shape stays
   opaque).
 - **`action`** — inert at render and in the editor. The `ref` (+ optional `href`) is
@@ -454,14 +454,14 @@ interface ClassPolicy {
 }
 ```
 
-- The host **defines** the policy; silicaui **enforces** it — the builder calls it
+- The host **defines** the policy; @wizeworks/silicaui **enforces** it — the builder calls it
   before committing any class string (author-typed **or** AI-generated), and a
   rejected class never enters the document via the editor.
 - **This is an authoring/UX gate, not the security backstop.** A stored tree can be
   mutated outside the builder (direct edit, import, API), so the *authoritative*
   boundary is the host's own compile/persistence-time validation. Editor gate = belt;
   host compile gate = suspenders.
-- silicaui defines **no** policy (no baked denylist) — only the enforcement seam. And
+- @wizeworks/silicaui defines **no** policy (no baked denylist) — only the enforcement seam. And
   because its plugin adds **only** component classes and **zero** utilities (§10), it
   never widens whatever surface the policy guards.
 
@@ -471,7 +471,7 @@ interface ClassPolicy {
 
 ## 9. The builder engine
 
-`silicaui-builder` is a **domain-blind** visual editor for silicaui documents: load a
+`@wizeworks/silicaui-builder` is a **domain-blind** visual editor for @wizeworks/silicaui documents: load a
 `Document`, manipulate it directly, tune the theme, extract the **same shape**. It
 knows nodes/classes/tokens/themes/slots/blocks/behaviors; it knows nothing about
 products, CMS entries, orders, tenants, persistence, or publishing. Every one of
@@ -528,7 +528,7 @@ code.
   its rules/reset from leaking into the host UI. **One DOM** — selection, drag, and
   the inspector operate directly, with no cross-frame style injection, event
   proxying, or coordinate mapping.
-- **Renders via silicaui-html's `toHtml` / component registry — the same path as
+- **Renders via @wizeworks/silicaui-html's `toHtml` / component registry — the same path as
   production.** So *preview == production* is structural, not a promise a separate
   canvas renderer can break.
 - **Editor chrome** (selection outlines, drag handles, rulers) uses its **own token
@@ -588,22 +588,22 @@ interface Frame { root: Node; /* contains exactly one Outlet */ editable: boolea
 
 ### 9.8 Behavior preview
 
-The canvas runs `silicaui-behaviors` with **autoplay suppressed** and **collapsed
+The canvas runs `@wizeworks/silicaui-behaviors` with **autoplay suppressed** and **collapsed
 panels revealed** for authoring; the live site runs full behavior (§7).
 
 ---
 
 ## 10. Security
 
-silicaui's security posture is **structural**, resting on one property: `class` is the
+@wizeworks/silicaui's security posture is **structural**, resting on one property: `class` is the
 sole styling surface (§1), so **all** styling — author-typed and AI-generated — passes
 through a host's class gate before becoming CSS.
 
-- **silicaui widens no attack surface.** Its plugin emits **only** component classes
+- **@wizeworks/silicaui widens no attack surface.** Its plugin emits **only** component classes
   (via `addBase`) and **zero** utilities — so "just extending Tailwind" never
   reintroduces the utilities a host's denylist exists to stop. This is a verified
   invariant, not an aspiration: there are no `addUtilities`/`matchUtilities` calls.
-- **The host defines the policy; silicaui enforces it** (`ClassPolicy`, §8). silicaui
+- **The host defines the policy; @wizeworks/silicaui enforces it** (`ClassPolicy`, §8). @wizeworks/silicaui
   ships **no** denylist of its own — a universal library must not hardcode one
   platform's policy.
 - **Two enforcement points, deliberately.** The builder's `validateClass` gate is an
@@ -611,16 +611,16 @@ through a host's class gate before becoming CSS.
   **authoritative** boundary is the host's own compile/persistence-time validation —
   a stored tree can be mutated outside the builder (direct edit, import, API). Editor
   gate = belt; host compile gate = suspenders.
-- **Blocks are pre-cleared.** The block linter (§6.3) validates silicaui's own blocks
+- **Blocks are pre-cleared.** The block linter (§6.3) validates @wizeworks/silicaui's own blocks
   against the allowed surface, so a conformant block passes a host gate untouched and
-  drift is caught in silicaui CI, not a consumer's.
+  drift is caught in @wizeworks/silicaui CI, not a consumer's.
 - **No side channels in the tree.** No inline `style`, no raw `<script>`, no arbitrary
   `data-*`; interactivity is markers-only (§7), backgrounds ride an `image` slot (not
   `url(…)`), and z-index/position stay in the host's bounded named scale — none of
-  which silicaui can subvert, because it emits no utilities.
+  which @wizeworks/silicaui can subvert, because it emits no utilities.
 
-A typical host policy (reference — *the host's*, not silicaui's) denies `fixed`,
-arbitrary `z-[…]`, `content-[…]`, and any `url(…)` in a class. silicaui neither ships
+A typical host policy (reference — *the host's*, not @wizeworks/silicaui's) denies `fixed`,
+arbitrary `z-[…]`, `content-[…]`, and any `url(…)` in a class. @wizeworks/silicaui neither ships
 nor undermines it.
 
 ---
@@ -650,7 +650,7 @@ host conforms to it here and gains no foothold in the engine.
 renders its own node model writes **one** adapter, `adapt(node) → HostNode`, driven by
 our `Node`:
 
-| silicaui `Node` | host node | adapter work |
+| @wizeworks/silicaui `Node` | host node | adapter work |
 | --- | --- | --- |
 | `kind` + `tag`/`component` | the host's type encoding | map the discriminator |
 | `class` | `class` | passthrough (host prefix applied at projection) |
@@ -669,11 +669,11 @@ blocks + this adapter.**
 
 **Email.** A host's email renderer (sparx: `@sparx/email`) consumes the neutral tree
 as a structured host and produces inline styles under the email-degradable subset.
-silicaui ships **no** email compiler; `emailEligible` (§6.1) is a vocabulary flag the
+@wizeworks/silicaui ships **no** email compiler; `emailEligible` (§6.1) is a vocabulary flag the
 host's renderer honors.
 
 **Isolation comes home.** The `[data-theme]` island + `@scope` isolation a host's
-current builder reimplements by hand is silicaui's *own* model (§5, §9.3) — adopting
+current builder reimplements by hand is @wizeworks/silicaui's *own* model (§5, §9.3) — adopting
 the builder puts that layering back with the system that defines it.
 
 ---

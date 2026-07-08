@@ -1,9 +1,9 @@
 // Runnable proof that the interactive composite BLOCKS hydrate correctly: we
-// lower each real block (tabs / accordion / dropdown) with silicaui-html's own
+// lower each real block (tabs / accordion / dropdown) with @wizeworks/silicaui-html's own
 // toHtml — the exact markup a host ships — mount it in jsdom, hydrate, and drive
 // the interaction. This proves the whole chain block → toHtml → runtime, not a
 // hand-written stand-in. Run against built output of BOTH packages:
-//   pnpm --filter silicaui-html build && pnpm --filter silicaui-behaviors build \
+//   pnpm --filter @wizeworks/silicaui-html build && pnpm --filter @wizeworks/silicaui-behaviors build \
 //     && node verify-interactive.mjs
 import { JSDOM } from "jsdom";
 import { hydrate } from "./dist/index.js";

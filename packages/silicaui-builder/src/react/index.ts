@@ -1,6 +1,6 @@
 /**
- * silicaui-builder (React) — the editor chrome, built ON silicaui (Tailwind v4
- * plugin) + silicaui-react, styled entirely with Tailwind + silicaui classes.
+ * @wizeworks/silicaui-builder (React) — the editor chrome, built ON @wizeworks/silicaui (Tailwind v4
+ * plugin) + @wizeworks/silicaui-react, styled entirely with Tailwind + @wizeworks/silicaui classes.
  */
 export { Builder } from "./Builder";
 export type { BuilderProps } from "./Builder";

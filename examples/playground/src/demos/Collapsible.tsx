@@ -1,4 +1,4 @@
-import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from "silicaui-react";
+import { Collapsible, CollapsibleTrigger, CollapsiblePanel } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function CollapsibleDemo() {

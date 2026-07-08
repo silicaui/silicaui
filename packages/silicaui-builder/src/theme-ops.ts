@@ -1,12 +1,12 @@
 /**
  * Theme operations for the Theme-mode surfaces — export-to-CSS and a tasteful
  * "randomize" that rerolls the brand hues over a coherent ramp. Framework-neutral;
- * operate on the `silicaui-html` `Theme` model.
+ * operate on the `@wizeworks/silicaui-html` `Theme` model.
  */
-import type { Theme } from "silicaui-html";
-import { SEMANTIC_ROLES } from "silicaui-html";
+import type { Theme } from "@wizeworks/silicaui-html";
+import { SEMANTIC_ROLES } from "@wizeworks/silicaui-html";
 
-/** Emit the theme as the same `[data-theme="name"]` block silicaui's plugin uses. */
+/** Emit the theme as the same `[data-theme="name"]` block @wizeworks/silicaui's plugin uses. */
 export function themeToCss(theme: Theme): string {
   const block = (sel: string, bag: Record<string, string>): string => {
     const decls = Object.entries(bag)
@@ -43,7 +43,7 @@ export function randomizePalette(theme: Theme): Theme {
   return next;
 }
 
-/** Whether a role name is one silicaui defines by default (vs. user-added). */
+/** Whether a role name is one @wizeworks/silicaui defines by default (vs. user-added). */
 export function isCustomRole(name: string): boolean {
   return !(SEMANTIC_ROLES as readonly string[]).includes(name);
 }

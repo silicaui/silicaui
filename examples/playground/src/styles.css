@@ -4,11 +4,11 @@
    `prefix: sx-` namespaces every Silica class (→ .sx-btn, .sx-btn-primary, …)
    to mirror the Sparx migration case. It must match <SilicaProvider prefix>
    in app.tsx. */
-@plugin "silicaui" {
+@plugin "@wizeworks/silicaui" {
     colors: primary, secondary, accent, neutral, info, success, warning, error, brand, silica, brand-duck;
 }
 
-@plugin "silicaui/theme" {
+@plugin "@wizeworks/silicaui/theme" {
     name: light;
     /* Authored in hex on purpose — and with no `-content`, so Silica auto-derives
      the foreground. Try changing this value and watch the text stay legible. */
@@ -23,7 +23,7 @@
     --radius-field: 0.25rem;
 }
 
-@plugin "silicaui/theme" {
+@plugin "@wizeworks/silicaui/theme" {
     name: dark;
     --color-brand: #7c3aed;
     --color-brand-content: #ffffff;

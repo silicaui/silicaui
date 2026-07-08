@@ -1,19 +1,19 @@
 /**
- * Runtime color cascade — the live-editing half of silicaui's N-color promise.
+ * Runtime color cascade — the live-editing half of @wizeworks/silicaui's N-color promise.
  *
- * silicaui's plugin emits color utilities (`text-brand`, `bg-brand`) and component
+ * @wizeworks/silicaui's plugin emits color utilities (`text-brand`, `bg-brand`) and component
  * variants (`btn-brand`) for every color DECLARED at build time. The builder lets
  * a user INVENT a color in the theme editor, so its classes aren't in the compiled
  * CSS yet — this module generates exactly those missing rules at runtime, for the
- * theme's custom roles, scoped to a container, reusing silicaui's OWN generators
+ * theme's custom roles, scoped to a container, reusing @wizeworks/silicaui's OWN generators
  * (`buttonColorVars`, `colorUtilityRules`) so a live color behaves byte-for-byte
  * like a declared one. Both generators return FLAT rule maps, so serialization is
  * trivial (no nested-selector handling).
  */
-import { buttonColorVars } from "silicaui/button";
-import { colorUtilityRules } from "silicaui/color-utilities";
-import { rolesOf, SEMANTIC_ROLES } from "silicaui-html";
-import type { Theme, SemanticRole } from "silicaui-html";
+import { buttonColorVars } from "@wizeworks/silicaui/button";
+import { colorUtilityRules } from "@wizeworks/silicaui/color-utilities";
+import { rolesOf, SEMANTIC_ROLES } from "@wizeworks/silicaui-html";
+import type { Theme, SemanticRole } from "@wizeworks/silicaui-html";
 
 type RuleMap = Record<string, Record<string, string>>;
 

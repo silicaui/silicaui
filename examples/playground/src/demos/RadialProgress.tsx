@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RadialProgress } from "silicaui-react";
+import { RadialProgress } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

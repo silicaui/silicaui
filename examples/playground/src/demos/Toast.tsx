@@ -1,4 +1,4 @@
-import { Button, useToast } from "silicaui-react";
+import { Button, useToast } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function ToastDemo() {

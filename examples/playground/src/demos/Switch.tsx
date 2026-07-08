@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Switch } from "silicaui-react";
+import { Switch } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { SIZES } from "../lib/data";
 

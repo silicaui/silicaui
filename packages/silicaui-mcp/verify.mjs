@@ -1,6 +1,6 @@
 // Runnable proof the server actually answers every tool over real stdio — not
 // just that it builds. Run against the built output:
-// `pnpm --filter silicaui-mcp build && node verify.mjs`.
+// `pnpm --filter @wizeworks/silicaui-mcp build && node verify.mjs`.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -14,7 +14,7 @@ function text(result) {
   return result.content?.[0]?.text ?? "";
 }
 
-const client = new Client({ name: "silicaui-mcp-verify", version: "0.0.0" });
+const client = new Client({ name: "@wizeworks/silicaui-mcp-verify", version: "0.0.0" });
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: ["bin/silicaui-mcp.mjs"],
@@ -25,12 +25,12 @@ const tools = await client.listTools();
 check("server registers all 10 tools", tools.tools.length === 10);
 
 const packages = JSON.parse(text(await client.callTool({ name: "list_packages", arguments: {} })));
-check("list_packages returns the family", packages.some((p) => p.name === "silicaui-react"));
+check("list_packages returns the family", packages.some((p) => p.name === "@wizeworks/silicaui-react"));
 
 const components = JSON.parse(
-  text(await client.callTool({ name: "list_components", arguments: { package: "silicaui-react" } })),
+  text(await client.callTool({ name: "list_components", arguments: { package: "@wizeworks/silicaui-react" } })),
 );
-check("list_components filters by package", components.length > 0 && components.every((c) => c.package === "silicaui-react"));
+check("list_components filters by package", components.length > 0 && components.every((c) => c.package === "@wizeworks/silicaui-react"));
 
 const button = JSON.parse(text(await client.callTool({ name: "get_component", arguments: { name: "Button" } })));
 check("get_component returns real props", button.props[0]?.members?.some((m) => m.name === "variant"));

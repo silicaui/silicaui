@@ -1,4 +1,4 @@
-import { NativeSelect } from "silicaui-react";
+import { NativeSelect } from "@wizeworks/silicaui-react";
 import { Section, Row, Stack } from "../lib/Section";
 import { SIZES } from "../lib/data";
 

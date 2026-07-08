@@ -1,15 +1,15 @@
 /**
  * The Component board (center in Theme mode) — every token edit previews across
- * the whole silicaui library AT ONCE, so a theme can be JUDGED, not guessed. It
- * dogfoods real silicaui-react components inside a `[data-theme]` island carrying
+ * the whole @wizeworks/silicaui library AT ONCE, so a theme can be JUDGED, not guessed. It
+ * dogfoods real @wizeworks/silicaui-react components inside a `[data-theme]` island carrying
  * the document theme's vars + the runtime color cascade (same island the canvas
  * uses), so N named colors and every scalar token repaint live. Layout is Tailwind;
- * component look comes entirely from silicaui's classes. The page leaves the screen
+ * component look comes entirely from @wizeworks/silicaui's classes. The page leaves the screen
  * here — this surface IS the theme.
  */
 import * as React from "react";
-import type { Theme } from "silicaui-html";
-import { rolesOf } from "silicaui-html";
+import type { Theme } from "@wizeworks/silicaui-html";
+import { rolesOf } from "@wizeworks/silicaui-html";
 import {
   Button, Badge, Alert, AlertContent, AlertTitle,
   Progress, RadialProgress, Range, Switch, Rating,
@@ -18,7 +18,7 @@ import {
   Tabs, TabsList, TabsTab, TabsPanel,
   Steps, Step, Card, CardBody, CardTitle, CardActions,
   Display, Heading, Text,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { useTheme } from "./editor-context";
 import { customColorCss } from "../color-cascade";
 

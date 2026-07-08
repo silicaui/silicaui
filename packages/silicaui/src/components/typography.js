@@ -1,5 +1,5 @@
 /**
- * Typography — silicaui's UI type ramp (distinct from `.prose`, which styles a
+ * Typography — @wizeworks/silicaui's UI type ramp (distinct from `.prose`, which styles a
  * block of long-form/markdown content). This gives the *application* a designed
  * default: bare `<h1>`–`<h6>` and `<p>` look right with zero classes, plus
  * explicit `.display` / `.h1`–`.h6` / `.lead` / `.caption` classes to apply any
@@ -10,7 +10,7 @@
  *
  * Two deliberate scoping choices:
  *  • Global element defaults are scoped to `[data-theme]` — the same opt-in
- *    surface silicaui paints (theme.js) — so silicaui NEVER restyles a host
+ *    surface @wizeworks/silicaui paints (theme.js) — so @wizeworks/silicaui NEVER restyles a host
  *    page's headings you didn't opt into (the embeddable/Sparx case).
  *  • They use `:where(...)` (zero specificity) so a Tailwind utility
  *    (`text-sm`) OR a `.h*` class always wins without `!important`.

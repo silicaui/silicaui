@@ -1,1 +1,1 @@
-# silicaui-react
+# @wizeworks/silicaui-react

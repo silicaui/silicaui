@@ -53,7 +53,7 @@ export type MockupCodeProps = React.HTMLAttributes<HTMLDivElement>;
  * `<MockupCodeLine>` rows (each renders a `<pre data-prefix>`).
  *
  *   <MockupCode>
- *     <MockupCodeLine prefix="$">npm i silicaui</MockupCodeLine>
+ *     <MockupCodeLine prefix="$">npm i @wizeworks/silicaui</MockupCodeLine>
  *     <MockupCodeLine prefix=">" className="text-success">done</MockupCodeLine>
  *   </MockupCode>
  */

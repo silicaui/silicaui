@@ -1,4 +1,4 @@
-import { Meter } from "silicaui-react";
+import { Meter } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { COLORS, SIZES } from "../lib/data";
 

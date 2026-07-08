@@ -1,4 +1,4 @@
-import { ScrollArea } from "silicaui-react";
+import { ScrollArea } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 const ITEMS = Array.from({ length: 30 }, (_, i) => `Item ${i + 1}`);

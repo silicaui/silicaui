@@ -1,13 +1,13 @@
 /**
  * The canonical theme model — the shared source of truth for what colors a
- * silicaui theme exposes, plus a small library of real, considered presets.
+ * @wizeworks/silicaui theme exposes, plus a small library of real, considered presets.
  *
- * This lives in silicaui-html (framework-neutral, owns the `Theme` type) on
+ * This lives in @wizeworks/silicaui-html (framework-neutral, owns the `Theme` type) on
  * purpose: the theme EDITOR and the property panel's color controls must agree
  * on "what roles exist", and any consumer (the builder, sparx, a headless
  * pipeline) reads the same list. See `docs/silicaui-architecture.md` §5.
  *
- * Color model (matches silicaui's `colors.js`): every theme has a neutral SURFACE
+ * Color model (matches @wizeworks/silicaui's `colors.js`): every theme has a neutral SURFACE
  * ramp (`base-100/200/300` + `base-content` ink) and a set of semantic ROLES
  * (`primary` … `error`), each optionally paired with a `-content` foreground. A
  * theme may add its own custom roles (`--color-brand`); `rolesOf` surfaces those
@@ -89,7 +89,7 @@ export const SCALAR_TOKENS = [
 // Real, hand-tuned palettes (OKLCH). Each shifts the brand/status HUES over a
 // coherent neutral ramp; the dark delta flips the surfaces + ink while keeping
 // the mid-tone role hues (which read on either surface). `-content` foregrounds
-// are intentionally omitted — silicaui components derive a legible one via
+// are intentionally omitted — @wizeworks/silicaui components derive a legible one via
 // `contentVar`'s `oklch(from …)` fallback, so presets stay compact and correct.
 
 function surfaces(l100: string, l200: string, l300: string, content: string): Record<string, string> {
@@ -128,7 +128,7 @@ export const THEME_PRESETS: Theme[] = [
     // for structure, a single higher-chroma accent (Quartz, 211) reserved for
     // interaction, and the four semantic roles kept to their functional hues but
     // the same chroma discipline: Azurite/Malachite/Citrine/Garnet. Matches
-    // silicaui's `colors.js` LIGHT/DARK exactly — keep the two in sync.
+    // @wizeworks/silicaui's `colors.js` LIGHT/DARK exactly — keep the two in sync.
     name: "quartz",
     mode: "light",
     tokens: {

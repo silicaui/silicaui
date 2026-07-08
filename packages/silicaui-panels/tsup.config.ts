@@ -8,5 +8,5 @@ export default defineConfig({
   sourcemap: true,
   treeshake: true,
   // Keep peers + the resize engine external so the consumer's bundler dedupes it.
-  external: ["react", "react-dom", "silicaui-react", "react-resizable-panels"],
+  external: ["react", "react-dom", "@wizeworks/silicaui-react", "react-resizable-panels"],
 });

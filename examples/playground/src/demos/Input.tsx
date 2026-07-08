@@ -8,7 +8,7 @@ import {
     FieldError,
     FloatingLabel,
     Button,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section, Row, Stack } from "../lib/Section";
 import { SIZES } from "../lib/data";
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Toggle } from "silicaui-react";
+import { Toggle } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { ColorVariantSizeGrid } from "../lib/ColorGrid";
 

@@ -4,7 +4,7 @@ import {
     NavigationMenuTrigger,
     NavigationMenuContent,
     NavigationMenuLink,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function NavigationMenuDemo() {

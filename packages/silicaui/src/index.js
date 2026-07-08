@@ -95,7 +95,7 @@ import { selectionList } from "./components/selection-list.js";
 import { sidebar } from "./components/sidebar.js";
 
 /**
- * Parse the `colors` option from `@plugin "silicaui" { colors: … }`.
+ * Parse the `colors` option from `@plugin "@wizeworks/silicaui" { colors: … }`.
  * Tailwind may hand this to us as an array or a comma/space-separated string.
  */
 function parseColors(option) {
@@ -106,7 +106,7 @@ function parseColors(option) {
 }
 
 /**
- * Parse the `prefix` option from `@plugin "silicaui" { prefix: sx-; }`.
+ * Parse the `prefix` option from `@plugin "@wizeworks/silicaui" { prefix: sx-; }`.
  * Prepended verbatim to every Silica component class, so the caller controls the
  * separator (`sx-` → `.sx-btn`). Whitespace/quotes are stripped; empty → "".
  * NOTE: this must match the prefix given to `<SilicaProvider prefix>` in the
@@ -124,19 +124,19 @@ function parsePrefix(option) {
  * Usage (CSS-first, no tailwind.config):
  *
  *   @import "tailwindcss";
- *   @plugin "silicaui";
+ *   @plugin "@wizeworks/silicaui";
  *
  * Add your own component colors — they get the full treatment, including an
  * auto-derived foreground if you don't supply a `-content`:
  *
- *   @plugin "silicaui" { colors: primary, secondary, brand; }
+ *   @plugin "@wizeworks/silicaui" { colors: primary, secondary, brand; }
  *   @theme { --color-brand: #7c3aed; }
  *
  * Namespace every Silica class with a prefix (e.g. to coexist with another
  * design system). The value is prepended verbatim, so include your own
- * separator. Must match `<SilicaProvider prefix>` in silicaui-react:
+ * separator. Must match `<SilicaProvider prefix>` in @wizeworks/silicaui-react:
  *
- *   @plugin "silicaui" { prefix: sx-; }   // → .sx-btn, .sx-btn-primary, …
+ *   @plugin "@wizeworks/silicaui" { prefix: sx-; }   // → .sx-btn, .sx-btn-primary, …
  */
 export default plugin.withOptions(
   (options = {}) =>
@@ -244,7 +244,7 @@ export default plugin.withOptions(
       addBase(toggle(colors, prefix));
       // Color utilities as var-setters for EVERY declared color — parity with the
       // component variants above. Custom colors get `text-brand`/`bg-brand`/
-      // `border-brand` with no scanning or safelist (silicaui's N-color promise).
+      // `border-brand` with no scanning or safelist (@wizeworks/silicaui's N-color promise).
       // Emitted LAST so an explicit `text-*`/`bg-*` still layers over a
       // component's own color, matching Tailwind's utilities-beat-components rule.
       addBase(colorUtilities(colors, prefix));
@@ -289,7 +289,7 @@ export default plugin.withOptions(
         // the scale reads as a self-documenting xs → sm → MD → lg… ladder rather
         // than leaving 16px as an accidental Tailwind default. Values match
         // Tailwind's own defaults (nothing shifts); `md` is the named alias
-        // silicaui code should reach for. Always prefer a scale step over a
+        // @wizeworks/silicaui code should reach for. Always prefer a scale step over a
         // `text-[13px]`-style magic number.
         fontSize: {
           xs: ["0.75rem", { lineHeight: "1rem" }], // 12px

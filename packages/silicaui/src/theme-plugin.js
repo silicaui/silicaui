@@ -11,7 +11,7 @@ function truthy(v) {
 /**
  * Silica theme customization — define or override a theme entirely in CSS.
  *
- *   @plugin "silicaui/theme" {
+ *   @plugin "@wizeworks/silicaui/theme" {
  *     name: midnight;
  *     color-scheme: dark;
  *     default: true;        // apply at :root (make it the default theme)
@@ -21,7 +21,7 @@ function truthy(v) {
  *     // …any Silica token: --radius-field, --size-field, --depth, etc.
  *   }
  *
- * Load it AFTER `@plugin "silicaui"` so your values win by source
+ * Load it AFTER `@plugin "@wizeworks/silicaui"` so your values win by source
  * order. Partial overrides are fine — unspecified tokens fall through to the
  * built-in theme's values via the cascade. Any `--color-X` without a matching
  * `--color-X-content` gets an auto-derived legible foreground.

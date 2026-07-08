@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, SilicaProvider, ToastProvider } from "silicaui-react";
+import { Button, SilicaProvider, ToastProvider } from "@wizeworks/silicaui-react";
 import { DEMOS } from "./demos/registry";
 
 /**

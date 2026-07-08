@@ -2,7 +2,7 @@
 // every instance into a fresh clone of its master, recursively, breaking cycles —
 // so a consumer (sparx, any host) projects instances to plain markup with no
 // symbol awareness. Run against built output:
-//   pnpm --filter silicaui-html build && node verify-symbols.mjs
+//   pnpm --filter @wizeworks/silicaui-html build && node verify-symbols.mjs
 import { applyOverrides, el, flattenSymbols, hasInstances, toHtml } from "./dist/index.js";
 
 let failures = 0;

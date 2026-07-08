@@ -1,29 +1,29 @@
-# silicaui
+# @wizeworks/silicaui
 
 The CSS layer of **Silica UI** — a Tailwind CSS v4 plugin that ships semantic,
 themeable component classes (`btn`, `btn-primary`, `card`, `dialog`, …) built on
 an extensible OKLCH color-token engine. CSS-first: no `tailwind.config`, just a
-single `@plugin "silicaui"` line. Framework-agnostic — pair it with
-[`silicaui-react`](https://github.com/silicaui/silicaui/tree/main/packages/silicaui-react)
+single `@plugin "@wizeworks/silicaui"` line. Framework-agnostic — pair it with
+[`@wizeworks/silicaui-react`](https://github.com/silicaui/silicaui/tree/main/packages/silicaui-react)
 or use the classes directly in any HTML.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/silicaui)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui?style=flat-square)](https://bundlephobia.com/package/silicaui)
-[![license](https://img.shields.io/npm/l/silicaui.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wizeworks/silicaui?style=flat-square)](https://bundlephobia.com/package/@wizeworks/silicaui)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
 ```bash
-pnpm add -D silicaui tailwindcss
+pnpm add -D @wizeworks/silicaui tailwindcss
 ```
 
 ```css
 /* your globals.css */
 @import "tailwindcss";
-@plugin "silicaui";
+@plugin "@wizeworks/silicaui";
 ```
 
 That's it — every class below is now available anywhere in your markup.
@@ -42,7 +42,7 @@ Add colors in your CSS and list them so they get full component variant
 coverage (`btn-<name>`, `badge-<name>`, `alert-<name>`, …) — no codegen step:
 
 ```css
-@plugin "silicaui" {
+@plugin "@wizeworks/silicaui" {
   colors: primary, secondary, accent, neutral, info, success, warning, error, brand;
 }
 @theme {
@@ -74,11 +74,11 @@ four axes).
 | **Typography** | `typography` `prose` |
 
 The composite/advanced classes back the matching React wrapper packages —
-[`silicaui-charts`](https://www.npmjs.com/package/silicaui-charts),
-[`silicaui-table`](https://www.npmjs.com/package/silicaui-table),
-[`silicaui-panels`](https://www.npmjs.com/package/silicaui-panels),
-[`silicaui-editor`](https://www.npmjs.com/package/silicaui-editor), and
-[`silicaui-dnd`](https://www.npmjs.com/package/silicaui-dnd) — each pairing the
+[`@wizeworks/silicaui-charts`](https://www.npmjs.com/package/@wizeworks/silicaui-charts),
+[`@wizeworks/silicaui-table`](https://www.npmjs.com/package/@wizeworks/silicaui-table),
+[`@wizeworks/silicaui-panels`](https://www.npmjs.com/package/@wizeworks/silicaui-panels),
+[`@wizeworks/silicaui-editor`](https://www.npmjs.com/package/@wizeworks/silicaui-editor), and
+[`@wizeworks/silicaui-dnd`](https://www.npmjs.com/package/@wizeworks/silicaui-dnd) — each pairing the
 CSS with the JS engine it wraps (ECharts, TanStack Table, react-resizable-panels,
 TipTap, dnd-kit).
 
@@ -112,4 +112,4 @@ for the full design system.
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
-- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the React layer
+- [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react) — the React layer

@@ -1,4 +1,4 @@
-import { Stack, Card, CardBody } from "silicaui-react";
+import { Stack, Card, CardBody } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const CARDS = [

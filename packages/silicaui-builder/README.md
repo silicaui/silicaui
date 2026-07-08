@@ -1,15 +1,15 @@
-# silicaui-builder
+# @wizeworks/silicaui-builder
 
 The visual site/page builder for **Silica UI** — editor chrome built entirely
-ON [`silicaui`](https://www.npmjs.com/package/silicaui) (Tailwind v4 plugin)
-and [`silicaui-react`](https://www.npmjs.com/package/silicaui-react), over a
+ON [`@wizeworks/silicaui`](https://www.npmjs.com/package/@wizeworks/silicaui) (Tailwind v4 plugin)
+and [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react), over a
 framework-neutral document engine
-([`silicaui-html`](https://www.npmjs.com/package/silicaui-html)). No bespoke
+([`@wizeworks/silicaui-html`](https://www.npmjs.com/package/@wizeworks/silicaui-html)). No bespoke
 chrome: every panel, control, and canvas element is a Silica UI component.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-builder.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-builder)
-[![license](https://img.shields.io/npm/l/silicaui-builder.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-builder.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-builder)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-builder.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 > Pre-1.0 and under active development — expect breaking changes between
@@ -18,13 +18,13 @@ chrome: every panel, control, and canvas element is a Silica UI component.
 ## Install
 
 ```bash
-pnpm add silicaui-builder silicaui-react silicaui silicaui-html react react-dom
+pnpm add @wizeworks/silicaui-builder @wizeworks/silicaui-react @wizeworks/silicaui @wizeworks/silicaui-html react react-dom
 ```
 
 ## Usage
 
 ```tsx
-import { Builder } from "silicaui-builder/react";
+import { Builder } from "@wizeworks/silicaui-builder/react";
 
 <Builder />;
 ```
@@ -40,13 +40,13 @@ an `onChange` prop; the builder also keeps its own local crash-recovery copy
 
 | Entry | Contents |
 | --- | --- |
-| `silicaui-builder` | Framework-neutral document engine (node schema, operations) |
-| `silicaui-builder/react` | The editor UI — `Builder` and its subcomponents |
+| `@wizeworks/silicaui-builder` | Framework-neutral document engine (node schema, operations) |
+| `@wizeworks/silicaui-builder/react` | The editor UI — `Builder` and its subcomponents |
 
 ## Links
 
 - [silicaui.com](https://silicaui.com) — website & docs
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
-- [`silicaui`](https://www.npmjs.com/package/silicaui) — the CSS layer this package is chrome for
-- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer the builder's chrome is built from
+- [`@wizeworks/silicaui`](https://www.npmjs.com/package/@wizeworks/silicaui) — the CSS layer this package is chrome for
+- [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react) — the component layer the builder's chrome is built from

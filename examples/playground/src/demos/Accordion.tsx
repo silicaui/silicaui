@@ -3,7 +3,7 @@ import {
     AccordionItem,
     AccordionTrigger,
     AccordionPanel,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function AccordionDemo() {

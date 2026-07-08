@@ -1,5 +1,5 @@
 /**
- * The silicaui node schema (architecture spec §3).
+ * The @wizeworks/silicaui node schema (architecture spec §3).
  *
  * One shape everywhere: a template, a live document, a stored record, and the
  * input to every projection are all built from `Node`. JSON-serializable, no
@@ -22,14 +22,14 @@ interface NodeBase {
   /** Builder-only layer name shown in the Navigator (user-renamable). Authoring
    *  metadata — ignored by every projection. */
   label?: string;
-  /** The ONLY styling surface: silicaui component classes + the allowed utility
+  /** The ONLY styling surface: @wizeworks/silicaui component classes + the allowed utility
    *  subset. A host gates these. No inline style, ever. */
   class?: string;
   children?: Child[];
 
   // ── system metadata — typed, and NEVER mixed into attrs/props ──────────────
   /** Dynamic content. At most one binding; the union makes "at most one"
-   *  structural. The `ref` is opaque — silicaui never parses it. */
+   *  structural. The `ref` is opaque — @wizeworks/silicaui never parses it. */
   data?: DataBinding;
   /** Marks this node as an editable region for a builder/host. */
   slot?: SlotDef;
@@ -69,7 +69,7 @@ export interface ElementNode extends NodeBase {
 
 export interface ComponentNode extends NodeBase {
   kind: "component";
-  /** A silicaui atom by name: 'Button' | 'Card' | 'Image' | 'Icon' | … */
+  /** A @wizeworks/silicaui atom by name: 'Button' | 'Card' | 'Image' | 'Icon' | … */
   component: string;
   /** The component's OWN typed API. */
   props?: Record<string, unknown>;
@@ -170,7 +170,7 @@ export interface SymbolDef {
   root: Node;
 }
 
-/** A native silicaui theme — a token set applied via `[data-theme]` (§5). */
+/** A native @wizeworks/silicaui theme — a token set applied via `[data-theme]` (§5). */
 export interface Theme {
   /** The `[data-theme]` value applied to the canvas/site root. */
   name: string;

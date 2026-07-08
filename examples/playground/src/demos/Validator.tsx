@@ -1,4 +1,4 @@
-import { Validator, ValidatorHint, Input } from "silicaui-react";
+import { Validator, ValidatorHint, Input } from "@wizeworks/silicaui-react";
 import { Section, Stack } from "../lib/Section";
 
 export function ValidatorDemo() {

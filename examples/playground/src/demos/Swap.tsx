@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Swap } from "silicaui-react";
+import { Swap } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 function MenuIcon() {

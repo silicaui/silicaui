@@ -1,4 +1,4 @@
-import { Footer, FooterTitle, Link } from "silicaui-react";
+import { Footer, FooterTitle, Link } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function FooterDemo() {

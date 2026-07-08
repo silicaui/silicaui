@@ -1,1 +1,1 @@
-# silicaui-panels
+# @wizeworks/silicaui-panels

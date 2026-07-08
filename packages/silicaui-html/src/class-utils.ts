@@ -45,7 +45,7 @@ export const VOID_ELEMENTS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * silicaui component-class STEMS — the first segment of a component class (e.g.
+ * @wizeworks/silicaui component-class STEMS — the first segment of a component class (e.g.
  * `btn` in `btn-primary`). This set is the sole source of truth for prefixing:
  * a class token is prefixed iff its stem is a component, so `btn`→`st-btn` while
  * utilities (`grid`, `gap-8`, `bg-primary`, `rounded-box`) are left untouched.
@@ -115,7 +115,7 @@ export const COMPONENT_STEMS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Apply a class prefix to the silicaui component classes within a class string,
+ * Apply a class prefix to the @wizeworks/silicaui component classes within a class string,
  * leaving utilities alone. Any variant prefix (`@3xl:`, `hover:`) is preserved
  * and only the base token is rewritten: `@3xl:btn-lg` → `@3xl:st-btn-lg`.
  */

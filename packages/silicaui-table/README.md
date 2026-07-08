@@ -1,27 +1,27 @@
-# silicaui-table
+# @wizeworks/silicaui-table
 
 Silica UI's `<DataTable>` — [TanStack Table](https://tanstack.com/table) wrapped
 in the Silica table CSS. Sorting, row selection, and pagination as simple
 boolean/number props over TanStack's typed column-def API.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-table)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-table)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-table?style=flat-square)](https://bundlephobia.com/package/silicaui-table)
-[![license](https://img.shields.io/npm/l/silicaui-table.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-table)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui-table.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-table)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wizeworks/silicaui-table?style=flat-square)](https://bundlephobia.com/package/@wizeworks/silicaui-table)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-table.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
 ```bash
-pnpm add silicaui-table silicaui-react
-pnpm add -D silicaui tailwindcss
+pnpm add @wizeworks/silicaui-table @wizeworks/silicaui-react
+pnpm add -D @wizeworks/silicaui tailwindcss
 ```
 
 ## Usage
 
 ```tsx
-import { DataTable, createColumnHelper } from "silicaui-table";
+import { DataTable, createColumnHelper } from "@wizeworks/silicaui-table";
 
 interface Row {
   name: string;
@@ -59,4 +59,4 @@ direct TanStack install.
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
-- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends
+- [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react) — the component layer this package extends

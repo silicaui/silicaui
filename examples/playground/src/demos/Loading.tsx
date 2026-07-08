@@ -1,4 +1,4 @@
-import { Loading, Button } from "silicaui-react";
+import { Loading, Button } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 import { SIZES } from "../lib/data";
 

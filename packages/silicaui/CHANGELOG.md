@@ -1,1 +1,1 @@
-# silicaui
+# @wizeworks/silicaui

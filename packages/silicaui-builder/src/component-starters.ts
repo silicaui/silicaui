@@ -2,7 +2,7 @@
  * Starter templates for a NEW component. When a user creates a component they can
  * begin from a blank shell or from a ready-made section — a navbar, a footer, a
  * content block, and so on. The section starters are the SAME validated block
- * templates the Insert palette offers (`silicaui-html/blocks`), pulled through
+ * templates the Insert palette offers (`@wizeworks/silicaui-html/blocks`), pulled through
  * `paletteItemByKey` so their labels, glyphs, hints, and (crucially) their
  * LITERAL-class roots are reused verbatim — no second copy to drift or to miss the
  * `@source` safelist.
@@ -10,7 +10,7 @@
  * A starter is just a `PaletteItem`: `make()` returns a fresh, id-free root the
  * engine stamps into a component master.
  */
-import { el } from "silicaui-html";
+import { el } from "@wizeworks/silicaui-html";
 import type { PaletteItem } from "./palette";
 import { paletteItemByKey } from "./palette";
 

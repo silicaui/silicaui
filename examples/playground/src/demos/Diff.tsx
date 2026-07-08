@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Diff } from "silicaui-react";
+import { Diff } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 function Panel({ label, color }: { label: string; color: string }) {

@@ -1,27 +1,27 @@
-# silicaui-dnd
+# @wizeworks/silicaui-dnd
 
 Silica UI drag-and-drop — [dnd-kit](https://dndkit.com/) wrapped in a
 Silica-styled `<SortableList>`, plus the full dnd-kit primitive set re-exported
 for custom drag surfaces.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-dnd)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-dnd)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-dnd?style=flat-square)](https://bundlephobia.com/package/silicaui-dnd)
-[![license](https://img.shields.io/npm/l/silicaui-dnd.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-dnd)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui-dnd.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-dnd)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wizeworks/silicaui-dnd?style=flat-square)](https://bundlephobia.com/package/@wizeworks/silicaui-dnd)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-dnd.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
 ```bash
-pnpm add silicaui-dnd silicaui-react
-pnpm add -D silicaui tailwindcss
+pnpm add @wizeworks/silicaui-dnd @wizeworks/silicaui-react
+pnpm add -D @wizeworks/silicaui tailwindcss
 ```
 
 ## Usage
 
 ```tsx
-import { SortableList } from "silicaui-dnd";
+import { SortableList } from "@wizeworks/silicaui-dnd";
 
 <SortableList
   items={items}
@@ -56,4 +56,4 @@ without a separate dnd-kit install.
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
-- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends
+- [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react) — the component layer this package extends

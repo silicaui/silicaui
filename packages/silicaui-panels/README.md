@@ -1,27 +1,27 @@
-# silicaui-panels
+# @wizeworks/silicaui-panels
 
 Silica UI resizable panels — [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels)
 wrapped with a Silica-styled resize handle. Drop-in for split editors,
 sidebars, and any layout that needs a draggable divider.
 
 [![Website](https://img.shields.io/badge/website-silicaui.com-8b5cf6?style=flat-square)](https://silicaui.com)
-[![npm version](https://img.shields.io/npm/v/silicaui-panels.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-panels)
-[![npm downloads](https://img.shields.io/npm/dm/silicaui-panels.svg?style=flat-square)](https://www.npmjs.com/package/silicaui-panels)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/silicaui-panels?style=flat-square)](https://bundlephobia.com/package/silicaui-panels)
-[![license](https://img.shields.io/npm/l/silicaui-panels.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@wizeworks/silicaui-panels.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-panels)
+[![npm downloads](https://img.shields.io/npm/dm/@wizeworks/silicaui-panels.svg?style=flat-square)](https://www.npmjs.com/package/@wizeworks/silicaui-panels)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wizeworks/silicaui-panels?style=flat-square)](https://bundlephobia.com/package/@wizeworks/silicaui-panels)
+[![license](https://img.shields.io/npm/l/@wizeworks/silicaui-panels.svg?style=flat-square)](https://github.com/silicaui/silicaui/blob/main/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/silicaui/silicaui/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/silicaui/silicaui/actions/workflows/ci.yml)
 
 ## Install
 
 ```bash
-pnpm add silicaui-panels silicaui-react
-pnpm add -D silicaui tailwindcss
+pnpm add @wizeworks/silicaui-panels @wizeworks/silicaui-react
+pnpm add -D @wizeworks/silicaui tailwindcss
 ```
 
 ## Usage
 
 ```tsx
-import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "silicaui-panels";
+import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 
 <ResizablePanelGroup direction="horizontal">
   <ResizablePanel defaultSize={25} minSize={15}>Sidebar</ResizablePanel>
@@ -51,4 +51,4 @@ persistence without a separate install.
 
 - [GitHub repo](https://github.com/silicaui/silicaui)
 - [Issues](https://github.com/silicaui/silicaui/issues)
-- [`silicaui-react`](https://www.npmjs.com/package/silicaui-react) — the component layer this package extends
+- [`@wizeworks/silicaui-react`](https://www.npmjs.com/package/@wizeworks/silicaui-react) — the component layer this package extends

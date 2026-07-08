@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RadioGroup, RadioOption } from "silicaui-react";
+import { RadioGroup, RadioOption } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function RadioGroupDemo() {

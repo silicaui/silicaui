@@ -1,4 +1,4 @@
-import { Menu, MenuItem, MenuTitle } from "silicaui-react";
+import { Menu, MenuItem, MenuTitle } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function MenuDemo() {

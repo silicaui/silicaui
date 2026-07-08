@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Wizard, Input } from "silicaui-react";
-import type { WizardStep } from "silicaui-react";
+import { Wizard, Input } from "@wizeworks/silicaui-react";
+import type { WizardStep } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { COLORS } from "../lib/data";
 

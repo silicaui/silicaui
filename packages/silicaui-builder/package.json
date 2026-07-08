@@ -1,5 +1,5 @@
 {
-  "name": "silicaui-builder",
+  "name": "@wizeworks/silicaui-builder",
   "version": "0.3.0",
   "description": "silicaui's visual builder — chrome built ON silicaui (Tailwind v4 plugin) + silicaui-react, over a framework-neutral document engine.",
   "type": "module",
@@ -38,8 +38,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "silicaui": "workspace:*",
-    "silicaui-html": "workspace:*"
+    "@wizeworks/silicaui": "workspace:*",
+    "@wizeworks/silicaui-html": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -54,7 +54,7 @@
     "lucide-static": "^1.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "silicaui-react": "workspace:*",
+    "@wizeworks/silicaui-react": "workspace:*",
     "tailwindcss": "^4.3.0",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0",

@@ -4,7 +4,7 @@ import {
     MockupCode,
     MockupCodeLine,
     MockupPhone,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function MockupDemo() {
@@ -28,7 +28,7 @@ export function MockupDemo() {
 
             <Section title="Code block">
                 <MockupCode className="max-w-lg">
-                    <MockupCodeLine prefix="$">pnpm add silicaui</MockupCodeLine>
+                    <MockupCodeLine prefix="$">pnpm add @wizeworks/silicaui</MockupCodeLine>
                     <MockupCodeLine prefix=">" className="text-success">
                         Done in 1.2s
                     </MockupCodeLine>

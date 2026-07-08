@@ -1,11 +1,11 @@
 /**
  * The Pages switcher — top of the left rail (Page/Layout mode). The current page
- * is chosen with a silicaui `Select` (a real value-picker dropdown: built-in
+ * is chosen with a @wizeworks/silicaui `Select` (a real value-picker dropdown: built-in
  * chevron + selected-check, portalled themed popup); rename / add / delete sit
  * beside it as ghost icon `Button`s. Renaming swaps the Select for an `Input`
  * (Enter/blur commits, Esc cancels).
  *
- * ALL controls are silicaui components — no hand-rolled triggers or utility-styled
+ * ALL controls are @wizeworks/silicaui components — no hand-rolled triggers or utility-styled
  * buttons. The Select popup portals outside the chrome's `[data-theme]` island, so
  * `popupProps={{ "data-theme": … }}` re-establishes the studio tokens. The theme is
  * site-wide and the frame is shared, so this is the ONLY per-page surface —
@@ -13,7 +13,7 @@
  * Add/remove/rename are undoable; switching is a view concern (no history).
  */
 import * as React from "react";
-import { Button, Select, SelectItem, Input } from "silicaui-react";
+import { Button, Select, SelectItem, Input } from "@wizeworks/silicaui-react";
 import { useEditor, usePages, useStudioTheme } from "./editor-context";
 import { Icon } from "./Icon";
 

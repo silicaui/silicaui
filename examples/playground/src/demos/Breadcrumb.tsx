@@ -1,4 +1,4 @@
-import { Breadcrumb } from "silicaui-react";
+import { Breadcrumb } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function BreadcrumbDemo() {

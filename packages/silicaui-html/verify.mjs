@@ -1,5 +1,5 @@
 // Runnable proof of the spine: author → validate → project → stamp. Run against
-// the built output: `pnpm --filter silicaui-html build && node verify.mjs`.
+// the built output: `pnpm --filter @wizeworks/silicaui-html build && node verify.mjs`.
 import {
   block,
   el,

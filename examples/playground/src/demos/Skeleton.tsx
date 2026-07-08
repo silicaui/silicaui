@@ -1,4 +1,4 @@
-import { Skeleton } from "silicaui-react";
+import { Skeleton } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function SkeletonDemo() {

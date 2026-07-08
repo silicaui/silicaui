@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter playground dev",
-    "designer": "pnpm --filter silicaui-builder harness",
+    "designer": "pnpm --filter @wizeworks/silicaui-builder harness",
     "build": "pnpm -r --filter \"./packages/*\" build",
     "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",

@@ -1,6 +1,6 @@
 /**
  * The component registry (architecture spec §4) — the SINGLE definition each
- * silicaui component derives from, and the spine that lets the catalog grow to
+ * @wizeworks/silicaui component derives from, and the spine that lets the catalog grow to
  * "lots more" without a renderer edit per component.
  *
  * A component is a MACRO: atomic in the node tree (you select the `Button`, not
@@ -642,7 +642,7 @@ export function expandComponent(node: ComponentNode): Node {
   const def = registry.get(node.component);
   if (!def) {
     throw new Error(
-      `Unknown silicaui atom: "${node.component}". Register it in the atom registry.`,
+      `Unknown @wizeworks/silicaui atom: "${node.component}". Register it in the atom registry.`,
     );
   }
   return def.expand(node);

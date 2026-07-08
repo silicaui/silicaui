@@ -1,4 +1,4 @@
-import { Mask } from "silicaui-react";
+import { Mask } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 const PHOTO = `data:image/svg+xml,${encodeURIComponent(

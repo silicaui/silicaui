@@ -1,4 +1,4 @@
-import { Label, FloatingLabel, Input } from "silicaui-react";
+import { Label, FloatingLabel, Input } from "@wizeworks/silicaui-react";
 import { Section, Stack } from "../lib/Section";
 
 export function LabelDemo() {

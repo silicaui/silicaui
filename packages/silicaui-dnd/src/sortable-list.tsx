@@ -16,7 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { cx, useSilicaClass } from "silicaui-react";
+import { cx, useSilicaClass } from "@wizeworks/silicaui-react";
 
 /** Props a consumer spreads onto its drag-handle element (or the whole row). */
 export type SortableHandleProps = React.HTMLAttributes<HTMLElement>;

@@ -10,4 +10,4 @@ const dest = path.join(root, "..", "dist", "data");
 
 mkdirSync(dest, { recursive: true });
 cpSync(src, dest, { recursive: true });
-console.log("[silicaui-mcp] copied catalog data → dist/data");
+console.log("[@wizeworks/silicaui-mcp] copied catalog data → dist/data");

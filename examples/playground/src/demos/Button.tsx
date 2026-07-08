@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "silicaui-react";
+import { Button } from "@wizeworks/silicaui-react";
 import { Section, Row, Stack } from "../lib/Section";
 import { ColorVariantSizeGrid } from "../lib/ColorGrid";
 import { PlusIcon } from "../lib/icons";

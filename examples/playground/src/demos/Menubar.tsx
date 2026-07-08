@@ -5,7 +5,7 @@ import {
     MenubarContent,
     MenubarItem,
     MenubarSeparator,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function MenubarDemo() {

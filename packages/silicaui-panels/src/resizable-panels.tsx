@@ -7,7 +7,7 @@ import {
   type PanelProps,
   type PanelResizeHandleProps,
 } from "react-resizable-panels";
-import { cx, useSilicaClass } from "silicaui-react";
+import { cx, useSilicaClass } from "@wizeworks/silicaui-react";
 
 /**
  * ResizablePanelGroup — the container. Pass `direction="horizontal"` (side-by-

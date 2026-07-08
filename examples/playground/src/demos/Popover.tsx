@@ -5,7 +5,7 @@ import {
     PopoverTitle,
     PopoverDescription,
     Button,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function PopoverDemo() {

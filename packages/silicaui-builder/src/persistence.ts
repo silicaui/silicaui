@@ -17,7 +17,7 @@
  * The snapshot is the raw authoring `Site` (pages + frame + theme + SYMBOLS), i.e.
  * `editor.extractSite()` — NOT the flattened output, so components survive intact.
  */
-import type { Site } from "silicaui-html";
+import type { Site } from "@wizeworks/silicaui-html";
 
 /** A persisted draft: the full site plus when it was saved (for newest-wins). */
 export interface DraftSnapshot {

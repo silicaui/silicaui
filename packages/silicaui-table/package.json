@@ -1,5 +1,5 @@
 {
-  "name": "silicaui-table",
+  "name": "@wizeworks/silicaui-table",
   "version": "0.3.0",
   "description": "Silica UI DataTable — TanStack Table wrapped in the Silica table CSS (sort, select, paginate).",
   "type": "module",
@@ -40,7 +40,7 @@
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18",
-    "silicaui-react": ">=0.0.0"
+    "@wizeworks/silicaui-react": ">=0.0.0"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.20.5"
@@ -50,7 +50,7 @@
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "silicaui-react": "workspace:*",
+    "@wizeworks/silicaui-react": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   },

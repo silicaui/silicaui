@@ -1,1 +1,1 @@
-# silicaui-html
+# @wizeworks/silicaui-html

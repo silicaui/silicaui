@@ -1,16 +1,16 @@
 /**
  * The Navigator (left rail in Page/Layout mode) — the layer tree. Dogfoods
- * silicaui's `TreeView` (never a bespoke tree): the document node tree maps to
+ * @wizeworks/silicaui's `TreeView` (never a bespoke tree): the document node tree maps to
  * `TreeNode[]`, selection is two-way bound to the engine (click a row → select;
  * select on canvas → the row highlights), and each row gets a baked node-type
  * glyph. String (text) children are leaves' content, not their own rows, so the
  * tree shows structure, not prose.
  */
 import * as React from "react";
-import type { Node } from "silicaui-html";
-import { walk } from "silicaui-html";
-import { TreeView } from "silicaui-react";
-import type { TreeNode } from "silicaui-react";
+import type { Node } from "@wizeworks/silicaui-html";
+import { walk } from "@wizeworks/silicaui-html";
+import { TreeView } from "@wizeworks/silicaui-react";
+import type { TreeNode } from "@wizeworks/silicaui-react";
 import { useActiveRoot, useEditor, useSelection } from "./editor-context";
 import { Icon } from "./Icon";
 import { nodeIconName, nodeName, textHint } from "../node-display";

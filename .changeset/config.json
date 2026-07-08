@@ -4,17 +4,17 @@
   "commit": false,
   "fixed": [
     [
-      "silicaui",
-      "silicaui-react",
-      "silicaui-html",
-      "silicaui-behaviors",
-      "silicaui-mcp",
-      "silicaui-charts",
-      "silicaui-dnd",
-      "silicaui-editor",
-      "silicaui-panels",
-      "silicaui-table",
-      "silicaui-builder"
+      "@wizeworks/silicaui",
+      "@wizeworks/silicaui-react",
+      "@wizeworks/silicaui-html",
+      "@wizeworks/silicaui-behaviors",
+      "@wizeworks/silicaui-mcp",
+      "@wizeworks/silicaui-charts",
+      "@wizeworks/silicaui-dnd",
+      "@wizeworks/silicaui-editor",
+      "@wizeworks/silicaui-panels",
+      "@wizeworks/silicaui-table",
+      "@wizeworks/silicaui-builder"
     ]
   ],
   "linked": [],

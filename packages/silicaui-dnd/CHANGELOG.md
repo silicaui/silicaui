@@ -1,1 +1,1 @@
-# silicaui-dnd
+# @wizeworks/silicaui-dnd

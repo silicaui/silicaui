@@ -5,7 +5,7 @@ import type { BehaviorHandler } from "../types";
  * `menu` — a click-triggered popup (dropdown/mega-menu): a `trigger` opens a
  * `panel` of `item` parts. Escape and outside-click dismiss; Up/Down/Home/End
  * rove focus across items while open. This is the vanilla counterpart to
- * silicaui-react's Base-UI-backed `DropdownMenu` — same authored markers,
+ * @wizeworks/silicaui-react's Base-UI-backed `DropdownMenu` — same authored markers,
  * same `.dropdown*` classes, no React required.
  */
 export const menu: BehaviorHandler = (root, opts) => {

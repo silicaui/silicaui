@@ -1,7 +1,7 @@
 /**
  * The insert catalog — what the Insert palette can add to the canvas. Two tiers:
- * PRIMITIVES (bare elements/atoms authored with the silicaui-html kit) and BLOCKS
- * (composed, validated templates from `silicaui-html/blocks`). Each entry is a
+ * PRIMITIVES (bare elements/atoms authored with the @wizeworks/silicaui-html kit) and BLOCKS
+ * (composed, validated templates from `@wizeworks/silicaui-html/blocks`). Each entry is a
  * pure factory returning an id-free `Node`; the engine stamps fresh ids on insert,
  * so returning a shared block root is safe (it's deep-cloned first).
  *
@@ -9,9 +9,9 @@
  * `@source` scan safelists the utilities a freshly-inserted node wears — same rule
  * as the Inspector and Canvas. A class assembled at runtime would never generate.
  */
-import type { Node } from "silicaui-html";
-import { atom, el } from "silicaui-html";
-import { listBlocks } from "silicaui-html/blocks";
+import type { Node } from "@wizeworks/silicaui-html";
+import { atom, el } from "@wizeworks/silicaui-html";
+import { listBlocks } from "@wizeworks/silicaui-html/blocks";
 import type { IconName } from "./icons";
 
 export interface PaletteItem {
@@ -76,7 +76,7 @@ const CONTENT: PaletteItem[] = [
 /**
  * Form primitives — native controls (Input/Select/Checkbox/…) as component atoms,
  * so they carry the form-contract wiring the runtime hydrates. Every class is a
- * LITERAL silicaui component class (`input`, `field`, …) for the `@source` safelist.
+ * LITERAL @wizeworks/silicaui component class (`input`, `field`, …) for the `@source` safelist.
  */
 const FORM: PaletteItem[] = [
     {

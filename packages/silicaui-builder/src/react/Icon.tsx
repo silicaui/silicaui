@@ -2,7 +2,7 @@
  * React wrapper over the baked Lucide inline-SVG set (../icons) — keeps the
  * builder's zero-runtime-dep icon story while rendering in React. The SVG is
  * `1em` and inherits `currentColor`, so size/color it with Tailwind text-* on an
- * ancestor; inside silicaui components (`.btn`) their own `svg` rule sizes it.
+ * ancestor; inside @wizeworks/silicaui components (`.btn`) their own `svg` rule sizes it.
  */
 import * as React from "react";
 import { icon, typeIcon } from "../icons";

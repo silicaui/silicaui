@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Join, Button, Input } from "silicaui-react";
+import { Join, Button, Input } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 const RANGES = ["Day", "Week", "Month"];

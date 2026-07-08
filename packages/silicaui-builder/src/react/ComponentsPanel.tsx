@@ -5,10 +5,10 @@
  * manage the library. Deleting is SAFE — every instance is detached into a real
  * copy (no content loss), so no confirm is needed.
  *
- * ALL controls are silicaui components / Tailwind utilities + baked <Icon>.
+ * ALL controls are @wizeworks/silicaui components / Tailwind utilities + baked <Icon>.
  */
 import * as React from "react";
-import { Button, Input } from "silicaui-react";
+import { Button, Input } from "@wizeworks/silicaui-react";
 import { useEditingSymbol, useEditor, useSymbols } from "./editor-context";
 import { Icon } from "./Icon";
 import { NewComponentButton } from "./ComponentStarterDialog";

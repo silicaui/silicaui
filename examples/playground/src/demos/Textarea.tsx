@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Textarea } from "silicaui-react";
+import { Textarea } from "@wizeworks/silicaui-react";
 import { Section, Row, Stack } from "../lib/Section";
 import { SIZES } from "../lib/data";
 

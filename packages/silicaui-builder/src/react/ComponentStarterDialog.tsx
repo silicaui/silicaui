@@ -5,10 +5,10 @@
  *
  * The Dialog portals to document.body — OUTSIDE the chrome's `[data-theme]`
  * island — so `DialogContent` re-stamps the studio theme (same fix PagesPanel's
- * Select uses). Every control is a silicaui component / utility + baked <Icon>.
+ * Select uses). Every control is a @wizeworks/silicaui component / utility + baked <Icon>.
  */
 import * as React from "react";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, Input } from "silicaui-react";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, Input } from "@wizeworks/silicaui-react";
 import { useEditor, useStudioTheme } from "./editor-context";
 import { Icon } from "./Icon";
 import { componentStarterGroups } from "../component-starters";

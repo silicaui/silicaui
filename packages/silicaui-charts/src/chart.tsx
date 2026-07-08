@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
-import { cx, useSilicaClass } from "silicaui-react";
+import { cx, useSilicaClass } from "@wizeworks/silicaui-react";
 import { buildSilicaEChartsTheme } from "./theme";
 
 /** The live ECharts instance type (whatever `echarts.init` returns). */

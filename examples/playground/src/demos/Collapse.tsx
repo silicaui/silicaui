@@ -1,4 +1,4 @@
-import { Collapse, CollapseTitle, CollapseContent } from "silicaui-react";
+import { Collapse, CollapseTitle, CollapseContent } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const FAQS = [

@@ -1,5 +1,5 @@
 /**
- * The blocks index (architecture spec §6.5) — `silicaui-html/blocks`.
+ * The blocks index (architecture spec §6.5) — `@wizeworks/silicaui-html/blocks`.
  *
  * A validated catalog of composed patterns, with lookup + filtering and a
  * tree-free summary for lightweight listings and a host's palette.

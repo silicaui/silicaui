@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { CommandPalette, Button } from "silicaui-react";
-import type { CommandItem } from "silicaui-react";
+import { CommandPalette, Button } from "@wizeworks/silicaui-react";
+import type { CommandItem } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function CommandPaletteDemo() {

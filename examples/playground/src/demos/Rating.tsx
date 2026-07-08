@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Rating } from "silicaui-react";
+import { Rating } from "@wizeworks/silicaui-react";
 import { Section, Row, LabeledRow } from "../lib/Section";
 import { COLORS, SIZES } from "../lib/data";
 

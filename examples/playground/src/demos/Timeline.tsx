@@ -4,7 +4,7 @@ import {
     TimelineStart,
     TimelineMiddle,
     TimelineEnd,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function TimelineDemo() {

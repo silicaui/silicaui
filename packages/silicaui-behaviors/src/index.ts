@@ -1,7 +1,7 @@
 /**
- * silicaui-behaviors — the framework-agnostic runtime for the behavior marker
+ * @wizeworks/silicaui-behaviors — the framework-agnostic runtime for the behavior marker
  * contract (architecture §7). It scans lowered `data-sui-*` markers (emitted
- * by `silicaui-html`'s `toHtml`) and wires the closed set of interactive
+ * by `@wizeworks/silicaui-html`'s `toHtml`) and wires the closed set of interactive
  * composites: carousel, disclosure, tabs, menu, marquee, scrollspy, counter,
  * dismiss, toc. Depends on no client framework — it is what a structured host
  * that renders plain markup runs for interactivity, and what the builder

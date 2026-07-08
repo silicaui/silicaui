@@ -1,6 +1,6 @@
 /**
  * The behavior marker vocabulary (architecture §7). Duplicated here — not
- * imported from `silicaui-html` — on purpose: the contract is the STRING
+ * imported from `@wizeworks/silicaui-html` — on purpose: the contract is the STRING
  * values in `data-sui-*` attributes, not shared TS identity, so this runtime
  * stays buildable with zero dependencies (any host lowering the same names
  * drives it identically).

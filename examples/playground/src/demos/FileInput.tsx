@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileInput } from "silicaui-react";
+import { FileInput } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 export function FileInputDemo() {

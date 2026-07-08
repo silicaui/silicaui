@@ -1,4 +1,4 @@
-import { Wordmark, WordmarkAccent } from "silicaui-react";
+import { Wordmark, WordmarkAccent } from "@wizeworks/silicaui-react";
 import { Section, Row } from "../lib/Section";
 
 const Mark = (

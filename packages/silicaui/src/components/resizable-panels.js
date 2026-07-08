@@ -6,7 +6,7 @@
  * bordered group frame and the resize handle (a thin bar with a centered grip
  * that lights up on hover/drag). Orientation comes from the group's
  * `data-panel-group-direction`, so one rule set covers both axes. The React
- * wrappers (in the optional `silicaui-panels` package) hang these classes on the
+ * wrappers (in the optional `@wizeworks/silicaui-panels` package) hang these classes on the
  * library's components.
  *
  * Colorless: the hovered/dragged handle + grip read `--color-primary`.

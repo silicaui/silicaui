@@ -1,4 +1,4 @@
-import { Navbar, NavbarStart, NavbarCenter, NavbarEnd, Button } from "silicaui-react";
+import { Navbar, NavbarStart, NavbarCenter, NavbarEnd, Button } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function NavbarDemo() {

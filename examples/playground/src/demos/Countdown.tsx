@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Countdown } from "silicaui-react";
+import { Countdown } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 export function CountdownDemo() {

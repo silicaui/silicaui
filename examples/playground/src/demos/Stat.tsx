@@ -5,7 +5,7 @@ import {
     StatValue,
     StatDesc,
     StatFigure,
-} from "silicaui-react";
+} from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 import { UserIcon } from "../lib/icons";
 

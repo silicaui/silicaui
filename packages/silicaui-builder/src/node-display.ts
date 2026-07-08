@@ -4,7 +4,7 @@
  * header) so both name a node the same way. No JSX here — callers wrap the
  * IconName in <Icon>.
  */
-import type { Node } from "silicaui-html";
+import type { Node } from "@wizeworks/silicaui-html";
 import { typeIcon } from "./icons";
 import type { IconName } from "./icons";
 

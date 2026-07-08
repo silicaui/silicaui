@@ -4,7 +4,7 @@
  * `SilicaColor` lists the built-in semantic colors for autocomplete but also
  * accepts any custom color string (the `(string & {})` trick keeps the literal
  * suggestions while still allowing arbitrary user-defined colors registered via
- * `@plugin "silicaui" { colors: … }`).
+ * `@plugin "@wizeworks/silicaui" { colors: … }`).
  */
 export type SilicaColor =
   | "primary"

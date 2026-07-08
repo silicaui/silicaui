@@ -1,9 +1,9 @@
 // Runnable proof of the `form` behavior contract (architecture §8): validate →
 // dispatch → state. Run against built output:
-//   pnpm --filter silicaui-behaviors build && node verify.mjs
+//   pnpm --filter @wizeworks/silicaui-behaviors build && node verify.mjs
 //
 // A jsdom document stands in for a published page: we lower a <form> exactly as
-// `silicaui-html` would (data-sui-behavior="form" + data-sui-action), hydrate it,
+// `@wizeworks/silicaui-html` would (data-sui-behavior="form" + data-sui-action), hydrate it,
 // and assert the submit lifecycle a real host relies on.
 import { JSDOM } from "jsdom";
 import { hydrate } from "./dist/index.js";
