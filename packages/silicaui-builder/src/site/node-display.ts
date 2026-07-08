@@ -5,8 +5,8 @@
  * IconName in <Icon>.
  */
 import type { Node } from "@wizeworks/silicaui-html";
-import { typeIcon } from "./icons";
-import type { IconName } from "./icons";
+import { typeIcon } from "../shared/icons";
+import type { IconName } from "../shared/icons";
 
 /** Element-tag → glyph (component atoms resolve through `typeIcon`). */
 const TAG_ICON: Record<string, IconName> = {

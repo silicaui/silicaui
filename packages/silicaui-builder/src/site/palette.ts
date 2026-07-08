@@ -12,7 +12,7 @@
 import type { Node } from "@wizeworks/silicaui-html";
 import { atom, el } from "@wizeworks/silicaui-html";
 import { listBlocks } from "@wizeworks/silicaui-html/blocks";
-import type { IconName } from "./icons";
+import type { IconName } from "../shared/icons";
 
 export interface PaletteItem {
     /** Stable identity for the row (and the drag payload). */

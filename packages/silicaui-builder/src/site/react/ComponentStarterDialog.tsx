@@ -10,7 +10,7 @@
 import * as React from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, Input } from "@wizeworks/silicaui-react";
 import { useEditor, useStudioTheme } from "./editor-context";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 import { componentStarterGroups } from "../component-starters";
 import type { PaletteItem } from "../palette";
 

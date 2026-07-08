@@ -11,7 +11,7 @@ import type { Theme } from "@wizeworks/silicaui-html";
 import { THEME_PRESETS, colorValue } from "@wizeworks/silicaui-html";
 import { useEditor, useTheme, useSavedThemes } from "./editor-context";
 import { themeToCss } from "../theme-ops";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 
 /** Four identity dots for a theme (primary/secondary/accent + a surface). */
 function dots(theme: Theme): string[] {

@@ -13,7 +13,7 @@ import { SURFACE_TOKENS, rolesOf, colorValue, presetByName } from "@wizeworks/si
 import { ColorPicker, Switch, ToggleGroup, ToggleGroupItem, Input, Button } from "@wizeworks/silicaui-react";
 import { useEditor, useTheme } from "./editor-context";
 import { randomizePalette, themeToCss, isCustomRole } from "../theme-ops";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 
 type Mode = "light" | "dark";
 

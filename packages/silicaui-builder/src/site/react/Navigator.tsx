@@ -12,7 +12,7 @@ import { walk } from "@wizeworks/silicaui-html";
 import { TreeView } from "@wizeworks/silicaui-react";
 import type { TreeNode } from "@wizeworks/silicaui-react";
 import { useActiveRoot, useEditor, useSelection } from "./editor-context";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, textHint } from "../node-display";
 
 function toTreeNode(node: Node): TreeNode {

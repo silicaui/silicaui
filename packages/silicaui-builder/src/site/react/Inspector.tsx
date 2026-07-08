@@ -16,7 +16,7 @@ import type { ComponentNode, DataBinding, ElementNode, Node, Theme } from "@wize
 import { rolesOf, colorValue, SURFACE_TOKENS, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 
 // ── class-set helpers ────────────────────────────────────────────────────────

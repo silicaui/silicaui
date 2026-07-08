@@ -15,7 +15,7 @@
 import * as React from "react";
 import { Button, Select, SelectItem, Input } from "@wizeworks/silicaui-react";
 import { useEditor, usePages, useStudioTheme } from "./editor-context";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 
 export function PagesPanel() {
   const { pages, activeId } = usePages();

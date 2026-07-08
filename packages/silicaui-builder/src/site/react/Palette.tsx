@@ -16,7 +16,7 @@
 import * as React from "react";
 import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 import { paletteGroups } from "../palette";
 import type { PaletteItem } from "../palette";
 import { nodeName } from "../node-display";

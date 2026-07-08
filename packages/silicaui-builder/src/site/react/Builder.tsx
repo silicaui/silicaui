@@ -16,7 +16,7 @@ import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizework
 import { Editor } from "../engine";
 import { DraftStore } from "../persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
-import { ErrorBoundary } from "./ErrorBoundary";
+import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
 import { useEditorShortcuts } from "./use-shortcuts";
 import { ThemeEditor } from "./ThemeEditor";
 import { ComponentBoard } from "./ComponentBoard";
@@ -28,8 +28,8 @@ import { NewComponentButton } from "./ComponentStarterDialog";
 import { Navigator } from "./Navigator";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
-import { Icon } from "./Icon";
-import type { IconName } from "../icons";
+import { Icon } from "../../shared/react/Icon";
+import type { IconName } from "../../shared/icons";
 
 type Mode = "page" | "layout" | "component" | "theme";
 type Appearance = "light" | "dark";

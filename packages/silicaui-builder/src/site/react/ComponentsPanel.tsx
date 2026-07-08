@@ -10,7 +10,7 @@
 import * as React from "react";
 import { Button, Input } from "@wizeworks/silicaui-react";
 import { useEditingSymbol, useEditor, useSymbols } from "./editor-context";
-import { Icon } from "./Icon";
+import { Icon } from "../../shared/react/Icon";
 import { NewComponentButton } from "./ComponentStarterDialog";
 
 export function ComponentsPanel() {

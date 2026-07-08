@@ -5,7 +5,7 @@
  * whole mechanism is verified before any UI sits on top. Bundled with esbuild and
  * run under node (see the runner in the shell command).
  */
-import { Editor } from "./src/engine";
+import { Editor } from "./src/site/engine";
 import { el, stampTree, toHtml, walk } from "@wizeworks/silicaui-html";
 import type { Node, Theme } from "@wizeworks/silicaui-html";
 
