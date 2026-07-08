@@ -39,20 +39,28 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      - name: Create Release Pull Request or publish to npm
+      - name: Create Release Pull Request
         id: changesets
         uses: changesets/action@v1
         with:
-          # guard-version runs first so a runaway/wrong bump type can never reach
-          # `npm publish` — it only opens the Version PR, which still needs review.
-          publish: node scripts/guard-version.mjs && pnpm release
           title: "chore: version packages"
           commit: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # changesets/action's own `npm publish` calls check for NPM_TOKEN by that
-          # exact name — NODE_AUTH_TOKEN alone makes it fall back to OIDC trusted
-          # publishing, which has no trust relationship for a package that was
-          # ever fully unpublished. Set both so npm CLI auth works either way.
+
+      # changesets/action's own `publish:` input silently swallows both output
+      # and the actual `npm publish` calls (confirmed: running the same command
+      # as a plain step works fine, wrapped through `publish:` it no-ops with
+      # no error). So publish is its own explicit step here instead, gated on
+      # the action's own `hasChangesets` output — it only runs once the Version
+      # PR has been merged and there's nothing left to version.
+      - name: Publish to npm
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: node scripts/guard-version.mjs && pnpm release
+        env:
+          # changesets/cli's own npm publish calls check for NPM_TOKEN by that
+          # exact name — NODE_AUTH_TOKEN alone makes it fall back to OIDC
+          # trusted publishing, which has no trust relationship for a scope
+          # that has never published before. Set both so npm CLI auth works.
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
