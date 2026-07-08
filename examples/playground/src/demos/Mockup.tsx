@@ -38,7 +38,7 @@ export function MockupDemo() {
             <Section title="Phone frame">
                 <Row>
                     <MockupPhone>
-                        <div className="flex h-64 w-40 flex-col items-center justify-center gap-2 bg-base-200 text-sm">
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-base-200 text-sm">
                             <span className="font-semibold">9:41</span>
                             <span className="opacity-60">Your app screen</span>
                         </div>

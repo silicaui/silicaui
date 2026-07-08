@@ -3,9 +3,9 @@ import {
     ChatLayout,
     ChatLayoutMessages,
     ChatMessage,
-    ChatMessageMetadata,
     ChatSystemMessage,
     ChatToolCalls,
+    ChatTypingIndicator,
     ChatComposer,
     Avatar,
 } from "@wizeworks/silicaui-react";
@@ -28,12 +28,15 @@ const INITIAL: Msg[] = [
 export function ChatSuiteDemo() {
     const [messages, setMessages] = useState<Msg[]>(INITIAL);
     const [showTool, setShowTool] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
 
     function handleSend(text: string) {
         const userMsg: Msg = { id: Date.now(), side: "end", name: "You", time: "9:43", text };
         setMessages((prev) => [...prev, userMsg]);
         setShowTool(true);
+        setIsTyping(true);
         setTimeout(() => {
+            setIsTyping(false);
             setMessages((prev) => [
                 ...prev,
                 {
@@ -44,7 +47,7 @@ export function ChatSuiteDemo() {
                     text: "It's --color-primary — every component reads it through an orthogonal color class.",
                 },
             ]);
-        }, 300);
+        }, 1400);
     }
 
     return (
@@ -83,7 +86,16 @@ export function ChatSuiteDemo() {
                             </ChatToolCalls>
                         )}
 
-                        <ChatMessageMetadata>Assistant is typing…</ChatMessageMetadata>
+                        {isTyping && (
+                            <ChatTypingIndicator
+                                name="Silica Assistant"
+                                avatar={
+                                    <Avatar size="sm" color="neutral" alt="Silica Assistant">
+                                        S
+                                    </Avatar>
+                                }
+                            />
+                        )}
                     </ChatLayoutMessages>
 
                     <ChatComposer onSend={handleSend} placeholder="Ask about Silica…" />

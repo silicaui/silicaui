@@ -4,9 +4,20 @@
  * come for free (no JS). Several with a shared `name` form an exclusive
  * accordion (native HTML behavior).
  *
- * Colorless. The `.collapse-title` (the `<summary>`) hides the default marker
+ * The CSS class is `.details`, NOT `.collapse` — Tailwind v4 ships a built-in
+ * `.collapse { visibility: collapse }` utility (for table row/column
+ * collapsing), and utility-layer rules always beat component base-layer rules
+ * regardless of source order or specificity. A `.collapse` class here would
+ * still get this component's box styling (border/bg/radius all still apply,
+ * since Tailwind's utility only sets `visibility`), but Tailwind's
+ * `visibility: collapse` would ALSO apply and silently make the whole thing
+ * invisible while it still occupies layout space — exactly the "empty box"
+ * bug this dodges. `Collapse`/`CollapseTitle`/`CollapseContent` (the public
+ * React names) are unaffected; only the underlying class token changed.
+ *
+ * Colorless. The `.details-title` (the `<summary>`) hides the default marker
  * and draws its own chevron via `::after`, which rotates when the parent is
- * `[open]`. `.collapse-content` holds the body. `-ghost` drops the surface for
+ * `[open]`. `.details-content` holds the body. `-ghost` drops the surface for
  * a flush, borderless accordion.
  *
  * Toggle is instant by design — animating `<details>` height needs bleeding-edge
@@ -16,7 +27,7 @@
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
  */
 export function collapse(prefix = "") {
-  const sel = (suffix = "") => `.${prefix}collapse${suffix}`;
+  const sel = (suffix = "") => `.${prefix}details${suffix}`;
 
   return {
     [sel()]: {

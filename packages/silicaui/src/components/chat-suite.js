@@ -25,6 +25,11 @@ export function chatSuite(prefix = "") {
     [sel("chat-layout-messages")]: {
       display: "flex",
       flexDirection: "column",
+      // `flex-end` bottom-anchors the thread: a short conversation sits right
+      // above the composer (like every real chat app) instead of pinned to
+      // the top with a dead gap below it. Once content overflows, this has no
+      // effect on scrolling — it only matters while there's leftover space.
+      justifyContent: "flex-end",
       gap: "0.25rem",
       flex: "1 1 auto",
       minHeight: "0",
@@ -100,5 +105,27 @@ export function chatSuite(prefix = "") {
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
     },
+
+    // ---- Typing indicator (three dots inside a real `.chat-bubble`, so it
+    // sits exactly where the next message will land) -----------------------
+    [sel("chat-typing")]: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "0.25rem",
+      padding: "0.15rem 0",
+    },
+    [sel("chat-typing-dot")]: {
+      width: "0.375rem",
+      height: "0.375rem",
+      borderRadius: "9999px",
+      backgroundColor: "currentColor",
+      opacity: "0.4",
+      // A live status signal (the assistant is actively responding right
+      // now), not decoration — kept animating under `prefers-reduced-motion`
+      // on purpose, same call as Loading's spinner.
+      animation: "silica-typing-bounce 1.2s ease-in-out infinite",
+    },
+    [`${sel("chat-typing-dot")}:nth-child(2)`]: { animationDelay: "0.15s" },
+    [`${sel("chat-typing-dot")}:nth-child(3)`]: { animationDelay: "0.3s" },
   };
 }

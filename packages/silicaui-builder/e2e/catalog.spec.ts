@@ -98,11 +98,18 @@ test("every nav / feedback / data component inserts and renders its structure", 
   // Collapse lowers to a native closed <details>; Playwright reports a closed
   // <details> element as "hidden", so assert the (user-visible) summary text and
   // that the body lowered, rather than the element's pixel-visibility.
+  // The class is `details`, not `collapse` — Tailwind v4 ships a built-in
+  // `.collapse { visibility: collapse }` utility that silently wins over a
+  // component rule of the same name, hiding the whole thing (see collapse.js's
+  // doc comment). The explicit `toBeVisible()` on the summary below guards
+  // against that regression specifically — it's the one part that's always
+  // painted regardless of open/closed state.
   await insert(page, "collapse");
-  const coll = canvas.locator("details.collapse[data-sui-id]").first();
+  const coll = canvas.locator("details.details[data-sui-id]").first();
   await expect(coll).toHaveCount(1);
-  await expect(coll.locator("summary.collapse-title")).toHaveText("Click to expand");
-  await expect(coll.locator(".collapse-content")).toHaveCount(1);
+  await expect(coll.locator("summary.details-title")).toHaveText("Click to expand");
+  await expect(coll.locator("summary.details-title")).toBeVisible();
+  await expect(coll.locator(".details-content")).toHaveCount(1);
 
   await insert(page, "timeline");
   const timeline = canvas.locator("ul.timeline[data-sui-id]").first();

@@ -41,7 +41,7 @@ interaction patterns:
 | Category | Components |
 | --- | --- |
 | **Actions** | `Button` `DropdownMenu` `Swap` |
-| **Data display** | `Accordion` `Avatar` `Badge` `Card` `Carousel` `Chat` `ChatComposer` `ChatLayout` `ChatMessage` `ChatSystemMessage` `ChatToolCalls` `Collapse` `Countdown` `Diff` `Kbd` `List` `MetadataList` `Meter` `MockupBrowser` `MockupCode` `MockupCodeLine` `MockupPhone` `MockupWindow` `PreviewCard` `Stat` `Table` `Timeline` `Timestamp` |
+| **Data display** | `Accordion` `Avatar` `Badge` `Card` `Carousel` `Chat` `ChatComposer` `ChatLayout` `ChatMessage` `ChatSystemMessage` `ChatToolCalls` `ChatTypingIndicator` `Collapse` `Countdown` `Diff` `Kbd` `List` `MetadataList` `Meter` `MockupBrowser` `MockupCode` `MockupCodeLine` `MockupPhone` `MockupWindow` `PreviewCard` `Stat` `Table` `Timeline` `Timestamp` |
 | **Data input** | `Autocomplete` `Calendar` `Checkbox` `CheckboxGroup` `ColorPicker` `Combobox` `DateInput` `DatePicker` `DateRangeInput` `DateTimeInput` `Field` `Fieldset` `FileInput` `FileUpload` `Filter` `Form` `Input` `InputGroup` `Join` `Label` `MultiSelect` `NativeSelect` `NumberField` `PasswordInput` `PhoneInput` `PinInput` `Radio` `RadioGroup` `Range` `Rating` `SearchInput` `Select` `SelectionList` `Slider` `Switch` `TagInput` `Textarea` `TimeInput` `Toggle` `ToggleGroup` `Validator` |
 | **Navigation** | `Breadcrumb` `Dock` `Link` `Menu` `Menubar` `Navbar` `NavigationMenu` `Outline` `OverflowList` `Pagination` `Sidebar` `Steps` `Tabs` |
 | **Feedback & overlay** | `Alert` `AlertDialog` `ContextMenu` `Dialog` `Drawer` `ImperativeAlertDialogProvider` `Indicator` `Lightbox` `Loading` `Overlay` `Popover` `Progress` `RadialProgress` `Skeleton` `Status` `ToastProvider` `Tooltip` |

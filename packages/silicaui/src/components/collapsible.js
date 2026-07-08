@@ -54,6 +54,45 @@ export function collapsible(prefix = "") {
       },
     },
 
+    // Compact icon-only trigger — a second, small disclosure control that
+    // shares the Root's context with a `-trigger` elsewhere (e.g. a label
+    // living in one flex slot, this chevron pinned in another — see Alert's
+    // "collapsible detail" demo). Sized/painted like `.alert-close`/`.toast-close`
+    // so it drops into the same trailing-icon-button slot.
+    [sel("-trigger-icon")]: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: "0",
+      width: "1.5rem",
+      height: "1.5rem",
+      border: "0",
+      borderRadius: "9999px",
+      background: "transparent",
+      color: "inherit",
+      opacity: "0.7",
+      cursor: "pointer",
+
+      "& svg": {
+        width: "1.1rem",
+        height: "1.1rem",
+        transition: "transform 0.2s ease",
+      },
+      "&[data-panel-open] svg": { transform: "rotate(180deg)" },
+      "&:hover": {
+        opacity: "1",
+        backgroundColor: "color-mix(in oklab, currentColor 15%, transparent)",
+      },
+      "&:focus-visible": {
+        outline: "2px solid var(--color-primary)",
+        outlineOffset: "1px",
+      },
+      "&[data-disabled]": {
+        cursor: "not-allowed",
+        opacity: "var(--disabled-opacity, 0.5)",
+      },
+    },
+
     // Animated height container.
     [sel("-panel")]: {
       overflow: "hidden",

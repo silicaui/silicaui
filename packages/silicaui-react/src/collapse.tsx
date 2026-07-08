@@ -24,9 +24,13 @@ export const Collapse = React.forwardRef<HTMLDetailsElement, CollapseProps>(
   function Collapse({ ghost = false, className, ...rest }, ref) {
     const sc = useSilicaClass();
     return (
+      // The CSS class is `.details`, not `.collapse` — see the doc comment in
+      // collapse.js for why (Tailwind v4's built-in `.collapse` utility sets
+      // `visibility: collapse` and wins over any component base-layer rule of
+      // the same name, silently making the whole thing invisible).
       <details
         ref={ref}
-        className={cx(sc("collapse"), ghost && sc("collapse-ghost"), className)}
+        className={cx(sc("details"), ghost && sc("details-ghost"), className)}
         {...rest}
       />
     );
@@ -40,7 +44,7 @@ export const CollapseTitle = React.forwardRef<
 >(function CollapseTitle({ className, ...rest }, ref) {
   const sc = useSilicaClass();
   return (
-    <summary ref={ref} className={cx(sc("collapse-title"), className)} {...rest} />
+    <summary ref={ref} className={cx(sc("details-title"), className)} {...rest} />
   );
 });
 
@@ -51,6 +55,6 @@ export const CollapseContent = React.forwardRef<
 >(function CollapseContent({ className, ...rest }, ref) {
   const sc = useSilicaClass();
   return (
-    <div ref={ref} className={cx(sc("collapse-content"), className)} {...rest} />
+    <div ref={ref} className={cx(sc("details-content"), className)} {...rest} />
   );
 });

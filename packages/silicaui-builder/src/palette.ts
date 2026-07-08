@@ -264,7 +264,10 @@ const DATA: PaletteItem[] = [
         icon: "collapse",
         hint: "A native disclosure panel",
         make: () =>
-            atom("Collapse", "collapse bg-base-100 border border-base-200", {
+            // Class is `details`, not `collapse` — Tailwind v4's built-in `.collapse`
+            // utility sets `visibility: collapse` and wins over this component's own
+            // rule, silently hiding it (see collapse.js's doc comment).
+            atom("Collapse", "details bg-base-100 border border-base-200", {
                 title: "Click to expand",
                 content: "Hidden content revealed on toggle.",
             }),

@@ -22,7 +22,7 @@ export function alert(colors, prefix = "") {
   const base = {
     [sel()]: {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: "0.75rem",
       width: "100%",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4)",
@@ -38,19 +38,19 @@ export function alert(colors, prefix = "") {
 
       // A leading (or trailing) icon: fixed square, never shrinks. Inherits the
       // alert's text color via `currentColor`, so it matches solid/soft/outline.
-      // `align-items: center` aligns the icon's box-center to the text's line-box
-      // center — but a font's x-height sits BELOW that center, so lowercase text
-      // reads ~0.156em low against a centered icon (capitals only ~0.063em, since
-      // caps reach higher). Measured across system-ui; there is no line-height
-      // that fixes it. So nudge the icon down by the midpoint (~0.11em): lowercase
-      // and capital-led text each end up within ~0.05em of centered, instead of
-      // optimizing one at the other's expense. A plain transform (not
-      // `text-box-trim`, which Firefox lacks) so it behaves the same everywhere.
+      // `align-items: flex-start` top-aligns every child — the icon, the actions
+      // group, the close button — against the first line of the content column,
+      // so multi-line content (title + description, a nested Collapsible, …)
+      // doesn't drag short siblings down to its vertical center. A line-box's
+      // leading sits above the glyphs, so top-aligning the icon's box to the
+      // line-box leaves it visually high; nudge it down to meet the first
+      // line's cap-height. A plain transform (not `text-box-trim`, which
+      // Firefox lacks) so it behaves the same everywhere.
       "& > svg": {
         width: "1.25em",
         height: "1.25em",
         flexShrink: "0",
-        transform: "translateY(0.11em)",
+        transform: "translateY(0.2em)",
       },
     },
 
@@ -73,17 +73,23 @@ export function alert(colors, prefix = "") {
       opacity: "0.9",
       lineHeight: "1.4",
     },
-    // Trailing action group. Sits at the row's end (the content column's
-    // `flex: 1` pushes it right) and never shrinks; vertically centered by the
-    // alert's own `align-items: center`, so it lines up beside multi-line text.
+    // Trailing action group. `margin-inline-start: auto` claims the row's
+    // leftover space itself, so it lands flush against the end whether or not
+    // a preceding sibling grows to fill the row — Alert's content is often
+    // bare children (the "one-liner" pattern: `<Alert><Icon />text</Alert>`),
+    // not always an `AlertContent` with `flex: 1`, and relying on the latter
+    // left `-close` sitting right next to short bare text instead of at the end.
     [sel("-actions")]: {
       display: "flex",
       alignItems: "center",
       gap: "0.5rem",
       flexShrink: "0",
+      marginInlineStart: "auto",
     },
 
-    // Dismiss (×) button — sits at the row's end like `-actions`.
+    // Dismiss (×) button — same self-sufficient end-alignment as `-actions`
+    // (see its comment); also correct when `-actions` precedes it, since auto
+    // margin has no leftover space left to claim at that point.
     [sel("-close")]: {
       display: "inline-flex",
       alignItems: "center",
@@ -91,7 +97,7 @@ export function alert(colors, prefix = "") {
       flexShrink: "0",
       width: "1.5rem",
       height: "1.5rem",
-      marginInlineStart: "0.25rem",
+      marginInlineStart: "auto",
       border: "0",
       borderRadius: "9999px",
       background: "transparent",

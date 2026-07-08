@@ -41,17 +41,39 @@ export function Collapsible({ className, ...rest }: CollapsibleProps) {
 
 export interface CollapsibleTriggerProps
   extends Styled<typeof BaseCollapsible.Trigger> {
-  /** Set false to omit the built-in chevron. */
+  /** Set false to omit the built-in chevron. Ignored when `variant="icon"`. */
   chevron?: boolean;
+  /**
+   * `"default"` (the usual case) renders a full-width label + chevron row.
+   * `"icon"` renders just the chevron as a small circular button, sized like
+   * `AlertClose` — for placing a second disclosure control in its own slot
+   * (e.g. an Alert's trailing actions) while a `"default"` trigger elsewhere
+   * carries the visible label. Multiple triggers under one `Collapsible`
+   * share its open state automatically (Base UI reads it from context, not
+   * DOM position) — pass an `aria-label` on the icon one, since it has no
+   * visible text of its own.
+   */
+  variant?: "default" | "icon";
 }
 
 export function CollapsibleTrigger({
   className,
   children,
   chevron = true,
+  variant = "default",
   ...rest
 }: CollapsibleTriggerProps) {
   const sc = useSilicaClass();
+  if (variant === "icon") {
+    return (
+      <BaseCollapsible.Trigger
+        className={cx(sc("collapsible-trigger-icon"), className)}
+        {...rest}
+      >
+        <ChevronIcon />
+      </BaseCollapsible.Trigger>
+    );
+  }
   return (
     <BaseCollapsible.Trigger
       className={cx(sc("collapsible-trigger"), className)}

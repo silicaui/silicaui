@@ -913,6 +913,10 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   // Collapse — a native <details> disclosure (works with zero JS on publish). Not
   // a container: its body is `props.content` (text). `expand` still honors authored
   // children as the body for direct toHtml use, but the builder edits it as a prop.
+  // Root class is author-supplied (see palette.ts) and should be `details`, NOT
+  // `collapse` — Tailwind v4's built-in `.collapse` utility (`visibility: collapse`)
+  // wins over any component rule of that name and silently hides the whole thing;
+  // see the doc comment in silicaui/src/components/collapse.js for the full story.
   {
     name: "Collapse",
     category: "data",
@@ -922,8 +926,8 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       const p = n.props ?? {};
       return lower(n, "details", {
         children: [
-          elc("summary", "collapse-title", [String(p.title ?? "Details")]),
-          elc("div", "collapse-content", n.children?.length ? n.children : [String(p.content ?? "")]),
+          elc("summary", "details-title", [String(p.title ?? "Details")]),
+          elc("div", "details-content", n.children?.length ? n.children : [String(p.content ?? "")]),
         ],
       });
     },

@@ -78,6 +78,46 @@ export const ChatMessageMetadata = React.forwardRef<HTMLDivElement, ChatMessageM
   },
 );
 
+export interface ChatTypingIndicatorProps {
+  side?: ChatSide;
+  avatar?: React.ReactNode;
+  /** Announced to screen readers, e.g. `"Silica Assistant is typing"`. */
+  name?: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * Silica ChatTypingIndicator — three animated dots inside a real
+ * `.chat-bubble`, so it sits exactly where the next message will land
+ * instead of reading as a stray line of muted text.
+ *
+ *   <ChatTypingIndicator avatar={<Avatar size="sm">S</Avatar>} name="Silica Assistant" />
+ */
+export function ChatTypingIndicator({
+  side = "start",
+  avatar,
+  name,
+  className,
+}: ChatTypingIndicatorProps) {
+  const sc = useSilicaClass();
+  return (
+    <Chat side={side} className={className}>
+      {avatar && <ChatImage>{avatar}</ChatImage>}
+      <ChatBubble>
+        <span
+          className={cx(sc("chat-typing"))}
+          role="status"
+          aria-label={name ? `${name} is typing` : "Typing"}
+        >
+          <span className={cx(sc("chat-typing-dot"))} />
+          <span className={cx(sc("chat-typing-dot"))} />
+          <span className={cx(sc("chat-typing-dot"))} />
+        </span>
+      </ChatBubble>
+    </Chat>
+  );
+}
+
 export type ChatSystemMessageProps = React.HTMLAttributes<HTMLDivElement>;
 
 /**

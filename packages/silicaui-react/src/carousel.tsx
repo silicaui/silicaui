@@ -21,7 +21,15 @@ export interface CarouselProps
   autoplay?: number;
   /** Called with the active slide index whenever it changes. */
   onChange?: (index: number) => void;
-  /** Extra class for the scroll surface. */
+  /**
+   * Extra class, applied to BOTH the outer root (so e.g. a width constraint
+   * like `max-w-lg` actually shrinks the carousel — the prev/next controls
+   * are positioned relative to the root, not the scroll surface) and the
+   * scroll surface itself (so e.g. `gap-4`/`rounded-box` still style the
+   * strip/items as before). A plain single-target `className` would have to
+   * pick one, and picking the scroll surface silently breaks control
+   * positioning for the single most common use — constraining overall width.
+   */
   className?: string;
 }
 
@@ -122,7 +130,7 @@ export function Carousel({
 
   return (
     <div
-      className={cx(sc("carousel-root"))}
+      className={cx(sc("carousel-root"), className)}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}

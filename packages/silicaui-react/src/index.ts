@@ -557,12 +557,14 @@ export {
   ChatMessageMetadata,
   ChatSystemMessage,
   ChatToolCalls,
+  ChatTypingIndicator,
 } from "./chat-message";
 export type {
   ChatMessageProps,
   ChatMessageMetadataProps,
   ChatSystemMessageProps,
   ChatToolCallsProps,
+  ChatTypingIndicatorProps,
 } from "./chat-message";
 
 export { ChatComposer } from "./chat-composer";

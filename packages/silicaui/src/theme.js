@@ -116,5 +116,12 @@ export function buildBase() {
       "0%, 100%": { opacity: "1" },
       "50%": { opacity: "0.4" },
     },
+    // Chat typing indicator: one dot at a time lifts + brightens. Each dot in
+    // the trio gets a staggered `animation-delay` (see chat-suite.js) so they
+    // read as a wave, not three dots blinking in lockstep.
+    "@keyframes silica-typing-bounce": {
+      "0%, 60%, 100%": { transform: "translateY(0)", opacity: "0.4" },
+      "30%": { transform: "translateY(-0.15rem)", opacity: "1" },
+    },
   };
 }

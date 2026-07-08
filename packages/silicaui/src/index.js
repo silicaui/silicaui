@@ -207,7 +207,7 @@ export default plugin.withOptions(
       addBase(accordion(prefix));
       addBase(chat(colors, prefix));
       addBase(range(colors, prefix));
-      addBase(toast(prefix));
+      addBase(toast(colors, prefix));
       addBase(swap(prefix));
       addBase(status(colors, prefix));
       addBase(countdown(prefix));

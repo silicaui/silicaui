@@ -44,10 +44,16 @@ export function AlertDemo() {
             <Section title="collapsible detail · nests the existing Collapsible, not a bespoke prop">
                 <Alert color="error" variant="soft">
                     <XIcon />
-                    <AlertContent>
-                        <AlertTitle>3 files failed to upload</AlertTitle>
-                        <Collapsible>
-                            <CollapsibleTrigger>Show details</CollapsibleTrigger>
+                    {/* `className="contents"` (a utility, so it wins over the component's
+                        own flex-column) keeps AlertContent + AlertActions as direct row
+                        children of Alert — the Collapsible only supplies shared open-state
+                        context here, not a layout box. That's what lets the icon trigger
+                        sit top-right while the label trigger stays under the title, both
+                        toggling the one panel. */}
+                    <Collapsible className="contents">
+                        <AlertContent>
+                            <AlertTitle>3 files failed to upload</AlertTitle>
+                            <CollapsibleTrigger chevron={false}>Show details</CollapsibleTrigger>
                             <CollapsiblePanel>
                                 <ul className="list-disc pl-4 text-xs">
                                     <li>report-q3.pdf — exceeds 5 MB limit</li>
@@ -55,8 +61,11 @@ export function AlertDemo() {
                                     <li>notes.docx — network error</li>
                                 </ul>
                             </CollapsiblePanel>
-                        </Collapsible>
-                    </AlertContent>
+                        </AlertContent>
+                        <AlertActions>
+                            <CollapsibleTrigger variant="icon" aria-label="Toggle details" />
+                        </AlertActions>
+                    </Collapsible>
                 </Alert>
             </Section>
 

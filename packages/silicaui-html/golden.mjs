@@ -109,8 +109,8 @@ const synthetic = e("section", {
         c("Stat", { class: "stats", props: { value: "42" } }), // value-only (no title/desc rows)
         c("Avatar", { class: "avatar w-12 rounded-full", props: { src: "/me.png", alt: "Me & I" } }),
         c("Avatar", { class: "avatar", props: {} }), // no src → alt="" only
-        c("Collapse", { class: "collapse", props: { title: "More", content: "Hidden body" } }),
-        c("Collapse", { class: "collapse", props: { title: "Custom" }, children: [e("p", { text: "Rich body & <x>" })] }),
+        c("Collapse", { class: "details", props: { title: "More", content: "Hidden body" } }),
+        c("Collapse", { class: "details", props: { title: "Custom" }, children: [e("p", { text: "Rich body & <x>" })] }),
         c("Timeline", { class: "timeline", props: { items: ["Founded", "Launched"] } }),
         c("Table", { class: "table", children: [e("thead", { children: [e("tr", { children: [e("th", { text: "Name" })] })] })] }),
         // ── Metadata lowering across every DataBinding + behavior + part ──

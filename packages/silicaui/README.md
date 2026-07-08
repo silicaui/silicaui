@@ -65,7 +65,7 @@ four axes).
 | Category | Components |
 | --- | --- |
 | **Actions** | `button` `dropdown` `swap` |
-| **Data display** | `accordion` `avatar` `badge` `card` `carousel` `chat` `collapse` `countdown` `diff` `kbd` `list` `mockup` `preview-card` `stat` `table` `timeline` |
+| **Data display** | `accordion` `avatar` `badge` `card` `carousel` `chat` `details` `countdown` `diff` `kbd` `list` `mockup` `preview-card` `stat` `table` `timeline` |
 | **Data input** | `calendar` `checkbox` `checkbox-group` `color-picker` `combobox` `field` `fieldset` `file-input` `filter` `input` `join` `label` `number-field` `radio` `radio-group` `range` `rating` `select` `select-menu` `slider` `switch` `tag-input` `textarea` `toggle` `toggle-group` `validator` |
 | **Navigation** | `breadcrumb` `dock` `link` `menu` `menubar` `navbar` `navigation-menu` `pagination` `steps` `tabs` |
 | **Feedback & overlay** | `alert` `dialog` `drawer` `indicator` `loading` `popover` `progress` `radial-progress` `skeleton` `toast` `tooltip` |

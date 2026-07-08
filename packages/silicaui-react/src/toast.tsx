@@ -11,6 +11,46 @@ const CloseIcon = () => (
   </svg>
 );
 
+const InfoIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" strokeLinecap="round" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.5 12 2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const WarnIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path
+      d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"
+      strokeLinejoin="round"
+    />
+    <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+  </svg>
+);
+
+const ErrorIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m15 9-6 6M9 9l6 6" strokeLinecap="round" />
+  </svg>
+);
+
+// Built-in icon per known toast `type`, matching Alert's leading-icon look.
+// A `type` outside this set (or none) renders no icon — same as a neutral Alert.
+const TYPE_ICONS: Record<string, React.FC> = {
+  success: CheckIcon,
+  error: ErrorIcon,
+  warning: WarnIcon,
+  info: InfoIcon,
+};
+
 /** Renders the toasts from the manager into a fixed corner viewport. */
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
@@ -18,17 +58,21 @@ function ToastList() {
   return (
     <BaseToast.Portal>
       <BaseToast.Viewport className={cx(sc("toast-viewport"))}>
-        {toasts.map((toast) => (
-          <BaseToast.Root key={toast.id} toast={toast} className={cx(sc("toast"))}>
-            <div className={cx(sc("toast-content"))}>
-              <BaseToast.Title className={cx(sc("toast-title"))} />
-              <BaseToast.Description className={cx(sc("toast-description"))} />
-            </div>
-            <BaseToast.Close className={cx(sc("toast-close"))} aria-label="Close">
-              <CloseIcon />
-            </BaseToast.Close>
-          </BaseToast.Root>
-        ))}
+        {toasts.map((toast) => {
+          const Icon = toast.type ? TYPE_ICONS[toast.type] : undefined;
+          return (
+            <BaseToast.Root key={toast.id} toast={toast} className={cx(sc("toast"))}>
+              {Icon && <Icon />}
+              <div className={cx(sc("toast-content"))}>
+                <BaseToast.Title className={cx(sc("toast-title"))} />
+                <BaseToast.Description className={cx(sc("toast-description"))} />
+              </div>
+              <BaseToast.Close className={cx(sc("toast-close"))} aria-label="Close">
+                <CloseIcon />
+              </BaseToast.Close>
+            </BaseToast.Root>
+          );
+        })}
       </BaseToast.Viewport>
     </BaseToast.Portal>
   );

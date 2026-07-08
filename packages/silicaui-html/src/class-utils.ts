@@ -73,7 +73,7 @@ export const COMPONENT_STEMS: ReadonlySet<string> = new Set([
   "steps",
   "join",
   "menu",
-  "collapse",
+  "details",
   "indicator",
   "loading",
   "navbar",
