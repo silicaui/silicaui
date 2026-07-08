@@ -172,6 +172,14 @@ function progressWidth(value: number): string {
   return best[1];
 }
 
+/** RadialProgress's `--value` fill, bucketed to literal `[--value:N]` utility
+ *  classes (5% steps) — the arbitrary-property equivalent of `PROGRESS_WIDTHS`,
+ *  needed because a continuous value can't be an inline style (no inline style,
+ *  ever) but a conic-gradient ring wants finer granularity than 7 fixed widths. */
+const RADIAL_VALUE_CLASSES: Record<number, string> = Object.fromEntries(
+  Array.from({ length: 21 }, (_, i) => i * 5).map((v) => [v, `[--value:${v}]`]),
+);
+
 /** A plain element atom: one tag carrying class + (children | text prop). */
 function elementDef(
   name: string,
@@ -612,6 +620,547 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
           ]),
         ),
       }),
+  },
+
+  // ── structural/presentational catch-up (2026-07-08 sync pass) ──────────────
+  // Plain element atoms — same shape as `elementDef`, one tag each, no behavior.
+  // Sub-parts that carry no semantic tag of their own (a styled <div>/<span> —
+  // Card's CardBody/CardTitle, Hero's HeroContent, etc.) are deliberately NOT
+  // registered here: a host authors them as plain class-carrying children, per
+  // the confirmed Card precedent. Only parts with real semantic value (a
+  // distinct tag, or "part" behavior metadata) get their own atom.
+  elementDef("Label", "form", "label", "label"),
+  elementDef("AvatarGroup", "data", "avatar", "span", true),
+  elementDef("Prose", "content", "text", "div", true),
+  elementDef("Hero", "layout", "box", "div", true),
+  elementDef("Footer", "layout", "box", "footer", true),
+  elementDef("FooterTitle", "layout", "heading", "h6"),
+  elementDef("MockupWindow", "media", "box", "div", true),
+  elementDef("MockupBrowser", "media", "box", "div", true),
+  elementDef("MockupCode", "media", "box", "div", true),
+  elementDef("MockupPhone", "media", "box", "div", true),
+  elementDef("List", "data", "box", "div", true),
+  elementDef("Dock", "nav", "sidebar", "div", true),
+  elementDef("Join", "layout", "box", "div", true),
+  elementDef("Indicator", "feedback", "dot", "span", true),
+  elementDef("Mask", "media", "box", "div", true),
+  elementDef("Fieldset", "form", "box", "fieldset", true),
+  elementDef("FieldsetLegend", "form", "label", "legend"),
+  elementDef("Blockquote", "content", "text", "blockquote", true),
+  elementDef("BlockquoteCite", "content", "text", "footer"),
+  elementDef("MetadataList", "data", "box", "dl", true),
+  elementDef("AppShell", "layout", "box", "div", true),
+  elementDef("AppShellSidebar", "layout", "sidebar", "aside", true),
+  elementDef("AppShellHeader", "layout", "header", "header", true),
+  elementDef("AppShellMain", "layout", "box", "main", true),
+  elementDef("AppShellFooter", "layout", "box", "footer", true),
+  elementDef("InputGroup", "form", "input", "div", true),
+  elementDef("Diff", "media", "box", "div", true),
+  elementDef("Toolbar", "nav", "box", "div", true),
+
+  // Button-shaped structural atoms — a real <button>/<a>, so registering them
+  // (vs. plain divs) buys the host correct semantics + tab order for free.
+  {
+    name: "DockItem",
+    category: "nav",
+    label: "Dock item",
+    icon: "sidebarTrigger",
+    container: true,
+    expand: (n) => lower(n, "button", { attrs: { type: "button" }, children: n.children }),
+  },
+  {
+    name: "InputGroupButton",
+    category: "form",
+    label: "Input group button",
+    icon: "button",
+    container: true,
+    expand: (n) => lower(n, "button", { attrs: { type: "button" }, children: n.children }),
+  },
+  {
+    name: "ToolbarButton",
+    category: "nav",
+    label: "Toolbar button",
+    icon: "button",
+    container: true,
+    expand: (n) => lower(n, "button", { attrs: { type: "button" }, children: n.children }),
+  },
+  {
+    name: "ToolbarLink",
+    category: "nav",
+    label: "Toolbar link",
+    icon: "nav",
+    container: true,
+    expand: (n) => lower(n, "a", { attrs: { href: (n.props?.href ?? "#") as string }, children: n.children }),
+  },
+  {
+    name: "ToolbarSeparator",
+    category: "nav",
+    label: "Toolbar separator",
+    icon: "box",
+    expand: (n) => lower(n, "div", { attrs: { role: "separator", "aria-orientation": "vertical" } }),
+  },
+  // ClickableCard — a Card that's a whole clickable surface; a <button>, or an
+  // <a> when it carries an href (mirrors Button's own href-swap rule).
+  {
+    name: "ClickableCard",
+    category: "layout",
+    label: "Clickable card",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const href = n.props?.href;
+      if (href != null) return lower(n, "a", { attrs: { href: href as string }, children: n.children });
+      return lower(n, "button", { attrs: { type: "button" }, children: n.children });
+    },
+  },
+
+  // Leaf form inputs — native controls only; the show/hide + clear-button
+  // chrome the React versions add needs real JS, so those are dropped here
+  // rather than shipping a dead button (see the sync-gap memory).
+  {
+    name: "SearchInput",
+    category: "form",
+    label: "Search input",
+    icon: "input",
+    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "search" }, FIELD_KEYS) }),
+  },
+  {
+    name: "PasswordInput",
+    category: "form",
+    label: "Password input",
+    icon: "input",
+    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "password" }, FIELD_KEYS) }),
+  },
+
+  // CheckboxGroup / CheckboxOption — a native fieldset-free group of checkboxes;
+  // CheckboxOption's label text is its children, matching the React shape.
+  {
+    name: "CheckboxGroup",
+    category: "form",
+    label: "Checkbox group",
+    icon: "checkbox",
+    container: true,
+    expand: (n) => lower(n, "div", { attrs: { role: "group" }, children: n.children }),
+  },
+  {
+    name: "CheckboxOption",
+    category: "form",
+    label: "Checkbox option",
+    icon: "checkbox",
+    container: true,
+    expand: (n) => {
+      const input = elc("input", undefined, undefined, formAttrs(n, { type: "checkbox" }, CHECK_KEYS));
+      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
+    },
+  },
+  // Swap — a hidden checkbox driving a pure-CSS cross-fade between two children
+  // (`.swap-on` / `.swap-off`, authored by the host as the node's children).
+  {
+    name: "Swap",
+    category: "feedback",
+    label: "Swap",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const input = elc("input", undefined, undefined, formAttrs(n, { type: "checkbox" }, CHECK_KEYS));
+      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
+    },
+  },
+
+  // Display — an oversized hero heading; always `.display`-styled, semantic
+  // level from props (mirrors Heading's own level handling).
+  {
+    name: "Display",
+    category: "content",
+    label: "Display",
+    icon: "heading",
+    expand: (n) => {
+      const raw = Number(n.props?.level ?? 1);
+      const level = Number.isInteger(raw) && raw >= 1 && raw <= 6 ? raw : 1;
+      return lower(n, `h${level}`, { children: textChildren(n, "text") });
+    },
+  },
+
+  // Timestamp — dependency-free `Intl`-formatted date text. Computed once at
+  // render time (no live "3m ago" ticking without a JS runtime); `props.value`
+  // is an ISO date string, `props.format` picks relative vs. absolute.
+  {
+    name: "Timestamp",
+    category: "data",
+    label: "Timestamp",
+    icon: "box",
+    expand: (n) => {
+      const iso = String(n.props?.value ?? "");
+      const date = iso ? new Date(iso) : null;
+      const valid = date && !Number.isNaN(date.getTime());
+      let text = iso;
+      if (valid) {
+        if (n.props?.format === "relative") {
+          const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+          const diffSec = Math.round((date.getTime() - Date.now()) / 1000);
+          const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+            ["year", 31536000],
+            ["month", 2592000],
+            ["day", 86400],
+            ["hour", 3600],
+            ["minute", 60],
+            ["second", 1],
+          ];
+          const [unit, secs] = units.find(([, s]) => Math.abs(diffSec) >= s) ?? units[units.length - 1]!;
+          text = rtf.format(Math.round(diffSec / secs), unit);
+        } else {
+          text = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+        }
+      }
+      return lower(n, "time", { attrs: valid ? { dateTime: iso } : {}, children: [text] });
+    },
+  },
+
+  // EmptyState — the centered "nothing here yet" placeholder; icon/title/
+  // description/actions are DATA slots (mirrors Stat's prop-driven rows).
+  {
+    name: "EmptyState",
+    category: "feedback",
+    label: "Empty state",
+    icon: "box",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const rows: Child[] = [];
+      if (p.icon != null) rows.push(elc("div", "empty-state-icon", [String(p.icon)]));
+      if (p.title != null) rows.push(elc("div", "empty-state-title", [String(p.title)]));
+      if (p.description != null) rows.push(elc("div", "empty-state-description", [String(p.description)]));
+      if (n.children && n.children.length) rows.push(...n.children);
+      if (p.actions != null) rows.push(elc("div", "empty-state-actions", [String(p.actions)]));
+      return lower(n, "div", { children: rows });
+    },
+  },
+
+  // RadioGroup / RadioOption — same shape as CheckboxGroup/CheckboxOption, one
+  // native radio per option (shared `name` gives arrow-key nav for free).
+  {
+    name: "RadioGroup",
+    category: "form",
+    label: "Radio group",
+    icon: "radio",
+    container: true,
+    expand: (n) => lower(n, "div", { attrs: { role: "radiogroup" }, children: n.children }),
+  },
+  {
+    name: "RadioOption",
+    category: "form",
+    label: "Radio option",
+    icon: "radio",
+    container: true,
+    expand: (n) => {
+      const input = elc("input", undefined, undefined, formAttrs(n, { type: "radio" }, CHECK_KEYS));
+      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
+    },
+  },
+  // Stats — a flex row grouping multiple Stat blocks (mirrors AvatarGroup).
+  elementDef("Stats", "data", "stat", "div", true),
+
+  // Meter — a static measurement (not task advancement, unlike Progress); same
+  // bucketed-literal-width technique so the fill needs no inline style.
+  {
+    name: "Meter",
+    category: "feedback",
+    label: "Meter",
+    icon: "progress",
+    expand: (n) => {
+      const value = Number(n.props?.value ?? 50);
+      return lower(n, "div", { children: [elc("div", `meter-indicator ${progressWidth(value)}`)] });
+    },
+  },
+
+  // RadialProgress — a circular ring; `--value` can't be an inline style (no
+  // inline style, ever), so the value snaps to the nearest of 21 literal
+  // `[--value:N]` utility buckets, same principle as Progress's width buckets.
+  {
+    name: "RadialProgress",
+    category: "feedback",
+    label: "Radial progress",
+    icon: "progress",
+    expand: (n) => {
+      const value = Number(n.props?.value ?? 0);
+      const pct = Math.max(0, Math.min(100, value));
+      const bucket = Math.round(pct / 5) * 5;
+      const cls = RADIAL_VALUE_CLASSES[bucket] ?? RADIAL_VALUE_CLASSES[0]!;
+      return lower(n, "div", {
+        class: [n.class, cls].filter(Boolean).join(" "),
+        attrs: {
+          role: "progressbar",
+          "aria-valuenow": Math.round(pct),
+          "aria-valuemin": 0,
+          "aria-valuemax": 100,
+        },
+        children: [elc("span", undefined, textChildren(n, "text") ?? [`${Math.round(pct)}%`])],
+      });
+    },
+  },
+
+  // ── interactive: existing BehaviorTypes (2026-07-08 sync pass) ─────────────
+  // These reuse one of the 12 closed `@wizeworks/silicaui-behaviors` marker types — the
+  // root auto-carries `behavior`, and each authored sub-part carries a `part`
+  // role the handler looks up via `ownParts()` (nesting-scoped, not by id).
+  // A part with no distinct tag of its own (Accordion's item wrapper, a menu's
+  // Group/Label/Separator) is NOT registered — author it as a plain element,
+  // same rule as the structural sub-parts above.
+
+  // Accordion — `disclosure` with `params.single`; AccordionItem is a plain
+  // wrapper div (no part), Trigger/Panel carry the trigger/panel roles.
+  {
+    name: "Accordion",
+    category: "data",
+    label: "Accordion",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) {
+        const single = n.props?.single !== false;
+        out.behavior = { type: "disclosure", params: { single } };
+      }
+      return out;
+    },
+  },
+  elementDef("AccordionItem", "data", "collapse", "div", true),
+  {
+    name: "AccordionTrigger",
+    category: "data",
+    label: "Accordion trigger",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "AccordionPanel",
+    category: "data",
+    label: "Accordion panel",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const attrs = n.props?.defaultOpen === true ? undefined : { hidden: true };
+      const out = lower(n, "div", { attrs, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // Collapsible — a single `disclosure` trigger/panel pair (not single-open —
+  // there's only one pair under this root).
+  {
+    name: "Collapsible",
+    category: "data",
+    label: "Collapsible",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "disclosure" };
+      return out;
+    },
+  },
+  {
+    name: "CollapsibleTrigger",
+    category: "data",
+    label: "Collapsible trigger",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "CollapsiblePanel",
+    category: "data",
+    label: "Collapsible panel",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const attrs = n.props?.defaultOpen === true ? undefined : { hidden: true };
+      const out = lower(n, "div", { attrs, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // Carousel — `carousel`; unlike Accordion/Tabs/Menu, Track/Prev/Next/Dot
+  // aren't part of the public React API (Carousel/CarouselItem only), so the
+  // macro builds that inner structure itself from `node.children`, matching
+  // what the React component does internally.
+  {
+    name: "Carousel",
+    category: "media",
+    label: "Carousel",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const slides = n.children ?? [];
+      const track = elc("div", "carousel-track", slides);
+      track.part = "track";
+      const prev = elc("button", "carousel-prev", ["‹"], { type: "button", "aria-label": "Previous slide" });
+      prev.part = "prev";
+      const next = elc("button", "carousel-next", ["›"], { type: "button", "aria-label": "Next slide" });
+      next.part = "next";
+      const dots = elc(
+        "div",
+        "carousel-dots",
+        slides.map((_, i) => {
+          const dot = elc("button", "carousel-dot", undefined, { type: "button", "aria-label": `Slide ${i + 1}` });
+          dot.part = "dot";
+          return dot;
+        }),
+      );
+      const out = lower(n, "div", { children: [track, prev, next, dots] });
+      if (!out.behavior) {
+        const p = n.props ?? {};
+        const params: Record<string, unknown> = {};
+        if (p.autoplay === true) params.autoplay = true;
+        if (typeof p.interval === "number") params.interval = p.interval;
+        out.behavior = { type: "carousel", ...(Object.keys(params).length ? { params } : {}) };
+      }
+      return out;
+    },
+  },
+  {
+    name: "CarouselItem",
+    category: "media",
+    label: "Carousel item",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.part) out.part = "slide";
+      return out;
+    },
+  },
+
+  // DropdownMenu — `menu`; Trigger/Content/Item carry the trigger/panel/item
+  // roles. Content starts hidden (menu.ts reads its own `hidden` attribute to
+  // determine open state). Group/Label/Separator are plain elements — author
+  // them directly inside Content, same rule as every other sub-part above.
+  {
+    name: "DropdownMenu",
+    category: "nav",
+    label: "Dropdown menu",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "menu" };
+      return out;
+    },
+  },
+  {
+    name: "DropdownMenuTrigger",
+    category: "nav",
+    label: "Dropdown trigger",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button" }, children: n.children });
+      if (!out.part) out.part = "trigger";
+      return out;
+    },
+  },
+  {
+    name: "DropdownMenuContent",
+    category: "nav",
+    label: "Dropdown content",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { hidden: true }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+  {
+    name: "DropdownMenuItem",
+    category: "nav",
+    label: "Dropdown item",
+    icon: "nav",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button", role: "menuitem" }, children: n.children });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // Tabs — `tabs`; Tab/Panel pair by position. TabsList is a plain wrapper
+  // (tabs.ts scopes `ownParts` to the whole root, not a specific list part).
+  {
+    name: "Tabs",
+    category: "data",
+    label: "Tabs",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { children: n.children });
+      if (!out.behavior) out.behavior = { type: "tabs" };
+      return out;
+    },
+  },
+  elementDef("TabsList", "data", "box", "div", true),
+  {
+    name: "TabsTab",
+    category: "data",
+    label: "Tab",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "button", { attrs: { type: "button", role: "tab" }, children: n.children });
+      if (!out.part) out.part = "tab";
+      return out;
+    },
+  },
+  {
+    name: "TabsPanel",
+    category: "data",
+    label: "Tab panel",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const out = lower(n, "div", { attrs: { role: "tabpanel" }, children: n.children });
+      if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // Outline — `toc`; unlike the React version (which derives its list from
+  // scanning heading elements at runtime), the vanilla macro is prop-driven
+  // like Breadcrumb/Steps/Timeline: `props.items`: `{id, label}[]` becomes
+  // the anchor links the `toc` behavior tracks via IntersectionObserver.
+  {
+    name: "Outline",
+    category: "nav",
+    label: "Outline",
+    icon: "nav",
+    expand: (n) => {
+      const raw = n.props?.items;
+      const items = Array.isArray(raw) ? raw : [];
+      const links = items.map((entry): ElementNode => {
+        const o =
+          entry != null && typeof entry === "object"
+            ? (entry as { id?: unknown; label?: unknown })
+            : { id: String(entry), label: String(entry) };
+        const id = o.id != null ? String(o.id) : "";
+        const label = o.label != null ? String(o.label) : id;
+        const link = elc("a", "outline-link", [label], { href: `#${id}` });
+        link.part = "spy";
+        return link;
+      });
+      const out = lower(n, "nav", { children: links });
+      if (!out.behavior) out.behavior = { type: "toc" };
+      return out;
+    },
   },
 ];
 
