@@ -32,9 +32,19 @@ const components = JSON.parse(
 );
 check("list_components filters by package", components.length > 0 && components.every((c) => c.package === "@wizeworks/silicaui-react"));
 
-const button = JSON.parse(text(await client.callTool({ name: "get_component", arguments: { name: "Button" } })));
+const ambiguous = await client.callTool({ name: "get_component", arguments: { name: "Button" } });
+check("get_component reports isError when a name spans multiple packages", ambiguous.isError === true);
+
+const button = JSON.parse(
+  text(await client.callTool({ name: "get_component", arguments: { name: "Button", package: "@wizeworks/silicaui-react" } })),
+);
 check("get_component returns real props", button.props[0]?.members?.some((m) => m.name === "variant"));
 check("get_component returns a usage example", typeof button.usageExample === "string" && button.usageExample.length > 0);
+
+const htmlDialog = JSON.parse(
+  text(await client.callTool({ name: "get_component", arguments: { name: "Dialog", package: "@wizeworks/silicaui-html" } })),
+);
+check("get_component returns silicaui-html macros with their real BehaviorType", htmlDialog.behaviors?.includes("modal"));
 
 const missing = await client.callTool({ name: "get_component", arguments: { name: "NotAComponent" } });
 check("get_component reports isError for unknown name", missing.isError === true);
@@ -53,7 +63,7 @@ const block = JSON.parse(text(await client.callTool({ name: "get_block", argumen
 check("get_block returns the full tree", block.root !== undefined);
 
 const behaviors = JSON.parse(text(await client.callTool({ name: "list_behaviors", arguments: {} })));
-check("list_behaviors returns 11 types", behaviors.length === 11);
+check("list_behaviors returns every registered BehaviorType", behaviors.length === 30 && behaviors.some((b) => b.type === "modal"));
 
 const behavior = JSON.parse(text(await client.callTool({ name: "get_behavior", arguments: { type: "disclosure" } })));
 check("get_behavior returns a description", behavior.description.includes("trigger"));

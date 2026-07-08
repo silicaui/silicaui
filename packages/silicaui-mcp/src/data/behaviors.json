@@ -13,7 +13,7 @@
   },
   {
     "type": "menu",
-    "description": "`menu` — a click-triggered popup (dropdown/mega-menu): a `trigger` opens a `panel` of `item` parts. Escape and outside-click dismiss; Up/Down/Home/End rove focus across items while open. This is the vanilla counterpart to @wizeworks/silicaui-react's Base-UI-backed `DropdownMenu` — same authored markers, same `.dropdown*` classes, no React required."
+    "description": "`menu` — a triggered popup (dropdown/mega-menu/context-menu) of `item` parts: `params.trigger` (default `\"click\"`) can be `\"context\"` (right-click — ContextMenu; positions the panel at the pointer instead of the trigger rect). Escape and outside-click dismiss; Up/Down/Home/End rove focus across items while open. This is the vanilla counterpart to @wizeworks/silicaui-react's Base-UI-backed `DropdownMenu`/`ContextMenu` — same authored markers, same `.dropdown*` classes, no React required."
   },
   {
     "type": "marquee",
@@ -36,11 +36,87 @@
     "description": "Shared implementation behind `scrollspy` and `toc`: `spy` parts are links (`href=\"#id\"`) tracked against the section they point to; the in-view one gets `aria-current=\"true\"` for a nav/TOC to style. `toc` differs only in its default intersection threshold (a smaller sliver of a heading counts as \"current\" for a table of contents than a full scrollspy section does)."
   },
   {
+    "type": "form",
+    "description": "`form` — makes an authored `<form>` genuinely functional on publish (architecture §8, the action primitive). On submit it: 1. VALIDATES natively (`checkValidity()` — required, type=email, pattern, min/max/step, maxlength come for free) and, if invalid, blocks the submit, marks each failing control `aria-invalid`, and surfaces the browser's own messages via `reportValidity()`. 2. If valid and a host `onAction` was provided, DISPATCHES a structured `{ kind: \"submit\", values }` payload (values gathered with native FormData semantics — checkboxes/radios/multi-selects handled) to the action `ref` read from the form's `data-sui-action`. The default is prevented; while the dispatch promise is pending the form is `aria-busy`, its submit control is disabled, and `data-sui-state` walks idle → submitting → success | error. 3. If valid with NO `onAction` (and not preview), it does nothing and lets the browser submit natively — progressive enhancement, so a plain server-posted form still works. In `preview` mode (the builder canvas) a valid submit is prevented and never dispatched, so editing a form never fires a real host action. Field PREFILL: at hydrate, any control carrying `data-sui-bind` is seeded from `opts.resolve(ref)` when a resolver is supplied."
+  },
+  {
     "type": "sidebar",
     "description": "`sidebar` — a persistent nav panel that collapses IN PLACE to an icon rail (unlike `disclosure`, the root is never hidden — only its `data-collapsed` state changes, and CSS alone handles the width/label transition). Any number of `trigger` parts nested inside the root toggle it; `params.defaultCollapsed` seeds the initial state."
   },
   {
     "type": "selection-list",
     "description": "`selection-list` — a listbox of `item` parts (single- or multi-select, via `params.multiple`). Click (or Enter/Space on the focused item) toggles selection; the vanilla counterpart to @wizeworks/silicaui-react's `SelectionList`. Roving tabindex + ↑/↓/Home/End mirror the React component's keyboard behavior."
+  },
+  {
+    "type": "modal",
+    "description": "`modal` — a portal-free dialog: `trigger`(s) open a `panel` behind an optional `backdrop`; `close` parts and Escape always close it; `params.dismissible` (default `true`) also lets a backdrop click close it (AlertDialog sets this `false` — its backdrop is inert, per the ARIA alert-dialog pattern, Escape still cancels). Covers Dialog/Drawer/AlertDialog directly; Lightbox and CommandPalette layer optional extra parts on the same root rather than getting their own type (see below)."
+  },
+  {
+    "type": "popover",
+    "description": "`popover` — one or more `trigger`/`panel` pairs (positional, like `disclosure`), anchored via runtime-computed position (same precedent as `carousel`'s `track.style.transform` — this is live-DOM positioning, not an authored inline style). `params.trigger`: `\"click\"` (default) | `\"hover\"` | `\"context\"` (right-click, positions at the pointer instead of the trigger rect). `params.single`: closes other pairs under the same root when one opens (Menubar/NavigationMenu's \"only one menu open\"). Covers Popover, Tooltip, PreviewCard, ContextMenu, Menubar, NavigationMenu — each is this one behavior with different params, not a broken reuse: the real differences (trigger event, anchor point, single-open grouping) are all genuine parameters, not papered-over mismatches."
+  },
+  {
+    "type": "combobox",
+    "description": "`combobox` — a text `input` + a `panel` of `item` options, filtered live. `params.mode`: `\"select\"` (default — commits an item's value into the input, like Combobox), `\"freetext\"` (Autocomplete — Enter with nothing highlighted commits the raw typed text), `\"multiple\"` (MultiSelect — commits remove the item from the remaining list; Backspace on an empty input pops the last commit). One handler, mode branches, mirroring how `selection-list` handles `params.multiple` in one file rather than three."
+  },
+  {
+    "type": "date-segment",
+    "description": "`date-segment` — `role=spinbutton` `segment` divs (non-form-associated — value lives only in `aria-valuenow`), each configured via `data-role` (`month`/`day`/`year`/`hour`/`minute`/`second`/`period`), `data-min`, `data-max`, `data-digits`, and an optional `data-cycle` JSON array (AM/PM). Ports `lib/date-time-segment.tsx`'s digit-buffer commit rule verbatim: a typed digit commits once the buffer hits `digits` length OR one more digit could no longer stay ≤ max. The day segment's max is recomputed live from sibling month/year segments (real calendar-aware clamping, not a static 31). Covers DateInput/DateTimeInput/TimeInput; DateRangeInput is two of these roots side by side (a shared `-` separator needs no behavior of its own)."
+  },
+  {
+    "type": "pin-input",
+    "description": "`pin-input` — real single-char `<input>` `cell`s (index-based, native value/maxlength do the work), unlike `date-segment`'s buffer-accumulate model on non-form-associated divs. Each keystroke is a whole commit with immediate auto-advance; Backspace-on-empty steps back; paste distributes characters starting at the focused cell."
+  },
+  {
+    "type": "calendar",
+    "description": "Parses a `YYYY-MM-DD` string as a LOCAL date, not `new Date(iso)`'s UTC-midnight parse — the latter shifts a day backward in any timezone behind UTC once `.getDate()` reads it back in local time (a real bug caught by the jsdom interaction test, not the structural one)."
+  },
+  {
+    "type": "tree",
+    "description": "`tree` — an ARIA tree (`role=treeitem` `node`s, nested `role=group` containers). No `ownParts`-style single-root scoping here: nodes at any depth belong to the SAME tree, unlike a carousel's slides, so this walks `querySelectorAll` directly. Roving tabindex is recomputed against the currently-VISIBLE set (collapsed branches are skipped) on every move, since children only exist in the accessibility tree while expanded."
+  },
+  {
+    "type": "wizard",
+    "description": "`wizard` — `step`/`panel` pairs like `tabs`, but with real state-machine rules `tabs` doesn't have: `params.linear` (default `true`) only allows clicking BACK to a completed step, never ahead; a `next`/`prev` footer pair drives forward/back, and `next` relabels to \"Finish\" on the last step. Host-driven validation gates progress via `aria-disabled` on the `next` part (the author/host toggles it — this behavior only reads it, it doesn't invent its own validation)."
+  },
+  {
+    "type": "number-field",
+    "description": "`number-field` — a native `<input type=\"number\">` plus `increment`/ `decrement` step buttons. The CSS here has no Base-UI-only selectors (just `:disabled`/`:hover`), so the input itself is the real source of truth; the buttons just call `stepUp()`/`stepDown()` and fire the events a plain keyboard-driven change would."
+  },
+  {
+    "type": "toggle-group",
+    "description": "`toggle-group` — a toolbar of toggle buttons (`item` parts), not a listbox (distinct ARIA pattern from `selection-list`: `aria-pressed`/`data-pressed` on real buttons, not `aria-selected` on listbox options). `params.multiple` allows several pressed at once (default: single, pressing one un-presses the rest); `params.orientation` (`\"horizontal\"` default | `\"vertical\"`) picks which arrow keys rove focus, matching `tabs`' convention."
+  },
+  {
+    "type": "scroll-area",
+    "description": "`scroll-area` — a real `overflow:auto` `track` (the CSS hides its native scrollbar) with a custom `thumb` whose size/position is computed from the viewport/content ratio on `scroll` + `ResizeObserver`. This can't be a pure-CSS `scrollbar-gutter` trick — the CSS expects an addressable thumb element to size/position, which only JS can drive."
+  },
+  {
+    "type": "overflow-list",
+    "description": "`overflow-list` — real `item`s reparent into a hidden `panel` (behind a `trigger` showing \"+N\") once they no longer fit their row, then reparent back once they do — the SAME elements move, so their event listeners and content survive (no clone-and-lose-interactivity). `params.maxVisible` forces a fixed count instead of measuring (used when real layout isn't available — e.g. under jsdom, or a host that wants deterministic wrapping)."
+  },
+  {
+    "type": "dropzone",
+    "description": "`dropzone` — a drag-counted drop target (dragleave fires on every child hover, so a depth counter is required, not optional) plus a hidden file `input`. `params.accept`/`params.maxSize` filter; matched files are announced via a `sui:file` CustomEvent per file. When a `list` part is present (FileUpload, not bare Dropzone), each accepted file also gets a managed row appended there (thumbnail for images, name, remove button) — this is the ONE place a behavior owns real create-your-own-markup state, same precedent as `carousel` building its own track/dots."
+  },
+  {
+    "type": "slider",
+    "description": "`slider` — one or two `thumb`s on a `track`. Base UI's `.slider-track`/ `.slider-indicator`/`.slider-thumb` are three addressable nodes whose position Base UI sets via inline styles from pointer math — a bare `<input type=range>` has no such nodes, so this rebuilds that geometry directly (pointer drag + full keyboard), same runtime-`.style` precedent as `carousel`. Two thumbs = a range slider (`--slider-range-start/-end` custom props for the fill bar CSS to read)."
+  },
+  {
+    "type": "switch",
+    "description": "`switch` — the root itself is a `role=switch` element (no parts). Silica's `.switch` CSS keys off `[data-checked]` (Base UI's synthetic attribute in React, ported verbatim here) rather than `:checked`, since the visual pill needs a real element to key selectors off, unlike `.toggle` which stays a plain native checkbox. A hidden `<input type=\"checkbox\">` inside carries the value for form submission, matching Base UI's own hidden-input pattern."
+  },
+  {
+    "type": "rating",
+    "description": "`rating` — a `role=radio` row of `item` stars. Not Base UI-backed in React either (plain JSX-set `data-filled`), so this ports near 1:1: click sets the value, hover previews it, and a hidden `<input>` (if present) carries the value for form submission."
+  },
+  {
+    "type": "theme-toggle",
+    "description": "`theme-toggle` — the root itself is the trigger (a button): each click cycles through `params.themes` (default `[\"light\", \"dark\"]`), wrapping around. Thin wiring over the existing `setTheme`/`getTheme` primitives — there was no new state-machine to build here, just a registration."
+  },
+  {
+    "type": "phone-input",
+    "description": "`phone-input` — a `country` `<select>` (options carry `data-dial`) joined with a digits `input`; a hidden input carries the combined `+{dial}{digits}` value for form submission. No React-only mechanism was involved in the original — the country list is plain static data, ported verbatim into the `PhoneInput` macro's expansion (see `component.ts`)."
   }
 ]

@@ -45,9 +45,19 @@ interface ComponentData {
   package: string;
   category: string;
   sourceFile: string;
-  description: string;
-  props: PropsInterface[];
-  usageExample: string | null;
+  /** silicaui-react entries: extracted from source via TS AST. silicaui-html
+   *  macros carry no static description (never hand-authored — see label/icon
+   *  instead) and omit these two fields. */
+  description?: string;
+  props?: PropsInterface[];
+  usageExample?: string | null;
+  /** silicaui-html macros only: palette label/icon, whether it's a container,
+   *  and the BehaviorType(s) its expansion carries (found by actually calling
+   *  expand(), not guessed — see get_behavior for the marker contract). */
+  label?: string;
+  icon?: string;
+  container?: boolean;
+  behaviors?: string[];
 }
 
 interface BlockSlot {
@@ -117,7 +127,7 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI components",
       description:
-        "List component names, categories, and source packages. Optionally filter to one package (e.g. '@wizeworks/silicaui-react', '@wizeworks/silicaui-charts').",
+        "List component names, categories, and source packages — spans BOTH @wizeworks/silicaui-react (typed React components) and @wizeworks/silicaui-html (the framework-neutral ComponentDef macros: Dialog, Popover, Combobox, etc., for non-React output). The same name can exist in both packages with different shapes; use get_component's package param to disambiguate. Optionally filter to one package (e.g. '@wizeworks/silicaui-react', '@wizeworks/silicaui-html', '@wizeworks/silicaui-charts').",
       inputSchema: {
         package: z.string().optional().describe("Filter to one package name, e.g. '@wizeworks/silicaui-react'."),
       },
@@ -137,27 +147,40 @@ export function createServer(): McpServer {
   server.registerTool(
     "get_component",
     {
-      title: "Get a Silica UI component's real props and usage example",
+      title: "Get a Silica UI component's real shape",
       description:
-        "Get a component's props (name, type, optional, doc — extracted from its actual TypeScript source) and a real, working usage example pulled from the playground demos. Use this instead of guessing prop names or shapes.",
+        "Get a component's real definition — for @wizeworks/silicaui-react: props (name, type, optional, doc — extracted from its actual TypeScript source) and a real, working usage example from the playground demos; for @wizeworks/silicaui-html: its palette category/label/icon, whether it's a container, and the BehaviorType(s) it carries (cross-reference with get_behavior for the marker contract). Use this instead of guessing prop names or shapes. Pass package when a name exists in more than one package.",
       inputSchema: {
-        name: z.string().describe("Component name, e.g. 'Button', 'DataTable', 'Select'."),
+        name: z.string().describe("Component name, e.g. 'Button', 'DataTable', 'Dialog'."),
+        package: z.string().optional().describe("Disambiguate when the name exists in more than one package, e.g. '@wizeworks/silicaui-html'."),
       },
     },
-    async ({ name }) => {
-      const component = components.find((c) => c.name.toLowerCase() === name.toLowerCase());
-      if (!component) {
+    async ({ name, package: pkg }) => {
+      let matches = components.filter((c) => c.name.toLowerCase() === name.toLowerCase());
+      if (pkg) matches = matches.filter((c) => c.package === pkg);
+      if (!matches.length) {
         return {
           content: [
             {
               type: "text",
-              text: `No component named "${name}". Call list_components to see valid names.`,
+              text: `No component named "${name}"${pkg ? ` in ${pkg}` : ""}. Call list_components to see valid names.`,
             },
           ],
           isError: true,
         };
       }
-      return { content: [{ type: "text", text: JSON.stringify(component, null, 2) }] };
+      if (matches.length > 1) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `"${name}" exists in more than one package — pass package to disambiguate: ${matches.map((c) => c.package).join(", ")}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      return { content: [{ type: "text", text: JSON.stringify(matches[0], null, 2) }] };
     },
   );
 
@@ -257,7 +280,7 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI behavior types",
       description:
-        "List the closed set of interactive behaviors (carousel, disclosure, tabs, menu, marquee, scrollspy, counter, dismiss, toc) that @wizeworks/silicaui-behaviors hydrates from data-sui-* markers.",
+        "List the closed set of interactive behaviors that @wizeworks/silicaui-behaviors hydrates from data-sui-* markers (the vanilla-JS runtime for non-React output). Each type is also the BehaviorType a @wizeworks/silicaui-html ComponentDef macro carries — cross-reference with get_component. Call this to see the current set rather than assuming a fixed list; it grows over time.",
       inputSchema: {},
     },
     async () => ({ content: [{ type: "text", text: JSON.stringify(behaviors, null, 2) }] }),
@@ -302,7 +325,7 @@ export function createServer(): McpServer {
     async ({ query }) => {
       const q = query.toLowerCase();
       const matchedComponents = components
-        .filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q))
+        .filter((c) => c.name.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q) || (c.label ?? "").toLowerCase().includes(q))
         .map((c) => ({ kind: "component", name: c.name, package: c.package }));
       const matchedBlocks = blocks
         .filter((b) => b.name.toLowerCase().includes(q) || b.description.toLowerCase().includes(q))

@@ -145,6 +145,10 @@ try {
 }
 
 // ── behaviors.json ───────────────────────────────────────────────────────
+// Derived from the REAL dispatch table (registry.ts's `HANDLERS`), not a
+// hand-maintained list here — a hand list is exactly what went stale (missing
+// `form` before this fix, and 18 more types after a later behaviors pass).
+// Reading `HANDLERS`'s own source keeps this in lockstep automatically.
 console.log("behaviors.json");
 const behaviorsDir = path.join(packagesRoot, "silicaui-behaviors/src/behaviors");
 function extractFirstDoc(filePath) {
@@ -156,19 +160,29 @@ function extractFirstDoc(filePath) {
     return "";
   }
 }
-const BEHAVIOR_FILES = {
-  carousel: "carousel.ts",
-  disclosure: "disclosure.ts",
-  tabs: "tabs.ts",
-  menu: "menu.ts",
-  marquee: "marquee.ts",
-  scrollspy: "scrollspy.ts",
-  counter: "counter.ts",
-  dismiss: "dismiss.ts",
-  toc: "scrollspy.ts",
-  sidebar: "sidebar.ts",
-  "selection-list": "selection-list.ts",
-};
+const registrySrc = readFileSync(path.join(packagesRoot, "silicaui-behaviors/src/registry.ts"), "utf8");
+
+// `import { ident, ident2 } from "./behaviors/file";` → ident → file.ts
+const fileByIdent = {};
+for (const m of registrySrc.matchAll(/import\s*\{([^}]+)\}\s*from\s*"\.\/behaviors\/([^"]+)"/g)) {
+  for (const ident of m[1].split(",").map((s) => s.trim()).filter(Boolean)) {
+    fileByIdent[ident] = `${m[2]}.ts`;
+  }
+}
+
+// `export const HANDLERS: Record<BehaviorType, BehaviorHandler> = { type: ident, "kebab-type": ident2, shorthand, ... };`
+// Entries can be explicit (`key: ident`) OR shorthand (`ident` alone, meaning
+// key === ident) — most of this object is shorthand, so both forms matter.
+const handlersMatch = registrySrc.match(/HANDLERS[^={]*=\s*\{([\s\S]*?)\n\};/);
+if (!handlersMatch) throw new Error("gen-catalog: couldn't find HANDLERS object in registry.ts — behavior extraction is now broken, fix the regex above.");
+const BEHAVIOR_FILES = {};
+for (const m of handlersMatch[1].matchAll(/(?:"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))\s*(?::\s*([A-Za-z_][A-Za-z0-9_]*))?\s*,/g)) {
+  const type = m[1] ?? m[2];
+  const ident = m[3] ?? m[2];
+  const file = fileByIdent[ident];
+  if (file) BEHAVIOR_FILES[type] = file;
+  else console.warn(`  ! HANDLERS entry "${type}" -> "${ident}" has no matching import; skipped`);
+}
 writeJson(
   "behaviors.json",
   Object.entries(BEHAVIOR_FILES).map(([type, file]) => ({
@@ -176,6 +190,61 @@ writeJson(
     description: extractFirstDoc(path.join(behaviorsDir, file)),
   })),
 );
+
+// ── silicaui-html components (the ComponentDef macro registry) ────────────
+// These are a DIFFERENT layer than silicaui-react's components: atoms in the
+// framework-neutral node-tree schema (Dialog, Popover, Combobox, ...) that
+// `expand()` lowers to an element subtree at render time. There's no static
+// prop-interface to parse (props are read ad hoc inside `expand`), so instead
+// of guessing we ACTUALLY CALL `expand()` on a synthetic empty node and walk
+// the result for `behavior.type` markers — real execution, not a hand-authored
+// guess, matching this script's own "never hand-authored" discipline. Defs
+// that need real props/children to expand cleanly just throw and are caught;
+// `behaviors` stays `[]` for those rather than a wrong guess.
+console.log("silicaui-html components");
+let htmlComponents = [];
+try {
+  const htmlIndexUrl = pathToFileURL(path.join(packagesRoot, "silicaui-html/dist/index.js")).href;
+  const { listComponents } = await import(htmlIndexUrl);
+  const componentSrc = readFileSync(path.join(packagesRoot, "silicaui-html/src/component.ts"), "utf8");
+  const componentSrcLines = componentSrc.split("\n");
+
+  function lineOf(name) {
+    const needle = `name: "${name}",`;
+    const idx = componentSrcLines.findIndex((l) => l.includes(needle));
+    return idx === -1 ? null : idx + 1;
+  }
+
+  function collectBehaviorTypes(node, acc) {
+    if (!node || typeof node !== "object") return acc;
+    if (node.behavior?.type) acc.add(node.behavior.type);
+    if (Array.isArray(node.children)) for (const c of node.children) collectBehaviorTypes(c, acc);
+    return acc;
+  }
+
+  htmlComponents = listComponents().map((def) => {
+    let behaviors = [];
+    try {
+      const synthetic = { kind: "component", component: def.name, children: [], props: {} };
+      behaviors = [...collectBehaviorTypes(def.expand(synthetic), new Set())];
+    } catch {
+      // needs real props/children to expand — leave behaviors unknown, not guessed
+    }
+    const line = lineOf(def.name);
+    return {
+      name: def.name,
+      package: scoped("silicaui-html"),
+      category: def.category,
+      label: def.label,
+      icon: def.icon,
+      container: !!def.container,
+      behaviors,
+      sourceFile: line ? `silicaui-html/src/component.ts:${line}` : "silicaui-html/src/component.ts",
+    };
+  });
+} catch (err) {
+  console.warn(`  ! failed to load @wizeworks/silicaui-html components (build it first: pnpm --filter @wizeworks/silicaui-html build): ${err.message}`);
+}
 
 // ── components.json ──────────────────────────────────────────────────────
 console.log("components.json");
@@ -249,6 +318,26 @@ while ((rowMatch = tableRowRe.exec(readme))) {
   }
 }
 
+// Real export -> source-file map from the barrel itself (authoritative, can't
+// drift — unlike the README prose, this is code). Used two ways: (1) fixes
+// sourceFile for components whose name doesn't match their file 1:1 (several
+// components share one file, e.g. InputGroupAddon lives in input-group.tsx);
+// (2) powers the "undocumented export" warning below, so a component added to
+// the barrel without a README row is a loud gen-time warning, not a silent gap.
+const reactIndexSrc = readFileSync(path.join(packagesRoot, "silicaui-react/src/index.ts"), "utf8");
+const reactFileByExport = {};
+const reactNamesByFile = {};
+for (const m of reactIndexSrc.matchAll(/^export\s*\{([^}]+)\}\s*from\s*"\.\/([^"]+)";/gm)) {
+  const file = `${m[2]}.tsx`;
+  for (const nm of m[1].split(",").map((s) => s.trim()).filter(Boolean)) {
+    if (/^[A-Z][A-Za-z0-9]*$/.test(nm)) {
+      reactFileByExport[nm] = file;
+      (reactNamesByFile[file] ??= []).push(nm);
+    }
+  }
+}
+const documentedNames = new Set([...componentMeta.map((m) => m.name)]);
+
 // Wrapper packages: small, hand-listed (no README table covers these).
 const wrapperMeta = [
   { name: "Chart", category: "wrapper", package: "silicaui-charts", file: "chart.tsx" },
@@ -258,10 +347,29 @@ const wrapperMeta = [
   { name: "SortableList", category: "wrapper", package: "silicaui-dnd", file: "sortable-list.tsx" },
   { name: "ResizablePanels", category: "wrapper", package: "silicaui-panels", file: "resizable-panels.tsx" },
 ];
+for (const w of wrapperMeta) documentedNames.add(w.name);
+
+// Real exports that are infrastructure, not catalog components (context
+// providers, etc.) — deliberately absent from the README's component table.
+const NON_CATALOG_EXPORTS = new Set(["SilicaProvider"]);
+
+// A file where AT LEAST ONE export is documented is a compound whose OTHER
+// exports are Base-UI-style sub-parts (DialogTrigger next to documented
+// Dialog, CardBody next to documented Card, ...) — not a gap, don't warn.
+// Only flag files where NOTHING they export made it into the README at all.
+const undocumentedFiles = Object.entries(reactNamesByFile).filter(
+  ([, names]) => names.some((n) => !NON_CATALOG_EXPORTS.has(n)) && !names.some((n) => documentedNames.has(n)),
+);
+if (undocumentedFiles.length) {
+  const summary = undocumentedFiles.map(([file, names]) => `${file} (${names.join(", ")})`).join("; ");
+  console.warn(
+    `  ! ${undocumentedFiles.length} @wizeworks/silicaui-react source file(s) have NO export in README's component table — likely a missing row, not a sub-part (won't appear in list_components until fixed): ${summary}`,
+  );
+}
 
 const components = [];
 for (const meta of [...componentMeta, ...wrapperMeta]) {
-  const fileRel = meta.file ?? `${toKebab(meta.name)}.tsx`;
+  const fileRel = (meta.package === "silicaui-react" && reactFileByExport[meta.name]) || meta.file || `${toKebab(meta.name)}.tsx`;
   const filePath = path.join(packagesRoot, meta.package, "src", fileRel);
   let parsed = { description: "", props: [] };
   try {
@@ -290,6 +398,10 @@ for (const meta of [...componentMeta, ...wrapperMeta]) {
     usageExample,
   });
 }
-writeJson("components.json", components);
 
-console.log(`\n✅ catalog generated (${components.length} components, ${Object.keys(classesByComponent).length} class groups)`);
+const allComponents = [...components, ...htmlComponents];
+writeJson("components.json", allComponents);
+
+console.log(
+  `\n✅ catalog generated (${allComponents.length} components [${components.length} react, ${htmlComponents.length} html], ${Object.keys(classesByComponent).length} class groups, ${Object.keys(BEHAVIOR_FILES).length} behaviors)`,
+);

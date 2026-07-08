@@ -3,15 +3,19 @@ name: silica-component
 description: >-
   Build or modify a Silica UI component — a CSS module in packages/silicaui plus
   a React wrapper in packages/silicaui-react — including Base UI integration,
-  wiring, playground demo, and the mandatory browser-verification protocol. Use
-  whenever creating, editing, or debugging a Silica UI component so the file
-  shape, naming, token model, and (critically) the verify steps stay consistent
-  and we don't repeat past regressions.
+  wiring, playground demo, and the mandatory browser-verification protocol. Also
+  covers keeping the framework-neutral layers (silicaui-html's ComponentDef
+  registry, silicaui-behaviors' vanilla hydration) and the silicaui-mcp catalog
+  in sync so a component doesn't exist in React only. Use whenever creating,
+  editing, or debugging a Silica UI component so the file shape, naming, token
+  model, and (critically) the verify + sync steps stay consistent and we don't
+  repeat past regressions.
 ---
 
 # Building a Silica UI component
 
-Silica UI = two layers that ship together:
+Silica UI ships as **four layers**, and a component isn't done system-wide
+until all four agree (or a documented reason says one doesn't apply — see §7):
 
 - **`packages/silicaui`** — the CSS layer, a Tailwind v4 plugin. Each component
   is `src/components/<name>.js` exporting a function that returns a CSS-in-JS
@@ -20,12 +24,25 @@ Silica UI = two layers that ship together:
   dynamically, so it'd drop everything).
 - **`packages/silicaui-react`** — the React layer, thin wrappers that apply the
   CSS classes and delegate behavior to **Base UI** for interactive components.
+- **`packages/silicaui-html`** — the framework-neutral node-tree schema +
+  `toHtml` projection, for non-React output (Sparx tenant sites, static pages).
+  A `ComponentDef` macro per component, registered in `component.ts`.
+- **`packages/silicaui-behaviors`** — the vanilla, zero-dependency runtime that
+  hydrates `data-sui-behavior="type"` markers for non-React output — the
+  counterpart to Base UI, which only runs inside React.
+
+Sections 1-6 below build the first two (CSS + React) — start there for any new
+component. **Section 7 covers the other two** (-html macro + -behaviors
+handler) and the MCP catalog regen — read it before considering an interactive
+component finished, since silently skipping it is exactly how the -html/
+-behaviors layers drifted out of sync with -react for an entire session's
+worth of components in the past.
 
 Playground for dogfooding/verification: `examples/playground` (Vite). It aliases
 `@wizeworks/silicaui-react` to source and consumes `@wizeworks/silicaui` from source, so **no package
 build is needed** — edits are live in a fresh `vite build`.
 
-Work in this order: **CSS module → React wrapper → wire both barrels → playground demo → VERIFY → clean up.**
+Work in this order: **CSS module → React wrapper → wire both barrels → playground demo → VERIFY → -html/-behaviors sync (§7) → clean up.**
 
 ---
 
@@ -210,7 +227,103 @@ Then Playwright: navigate to `http://localhost:<PORT>/`, and:
 `rm -rf examples/playground/dist .playwright-mcp <screenshot pngs>`. Leave the
 repo clean.
 
-## 7. Dependency-heavy components → an opt-in SIBLING package
+## 7. Sync the -html macro + -behaviors handler + MCP catalog
+
+A component built via §1-6 exists in React only until this section is done
+too. This is not optional polish — it's how Sparx tenant sites (which render
+via `@wizeworks/silicaui-html`, not React) and any AI assistant querying
+`@wizeworks/silicaui-mcp` find out the component exists at all.
+
+### The -html macro
+
+Add a `ComponentDef` to `BUILTIN_COMPONENTS` in
+`packages/silicaui-html/src/component.ts`: `name` (matches the React export),
+`category`, `label`, `icon`, `container?` (true if it holds children), and
+`expand(node)` — a PURE function lowering the authored node to an element
+(sub)tree via the local `lower()` helper (carries the source node's class +
+system metadata through automatically). If the component is interactive, its
+expansion sets a behavior marker: `out.behavior = { type: "modal" }` (see
+`Dialog`'s def for the canonical shape).
+
+### The -behaviors handler (only for a NEW interactive pattern)
+
+`packages/silicaui-behaviors` hydrates `data-sui-behavior="type"` markers for
+non-React output. If the component's interaction pattern already has a
+`BehaviorType` (most do — see composition patterns below), wire the macro to
+it and you're done; no new handler needed.
+
+For a genuinely new pattern: add the type to the closed vocabulary in BOTH
+`silicaui-html/src/schema.ts`'s `BehaviorType` union AND
+`silicaui-behaviors/src/types.ts`'s (duplicated ON PURPOSE — the contract is
+the STRING value in the `data-sui-*` attribute, not shared TS identity), write
+a handler in `silicaui-behaviors/src/behaviors/<type>.ts`, and add it to the
+`HANDLERS` dispatch table in `registry.ts`. Verify with BOTH a structural
+`toHtml` assertion AND a real jsdom `hydrate()` interaction test — the
+structural one alone misses real bugs (wrong DOM scope, missing runtime DOM
+mutation, stale element references across a re-render) that only show up when
+you actually click/type/press-key through it.
+
+**Check these composition patterns before adding a new `BehaviorType`** — the
+vocabulary staying closed and small is deliberate, not an oversight:
+- **One type, optional parts** — layer extra `part`s onto an existing root
+  instead of forking (Lightbox/CommandPalette both reuse `modal` with extra
+  parts).
+- **Nested behavior roots compose for free** — `ownParts()` already stops at
+  nested `[data-sui-behavior]` boundaries, so e.g. a `calendar`-type root
+  nested inside a `popover`-type root's panel (DatePicker) needs zero new
+  code.
+- **Reuse with a new param, don't fork** — check whether the real delta is a
+  `params.xxx` flag on an existing type (ContextMenu reuses `menu` +
+  `params.trigger: "context"` instead of duplicating item-roving-focus logic
+  `popover` doesn't have).
+- **Independent sibling roots, documented** — when bar-wide coordination
+  (Menubar/NavigationMenu "only one open") can't be modeled because sibling
+  behavior roots can't see each other, ship each item as its own root and say
+  so in the handler's doc comment — don't silently drop the feature or
+  silently pretend it works.
+
+### When a component genuinely doesn't need all four layers
+
+Some components legitimately skip -html/-behaviors — document why, same as
+these confirmed cases: pure status display that only ever swaps a
+`data-status` attr + text in response to already-computed host state needs no
+behavior code at all (a vanilla host sets the attribute directly); a genuinely
+imperative API (`toast.add()`) can't be a `data-sui-behavior` marker (there's
+no pre-existing DOM node for the marker to attach to before `add()` runs) and
+needs its own small standalone helper module instead.
+
+### Regenerate the MCP catalog
+
+`packages/silicaui-mcp` ships a queryable catalog of all four layers for AI
+coding assistants. It's generated, not hand-authored, but the generator still
+has to be re-run after any of the above:
+
+```bash
+pnpm --filter @wizeworks/silicaui-html build      # -html catalog reads dist, not src
+pnpm --filter @wizeworks/silicaui-mcp gen         # regenerates src/data/*.json
+pnpm --filter @wizeworks/silicaui-mcp verify      # real MCP client round-trip
+```
+
+- **-html macros and -behaviors types are fully auto-discovered** (the
+  generator calls the real `listComponents()` / reads the real `HANDLERS`
+  table) — a new `ComponentDef` or `BehaviorType` just appears on the next
+  regen, nothing to hand-edit in the generator.
+- **-react components are discovered from `silicaui-react/README.md`'s
+  component table** (curated on purpose — category grouping needs a human's
+  judgment call, not just an export scan). Add a row for any new top-level
+  component, or `pnpm gen` prints a loud warning naming the undocumented
+  file — it won't silently disappear from the catalog's coverage, but it WILL
+  be missing from the actual data until the row is added. Base-UI-style
+  sub-parts sharing a file with an already-documented root (`DialogTrigger`
+  next to `Dialog`) don't need their own row.
+- **A name can exist in both `-react` and `-html`** (most do, by design — same
+  concept, two output layers) — `get_component` requires a `package` argument
+  to disambiguate when this happens; it errors rather than guessing which one
+  you meant.
+- Commit the regenerated `src/data/*.json` diff alongside the component
+  work — it's a real, git-tracked catalog, not a disposable build artifact.
+
+## 8. Dependency-heavy components → an opt-in SIBLING package
 
 When a composite needs a real third-party engine (charts, rich text, DnD, a
 table engine), DON'T add the dep to `@wizeworks/silicaui-react` — the core stays lean. Wrap
@@ -234,6 +347,11 @@ best-in-class in its own unscoped package `packages/silicaui-<engine>/` (shipped
 
 ## Gotchas checklist (all learned the hard way)
 
+- [ ] Before calling an interactive component done: did §7 happen (-html
+      `ComponentDef` + `data-sui-behavior` wiring, `pnpm --filter @wizeworks/silicaui-mcp gen`)?
+      Shipping -react only is exactly how the other two layers (and the MCP
+      catalog that indexes them) silently fell behind for a whole session's
+      worth of components — it's cheap to catch here, expensive to catch later.
 - [ ] Any icon slot sizes its `& svg { width; height }` — an unsized `<svg>`
       collapses/balloons differently per browser (it vanished in the user's).
 - [ ] Tints use `color-mix(in oklab, …)`, not oklch.

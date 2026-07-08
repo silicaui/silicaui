@@ -6,9 +6,13 @@
     "alert",
     "alert-accent",
     "alert-actions",
+    "alert-banner",
+    "alert-close",
     "alert-content",
     "alert-dash",
     "alert-description",
+    "alert-dismiss",
+    "alert-dismiss-inner",
     "alert-error",
     "alert-info",
     "alert-lg",
@@ -24,6 +28,9 @@
     "alert-warning",
     "alert-xl",
     "alert-xs"
+  ],
+  "app-shell": [
+    "primary"
   ],
   "avatar": [
     "avatar",
@@ -126,6 +133,9 @@
     "primary"
   ],
   "chart": [
+    "primary"
+  ],
+  "chat-suite": [
     "primary"
   ],
   "chat": [
@@ -245,6 +255,9 @@
   "file-input": [
     "primary"
   ],
+  "file-upload": [
+    "primary"
+  ],
   "filter": [
     "filter",
     "filter-accent",
@@ -267,9 +280,14 @@
   "indicator": [
     "primary"
   ],
+  "input-group": [
+    "primary"
+  ],
   "input": [
     "input",
     "input-accent",
+    "input-affix-end",
+    "input-affix-start",
     "input-error",
     "input-info",
     "input-lg",
@@ -290,6 +308,9 @@
     "primary"
   ],
   "label": [
+    "primary"
+  ],
+  "lightbox": [
     "primary"
   ],
   "link": [
@@ -319,6 +340,9 @@
   "menubar": [
     "primary"
   ],
+  "metadata-list": [
+    "primary"
+  ],
   "meter": [
     "meter",
     "meter-accent",
@@ -342,6 +366,25 @@
   "mockup": [
     "primary"
   ],
+  "multi-select": [
+    "multi-select",
+    "multi-select-accent",
+    "multi-select-chip",
+    "multi-select-chip-remove",
+    "multi-select-chips",
+    "multi-select-clear",
+    "multi-select-error",
+    "multi-select-info",
+    "multi-select-input",
+    "multi-select-lg",
+    "multi-select-neutral",
+    "multi-select-primary",
+    "multi-select-secondary",
+    "multi-select-sm",
+    "multi-select-success",
+    "multi-select-trigger",
+    "multi-select-warning"
+  ],
   "navbar": [
     "primary"
   ],
@@ -349,6 +392,15 @@
     "primary"
   ],
   "number-field": [
+    "primary"
+  ],
+  "outline": [
+    "primary"
+  ],
+  "overflow-list": [
+    "primary"
+  ],
+  "overlay": [
     "primary"
   ],
   "pagination": [
@@ -369,7 +421,30 @@
     "pagination-warning",
     "pagination-xs"
   ],
+  "phone-input": [
+    "primary"
+  ],
+  "pin-input": [
+    "pin-input",
+    "pin-input-cell",
+    "pin-input-cell-accent",
+    "pin-input-cell-error",
+    "pin-input-cell-info",
+    "pin-input-cell-lg",
+    "pin-input-cell-md",
+    "pin-input-cell-neutral",
+    "pin-input-cell-primary",
+    "pin-input-cell-secondary",
+    "pin-input-cell-sm",
+    "pin-input-cell-success",
+    "pin-input-cell-warning",
+    "pin-input-cell-xl",
+    "pin-input-cell-xs"
+  ],
   "popover": [
+    "primary"
+  ],
+  "power-search": [
     "primary"
   ],
   "preview-card": [
@@ -382,6 +457,8 @@
     "progress-error",
     "progress-indeterminate",
     "progress-info",
+    "progress-label",
+    "progress-label-row",
     "progress-lg",
     "progress-md",
     "progress-neutral",
@@ -389,7 +466,9 @@
     "progress-secondary",
     "progress-sm",
     "progress-success",
+    "progress-value",
     "progress-warning",
+    "progress-wrapper",
     "progress-xl",
     "progress-xs"
   ],
@@ -461,6 +540,23 @@
   ],
   "scroll-area": [
     "primary"
+  ],
+  "segment-field": [
+    "date-range-input",
+    "date-range-input-sep",
+    "segment-field",
+    "segment-field-accent",
+    "segment-field-error",
+    "segment-field-info",
+    "segment-field-lg",
+    "segment-field-literal",
+    "segment-field-neutral",
+    "segment-field-primary",
+    "segment-field-secondary",
+    "segment-field-segment",
+    "segment-field-sm",
+    "segment-field-success",
+    "segment-field-warning"
   ],
   "select-menu": [
     "primary"
@@ -639,6 +735,9 @@
     "textarea-xs"
   ],
   "timeline": [
+    "primary"
+  ],
+  "timestamp": [
     "primary"
   ],
   "toast": [
