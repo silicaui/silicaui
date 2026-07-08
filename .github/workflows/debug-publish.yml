@@ -31,7 +31,7 @@ jobs:
         run: pnpm build
 
       - name: Raw changeset publish (unwrapped, for diagnostics)
-        run: node scripts/guard-version.mjs && pnpm exec changeset publish --verbose
+        run: node scripts/guard-version.mjs && pnpm exec changeset publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
