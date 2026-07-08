@@ -43,7 +43,9 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm release
+          # guard-version runs first so a runaway/wrong bump type can never reach
+          # `npm publish` — it only opens the Version PR, which still needs review.
+          publish: node scripts/guard-version.mjs && pnpm release
           title: "chore: version packages"
           commit: "chore: version packages"
         env:

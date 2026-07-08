@@ -1,9 +1,17 @@
 {
   "name": "silicaui-builder",
-  "version": "2.0.0",
+  "version": "0.3.0",
   "description": "silicaui's visual builder — chrome built ON silicaui (Tailwind v4 plugin) + silicaui-react, over a framework-neutral document engine.",
   "type": "module",
   "license": "MIT",
+  "author": "WizeWorks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/silicaui/silicaui.git",
+    "directory": "packages/silicaui-builder"
+  },
+  "homepage": "https://silicaui.com",
+  "bugs": "https://github.com/silicaui/silicaui/issues",
   "sideEffects": false,
   "exports": {
     ".": {
