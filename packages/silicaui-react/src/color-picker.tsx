@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { Popover, PopoverTrigger, PopoverContent } from "./popover";
 import {
   MAX_CHROMA,
   oklchToHex,
@@ -11,6 +12,10 @@ import {
 } from "./lib/oklch";
 
 export type ColorPickerFormat = "oklch" | "hex";
+
+/** `"panel"` (default) is the full slider panel inline. `"swatch"` is a compact
+ * chip that opens the same panel in a popover — for toolbars and dense forms. */
+export type ColorPickerVariant = "panel" | "swatch";
 
 export interface ColorPickerProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange" | "color"> {
@@ -24,6 +29,8 @@ export interface ColorPickerProps
   format?: ColorPickerFormat;
   /** Show the hex read/write field. Default `true`. */
   showHex?: boolean;
+  /** Default `"panel"`. */
+  variant?: ColorPickerVariant;
   disabled?: boolean;
 }
 
@@ -125,7 +132,7 @@ function ColorSlider({
  * the live ramp), previews the result, and reads/writes hex. Controlled via
  * `value`/`onValueChange` or uncontrolled via `defaultValue`.
  */
-export const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
+export const ColorPicker = React.forwardRef<HTMLElement, ColorPickerProps>(
   function ColorPicker(
     {
       value,
@@ -133,6 +140,7 @@ export const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       onValueChange,
       format = "oklch",
       showHex = true,
+      variant = "panel",
       disabled,
       className,
       ...rest
@@ -178,13 +186,8 @@ export const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
     const cTrack = `linear-gradient(to right in oklch, oklch(${l} 0 ${h}), oklch(${l} ${MAX_CHROMA} ${h}))`;
     const hTrack = `linear-gradient(to right in oklch, oklch(${l} ${c} 0), oklch(${l} ${c} 60), oklch(${l} ${c} 120), oklch(${l} ${c} 180), oklch(${l} ${c} 240), oklch(${l} ${c} 300), oklch(${l} ${c} 360))`;
 
-    return (
-      <div
-        ref={forwardedRef}
-        className={cx(sc("color-picker"), className)}
-        data-disabled={disabled || undefined}
-        {...rest}
-      >
+    const panel = (
+      <>
         <div className={cx(sc("color-picker-preview"))}>
           <span
             className={cx(sc("color-picker-swatch"))}
@@ -274,6 +277,47 @@ export const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
             />
           </div>
         )}
+      </>
+    );
+
+    if (variant === "swatch") {
+      return (
+        <Popover>
+          <PopoverTrigger>
+            <button
+              ref={forwardedRef as React.Ref<HTMLButtonElement>}
+              type="button"
+              className={cx(sc("color-picker-swatch-trigger"), className)}
+              data-disabled={disabled || undefined}
+              disabled={disabled}
+              {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+            >
+              <span
+                className={cx(sc("color-picker-swatch-trigger-chip"))}
+                style={{ backgroundColor: `oklch(${l} ${c} ${h})` }}
+              />
+              <span className={cx(sc("color-picker-swatch-trigger-label"))}>
+                {hex}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className={cx(sc("color-picker-popover"))}>
+            <div className={cx(sc("color-picker"))} data-disabled={disabled || undefined}>
+              {panel}
+            </div>
+          </PopoverContent>
+        </Popover>
+      );
+    }
+
+    return (
+      <div
+        ref={forwardedRef as React.Ref<HTMLDivElement>}
+        className={cx(sc("color-picker"), className)}
+        data-disabled={disabled || undefined}
+        {...rest}
+      >
+        {panel}
       </div>
     );
   },

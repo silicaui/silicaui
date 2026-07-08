@@ -2,6 +2,13 @@ import * as React from "react";
 import { AlertDialog as BaseAlertDialog } from "@base-ui-components/react/alert-dialog";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { Button, type ButtonProps } from "./button";
+
+export { DialogHeader as AlertDialogHeader, DialogFooter as AlertDialogFooter } from "./dialog";
+export type {
+  DialogHeaderProps as AlertDialogHeaderProps,
+  DialogFooterProps as AlertDialogFooterProps,
+} from "./dialog";
 
 // Props of a styled Base UI part: its own props but with a plain-string className.
 type Styled<T extends React.ElementType> = Omit<
@@ -51,6 +58,23 @@ export function AlertDialogClose({
   children: React.ReactElement;
 }) {
   return <BaseAlertDialog.Close render={asRender(children)} />;
+}
+
+/** Alias of {@link AlertDialogClose} — the semantic name for a "no, don't do this" button. */
+export const AlertDialogCancel = AlertDialogClose;
+
+export interface AlertDialogActionProps extends ButtonProps {}
+
+/**
+ * A styled button that fires its own `onClick` and then closes the dialog —
+ * for the confirming ("yes, do this") action.
+ *
+ *   <AlertDialogAction color="error" onClick={destroy}>Delete</AlertDialogAction>
+ */
+export function AlertDialogAction({ children, ...rest }: AlertDialogActionProps) {
+  return (
+    <BaseAlertDialog.Close render={asRender(<Button {...rest}>{children}</Button>)} />
+  );
 }
 
 export interface AlertDialogContentProps

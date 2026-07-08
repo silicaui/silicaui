@@ -3,18 +3,32 @@ import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 
 export interface LabelProps
-  extends React.LabelHTMLAttributes<HTMLLabelElement> {}
+  extends React.LabelHTMLAttributes<HTMLLabelElement> {
+  /** Appends a required-field asterisk after the label text. */
+  required?: boolean;
+}
 
 /**
  * Silica Label — a plain, muted caption for a control.
  *
  *   <Label htmlFor="email">Email</Label>
  *   <Input id="email" />
+ *
+ *   <Label htmlFor="email" required>Email</Label>   // "Email *"
  */
 export const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
-  function Label({ className, ...rest }, ref) {
+  function Label({ required, className, children, ...rest }, ref) {
     const sc = useSilicaClass();
-    return <label ref={ref} className={cx(sc("label"), className)} {...rest} />;
+    return (
+      <label ref={ref} className={cx(sc("label"), className)} {...rest}>
+        {children}
+        {required && (
+          <span className={cx(sc("label-required"))} aria-hidden="true">
+            *
+          </span>
+        )}
+      </label>
+    );
   },
 );
 

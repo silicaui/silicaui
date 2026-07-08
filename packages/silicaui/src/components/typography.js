@@ -58,6 +58,23 @@ export function typography(prefix = "") {
     fontSize: "0.875rem",
     color: "color-mix(in oklab, var(--color-base-content) 62%, transparent)",
   };
+  // Bare `<blockquote>` — a pull-quote/testimonial treatment (distinct from
+  // `.prose`'s smaller, italic, inline-quote-in-a-paragraph style).
+  rules["[data-theme] :where(blockquote)"] = {
+    margin: "0",
+    paddingInlineStart: "1.25rem",
+    borderInlineStart: "0.25rem solid var(--color-primary)",
+    fontSize: "1.125rem",
+    lineHeight: "1.6",
+    color: "var(--color-base-content)",
+  };
+  rules["[data-theme] :where(blockquote > footer, blockquote > cite)"] = {
+    display: "block",
+    marginTop: "0.5rem",
+    fontSize: "0.875rem",
+    fontStyle: "normal",
+    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+  };
 
   // ── explicit override classes (normal specificity) ────────────────────────
   // `.display` + `.h1`–`.h6` apply any step to any element; utilities still win
@@ -81,6 +98,21 @@ export function typography(prefix = "") {
     fontSize: "0.875rem",
     lineHeight: "1.4",
     color: "color-mix(in oklab, var(--color-base-content) 62%, transparent)",
+  };
+  rules[cls("blockquote")] = {
+    margin: "0",
+    paddingInlineStart: "1.25rem",
+    borderInlineStart: "0.25rem solid var(--color-primary)",
+    fontSize: "1.125rem",
+    lineHeight: "1.6",
+    color: "var(--color-base-content)",
+  };
+  rules[cls("blockquote-cite")] = {
+    display: "block",
+    marginTop: "0.5rem",
+    fontSize: "0.875rem",
+    fontStyle: "normal",
+    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
   };
 
   return rules;

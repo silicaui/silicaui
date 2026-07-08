@@ -12,6 +12,43 @@ export type { BadgeProps, BadgeColor, BadgeVariant, BadgeSize } from "./badge";
 export { Input } from "./input";
 export type { InputProps, InputColor, InputSize } from "./input";
 
+export { InputGroup, InputGroupAddon, InputGroupButton } from "./input-group";
+export type {
+  InputGroupProps,
+  InputGroupAddonProps,
+  InputGroupButtonProps,
+} from "./input-group";
+
+export { PasswordInput } from "./password-input";
+export type {
+  PasswordInputProps,
+  PasswordInputColor,
+  PasswordInputSize,
+} from "./password-input";
+
+export { SearchInput } from "./search-input";
+export type {
+  SearchInputProps,
+  SearchInputColor,
+  SearchInputSize,
+} from "./search-input";
+
+export { PinInput } from "./pin-input";
+export type { PinInputProps, PinInputColor, PinInputSize } from "./pin-input";
+
+export { PhoneInput } from "./phone-input";
+export type {
+  PhoneInputProps,
+  PhoneInputColor,
+  PhoneInputSize,
+} from "./phone-input";
+export {
+  DEFAULT_COUNTRIES,
+  flagEmoji,
+  findCountry,
+} from "./lib/countries";
+export type { Country } from "./lib/countries";
+
 export { NativeSelect } from "./native-select";
 export type {
   NativeSelectProps,
@@ -22,8 +59,15 @@ export type {
 export { Textarea } from "./textarea";
 export type { TextareaProps, TextareaColor, TextareaSize } from "./textarea";
 
-export { Card, CardBody, CardTitle, CardActions } from "./card";
-export type { CardProps } from "./card";
+export {
+  Card,
+  CardBody,
+  CardTitle,
+  CardActions,
+  ClickableCard,
+  SelectableCard,
+} from "./card";
+export type { CardProps, ClickableCardProps, SelectableCardProps } from "./card";
 
 export {
   Alert,
@@ -58,6 +102,9 @@ export type { DividerProps, DividerOrientation } from "./divider";
 export { Kbd } from "./kbd";
 export type { KbdProps, KbdSize } from "./kbd";
 
+export { Timestamp } from "./timestamp";
+export type { TimestampProps, TimestampFormat } from "./timestamp";
+
 export { Breadcrumb } from "./breadcrumb";
 export type { BreadcrumbProps } from "./breadcrumb";
 
@@ -89,13 +136,15 @@ export type { LoadingProps, LoadingSize } from "./loading";
 export { Prose } from "./prose";
 export type { ProseProps, ProseSize } from "./prose";
 
-export { Heading, Display, Text } from "./typography";
+export { Heading, Display, Text, Blockquote, BlockquoteCite } from "./typography";
 export type {
   HeadingProps,
   HeadingLevel,
   DisplayProps,
   TextProps,
   TextVariant,
+  BlockquoteProps,
+  BlockquoteCiteProps,
 } from "./typography";
 
 export { Navbar, NavbarStart, NavbarCenter, NavbarEnd } from "./navbar";
@@ -215,8 +264,16 @@ export {
   DrawerContent,
   DrawerTitle,
   DrawerDescription,
+  DrawerHeader,
+  DrawerFooter,
 } from "./drawer";
-export type { DrawerProps, DrawerContentProps, DrawerSide } from "./drawer";
+export type {
+  DrawerProps,
+  DrawerContentProps,
+  DrawerSide,
+  DrawerHeaderProps,
+  DrawerFooterProps,
+} from "./drawer";
 
 export { List, ListRow, ListColGrow, ListTitle } from "./list";
 export type {
@@ -282,6 +339,24 @@ export type {
 export { ThemeController } from "./theme-controller";
 export type { ThemeControllerProps } from "./theme-controller";
 
+export { ImperativeAlertDialogProvider, useImperativeAlertDialog } from "./imperative-alert-dialog";
+export type {
+  ImperativeAlertDialogProviderProps,
+  ConfirmOptions,
+  ConfirmFn,
+} from "./imperative-alert-dialog";
+
+export { useControllableState } from "./lib/use-controllable-state";
+export type { UseControllableStateOptions } from "./lib/use-controllable-state";
+
+export { useMediaQuery } from "./lib/use-media-query";
+
+export { useBreakpoint, SILICA_BREAKPOINTS } from "./lib/use-breakpoint";
+export type { SilicaBreakpoint } from "./lib/use-breakpoint";
+
+export { useTheme } from "./lib/use-theme";
+export type { UseThemeOptions } from "./lib/use-theme";
+
 export {
   NavigationMenu,
   NavigationMenuItem,
@@ -341,6 +416,7 @@ export {
   FieldControl,
   FieldDescription,
   FieldError,
+  FieldStatus,
 } from "./field";
 export type {
   FieldProps,
@@ -348,6 +424,8 @@ export type {
   FieldControlProps,
   FieldDescriptionProps,
   FieldErrorProps,
+  FieldStatusProps,
+  FieldStatusValue,
 } from "./field";
 
 export { Form } from "./form";
@@ -388,11 +466,21 @@ export {
   AlertDialog,
   AlertDialogTrigger,
   AlertDialogClose,
+  AlertDialogCancel,
+  AlertDialogAction,
   AlertDialogContent,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogFooter,
 } from "./alert-dialog";
-export type { AlertDialogProps, AlertDialogContentProps } from "./alert-dialog";
+export type {
+  AlertDialogProps,
+  AlertDialogContentProps,
+  AlertDialogActionProps,
+  AlertDialogHeaderProps,
+  AlertDialogFooterProps,
+} from "./alert-dialog";
 
 export { Filter, FilterItem } from "./filter";
 export type { FilterProps, FilterItemProps } from "./filter";
@@ -416,6 +504,100 @@ export type {
 } from "./select";
 
 export { Combobox, ComboboxItem } from "./combobox";
+export { MultiSelect, MultiSelectItem } from "./multi-select";
+export type {
+  MultiSelectProps,
+  MultiSelectItemProps,
+  MultiSelectColor,
+  MultiSelectSize,
+  MultiSelectSide,
+  MultiSelectAlign,
+} from "./multi-select";
+
+export { Outline } from "./outline";
+export type { OutlineProps, OutlineItem } from "./outline";
+
+export { DateInput, DateRangeInput } from "./date-input";
+export type {
+  DateInputProps,
+  DateInputColor,
+  DateInputSize,
+  DateRangeInputProps,
+} from "./date-input";
+
+export { TimeInput } from "./time-input";
+export type {
+  TimeInputProps,
+  TimeInputColor,
+  TimeInputSize,
+  TimeValue,
+} from "./time-input";
+
+export { DateTimeInput } from "./date-time-input";
+export type {
+  DateTimeInputProps,
+  DateTimeInputColor,
+  DateTimeInputSize,
+} from "./date-time-input";
+
+export { Lightbox } from "./lightbox";
+export type { LightboxProps, LightboxItem } from "./lightbox";
+
+export { Overlay } from "./overlay";
+export type { OverlayProps, OverlayPlacement, OverlayReveal } from "./overlay";
+
+export { OverflowList } from "./overflow-list";
+export type { OverflowListProps } from "./overflow-list";
+
+export { MetadataList, MetadataItem } from "./metadata-list";
+export type { MetadataListProps, MetadataItemProps, MetadataListLayout } from "./metadata-list";
+
+export {
+  ChatMessage,
+  ChatMessageMetadata,
+  ChatSystemMessage,
+  ChatToolCalls,
+} from "./chat-message";
+export type {
+  ChatMessageProps,
+  ChatMessageMetadataProps,
+  ChatSystemMessageProps,
+  ChatToolCallsProps,
+} from "./chat-message";
+
+export { ChatComposer } from "./chat-composer";
+export type { ChatComposerProps } from "./chat-composer";
+
+export { ChatLayout, ChatLayoutMessages } from "./chat-layout";
+export type { ChatLayoutProps, ChatLayoutMessagesProps } from "./chat-layout";
+
+export {
+  AppShell,
+  AppShellSidebar,
+  AppShellHeader,
+  AppShellMain,
+  AppShellFooter,
+} from "./app-shell";
+export type {
+  AppShellProps,
+  AppShellSidebarProps,
+  AppShellHeaderProps,
+  AppShellMainProps,
+  AppShellFooterProps,
+} from "./app-shell";
+
+export { PowerSearch, usePowerSearchConfig } from "./power-search";
+export type {
+  PowerSearchProps,
+  PowerSearchFieldDef,
+  PowerSearchFieldType,
+  PowerSearchFieldOption,
+  PowerSearchTerm,
+  PowerSearchValue,
+  PowerSearchValuePickerProps,
+  UsePowerSearchConfigOptions,
+  UsePowerSearchConfigResult,
+} from "./power-search";
 export type {
   ComboboxProps,
   ComboboxItemProps,
@@ -471,8 +653,15 @@ export {
   DialogContent,
   DialogTitle,
   DialogDescription,
+  DialogHeader,
+  DialogFooter,
 } from "./dialog";
-export type { DialogProps, DialogContentProps } from "./dialog";
+export type {
+  DialogProps,
+  DialogContentProps,
+  DialogHeaderProps,
+  DialogFooterProps,
+} from "./dialog";
 
 export {
   Popover,
@@ -530,7 +719,11 @@ export { EmptyState } from "./empty-state";
 export type { EmptyStateProps, EmptyStateSize } from "./empty-state";
 
 export { ColorPicker } from "./color-picker";
-export type { ColorPickerProps, ColorPickerFormat } from "./color-picker";
+export type {
+  ColorPickerProps,
+  ColorPickerFormat,
+  ColorPickerVariant,
+} from "./color-picker";
 export {
   oklchToHex,
   hexToOklch,
@@ -550,6 +743,9 @@ export type { TreeViewProps, TreeNode } from "./tree-view";
 
 export { Dropzone } from "./dropzone";
 export type { DropzoneProps, DropzoneRejection } from "./dropzone";
+
+export { FileUpload } from "./file-upload";
+export type { FileUploadProps, FileUploadRejection } from "./file-upload";
 
 export { Wizard } from "./wizard";
 export type { WizardProps, WizardStep } from "./wizard";

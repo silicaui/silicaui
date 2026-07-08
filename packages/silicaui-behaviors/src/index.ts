@@ -20,6 +20,18 @@ export type {
   HydrateOptions,
 } from "./types";
 
+// Standalone utilities — NOT part of the closed behavior-marker vocabulary
+// above (no `data-sui-behavior` involved); vanilla mirrors of the equivalent
+// `@wizeworks/silicaui-react` hooks, for a host running no React.
+export { getTheme, setTheme, onThemeChange } from "./theme";
+export type { SetThemeOptions } from "./theme";
+
+export { SILICA_BREAKPOINTS, matchBreakpoint, onBreakpointChange } from "./breakpoints";
+export type { SilicaBreakpoint } from "./breakpoints";
+
+export { confirm } from "./confirm";
+export type { ConfirmOptions } from "./confirm";
+
 /**
  * Hydrates every not-yet-hydrated behavior marker under `root` (default:
  * the whole document). Idempotent — safe to call again after the DOM

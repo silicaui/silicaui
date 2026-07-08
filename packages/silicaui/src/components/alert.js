@@ -83,6 +83,57 @@ export function alert(colors, prefix = "") {
       flexShrink: "0",
     },
 
+    // Dismiss (×) button — sits at the row's end like `-actions`.
+    [sel("-close")]: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: "0",
+      width: "1.5rem",
+      height: "1.5rem",
+      marginInlineStart: "0.25rem",
+      border: "0",
+      borderRadius: "9999px",
+      background: "transparent",
+      color: "inherit",
+      opacity: "0.7",
+      cursor: "pointer",
+      "& svg": { width: "1rem", height: "1rem" },
+      "&:hover": {
+        opacity: "1",
+        backgroundColor: "color-mix(in oklab, currentColor 15%, transparent)",
+      },
+      "&:focus-visible": {
+        outline: "2px solid var(--color-primary)",
+        outlineOffset: "1px",
+      },
+    },
+
+    // Dismiss animation wrapper — a CSS-only height collapse (grid-template-rows
+    // 1fr → 0fr), no JS-measured heights needed. `.alert` itself lives inside
+    // `-dismiss-inner`, which supplies the `overflow: hidden` the trick needs.
+    [sel("-dismiss")]: {
+      display: "grid",
+      gridTemplateRows: "1fr",
+      opacity: "1",
+      transitionProperty: "grid-template-rows, opacity, margin",
+      transitionDuration: "0.2s",
+      transitionTimingFunction: "ease",
+    },
+    [`${sel("-dismiss")}[data-closed]`]: {
+      gridTemplateRows: "0fr",
+      opacity: "0",
+    },
+    [sel("-dismiss-inner")]: {
+      overflow: "hidden",
+      minHeight: "0",
+    },
+
+    // Full-bleed "page banner" placement — edge to edge, no rounding.
+    [sel("-banner")]: {
+      borderRadius: "0",
+    },
+
     // ---- Style variants ----------------------------------------------------
     // (default is solid, painted by `.alert` reading --alert-bg/-fg)
     [sel("-outline")]: {

@@ -76,6 +76,30 @@ export function progress(colors, prefix = "") {
     [sel("-md")]: { height: "calc(var(--size-field, 0.25rem) * 2)" },
     [sel("-lg")]: { height: "calc(var(--size-field, 0.25rem) * 3)" },
     [sel("-xl")]: { height: "calc(var(--size-field, 0.25rem) * 4)" },
+
+    // ---- Value label (`showValue`) — a row above the bar, not inside it (the
+    // bar itself can be as thin as 2px, too short to hold legible text). -------
+    [sel("-wrapper")]: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.35rem",
+      width: "100%",
+    },
+    [sel("-label-row")]: {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: "0.5rem",
+      fontSize: "0.8125rem",
+    },
+    [sel("-label")]: {
+      color: "color-mix(in oklab, var(--color-base-content) 75%, transparent)",
+    },
+    [sel("-value")]: {
+      fontWeight: "600",
+      fontVariantNumeric: "tabular-nums",
+      color: "var(--color-base-content)",
+    },
   };
 
   // ---- Color variants (extensible) -----------------------------------------

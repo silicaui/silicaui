@@ -63,3 +63,37 @@ export const Text = React.forwardRef<HTMLElement, TextProps>(
     return <Tag ref={ref as React.Ref<HTMLElement>} className={cx(variantClass, className) || undefined} {...rest} />;
   },
 );
+
+export type BlockquoteProps = React.BlockquoteHTMLAttributes<HTMLQuoteElement>;
+
+/**
+ * A pull-quote/testimonial block — larger and plainer than `.prose`'s
+ * inline-quote-in-a-paragraph styling. Pair with `BlockquoteCite`.
+ *
+ *   <Blockquote>
+ *     “Silica cut our design review time in half.”
+ *     <BlockquoteCite>Ada Lovelace, Analytical Engines Inc.</BlockquoteCite>
+ *   </Blockquote>
+ */
+export const Blockquote = React.forwardRef<HTMLQuoteElement, BlockquoteProps>(
+  function Blockquote({ className, ...rest }, ref) {
+    const sc = useSilicaClass();
+    return <blockquote ref={ref} className={cx(sc("blockquote"), className)} {...rest} />;
+  },
+);
+
+export interface BlockquoteCiteProps extends React.HTMLAttributes<HTMLElement> {
+  /** Element to render. Default `footer`. */
+  as?: React.ElementType;
+}
+
+/** The attribution line for a `Blockquote` (e.g. "— Name, Title"). */
+export const BlockquoteCite = React.forwardRef<HTMLElement, BlockquoteCiteProps>(
+  function BlockquoteCite({ as, className, ...rest }, ref) {
+    const sc = useSilicaClass();
+    const Tag = (as ?? "footer") as React.ElementType;
+    return (
+      <Tag ref={ref as React.Ref<HTMLElement>} className={cx(sc("blockquote-cite"), className)} {...rest} />
+    );
+  },
+);

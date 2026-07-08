@@ -35,6 +35,14 @@ export function ProgressDemo() {
                 </div>
             </Section>
 
+            <Section title="showValue · built-in label row (replaces hand-rolled LabeledRow)">
+                <div className="grid max-w-md gap-4">
+                    <Progress color="brand" value={upload} showValue label="Uploading photo.png" />
+                    <Progress color="success" value={3} max={4} showValue formatValue={(v, max) => `${v} of ${max} steps`} label="Onboarding" />
+                    <Progress color="warning" value={pct} showValue />
+                </div>
+            </Section>
+
             <Section title="Real use · task + upload progress">
                 <div className="grid max-w-md gap-4">
                     <LabeledRow label="Onboarding · 3 of 4 steps">

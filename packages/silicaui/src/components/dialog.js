@@ -62,5 +62,52 @@ export function dialog(prefix = "") {
       lineHeight: "1.5",
       color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
     },
+
+    // Header/Footer are placeable docking bars, not position-locked — put one
+    // anywhere inside DialogContent. They bleed to the popup's edges via a
+    // negative margin that only applies when they land at that edge
+    // (`:first-child`/`:last-child`); the popup's own `overflow` clips the
+    // bleed to its rounded corners, so no explicit radius match is needed.
+    [sel("-header")]: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "1rem",
+      marginInline: "-1.5rem",
+      marginBlockEnd: "1rem",
+      padding: "0 1.5rem 1rem",
+      borderBottom:
+        "1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent)",
+      "&:first-child": { marginBlockStart: "-1.5rem", paddingBlockStart: "1.5rem" },
+    },
+    [sel("-header-sticky")]: {
+      position: "sticky",
+      top: "0",
+      zIndex: "1",
+      backgroundColor: "var(--color-base-100)",
+    },
+
+    [sel("-footer")]: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      gap: "0.5rem",
+      marginInline: "-1.5rem",
+      marginBlockStart: "1rem",
+      padding: "1rem 1.5rem 0",
+      borderTop:
+        "1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent)",
+      "&:last-child": { marginBlockEnd: "-1.5rem", paddingBlockEnd: "1.5rem" },
+      "@media (max-width: 26rem)": {
+        flexDirection: "column-reverse",
+        alignItems: "stretch",
+      },
+    },
+    [sel("-footer-sticky")]: {
+      position: "sticky",
+      bottom: "0",
+      zIndex: "1",
+      backgroundColor: "var(--color-base-100)",
+    },
   };
 }

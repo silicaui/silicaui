@@ -88,3 +88,45 @@ export function DialogDescription({
     />
   );
 }
+
+export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Pin this bar in place while the rest of the content scrolls. */
+  sticky?: boolean;
+}
+
+/**
+ * A docking bar for `DialogContent` — not position-locked. Put it anywhere
+ * (top, bottom, between scrollable sections); it bleeds to the popup's edges
+ * when it lands at one.
+ */
+export const DialogHeader = React.forwardRef<HTMLDivElement, DialogHeaderProps>(
+  function DialogHeader({ sticky, className, ...rest }, ref) {
+    const sc = useSilicaClass();
+    return (
+      <div
+        ref={ref}
+        className={cx(sc("dialog-header"), sticky && sc("dialog-header-sticky"), className)}
+        {...rest}
+      />
+    );
+  },
+);
+
+export interface DialogFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Pin this bar in place while the rest of the content scrolls. */
+  sticky?: boolean;
+}
+
+/** Right-aligned action row for `DialogContent`; stacks full-width on narrow viewports. */
+export const DialogFooter = React.forwardRef<HTMLDivElement, DialogFooterProps>(
+  function DialogFooter({ sticky, className, ...rest }, ref) {
+    const sc = useSilicaClass();
+    return (
+      <div
+        ref={ref}
+        className={cx(sc("dialog-footer"), sticky && sc("dialog-footer-sticky"), className)}
+        {...rest}
+      />
+    );
+  },
+);

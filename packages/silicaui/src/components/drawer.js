@@ -70,5 +70,50 @@ export function drawer(prefix = "") {
       fontSize: "0.9375rem",
       color: "color-mix(in oklab, var(--color-base-content) 75%, transparent)",
     },
+
+    // Header/Footer are placeable docking bars — put one anywhere inside
+    // DrawerContent. The popup already spaces children with `gap`, so these
+    // only need to bleed to the edges (and only when they land there).
+    [sel("-header")]: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "1rem",
+      marginInline: "-1.5rem",
+      paddingInline: "1.5rem",
+      paddingBlockEnd: "1rem",
+      borderBottom:
+        "1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent)",
+      "&:first-child": { marginBlockStart: "-1.5rem", paddingBlockStart: "1.5rem" },
+    },
+    [sel("-header-sticky")]: {
+      position: "sticky",
+      top: "0",
+      zIndex: "1",
+      backgroundColor: "var(--color-base-100)",
+    },
+
+    [sel("-footer")]: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      gap: "0.5rem",
+      marginInline: "-1.5rem",
+      paddingInline: "1.5rem",
+      paddingBlockStart: "1rem",
+      borderTop:
+        "1px solid color-mix(in oklab, var(--color-base-content) 12%, transparent)",
+      "&:last-child": { marginBlockEnd: "-1.5rem", paddingBlockEnd: "1.5rem" },
+      "@media (max-width: 26rem)": {
+        flexDirection: "column-reverse",
+        alignItems: "stretch",
+      },
+    },
+    [sel("-footer-sticky")]: {
+      position: "sticky",
+      bottom: "0",
+      zIndex: "1",
+      backgroundColor: "var(--color-base-100)",
+    },
   };
 }

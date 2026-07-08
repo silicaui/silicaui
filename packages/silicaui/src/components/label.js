@@ -33,6 +33,11 @@ export function label(prefix = "") {
       "& svg": { width: "1em", height: "1em", flexShrink: "0" },
     },
 
+    [sel("-required")]: {
+      color: "var(--color-error)",
+      marginInlineStart: "0.125rem",
+    },
+
     // ---- Floating label ----------------------------------------------------
     [floating]: {
       position: "relative",

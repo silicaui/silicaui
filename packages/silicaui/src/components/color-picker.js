@@ -149,5 +149,45 @@ export function colorPicker(prefix = "") {
       opacity: "0.6",
       pointerEvents: "none",
     },
+
+    // Compact mode: a chip + hex label that opens the full panel in a popover
+    // (the panel above supplies its own card chrome, so the popover wrapper is
+    // stripped down to zero padding — see `-popover` below).
+    [sel("-swatch-trigger")]: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      padding: "0.25rem",
+      border: "var(--border, 1px) solid var(--color-base-300)",
+      borderRadius: "var(--radius-field, 0.25rem)",
+      backgroundColor: "var(--color-base-100)",
+      color: "inherit",
+      font: "inherit",
+      cursor: "pointer",
+      "&:focus-visible": {
+        outline: "2px solid var(--color-primary)",
+        outlineOffset: "2px",
+      },
+      "&[data-disabled]": { opacity: "0.6", pointerEvents: "none", cursor: "default" },
+    },
+    [sel("-swatch-trigger-chip")]: {
+      flexShrink: "0",
+      width: "1.5rem",
+      height: "1.5rem",
+      borderRadius: "var(--radius-field, 0.25rem)",
+      boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--color-base-content) 15%, transparent)",
+    },
+    [sel("-swatch-trigger-label")]: {
+      fontSize: "0.75rem",
+      fontVariantNumeric: "tabular-nums",
+      textTransform: "uppercase",
+      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+    },
+    [sel("-popover")]: {
+      padding: "0",
+      border: "none",
+      backgroundColor: "transparent",
+      boxShadow: "none",
+    },
   };
 }

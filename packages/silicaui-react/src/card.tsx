@@ -1,6 +1,9 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { mergeProps } from "./lib/merge-props";
+import { Checkbox } from "./checkbox";
+import { Radio } from "./radio";
 
 export type CardProps = React.HTMLAttributes<HTMLDivElement>;
 
@@ -47,6 +50,70 @@ export const CardActions = React.forwardRef<HTMLDivElement, CardProps>(
     const sc = useSilicaClass();
     return (
       <div ref={ref} className={cx(sc("card-actions"), className)} {...rest} />
+    );
+  },
+);
+
+export interface ClickableCardProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
+  /**
+   * Render as a different element (e.g. an anchor) while keeping Card's
+   * classes and interaction styles. Mirrors Base UI's `render` composition.
+   *
+   *   <ClickableCard render={<a href="/projects/silica" />}>…</ClickableCard>
+   */
+  render?: React.ReactElement;
+}
+
+/** A `Card` that's a whole clickable surface — a `<button>` by default, or any element via `render`. */
+export const ClickableCard = React.forwardRef<HTMLButtonElement, ClickableCardProps>(
+  function ClickableCard({ render, className, children, ...rest }, ref) {
+    const sc = useSilicaClass();
+    const classes = cx(sc("card"), sc("card-clickable"), className);
+
+    if (render) {
+      const ownProps: Record<string, unknown> = { ...rest, className: classes, children, ref };
+      return React.cloneElement(
+        render,
+        mergeProps(ownProps, render.props as Record<string, unknown>),
+      );
+    }
+
+    return (
+      <button ref={ref} type="button" className={classes} {...rest}>
+        {children}
+      </button>
+    );
+  },
+);
+
+export interface SelectableCardProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
+  /** `"radio"` for a single-select group (shared `name`), `"checkbox"` for multi-select. Default `"radio"`. */
+  type?: "radio" | "checkbox";
+}
+
+/**
+ * A `Card` that's a selectable option tile — a real `<input type="radio">` /
+ * `<input type="checkbox">`, visually hidden, wrapped in a `<label>` so the
+ * whole card is the click target. Selection reads as a border + ring in the
+ * theme's primary color — no checkbox/radio glyph. Group several with the
+ * same `name` for single-select; use `type="checkbox"` for multi-select.
+ *
+ *   <SelectableCard name="plan" value="pro" defaultChecked>
+ *     <CardTitle>Pro</CardTitle>
+ *     <p>For growing teams.</p>
+ *   </SelectableCard>
+ */
+export const SelectableCard = React.forwardRef<HTMLInputElement, SelectableCardProps>(
+  function SelectableCard({ type = "radio", className, children, ...rest }, ref) {
+    const sc = useSilicaClass();
+    const Control = type === "checkbox" ? Checkbox : Radio;
+    return (
+      <label className={cx(sc("card"), sc("card-selectable"), className)}>
+        <Control ref={ref} className={cx(sc("card-selectable-indicator"))} {...rest} />
+        {children}
+      </label>
     );
   },
 );

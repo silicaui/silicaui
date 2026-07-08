@@ -1,7 +1,13 @@
 import type { ComponentType } from "react";
 import { ButtonDemo } from "./Button";
+import { TypographyDemo } from "./Typography";
 import { BadgeDemo } from "./Badge";
 import { InputDemo } from "./Input";
+import { InputGroupDemo } from "./InputGroup";
+import { PasswordInputDemo } from "./PasswordInput";
+import { SearchInputDemo } from "./SearchInput";
+import { PinInputDemo } from "./PinInput";
+import { PhoneInputDemo } from "./PhoneInput";
 import { SelectDemo } from "./Select";
 import { TextareaDemo } from "./Textarea";
 import { CardDemo } from "./Card";
@@ -12,6 +18,7 @@ import { SkeletonDemo } from "./Skeleton";
 import { TableDemo } from "./Table";
 import { DividerDemo } from "./Divider";
 import { KbdDemo } from "./Kbd";
+import { TimestampDemo } from "./Timestamp";
 import { BreadcrumbDemo } from "./Breadcrumb";
 import { StatDemo } from "./Stat";
 import { StepsDemo } from "./Steps";
@@ -65,6 +72,19 @@ import { CollapsibleDemo } from "./Collapsible";
 import { FilterDemo } from "./Filter";
 import { SelectMenuDemo } from "./SelectMenu";
 import { ComboboxDemo } from "./Combobox";
+import { MultiSelectDemo } from "./MultiSelect";
+import { OutlineDemo } from "./Outline";
+import { DateInputDemo } from "./DateInput";
+import { TimeInputDemo } from "./TimeInput";
+import { DateTimeInputDemo } from "./DateTimeInput";
+import { LightboxDemo } from "./Lightbox";
+import { OverlayDemo } from "./Overlay";
+import { OverflowListDemo } from "./OverflowList";
+import { MetadataListDemo } from "./MetadataList";
+import { ChatSuiteDemo } from "./ChatSuite";
+import { PowerSearchDemo } from "./PowerSearch";
+import { AppShellDemo } from "./AppShell";
+import { HooksDemo } from "./Hooks";
 import { CalendarDemo } from "./Calendar";
 import { DataTableDemo } from "./DataTable";
 import { EmptyStateDemo } from "./EmptyState";
@@ -74,12 +94,14 @@ import { ColorPickerDemo } from "./ColorPicker";
 import { CommandPaletteDemo } from "./CommandPalette";
 import { TreeViewDemo } from "./TreeView";
 import { DropzoneDemo } from "./Dropzone";
+import { FileUploadDemo } from "./FileUpload";
 import { WizardDemo } from "./Wizard";
 import { RichTextEditorDemo } from "./RichTextEditor";
 import { SortableListDemo } from "./SortableList";
 import { ResizablePanelsDemo } from "./ResizablePanels";
 import { TooltipDemo } from "./Tooltip";
 import { DialogDemo } from "./Dialog";
+import { AlertDialogDemo } from "./AlertDialog";
 import { PopoverDemo } from "./Popover";
 import { DropdownDemo } from "./Dropdown";
 import { TabsDemo } from "./Tabs";
@@ -105,9 +127,15 @@ export interface DemoEntry {
 }
 
 export const DEMOS: DemoEntry[] = [
+    { id: "typography", title: "Typography", Demo: TypographyDemo },
     { id: "button", title: "Button", Demo: ButtonDemo },
     { id: "badge", title: "Badge", Demo: BadgeDemo },
     { id: "input", title: "Input", Demo: InputDemo },
+    { id: "input-group", title: "Input Group", Demo: InputGroupDemo },
+    { id: "password-input", title: "Password Input", Demo: PasswordInputDemo },
+    { id: "search-input", title: "Search Input", Demo: SearchInputDemo },
+    { id: "pin-input", title: "Pin Input", Demo: PinInputDemo },
+    { id: "phone-input", title: "Phone Input", Demo: PhoneInputDemo },
     { id: "select", title: "Select (Native)", Demo: SelectDemo },
     { id: "textarea", title: "Textarea", Demo: TextareaDemo },
     { id: "card", title: "Card", Demo: CardDemo },
@@ -118,6 +146,7 @@ export const DEMOS: DemoEntry[] = [
     { id: "table", title: "Table", Demo: TableDemo },
     { id: "divider", title: "Divider", Demo: DividerDemo },
     { id: "kbd", title: "Kbd", Demo: KbdDemo },
+    { id: "timestamp", title: "Timestamp", Demo: TimestampDemo },
     { id: "breadcrumb", title: "Breadcrumb", Demo: BreadcrumbDemo },
     { id: "stat", title: "Stat", Demo: StatDemo },
     { id: "steps", title: "Steps", Demo: StepsDemo },
@@ -171,6 +200,19 @@ export const DEMOS: DemoEntry[] = [
     { id: "filter", title: "Filter", Demo: FilterDemo },
     { id: "select-menu", title: "Select (Advanced)", Demo: SelectMenuDemo },
     { id: "combobox", title: "Combobox", Demo: ComboboxDemo },
+    { id: "multi-select", title: "Multi Select", Demo: MultiSelectDemo },
+    { id: "outline", title: "Outline", Demo: OutlineDemo },
+    { id: "date-input", title: "Date Input", Demo: DateInputDemo },
+    { id: "time-input", title: "Time Input", Demo: TimeInputDemo },
+    { id: "date-time-input", title: "Date Time Input", Demo: DateTimeInputDemo },
+    { id: "lightbox", title: "Lightbox", Demo: LightboxDemo },
+    { id: "overlay", title: "Overlay", Demo: OverlayDemo },
+    { id: "overflow-list", title: "Overflow List", Demo: OverflowListDemo },
+    { id: "metadata-list", title: "Metadata List", Demo: MetadataListDemo },
+    { id: "chat-suite", title: "Chat Suite", Demo: ChatSuiteDemo },
+    { id: "power-search", title: "Power Search", Demo: PowerSearchDemo },
+    { id: "app-shell", title: "App Shell", Demo: AppShellDemo },
+    { id: "hooks", title: "Hooks", Demo: HooksDemo },
     { id: "calendar", title: "Calendar", Demo: CalendarDemo },
     { id: "data-table", title: "Data Table", Demo: DataTableDemo },
     { id: "empty-state", title: "Empty State", Demo: EmptyStateDemo },
@@ -180,12 +222,14 @@ export const DEMOS: DemoEntry[] = [
     { id: "command-palette", title: "Command Palette", Demo: CommandPaletteDemo },
     { id: "tree-view", title: "Tree View", Demo: TreeViewDemo },
     { id: "dropzone", title: "Dropzone", Demo: DropzoneDemo },
+    { id: "file-upload", title: "File Upload", Demo: FileUploadDemo },
     { id: "wizard", title: "Wizard", Demo: WizardDemo },
     { id: "rich-text-editor", title: "Rich Text Editor", Demo: RichTextEditorDemo },
     { id: "sortable-list", title: "Sortable List", Demo: SortableListDemo },
     { id: "resizable-panels", title: "Resizable Panels", Demo: ResizablePanelsDemo },
     { id: "tooltip", title: "Tooltip", Demo: TooltipDemo },
     { id: "dialog", title: "Dialog", Demo: DialogDemo },
+    { id: "alert-dialog", title: "Alert Dialog", Demo: AlertDialogDemo },
     { id: "popover", title: "Popover", Demo: PopoverDemo },
     { id: "dropdown", title: "Dropdown", Demo: DropdownDemo },
     { id: "tabs", title: "Tabs", Demo: TabsDemo },

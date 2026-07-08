@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Button, SilicaProvider, ToastProvider } from "@wizeworks/silicaui-react";
+import {
+    Button,
+    SilicaProvider,
+    ToastProvider,
+    ImperativeAlertDialogProvider,
+} from "@wizeworks/silicaui-react";
 import { DEMOS } from "./demos/registry";
 
 /**
@@ -20,6 +25,7 @@ export function App() {
     return (
         <SilicaProvider>
             <ToastProvider>
+            <ImperativeAlertDialogProvider>
                 <div className="mx-auto flex max-w-4xl flex-col gap-16 px-6 py-12">
                     <header className="flex items-center justify-between gap-4">
                         <div>
@@ -42,6 +48,7 @@ export function App() {
                         </section>
                     ))}
                 </div>
+            </ImperativeAlertDialogProvider>
             </ToastProvider>
         </SilicaProvider>
     );

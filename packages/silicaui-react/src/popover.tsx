@@ -48,7 +48,17 @@ export interface PopoverContentProps
   arrow?: boolean;
 }
 
-/** Portal + positioner + the popup panel. */
+/**
+ * Portal + positioner + the popup panel.
+ *
+ * Focus-move escape hatch: `initialFocus`/`finalFocus` pass straight through to
+ * Base UI's `Popover.Popup` (already part of `PopoverContentProps` — no extra
+ * wiring needed). Each accepts `false` (don't move focus at all — useful for a
+ * hover-triggered popover where stealing focus reads as a flicker), a
+ * `RefObject` to focus a specific element, or a function for more control.
+ *
+ *   <PopoverContent initialFocus={false} finalFocus={false}>…</PopoverContent>
+ */
 export function PopoverContent({
   className,
   children,

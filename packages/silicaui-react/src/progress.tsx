@@ -21,6 +21,17 @@ export interface ProgressProps
   value?: number;
   /** Upper bound of `value`. Default `100`. */
   max?: number;
+  /** Show a value label above the bar (skipped while indeterminate). Default `false`. */
+  showValue?: boolean;
+  /** Format the label. Default: rounded percentage, e.g. `"60%"`. */
+  formatValue?: (value: number, max: number) => React.ReactNode;
+  /** Optional leading label shown beside the value, e.g. `"Uploading"`. */
+  label?: React.ReactNode;
+}
+
+function defaultFormatValue(value: number, max: number): string {
+  const pct = max <= 0 ? 0 : Math.round((value / max) * 100);
+  return `${pct}%`;
 }
 
 /**
@@ -36,7 +47,10 @@ export interface ProgressProps
  * busy rather than a fixed percentage.
  */
 export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  function Progress({ color, size = "md", value, max = 100, className, ...rest }, ref) {
+  function Progress(
+    { color, size = "md", value, max = 100, showValue, formatValue, label, className, ...rest },
+    ref,
+  ) {
     const sc = useSilicaClass();
     const indeterminate = value == null;
 
@@ -54,7 +68,7 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       className,
     );
 
-    return (
+    const bar = (
       <div
         ref={ref}
         role="progressbar"
@@ -68,6 +82,22 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           className={cx(sc("progress-bar"))}
           style={indeterminate ? undefined : { width: `${pct}%` }}
         />
+      </div>
+    );
+
+    if (!showValue) return bar;
+
+    return (
+      <div className={cx(sc("progress-wrapper"))}>
+        <div className={cx(sc("progress-label-row"))}>
+          {label != null && <span className={cx(sc("progress-label"))}>{label}</span>}
+          {!indeterminate && (
+            <span className={cx(sc("progress-value"))}>
+              {(formatValue ?? defaultFormatValue)(value, max)}
+            </span>
+          )}
+        </div>
+        {bar}
       </div>
     );
   },

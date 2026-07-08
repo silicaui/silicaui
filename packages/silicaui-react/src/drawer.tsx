@@ -85,3 +85,44 @@ export function DrawerDescription({
     />
   );
 }
+
+export interface DrawerHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Pin this bar in place while the rest of the content scrolls. */
+  sticky?: boolean;
+}
+
+/**
+ * A docking bar for `DrawerContent` — not position-locked. Put it anywhere;
+ * it bleeds to the popup's edges when it lands at one.
+ */
+export const DrawerHeader = React.forwardRef<HTMLDivElement, DrawerHeaderProps>(
+  function DrawerHeader({ sticky, className, ...rest }, ref) {
+    const sc = useSilicaClass();
+    return (
+      <div
+        ref={ref}
+        className={cx(sc("drawer-header"), sticky && sc("drawer-header-sticky"), className)}
+        {...rest}
+      />
+    );
+  },
+);
+
+export interface DrawerFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Pin this bar in place while the rest of the content scrolls. */
+  sticky?: boolean;
+}
+
+/** Right-aligned action row for `DrawerContent`; stacks full-width on narrow viewports. */
+export const DrawerFooter = React.forwardRef<HTMLDivElement, DrawerFooterProps>(
+  function DrawerFooter({ sticky, className, ...rest }, ref) {
+    const sc = useSilicaClass();
+    return (
+      <div
+        ref={ref}
+        className={cx(sc("drawer-footer"), sticky && sc("drawer-footer-sticky"), className)}
+        {...rest}
+      />
+    );
+  },
+);

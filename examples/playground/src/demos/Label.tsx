@@ -21,6 +21,15 @@ export function LabelDemo() {
                     </FloatingLabel>
                 </Stack>
             </Section>
+
+            <Section title="Required">
+                <div className="flex max-w-sm flex-col gap-1.5">
+                    <Label htmlFor="email-required" required>
+                        Email
+                    </Label>
+                    <Input id="email-required" placeholder="you@example.com" />
+                </div>
+            </Section>
         </>
     );
 }

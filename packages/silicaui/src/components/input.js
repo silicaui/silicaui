@@ -49,6 +49,13 @@ export function input(colors, prefix = "") {
         cursor: "not-allowed",
         opacity: "var(--disabled-opacity, 0.5)",
       },
+      // Suppress the platform's own `type="search"` decorations (WebKit draws
+      // a magnifier + cancel button we'd otherwise double up with SearchInput's
+      // own icon + clear button).
+      "&::-webkit-search-decoration, &::-webkit-search-cancel-button": {
+        display: "none",
+        appearance: "none",
+      },
     },
 
     // ---- Sizes -------------------------------------------------------------
@@ -75,6 +82,18 @@ export function input(colors, prefix = "") {
       "--input-size": "calc(var(--size-field, 0.25rem) * 14)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4.5)",
       fontSize: "1.125rem",
+    },
+
+    // ---- Affix reservations -------------------------------------------------
+    // Applied alongside a size class when the Input sits in an `.input-group`
+    // with a leading/trailing icon or button (see input-group.js). Each sets
+    // only its own logical side, so it layers over — rather than fights —
+    // whichever size class's `paddingInline` shorthand is also applied.
+    [sel("-affix-start")]: {
+      paddingInlineStart: "2.25rem",
+    },
+    [sel("-affix-end")]: {
+      paddingInlineEnd: "2.25rem",
     },
   };
 
