@@ -35,5 +35,12 @@ export function resolveEmailColorDefaults(theme: Theme | undefined): EmailColorD
     base100: toHex(colorValue(theme, "base-100")) ?? DEFAULT_EMAIL_COLORS.base100,
     base200: toHex(colorValue(theme, "base-200")) ?? DEFAULT_EMAIL_COLORS.base200,
     base300: toHex(colorValue(theme, "base-300")) ?? DEFAULT_EMAIL_COLORS.base300,
+    secondary: toHex(colorValue(theme, "secondary")) ?? DEFAULT_EMAIL_COLORS.secondary,
+    accent: toHex(colorValue(theme, "accent")) ?? DEFAULT_EMAIL_COLORS.accent,
+    neutral: toHex(colorValue(theme, "neutral")) ?? DEFAULT_EMAIL_COLORS.neutral,
+    info: toHex(colorValue(theme, "info")) ?? DEFAULT_EMAIL_COLORS.info,
+    success: toHex(colorValue(theme, "success")) ?? DEFAULT_EMAIL_COLORS.success,
+    warning: toHex(colorValue(theme, "warning")) ?? DEFAULT_EMAIL_COLORS.warning,
+    error: toHex(colorValue(theme, "error")) ?? DEFAULT_EMAIL_COLORS.error,
   };
 }

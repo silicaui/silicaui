@@ -38,6 +38,7 @@ import { nodeName, SOCIAL_PLATFORM } from "../node-display";
 import { emailPaletteItemByKey } from "../palette";
 import { getSavedBlockNode } from "./saved-blocks";
 import type { EmailEditor } from "../engine";
+import { FONT_WEIGHT_CSS } from "../projector";
 import type {
   ButtonNode,
   ColumnNode,
@@ -309,7 +310,13 @@ function RenderText({ node, info, ctx }: { node: TextNode; info: NodeInfo; ctx: 
   return (
     <div
       className={cls}
-      style={{ textAlign: node.align, color: node.color, fontSize: node.fontSize, lineHeight: `${node.lineHeight}px` }}
+      style={{
+        textAlign: node.align,
+        color: node.color,
+        fontSize: node.fontSize,
+        fontWeight: FONT_WEIGHT_CSS[node.fontWeight],
+        lineHeight: `${node.lineHeight}px`,
+      }}
       dangerouslySetInnerHTML={{ __html: node.html || "<span class='opacity-40'>Empty text</span>" }}
       {...interactionProps(info, ctx, true)}
     />

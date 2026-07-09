@@ -36,6 +36,7 @@ import { EmailCanvas } from "./Canvas";
 import { EmailPreview } from "./EmailPreview";
 import { EmailPalette } from "./Palette";
 import { EmailInspector } from "./Inspector";
+import { Navigator } from "./Navigator";
 import { Icon } from "../../shared/react/Icon";
 
 function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
@@ -58,6 +59,15 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
           </>
         }
       />
+    </div>
+  );
+}
+
+/** A panel header bar (left/right rails) — same chrome as the site builder's. */
+function PanelHead({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5 h-10 flex-none px-3.5 border-b border-base-200 text-sm font-semibold">
+      {children}
     </div>
   );
 }
@@ -182,6 +192,7 @@ function Chrome({
   const { canUndo, canRedo } = useEmailHistory();
   const [device, setDevice] = React.useState("desktop");
   const [mode, setMode] = React.useState<"edit" | "preview">("edit");
+  const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
 
   useEmailEditorShortcuts();
 
@@ -239,11 +250,27 @@ function Chrome({
       <div className={`grid flex-1 min-h-0 ${mode === "edit" ? "grid-cols-[240px_1fr_300px]" : "grid-cols-1"}`}>
         {mode === "edit" && (
           <aside className="flex flex-col min-h-0 bg-base-100 border-r border-base-300">
-            <div className="flex items-center gap-1.5 h-10 flex-none px-3.5 border-b border-base-200 text-sm font-semibold">
-              <Icon name="plus" /> Insert
-            </div>
+            <PanelHead>
+              <ToggleGroup
+                className="toggle-group-xs"
+                aria-label="Left panel"
+                value={[leftTab]}
+                onValueChange={(v: string[]) => v.length && setLeftTab(v[v.length - 1] as "layers" | "insert")}
+              >
+                <ToggleGroupItem value="layers">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name="list" /> Layers
+                  </span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="insert">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name="plus" /> Insert
+                  </span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </PanelHead>
             <div className="flex-1 min-h-0 overflow-auto">
-              <EmailPalette />
+              {leftTab === "layers" ? <Navigator /> : <EmailPalette />}
             </div>
           </aside>
         )}

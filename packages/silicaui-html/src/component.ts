@@ -983,7 +983,26 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   elementDef("AppShellFooter", "layout", "box", "footer", true),
   elementDef("InputGroup", "form", "input", "div", true),
   elementDef("Diff", "media", "box", "div", true),
-  elementDef("Toolbar", "nav", "box", "div", true),
+  // Toolbar — size/variant/dividers are props on the source node, forwarded
+  // as data-attrs the CSS reads (mirrors DrawerContent's `data-side` below).
+  {
+    name: "Toolbar",
+    category: "nav",
+    label: "Toolbar",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = {};
+      if (n.props?.size != null) attrs["data-size"] = String(n.props.size);
+      if (n.props?.variant != null) attrs["data-variant"] = String(n.props.variant);
+      if (n.props?.dividers != null) attrs["data-dividers"] = String(n.props.dividers);
+      return lower(n, "div", {
+        attrs: Object.keys(attrs).length ? attrs : undefined,
+        children: n.children,
+      });
+    },
+  },
+  elementDef("ToolbarCenter", "nav", "box", "div", true),
 
   // Button-shaped structural atoms — a real <button>/<a>, so registering them
   // (vs. plain divs) buys the host correct semantics + tab order for free.

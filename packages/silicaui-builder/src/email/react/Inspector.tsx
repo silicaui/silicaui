@@ -1,16 +1,35 @@
 /**
  * The email Inspector (right rail) — the property panel for the selected node.
  * Unlike the site Inspector (one class-string surface with two tiers of
- * controls over it), email nodes carry small typed prop bags, so this is a
- * straightforward per-kind field form: a breadcrumb + move/duplicate/delete
- * toolbar up top, then the fields for whatever kind is selected. With nothing
- * selected it shows email-level settings (subject, preheader, canvas width,
- * colors, font).
+ * controls over it), email nodes carry small typed prop bags — but the PANEL
+ * STRUCTURE and CONTROL VOCABULARY replicate the site Inspector exactly, so
+ * the two builders feel like the same product: nothing selected shows the
+ * same `EmptyState`; a selection gets a toolbar (breadcrumb + move/duplicate/
+ * delete, standing in for the site's identity header + footer combined) then
+ * the same Design/Settings `ToggleGroup` tab switcher over `Group`/`Row`
+ * sections; Design uses the SAME swatch/chip widgets as the site Inspector's
+ * `SwatchGroup`/`ChipGroup`/`RadiusSwatchGroup` (over literal hex/px instead
+ * of theme-role classes); Settings holds content, links, and structure. The
+ * document root ("Email") is just another selectable node that flows through
+ * the SAME tabs — not a bespoke settings form — with its two real background
+ * layers (outer canvas vs. content card) under one Surface group, mirroring
+ * the site Inspector's Surface/Background field.
  *
  * STYLING RULE (hard): Tailwind utilities + @wizeworks/silicaui classes + baked <Icon> only.
  */
 import * as React from "react";
-import { ColorPicker, Input, NativeSelect, Textarea, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
+import {
+  ColorPicker,
+  EmptyState,
+  Input,
+  NativeSelect,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@wizeworks/silicaui-react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
@@ -22,7 +41,10 @@ import type {
   ColumnNode,
   ColumnsNode,
   DividerNode,
+  EmailBody,
+  EmailColorDefaults,
   EmailNode,
+  FontWeight,
   HtmlNode,
   ImageNode,
   SocialLink,
@@ -43,6 +65,29 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+/** A labeled section within a tab — same chrome as the site Inspector's `Group`.
+ *  (Horizontal padding lives on the label only; `Row`'s own px-3.5 supplies the
+ *  same inset for its children, so nesting doesn't double it up.) */
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="py-1 border-b border-base-200">
+      <div className="px-3.5 pt-1 pb-0.5 text-xs font-semibold uppercase tracking-wider text-base-content/45">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+/** Shown in a tab with no applicable fields (e.g. Settings for a Divider). */
+function EmptyTab({ text }: { text: string }) {
+  return <div className="px-3.5 py-6 text-center text-xs text-base-content/40">{text}</div>;
+}
+
+/** Padding only, no label — for a single-field Group where the Group's own
+ *  label already names the field (avoids a redundant duplicate label). */
+function Pad({ children }: { children: React.ReactNode }) {
+  return <div className="px-3.5 py-2">{children}</div>;
+}
+
 function TextField({ label, defaultValue, onCommit }: { label: string; defaultValue: string; onCommit: (v: string) => void }) {
   return (
     <Row label={label}>
@@ -51,121 +96,499 @@ function TextField({ label, defaultValue, onCommit }: { label: string; defaultVa
   );
 }
 
+/** A bare numeric field (px/pt values with no site-chip analog — width, thickness,
+ *  height, gap). Still gets the same leading "Auto" reset every other Design
+ *  field has when a fresh-insert default exists (`autoValue`), so the
+ *  affordance is consistent even where the value itself has no preset ladder. */
 function NumberField({
   label,
   defaultValue,
   min,
   max,
   onCommit,
+  autoValue,
 }: {
   label: string;
   defaultValue: number;
   min?: number;
   max?: number;
   onCommit: (v: number) => void;
+  autoValue?: number;
 }) {
   return (
     <Row label={label}>
-      <Input
-        type="number"
-        size="sm"
-        min={min}
-        max={max}
-        defaultValue={defaultValue}
-        onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
-          const n = Number(e.target.value);
-          if (Number.isFinite(n)) onCommit(n);
-        }}
+      <div className="flex items-center gap-1.5">
+        {autoValue !== undefined && (
+          <button
+            type="button"
+            title="Reset to default"
+            className={`btn btn-xs ${defaultValue === autoValue ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => onCommit(autoValue)}
+          >
+            Auto
+          </button>
+        )}
+        <Input
+          type="number"
+          size="sm"
+          className="flex-1"
+          min={min}
+          max={max}
+          defaultValue={defaultValue}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+            const n = Number(e.target.value);
+            if (Number.isFinite(n)) onCommit(n);
+          }}
+        />
+      </div>
+    </Row>
+  );
+}
+
+// ── Design-tab control vocab — the SAME swatch/chip widgets the site
+// Inspector's Design tab uses, ported to email's literal hex/px values instead
+// of theme-role classes. An email prop is never null/inherited the way a class
+// token is — every field always holds a concrete value — but each field still
+// gets the SAME leading "Auto" affordance site's chips/swatches have, wired to
+// reset to whatever value a FRESH insert of that kind gets (`../palette.ts`'s
+// `make()` defaults), so it reads and behaves the same even though there's no
+// real "unset" state underneath.
+function chipActive<T>(value: T, options: ReadonlyArray<{ value: T }>): T | "" {
+  return options.some((o) => o.value === value) ? value : "";
+}
+
+/** A wrapping row of small btn chips — visually identical to the site
+ *  Inspector's `ChipGroup`, including the leading "Auto" chip when the field
+ *  has a known default to reset to. */
+function ChipGroup<T extends string | number>({
+  options,
+  active,
+  onPick,
+  onAuto,
+}: {
+  options: ReadonlyArray<{ value: T; label: string }>;
+  active: T | "";
+  onPick: (value: T) => void;
+  onAuto?: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {onAuto && (
+        <button
+          type="button"
+          title="Reset to default"
+          className={`btn btn-xs ${active === "" ? "btn-primary" : "btn-ghost"}`}
+          onClick={onAuto}
+        >
+          Auto
+        </button>
+      )}
+      {options.map((o) => (
+        <button
+          key={String(o.value)}
+          type="button"
+          className={`btn btn-xs ${active === o.value ? "btn-primary" : "btn-ghost"}`}
+          onClick={() => onPick(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface ColorOption {
+  hex: string;
+  title: string;
+}
+
+/** The theme's full semantic-role + surface palette, resolved to hex — the
+ *  SAME breadth (8 roles + 4 surfaces) as the site Inspector's `rolesOf`
+ *  swatch vocab, not just the handful of colors new blocks seed from. */
+function colorOptionsOf(colors: EmailColorDefaults): ColorOption[] {
+  return [
+    { hex: colors.primary, title: "Primary" },
+    { hex: colors.secondary, title: "Secondary" },
+    { hex: colors.accent, title: "Accent" },
+    { hex: colors.neutral, title: "Neutral" },
+    { hex: colors.info, title: "Info" },
+    { hex: colors.success, title: "Success" },
+    { hex: colors.warning, title: "Warning" },
+    { hex: colors.error, title: "Error" },
+    { hex: colors.baseContent, title: "Base content" },
+    { hex: colors.base100, title: "Base 100" },
+    { hex: colors.base200, title: "Base 200" },
+    { hex: colors.base300, title: "Base 300" },
+    { hex: colors.primaryContent, title: "Primary content" },
+  ];
+}
+
+/** A row of color swatches — same square/ring styling as the site
+ *  Inspector's `SwatchGroup`, previewing the document's real brand hex
+ *  values instead of theme-role classes. A leading "Auto" (crossed) swatch —
+ *  present whenever the field has a known default — resets to it, same as
+ *  site's; it's a plain action button (not ring-highlighted) since the
+ *  trailing custom swatch below already owns "is this value non-preset". A
+ *  trailing swatch previews the CURRENT value and opens a full picker — the
+ *  escape hatch for a one-off hex outside the palette above; it rings active
+ *  whenever the value isn't one of the presets. */
+function SwatchGroup({
+  options,
+  active,
+  onPick,
+  onAuto,
+}: {
+  options: ReadonlyArray<ColorOption>;
+  active: string;
+  onPick: (hex: string) => void;
+  onAuto?: () => void;
+}) {
+  const isPreset = options.some((o) => o.hex.toLowerCase() === active.toLowerCase());
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {onAuto && (
+        <button
+          type="button"
+          title="Reset to default"
+          onClick={onAuto}
+          className="size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40"
+        >
+          <Icon name="close" className="text-[10px]" />
+        </button>
+      )}
+      {options.map((o) => (
+        <button
+          key={o.hex}
+          type="button"
+          title={o.title}
+          onClick={() => onPick(o.hex)}
+          style={{ backgroundColor: o.hex }}
+          className={`size-6 rounded-field border border-base-300 ${
+            active.toLowerCase() === o.hex.toLowerCase() ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
+          }`}
+        />
+      ))}
+      <Popover>
+        <PopoverTrigger>
+          <button
+            type="button"
+            title="Custom color"
+            style={{ backgroundColor: active }}
+            className={`size-6 rounded-field border border-dashed border-base-content/40 ${
+              !isPreset ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
+            }`}
+          />
+        </PopoverTrigger>
+        <PopoverContent className="p-2">
+          <ColorPicker variant="panel" format="hex" value={active} onValueChange={onPick} />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+const RADIUS_PX: ReadonlyArray<{ value: number; label: string; previewPx: number }> = [
+  { value: 0, label: "None", previewPx: 0 },
+  { value: 4, label: "Small", previewPx: 4 },
+  { value: 8, label: "Medium", previewPx: 8 },
+  { value: 9999, label: "Full", previewPx: 14 },
+];
+
+/** Corner-radius swatches — same square-preview styling as the site
+ *  Inspector's `RadiusSwatchGroup` (each swatch previews its OWN real
+ *  corner), over literal px instead of theme radius tokens. Leading "Auto"
+ *  (crossed) swatch resets to the field's default, ring-highlighted whenever
+ *  the value doesn't match one of the presets — same convention as `ChipGroup`. */
+function RadiusSwatchGroup({
+  active,
+  onPick,
+  onAuto,
+}: {
+  active: number;
+  onPick: (value: number) => void;
+  onAuto?: () => void;
+}) {
+  const isPreset = RADIUS_PX.some((o) => o.value === active);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {onAuto && (
+        <button
+          type="button"
+          title="Reset to default"
+          onClick={onAuto}
+          className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/40 ${
+            !isPreset ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+          }`}
+        >
+          <Icon name="close" className="text-[10px]" />
+        </button>
+      )}
+      {RADIUS_PX.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          title={o.label}
+          onClick={() => onPick(o.value)}
+          style={{ borderTopLeftRadius: o.previewPx }}
+          className={`size-[30px] border bg-base-200 ${
+            active === o.value ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+const FONT_SIZE_PX: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 12, label: "XS" },
+  { value: 14, label: "SM" },
+  { value: 16, label: "MD" },
+  { value: 18, label: "LG" },
+  { value: 20, label: "XL" },
+  { value: 24, label: "2XL" },
+  { value: 30, label: "3XL" },
+  { value: 36, label: "4XL" },
+  { value: 48, label: "5XL" },
+];
+const PADDING_PX: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 0, label: "0" },
+  { value: 8, label: "2" },
+  { value: 16, label: "4" },
+  { value: 24, label: "6" },
+  { value: 32, label: "8" },
+];
+const ALIGN_OPTS: ReadonlyArray<{ value: Align; label: string }> = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" },
+];
+/** Same vocab as the site Inspector's `WEIGHT` chips (`font-normal`…`font-bold`). */
+const WEIGHT_OPTS: ReadonlyArray<{ value: FontWeight; label: string }> = [
+  { value: "normal", label: "Normal" },
+  { value: "medium", label: "Medium" },
+  { value: "semibold", label: "Semibold" },
+  { value: "bold", label: "Bold" },
+];
+
+function ColorField({
+  label,
+  value,
+  onCommit,
+  autoRole,
+}: {
+  label: string;
+  value: string;
+  onCommit: (v: string) => void;
+  /** The `EmailColorDefaults` key this field's "Auto" resets to — the SAME
+   *  value a fresh insert of this kind gets from `../palette.ts`. */
+  autoRole?: keyof EmailColorDefaults;
+}) {
+  const editor = useEmailEditor();
+  const options = React.useMemo(() => colorOptionsOf(editor.colorDefaults), [editor]);
+  const onAuto = autoRole ? () => onCommit(editor.colorDefaults[autoRole]) : undefined;
+  return (
+    <Row label={label}>
+      <SwatchGroup options={options} active={value} onPick={onCommit} onAuto={onAuto} />
+    </Row>
+  );
+}
+
+/** A chip-driven size field (font size / padding) — same clean chip-only look
+ *  as the site Inspector for the common case (a preset value). Unlike site's
+ *  chips (which ARE the class vocab, with no ceiling to hit), email's px
+ *  fields can legitimately hold a value outside the preset list (a restored
+ *  document, a value site never offered) — when that happens a compact
+ *  numeric override appears so that value stays visible and editable instead
+ *  of silently rounding to the nearest chip. */
+function SizeChipField({
+  label,
+  value,
+  options,
+  onCommit,
+  autoValue,
+}: {
+  label: string;
+  value: number;
+  options: ReadonlyArray<{ value: number; label: string }>;
+  onCommit: (v: number) => void;
+  autoValue?: number;
+}) {
+  const active = chipActive(value, options);
+  return (
+    <Row label={label}>
+      <div className="flex flex-col gap-1.5">
+        <ChipGroup
+          options={options}
+          active={active}
+          onPick={onCommit}
+          onAuto={autoValue !== undefined ? () => onCommit(autoValue) : undefined}
+        />
+        {active === "" && (
+          <Input
+            type="number"
+            size="sm"
+            className="w-24"
+            defaultValue={value}
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n)) onCommit(n);
+            }}
+          />
+        )}
+      </div>
+    </Row>
+  );
+}
+
+function RadiusField({
+  label,
+  value,
+  onCommit,
+  autoValue,
+}: {
+  label: string;
+  value: number;
+  onCommit: (v: number) => void;
+  autoValue?: number;
+}) {
+  return (
+    <Row label={label}>
+      <RadiusSwatchGroup
+        active={value}
+        onPick={onCommit}
+        onAuto={autoValue !== undefined ? () => onCommit(autoValue) : undefined}
       />
     </Row>
   );
 }
 
-function ColorField({ label, value, onCommit }: { label: string; value: string; onCommit: (v: string) => void }) {
-  return (
-    <Row label={label}>
-      <ColorPicker variant="swatch" format="hex" value={value} onValueChange={(v: string) => onCommit(v)} />
-    </Row>
-  );
-}
-
-function AlignField({ value, onCommit }: { value: Align; onCommit: (v: Align) => void }) {
+function AlignField({ value, onCommit, autoValue }: { value: Align; onCommit: (v: Align) => void; autoValue?: Align }) {
   return (
     <Row label="Align">
-      <ToggleGroup
-        className="toggle-group-sm"
-        aria-label="Align"
-        value={[value]}
-        onValueChange={(v: string[]) => v.length && onCommit(v[v.length - 1] as Align)}
-      >
-        <ToggleGroupItem value="left"><Icon name="alignLeft" /></ToggleGroupItem>
-        <ToggleGroupItem value="center"><Icon name="alignCenter" /></ToggleGroupItem>
-        <ToggleGroupItem value="right"><Icon name="alignRight" /></ToggleGroupItem>
-      </ToggleGroup>
+      <ChipGroup
+        options={ALIGN_OPTS}
+        active={value}
+        onPick={onCommit}
+        onAuto={autoValue !== undefined ? () => onCommit(autoValue) : undefined}
+      />
     </Row>
   );
 }
 
 // ── per-kind field sets ────────────────────────────────────────────────────────
-function TextFields({ node, update }: { node: TextNode; update: (patch: Partial<TextNode>) => void }) {
+// Split Design (pure visual: color/size/align/padding/corners) vs Settings
+// (content, links, structure) — same split as the site Inspector's tabs. Design
+// groups draw from the SAME universal vocab the site Inspector always renders
+// (Text / Surface / Layout, plus a recognized-family "Button" group) — not a
+// group per node kind — so a Group header means the same thing in both
+// builders. A kind only gets the groups its own fields actually populate.
+function TextDesignFields({ node, update }: { node: TextNode; update: (patch: Partial<TextNode>) => void }) {
   return (
-    <>
-      <Row label="Content">
+    <Group label="Text">
+      <ColorField label="Color" value={node.color} onCommit={(color) => update({ color })} autoRole="baseContent" />
+      <SizeChipField label="Font size" value={node.fontSize} options={FONT_SIZE_PX} onCommit={(fontSize) => update({ fontSize })} autoValue={16} />
+      <Row label="Weight">
+        <ChipGroup
+          options={WEIGHT_OPTS}
+          active={node.fontWeight}
+          onPick={(fontWeight) => update({ fontWeight })}
+          onAuto={() => update({ fontWeight: "normal" as FontWeight })}
+        />
+      </Row>
+      <NumberField label="Line height" defaultValue={node.lineHeight} min={8} max={96} onCommit={(lineHeight) => update({ lineHeight })} autoValue={24} />
+      <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="left" />
+    </Group>
+  );
+}
+function TextSettingsFields({ node, update }: { node: TextNode; update: (patch: Partial<TextNode>) => void }) {
+  return (
+    <Group label="Content">
+      <Pad>
         <Textarea
           size="sm"
           rows={3}
           defaultValue={node.html}
           onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => update({ html: e.target.value })}
         />
-      </Row>
-      <AlignField value={node.align} onCommit={(align) => update({ align })} />
-      <ColorField label="Color" value={node.color} onCommit={(color) => update({ color })} />
-      <NumberField label="Font size" defaultValue={node.fontSize} min={8} max={72} onCommit={(fontSize) => update({ fontSize })} />
-      <NumberField label="Line height" defaultValue={node.lineHeight} min={8} max={96} onCommit={(lineHeight) => update({ lineHeight })} />
-    </>
+      </Pad>
+    </Group>
   );
 }
 
-function ImageFields({ node, update }: { node: ImageNode; update: (patch: Partial<ImageNode>) => void }) {
+function ImageDesignFields({ node, update }: { node: ImageNode; update: (patch: Partial<ImageNode>) => void }) {
+  return (
+    <Group label="Layout">
+      <NumberField label="Width (px)" defaultValue={node.width} min={16} max={1200} onCommit={(width) => update({ width })} autoValue={300} />
+      <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="center" />
+    </Group>
+  );
+}
+function ImageSettingsFields({ node, update }: { node: ImageNode; update: (patch: Partial<ImageNode>) => void }) {
   return (
     <>
-      <TextField label="Image URL" defaultValue={node.src} onCommit={(src) => update({ src })} />
-      <TextField label="Alt text" defaultValue={node.alt} onCommit={(alt) => update({ alt })} />
-      <TextField label="Link URL" defaultValue={node.href ?? ""} onCommit={(v) => update({ href: v || undefined })} />
-      <NumberField label="Width (px)" defaultValue={node.width} min={16} max={1200} onCommit={(width) => update({ width })} />
-      <AlignField value={node.align} onCommit={(align) => update({ align })} />
+      <Group label="Content">
+        <TextField label="Image URL" defaultValue={node.src} onCommit={(src) => update({ src })} />
+      </Group>
+      <Group label="Link">
+        <TextField label="Link URL" defaultValue={node.href ?? ""} onCommit={(v) => update({ href: v || undefined })} />
+      </Group>
+      <Group label="Accessibility">
+        <TextField label="Alt text" defaultValue={node.alt} onCommit={(alt) => update({ alt })} />
+      </Group>
     </>
   );
 }
 
-function ButtonFields({ node, update }: { node: ButtonNode; update: (patch: Partial<ButtonNode>) => void }) {
+function ButtonDesignFields({ node, update }: { node: ButtonNode; update: (patch: Partial<ButtonNode>) => void }) {
   return (
     <>
-      <TextField label="Label" defaultValue={node.label} onCommit={(label) => update({ label })} />
-      <TextField label="Link URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
-      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} />
-      <ColorField label="Text color" value={node.color} onCommit={(color) => update({ color })} />
-      <NumberField label="Corner radius" defaultValue={node.radius} min={0} max={40} onCommit={(radius) => update({ radius })} />
-      <div className="grid grid-cols-2 gap-x-2">
-        <NumberField label="Padding X" defaultValue={node.paddingX} min={0} max={80} onCommit={(paddingX) => update({ paddingX })} />
-        <NumberField label="Padding Y" defaultValue={node.paddingY} min={0} max={60} onCommit={(paddingY) => update({ paddingY })} />
-      </div>
-      <AlignField value={node.align} onCommit={(align) => update({ align })} />
+      {/* The recognized-family block — the site Inspector's Button group is
+          just one role-color swatch (auto-contrast text comes free from the
+          `btn-<role>` class); email has no such class, so Background and Text
+          color are both explicit here. */}
+      <Group label="Button">
+        <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} autoRole="primary" />
+        <ColorField label="Text color" value={node.color} onCommit={(color) => update({ color })} autoRole="primaryContent" />
+      </Group>
+      <Group label="Surface">
+        <RadiusField label="Corner radius" value={node.radius} onCommit={(radius) => update({ radius })} autoValue={8} />
+        <SizeChipField label="Padding X" value={node.paddingX} options={PADDING_PX} onCommit={(paddingX) => update({ paddingX })} autoValue={16} />
+        <SizeChipField label="Padding Y" value={node.paddingY} options={PADDING_PX} onCommit={(paddingY) => update({ paddingY })} autoValue={8} />
+      </Group>
+      <Group label="Layout">
+        <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="center" />
+      </Group>
     </>
   );
 }
-
-function DividerFields({ node, update }: { node: DividerNode; update: (patch: Partial<DividerNode>) => void }) {
+function ButtonSettingsFields({ node, update }: { node: ButtonNode; update: (patch: Partial<ButtonNode>) => void }) {
   return (
     <>
-      <ColorField label="Color" value={node.color} onCommit={(color) => update({ color })} />
-      <NumberField label="Thickness (px)" defaultValue={node.thickness} min={1} max={12} onCommit={(thickness) => update({ thickness })} />
+      <Group label="Content">
+        <TextField label="Label" defaultValue={node.label} onCommit={(label) => update({ label })} />
+      </Group>
+      <Group label="Link">
+        <TextField label="Link URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
+      </Group>
     </>
   );
 }
 
-function SpacerFields({ node, update }: { node: SpacerNode; update: (patch: Partial<SpacerNode>) => void }) {
-  return <NumberField label="Height (px)" defaultValue={node.height} min={0} max={240} onCommit={(height) => update({ height })} />;
+function DividerDesignFields({ node, update }: { node: DividerNode; update: (patch: Partial<DividerNode>) => void }) {
+  return (
+    <Group label="Surface">
+      <ColorField label="Color" value={node.color} onCommit={(color) => update({ color })} autoRole="base300" />
+      <NumberField label="Thickness (px)" defaultValue={node.thickness} min={1} max={12} onCommit={(thickness) => update({ thickness })} autoValue={1} />
+    </Group>
+  );
+}
+
+function SpacerDesignFields({ node, update }: { node: SpacerNode; update: (patch: Partial<SpacerNode>) => void }) {
+  return (
+    <Group label="Layout">
+      <NumberField label="Height (px)" defaultValue={node.height} min={0} max={240} onCommit={(height) => update({ height })} autoValue={24} />
+    </Group>
+  );
 }
 
 const SOCIAL_PLATFORM_LABEL: Record<SocialPlatform, string> = {
@@ -178,19 +601,25 @@ const SOCIAL_PLATFORM_LABEL: Record<SocialPlatform, string> = {
   pinterest: "Pinterest",
 };
 
-function SocialFields({ node, update }: { node: SocialNode; update: (patch: Partial<SocialNode>) => void }) {
+function SocialDesignFields({ node, update }: { node: SocialNode; update: (patch: Partial<SocialNode>) => void }) {
+  return (
+    <Group label="Layout">
+      <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="center" />
+      <div className="grid grid-cols-2 gap-x-2">
+        <NumberField label="Icon size" defaultValue={node.iconSize} min={16} max={64} onCommit={(iconSize) => update({ iconSize })} autoValue={32} />
+        <NumberField label="Gap" defaultValue={node.gap} min={0} max={40} onCommit={(gap) => update({ gap })} autoValue={12} />
+      </div>
+    </Group>
+  );
+}
+function SocialSettingsFields({ node, update }: { node: SocialNode; update: (patch: Partial<SocialNode>) => void }) {
   const setLink = (i: number, patch: Partial<SocialLink>) =>
     update({ links: node.links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) });
   const addLink = () => update({ links: [...node.links, { platform: "facebook", url: "" }] });
   const removeLink = (i: number) => update({ links: node.links.filter((_, idx) => idx !== i) });
   return (
-    <>
-      <AlignField value={node.align} onCommit={(align) => update({ align })} />
-      <div className="grid grid-cols-2 gap-x-2">
-        <NumberField label="Icon size" defaultValue={node.iconSize} min={16} max={64} onCommit={(iconSize) => update({ iconSize })} />
-        <NumberField label="Gap" defaultValue={node.gap} min={0} max={40} onCommit={(gap) => update({ gap })} />
-      </div>
-      <Row label={`Links (${node.links.length})`}>
+    <Group label={`Links (${node.links.length})`}>
+      <Pad>
         <div className="flex flex-col gap-2">
           {node.links.map((l, i) => (
             <div key={i} className="flex items-center gap-1.5">
@@ -218,32 +647,32 @@ function SocialFields({ node, update }: { node: SocialNode; update: (patch: Part
             <Icon name="plus" /> Add link
           </button>
         </div>
+      </Pad>
+    </Group>
+  );
+}
+
+function HtmlSettingsFields({ node, update }: { node: HtmlNode; update: (patch: Partial<HtmlNode>) => void }) {
+  return (
+    <Group label="Content">
+      <Row label="Raw HTML">
+        <Textarea
+          size="sm"
+          rows={8}
+          className="font-mono text-xs"
+          defaultValue={node.html}
+          onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => update({ html: e.target.value })}
+        />
       </Row>
-    </>
+    </Group>
   );
 }
 
-function HtmlFields({ node, update }: { node: HtmlNode; update: (patch: Partial<HtmlNode>) => void }) {
+function VideoDesignFields({ node, update }: { node: VideoNode; update: (patch: Partial<VideoNode>) => void }) {
   return (
-    <Row label="Raw HTML">
-      <Textarea
-        size="sm"
-        rows={8}
-        className="font-mono text-xs"
-        defaultValue={node.html}
-        onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => update({ html: e.target.value })}
-      />
-    </Row>
-  );
-}
-
-function VideoFields({ node, update }: { node: VideoNode; update: (patch: Partial<VideoNode>) => void }) {
-  return (
-    <>
-      <TextField label="Thumbnail image URL" defaultValue={node.thumbnail} onCommit={(thumbnail) => update({ thumbnail })} />
-      <TextField label="Video URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
-      <NumberField label="Width (px)" defaultValue={node.width} min={80} max={1200} onCommit={(width) => update({ width })} />
-      <AlignField value={node.align} onCommit={(align) => update({ align })} />
+    <Group label="Layout">
+      <NumberField label="Width (px)" defaultValue={node.width} min={80} max={1200} onCommit={(width) => update({ width })} autoValue={400} />
+      <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="center" />
       <Row label="Play button overlay">
         <ToggleGroup
           className="toggle-group-sm"
@@ -255,26 +684,35 @@ function VideoFields({ node, update }: { node: VideoNode; update: (patch: Partia
           <ToggleGroupItem value="on">Yes</ToggleGroupItem>
         </ToggleGroup>
       </Row>
-    </>
+    </Group>
+  );
+}
+function VideoSettingsFields({ node, update }: { node: VideoNode; update: (patch: Partial<VideoNode>) => void }) {
+  return (
+    <Group label="Content">
+      <TextField label="Thumbnail image URL" defaultValue={node.thumbnail} onCommit={(thumbnail) => update({ thumbnail })} />
+      <TextField label="Video URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
+    </Group>
   );
 }
 
-function ColumnFields({ node, update }: { node: ColumnNode; update: (patch: Partial<ColumnNode>) => void }) {
+function ColumnDesignFields({ node, update }: { node: ColumnNode; update: (patch: Partial<ColumnNode>) => void }) {
   return (
-    <NumberField
-      label="Width (% of row)"
-      defaultValue={node.widthPct}
-      min={5}
-      max={100}
-      onCommit={(widthPct) => update({ widthPct })}
-    />
+    <Group label="Layout">
+      <NumberField
+        label="Width (% of row)"
+        defaultValue={node.widthPct}
+        min={5}
+        max={100}
+        onCommit={(widthPct) => update({ widthPct })}
+      />
+    </Group>
   );
 }
 
-function ColumnsFields({ node, update }: { node: ColumnsNode; update: (patch: Partial<ColumnsNode>) => void }) {
-  const editor = useEmailEditor();
+function ColumnsDesignFields({ node, update }: { node: ColumnsNode; update: (patch: Partial<ColumnsNode>) => void }) {
   return (
-    <>
+    <Group label="Layout">
       <Row label="Stack on mobile">
         <ToggleGroup
           className="toggle-group-sm"
@@ -286,6 +724,13 @@ function ColumnsFields({ node, update }: { node: ColumnsNode; update: (patch: Pa
           <ToggleGroupItem value="on">Yes</ToggleGroupItem>
         </ToggleGroup>
       </Row>
+    </Group>
+  );
+}
+function ColumnsSettingsFields({ node }: { node: ColumnsNode }) {
+  const editor = useEmailEditor();
+  return (
+    <Group label="Structure">
       <Row label={`Columns (${node.children.length})`}>
         <button
           type="button"
@@ -296,14 +741,14 @@ function ColumnsFields({ node, update }: { node: ColumnsNode; update: (patch: Pa
           <Icon name="plus" /> Add column
         </button>
       </Row>
-    </>
+    </Group>
   );
 }
 
-function SectionFields({ node, update }: { node: import("../schema").SectionNode; update: (patch: Record<string, unknown>) => void }) {
+function SectionDesignFields({ node, update }: { node: import("../schema").SectionNode; update: (patch: Record<string, unknown>) => void }) {
   return (
-    <>
-      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} />
+    <Group label="Surface">
+      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} autoRole="base100" />
       <Row label="Background image URL">
         <div className="flex gap-1.5">
           <Input
@@ -317,30 +762,43 @@ function SectionFields({ node, update }: { node: import("../schema").SectionNode
           )}
         </div>
       </Row>
-      <div className="grid grid-cols-2 gap-x-2">
-        <NumberField label="Padding X" defaultValue={node.paddingX} min={0} max={80} onCommit={(paddingX) => update({ paddingX })} />
-        <NumberField label="Padding Y" defaultValue={node.paddingY} min={0} max={80} onCommit={(paddingY) => update({ paddingY })} />
-      </div>
-    </>
+      <SizeChipField label="Padding X" value={node.paddingX} options={PADDING_PX} onCommit={(paddingX) => update({ paddingX })} autoValue={24} />
+      <SizeChipField label="Padding Y" value={node.paddingY} options={PADDING_PX} onCommit={(paddingY) => update({ paddingY })} autoValue={24} />
+    </Group>
   );
 }
 
-// ── email-level settings (shown with nothing selected) ─────────────────────────
-function EmailSettings() {
+// ── body (the document root) — selecting "Email" in the Navigator/breadcrumb
+// routes through the SAME Design/Settings tabs as any other node, not a
+// bespoke settings form. Design holds the two real background layers email
+// HTML has (the outer canvas "wallpaper" behind a centered email, and the
+// content card itself) under one Surface group, same as the site Inspector's
+// Surface/Background field; Settings holds Subject/Preview text (Content),
+// Canvas width (Layout), and Font family.
+function BodyDesignFields({ node, update }: { node: EmailBody; update: (patch: Record<string, unknown>) => void }) {
+  return (
+    <Group label="Surface">
+      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} autoRole="base200" />
+      <ColorField label="Content background" value={node.contentBg} onCommit={(contentBg) => update({ contentBg })} autoRole="base100" />
+    </Group>
+  );
+}
+function BodySettingsFields({ node, update }: { node: EmailBody; update: (patch: Record<string, unknown>) => void }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
-  const root = doc.root;
   return (
-    // Same staleness fix as the per-node fields below: remount (fresh
-    // `defaultValue`s) whenever subject/preheader/root change from elsewhere.
-    <div key={`${doc.subject}:${doc.preheader}:${JSON.stringify(root)}`} className="flex flex-col divide-y divide-base-200">
-      <TextField label="Subject" defaultValue={doc.subject} onCommit={(v) => editor.setSubject(v)} />
-      <TextField label="Preview text" defaultValue={doc.preheader} onCommit={(v) => editor.setPreheader(v)} />
-      <NumberField label="Canvas width (px)" defaultValue={root.width} min={320} max={800} onCommit={(width) => editor.update(root.id, { width })} />
-      <ColorField label="Outer background" value={root.bg} onCommit={(bg) => editor.update(root.id, { bg })} />
-      <ColorField label="Content background" value={root.contentBg} onCommit={(contentBg) => editor.update(root.id, { contentBg })} />
-      <TextField label="Font family" defaultValue={root.fontFamily} onCommit={(fontFamily) => editor.update(root.id, { fontFamily })} />
-    </div>
+    <>
+      <Group label="Content">
+        <TextField label="Subject" defaultValue={doc.subject} onCommit={(v) => editor.setSubject(v)} />
+        <TextField label="Preview text" defaultValue={doc.preheader} onCommit={(v) => editor.setPreheader(v)} />
+      </Group>
+      <Group label="Layout">
+        <NumberField label="Canvas width (px)" defaultValue={node.width} min={320} max={800} onCommit={(width) => update({ width })} autoValue={600} />
+      </Group>
+      <Group label="Font">
+        <TextField label="Font family" defaultValue={node.fontFamily} onCommit={(fontFamily) => update({ fontFamily })} />
+      </Group>
+    </>
   );
 }
 
@@ -354,6 +812,10 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
   // A column's `widthPct`s must keep summing to 100 — duplicate/delete route
   // through the rebalancing engine methods instead of the generic ones.
   const isColumn = node.kind === "column";
+  // The root has no parent (`sibling` is undefined) — the engine already
+  // no-ops move/duplicate/remove on it, but the buttons should read as
+  // disabled rather than silently doing nothing when clicked.
+  const isRoot = node.kind === "body";
   const duplicate = () => (isColumn ? editor.duplicateColumn(selectedId) : editor.duplicate(selectedId));
   const remove = () => (isColumn ? editor.removeColumn(selectedId) : editor.remove(selectedId));
   const saveAsBlock = () => {
@@ -393,16 +855,16 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
         <IconButton
           icon="copy"
           label="Duplicate"
-          disabled={isColumn && (sibling?.count ?? 0) >= 6}
+          disabled={isRoot || (isColumn && (sibling?.count ?? 0) >= 6)}
           onClick={duplicate}
         />
-        <IconButton icon="saved" label="Save as block" onClick={saveAsBlock} />
+        {!isRoot && <IconButton icon="saved" label="Save as block" onClick={saveAsBlock} />}
         <div className="flex-1" />
         <IconButton
           icon="trash"
           label="Delete"
           tone="error"
-          disabled={isColumn && (sibling?.count ?? 0) <= 1}
+          disabled={isRoot || (isColumn && (sibling?.count ?? 0) <= 1)}
           onClick={remove}
         />
       </div>
@@ -437,43 +899,124 @@ function IconButton({
   );
 }
 
+type InspectorTab = "design" | "settings";
+
+/** Design tab body for one node kind, or `undefined` for kinds with no visual
+ *  fields (falls back to an `EmptyTab` note, same as Settings below). */
+function designFieldsFor(node: EmailNode, update: (patch: Record<string, unknown>) => void): React.ReactNode {
+  switch (node.kind) {
+    case "body":
+      return <BodyDesignFields node={node} update={update} />;
+    case "text":
+      return <TextDesignFields node={node} update={update} />;
+    case "image":
+      return <ImageDesignFields node={node} update={update} />;
+    case "button":
+      return <ButtonDesignFields node={node} update={update} />;
+    case "divider":
+      return <DividerDesignFields node={node} update={update} />;
+    case "spacer":
+      return <SpacerDesignFields node={node} update={update} />;
+    case "social":
+      return <SocialDesignFields node={node} update={update} />;
+    case "video":
+      return <VideoDesignFields node={node} update={update} />;
+    case "column":
+      return <ColumnDesignFields node={node} update={update} />;
+    case "columns":
+      return <ColumnsDesignFields node={node} update={update} />;
+    case "section":
+      return <SectionDesignFields node={node} update={update} />;
+    default:
+      return undefined;
+  }
+}
+
+function settingsFieldsFor(node: EmailNode, update: (patch: Record<string, unknown>) => void): React.ReactNode {
+  switch (node.kind) {
+    case "body":
+      return <BodySettingsFields node={node} update={update} />;
+    case "text":
+      return <TextSettingsFields node={node} update={update} />;
+    case "image":
+      return <ImageSettingsFields node={node} update={update} />;
+    case "button":
+      return <ButtonSettingsFields node={node} update={update} />;
+    case "social":
+      return <SocialSettingsFields node={node} update={update} />;
+    case "html":
+      return <HtmlSettingsFields node={node} update={update} />;
+    case "video":
+      return <VideoSettingsFields node={node} update={update} />;
+    case "columns":
+      return <ColumnsSettingsFields node={node} />;
+    default:
+      return undefined;
+  }
+}
+
 export function EmailInspector() {
   const editor = useEmailEditor();
   const selectedId = useEmailSelection();
   const node = useEmailSelectedNode();
+  // Persists across selection changes (the Inspector stays mounted), so moving
+  // between nodes keeps you in Design or Settings — same as the site Inspector.
+  const [tab, setTab] = React.useState<InspectorTab>("design");
 
+  // Same empty state as the site Inspector — nothing selected means nothing
+  // to edit. Select "Email" (the document root) in the Navigator or
+  // breadcrumb to reach subject/preview text/canvas width/backgrounds/font.
   if (!selectedId || !node) {
     return (
-      <div className="flex-1 min-h-0 overflow-auto">
-        <EmailSettings />
+      <div className="grid flex-1 min-h-0 place-items-center p-6">
+        <EmptyState
+          size="sm"
+          icon={<Icon name="sliders" />}
+          title="No selection"
+          description="Select an element on the canvas to edit it."
+        />
       </div>
     );
   }
 
   const update = (patch: Record<string, unknown>) => editor.update(selectedId, patch);
+  const design = designFieldsFor(node, update);
+  const settings = settingsFieldsFor(node, update);
 
   return (
     <div key={selectedId} className="flex flex-1 flex-col min-h-0">
       <Toolbar selectedId={selectedId} node={node} />
+
+      <div className="flex-none border-b border-base-200 px-3 py-2">
+        <ToggleGroup
+          className="toggle-group-sm w-full"
+          aria-label="Inspector tab"
+          value={[tab]}
+          onValueChange={(v: string[]) => v.length && setTab(v[0] as InspectorTab)}
+        >
+          <ToggleGroupItem value="design" className="flex-1">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="sliders" /> Design
+            </span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="settings" className="flex-1">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="settings" /> Settings
+            </span>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
       {/* Fields are `defaultValue`-based (uncontrolled, committed on blur) so
           typing doesn't fight a re-render — but that means they'd go stale if
           the node changes from elsewhere (a canvas inline text edit, an
           undo/redo) while the same node stays selected. Keying on the node's
           own content forces a remount — and fresh `defaultValue`s — whenever
           that happens. */}
-      <div key={JSON.stringify(node)} className="flex-1 min-h-0 overflow-auto divide-y divide-base-200">
-        {node.kind === "text" && <TextFields node={node} update={update} />}
-        {node.kind === "image" && <ImageFields node={node} update={update} />}
-        {node.kind === "button" && <ButtonFields node={node} update={update} />}
-        {node.kind === "divider" && <DividerFields node={node} update={update} />}
-        {node.kind === "spacer" && <SpacerFields node={node} update={update} />}
-        {node.kind === "social" && <SocialFields node={node} update={update} />}
-        {node.kind === "html" && <HtmlFields node={node} update={update} />}
-        {node.kind === "video" && <VideoFields node={node} update={update} />}
-        {node.kind === "column" && <ColumnFields node={node} update={update} />}
-        {node.kind === "columns" && <ColumnsFields node={node} update={update} />}
-        {node.kind === "section" && <SectionFields node={node} update={update} />}
-        {node.kind === "body" && <EmailSettings />}
+      <div key={JSON.stringify(node)} className="flex-1 min-h-0 overflow-auto">
+        {tab === "design"
+          ? (design ?? <EmptyTab text="No design options for this element." />)
+          : (settings ?? <EmptyTab text="No settings for this element." />)}
       </div>
     </div>
   );

@@ -15,6 +15,7 @@
  */
 
 export type Align = "left" | "center" | "right";
+export type FontWeight = "normal" | "medium" | "semibold" | "bold";
 
 interface BaseNode {
   id: string;
@@ -27,6 +28,7 @@ export interface TextNode extends BaseNode {
   align: Align;
   color: string;
   fontSize: number;
+  fontWeight: FontWeight;
   lineHeight: number;
 }
 
@@ -185,6 +187,20 @@ export interface EmailColorDefaults {
   base200: string;
   /** Divider color. */
   base300: string;
+  /**
+   * The rest of the theme's semantic roles (`rolesOf`'s `SEMANTIC_ROLES`,
+   * minus `primary` above) — resolved purely so the Inspector's color
+   * swatches offer the SAME palette breadth as the site builder's, not used
+   * to seed any block default (only `primary`/`base*` are — see the block
+   * `make()` functions in `../palette.ts`).
+   */
+  secondary: string;
+  accent: string;
+  neutral: string;
+  info: string;
+  success: string;
+  warning: string;
+  error: string;
 }
 
 export const DEFAULT_EMAIL_COLORS: EmailColorDefaults = {
@@ -194,6 +210,13 @@ export const DEFAULT_EMAIL_COLORS: EmailColorDefaults = {
   base100: "#ffffff",
   base200: "#f4f4f5",
   base300: "#e4e4e7",
+  secondary: "#6366f1",
+  accent: "#ec4899",
+  neutral: "#3f3f46",
+  info: "#0ea5e9",
+  success: "#22c55e",
+  warning: "#f59e0b",
+  error: "#ef4444",
 };
 
 /** A fresh, empty document — one section with an intro text block. */
@@ -224,6 +247,7 @@ export function emptyEmailDocument(makeId: () => string, colors: EmailColorDefau
               align: "left",
               color: colors.baseContent,
               fontSize: 16,
+              fontWeight: "normal",
               lineHeight: 24,
             },
           ],

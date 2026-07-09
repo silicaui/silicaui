@@ -29,6 +29,13 @@ import type {
 } from "./schema";
 import { SOCIAL_PLATFORM } from "./node-display";
 
+export const FONT_WEIGHT_CSS: Record<TextNode["fontWeight"], number> = {
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+};
+
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -45,6 +52,7 @@ function renderText(node: TextNode): string {
     "text-align": node.align,
     color: node.color,
     "font-size": `${node.fontSize}px`,
+    "font-weight": FONT_WEIGHT_CSS[node.fontWeight],
     "line-height": `${node.lineHeight}px`,
   })}>${node.html}</div>`;
 }

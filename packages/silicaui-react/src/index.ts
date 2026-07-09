@@ -325,13 +325,18 @@ export {
   Toolbar,
   ToolbarButton,
   ToolbarGroup,
+  ToolbarCenter,
   ToolbarLink,
   ToolbarSeparator,
 } from "./toolbar";
 export type {
   ToolbarProps,
+  ToolbarSize,
+  ToolbarVariant,
+  ToolbarDividers,
   ToolbarButtonProps,
   ToolbarGroupProps,
+  ToolbarCenterProps,
   ToolbarLinkProps,
   ToolbarSeparatorProps,
 } from "./toolbar";

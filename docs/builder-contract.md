@@ -1,8 +1,10 @@
 # @wizeworks/silicaui-builder — Engine & Host Contract
 
-**Version:** 1.0
+**Version:** 1.1
 **Author:** Brandon Korous / WizeWorks
-**Last Updated:** 2026-07-05
+**Last Updated:** 2026-07-09
+
+> **v1.1 changelog** (see [builder-engine-roadmap.md](builder-engine-roadmap.md) for the full reasoning): `resolveBinding`/`resolveCollection` are now synchronous-only (§3); `DataScope` carries the resolved item, not a path (§3); `Resolved` gained `visible` (§3); a new `resolveTree` primitive is specced (§3); `catalog()` uses merge semantics (§5); a new `dataSources()` + engine-owned `scopeAt()` power the binding picker (§5); `validateClass` now composes with a built-in, non-optional floor (§5, §9); a new §9 specs the raw-element/attribute whitelist as an unconditional engine floor.
 
 > **Purpose.** `@wizeworks/silicaui-builder` is a **domain-blind visual editor for @wizeworks/silicaui documents**. It loads a document (a @wizeworks/silicaui node tree + a theme), lets a human manipulate it directly (select, drag, edit, add blocks, tune the theme), and extracts the document back — in the *same shape it loaded*. It knows @wizeworks/silicaui: nodes, classes, tokens, themes, slots, blocks, behaviors. It knows **nothing** about products, CMS entries, orders, tenants, versioning, or publishing. Every one of those enters through a single **host adapter** as opaque references and callbacks.
 >
@@ -90,7 +92,7 @@ Notes that matter:
 
 - **`id` is the only delta from a @wizeworks/silicaui-blocks node.** Blocks are id-free templates; document nodes are live instances that need stable identity for selection and drag. Ids must be **globally unique and persisted** (not a per-session counter) — the same invariant sparx already learned the hard way, because ids double as React keys and dnd-kit sortable ids.
 - **`class` is the sole styling channel.** No inline style object, no second styling surface. Everything — layout, spacing, surface, skin — is @wizeworks/silicaui classes + the allowed utility subset (the host's allowlist gates them, §5).
-- **`frame` is how a page edits inside its layout.** The engine renders `frame.root` as a backdrop (locked or editable) and drops `root` at the frame's single `Outlet` node — the same composition the site ships, so header/footer/nav preview correctly. Omit it to edit a bare tree (or to edit the layout *as* the root).
+- **`frame` is how a page edits inside its layout.** The engine renders `frame.root` as a backdrop (locked or editable) and drops `root` at the frame's single `Outlet` node — the same composition the site ships, so header/footer/nav preview correctly. Omit it to edit a bare tree (or to edit the layout *as* the root). The two trees are **always composed together on one canvas**; a mode toggle (Layout ⇄ Page) flips which one is the live *editable* target while the other renders inert as visual context — never truly simultaneous dual-editing, and deliberately so: one active tree means one undo history and one save-debounce at any moment, while still showing the real chrome around whatever you're editing. This is the engine's answer to "can it edit more than one document at once" — see the roadmap doc §4.
 - **`theme` loads and extracts too.** A theme panel edits `theme.tokens`; the mutated theme comes back in `extract()`. The theme is native @wizeworks/silicaui — a token map applied via `[data-theme]`.
 
 ---
@@ -107,14 +109,40 @@ props.repeat?: { ref: string };              // resolve a COLLECTION; render chi
 props.action?: { ref: string; href?: string };  // this node TRIGGERS a host action on interaction
 ```
 
-- **`bind`** — "fill this node from data." Engine asks `host.resolveBinding(ref, scope)` → `{ value, label }`, shows the value, paints a "bound" chip with the label. Absent host resolver → the node's static placeholder content renders (so a **static-site builder needs no host data at all**).
-- **`repeat`** — "this container repeats." Engine asks the host to resolve the collection ref → an array, renders `children` once per item, and passes an **item-scoped** token back down so inner `bind`s resolve per item. The engine owns the *repetition*; the host owns the *data*.
-- **`action`** — "this is a trigger" (a button that adds to cart, submits, navigates). Inert in the editor; the host wires it on the live site.
+- **`bind`** — "fill this node from data." Engine asks `host.resolveBinding(ref, scope)` → `{ value, label, visible? }`, shows the value, paints a "bound" chip with the label. Absent host resolver → the node's static placeholder content renders (so a **static-site builder needs no host data at all**). `visible: false` drops the node (and its subtree) from resolved output entirely — the one conditional-visibility primitive the engine supports, with no expression language attached (see the roadmap doc §1 for why this is the whole surface, deliberately).
+- **`repeat`** — "this container repeats." Engine asks the host to resolve the collection ref → an array, renders `children` once per item, and passes the **resolved item itself** back down (not a path — see `DataScope` below) so inner `bind`s resolve per item. The engine owns the *repetition*; the host owns the *data*.
+- **`action`** — "this is a trigger" (a button that adds to cart, submits, navigates). Inert in the editor; the host wires it on the live site by attaching one delegated listener (click/submit) at its app root keyed on `[data-sui-action]`, reading the ref off the DOM node. No package owns this wiring — it's a five-line host pattern, not engine or `silicaui-behaviors` code.
 
 The host maps its own vocabulary onto these three. sparx's four-kind spine (field / entity / collection / action) collapses cleanly: field + entity → `bind`, collection → `repeat`, action → `action`. **A different host with a different data model implements the same three callbacks and gets the same builder.** That opacity is what keeps the engine focused and reusable.
 
 ```ts
-type DataScope = { path: string[] };   // opaque structural scope (repeat ancestry); host interprets
+/** Threaded down through a `repeat` walk. Carries the actual resolved item —
+ *  not a structural path — so a nested `bind` never has to re-derive "which
+ *  item am I on" by re-resolving the collection. The engine never inspects
+ *  `item`; it's opaque cargo, same as `ref`. */
+type DataScope = { item?: unknown; index?: number };
+```
+
+### Resolution is synchronous — the host pre-loads, the walk never awaits
+
+`resolveBinding`/`resolveCollection` are **synchronous**. A host with an async data source (a DB call, an API) fetches **once, up front**, into whatever closure or cache its synchronous resolver then reads from — the resolving walk itself never awaits mid-tree. This sidesteps the waterfalls and "what renders while this one binding is still loading" problem an async-per-node API creates, and matches the one production reference implementation this contract is modeled on (sparx's `runtime.ts`, which pre-loads all data before a fully synchronous render walk, on both the editor-preview and the live-site paths).
+
+```ts
+type Resolved = { value: unknown; label?: string; visible?: boolean };
+
+interface ResolveHost {
+  resolveBinding?(ref: string, scope: DataScope): Resolved;
+  resolveCollection?(ref: string, scope: DataScope): unknown[];
+}
+
+/** The Q3/Q19 keystone: ONE walker owns bind + repeat + action together (not
+ *  just leaf rendering — see the roadmap doc §1 for why splitting repetition
+ *  out, as sparx's two-walker split does, just recreates a sync seam). Pure,
+ *  sync, ships in @wizeworks/silicaui-html. Absent both hooks → returns `tree`
+ *  unchanged (a static host never has a reason to call this at all). Feeds
+ *  BOTH the canvas's React walk and `toHtml` (`toHtml(resolveTree(root, host))`),
+ *  so preview == production is structural, not hoped-for. */
+function resolveTree(tree: Node, host: ResolveHost, scope?: DataScope): Node;
 ```
 
 ---
@@ -150,24 +178,40 @@ Everything domain-specific enters here. This is the *entire* sparx-facing surfac
 
 ```ts
 interface BuilderHost {
-  // DATA — resolve the three opaque primitives (§3). Omit resolveBinding entirely
-  // for a static-site builder. `resolveCollection` returns items; the engine
-  // re-invokes resolveBinding with each item's scope.
-  resolveBinding?(ref: string, scope: DataScope): Resolved | Promise<Resolved>;
-  resolveCollection?(ref: string, scope: DataScope): unknown[] | Promise<unknown[]>;
+  // DATA — resolve the three opaque primitives (§3), synchronously. Omit
+  // resolveBinding entirely for a static-site builder.
+  resolveBinding?(ref: string, scope: DataScope): Resolved;
+  resolveCollection?(ref: string, scope: DataScope): unknown[];
 
-  // CATALOG — what the Add palette offers. Default: the @wizeworks/silicaui-blocks index.
-  // The host curates (hide some, add domain composites, reorder categories).
-  catalog(): CatalogEntry[];
+  // CATALOG — what the Add palette offers. Default: the @wizeworks/silicaui-blocks
+  // index. MERGE semantics, not a flat replace — a host adding one domain composite
+  // should never have to re-enumerate the whole default index to keep it.
+  catalog?(): { extend?: CatalogEntry[]; hide?: string[] };
+
+  // DATA SOURCES — the flat, host-computed-ONCE catalog that powers the binding
+  // picker (Q6). The engine derives per-node availability itself via the exported
+  // `scopeAt(dataSources, ancestors)` helper (walks a node's ancestors; a `repeat`
+  // ancestor narrows the returned sources to `item.*` fields) — that narrowing is
+  // pure tree structure, not domain knowledge, so it's the engine's job, not the
+  // host's. Absent `dataSources` → the Inspector's Bind picker falls back to a raw
+  // ref text input.
+  dataSources?(): DataSource[];
 
   // POLICY — the class allowlist. The engine calls this before committing ANY class
   // string (hand-typed OR AI-generated); a rejected class never enters the document.
-  // The host owns the policy (sparx: the fixed/z-[…]/content-[…]/url() denylist).
-  validateClass(cls: string): { ok: true } | { ok: false; reason: string };
+  // This COMPOSES with a built-in engine floor (the fixed/z-[…]/content-[…]/url()
+  // denylist, §9) that a host can only ADD to, never lift — the insecure state
+  // (accidentally loosening the floor) is structurally unrepresentable. Most hosts
+  // don't need custom logic; use `buildClassValidator({ blocks })` (§9) instead of
+  // hand-writing this function.
+  validateClass?(cls: string): { ok: true } | { ok: false; reason: string };
 
   // PANELS — host-contributed inspector panels for specific node types (SEO,
   // product-pin, a per-module editor). The engine renders the generic panels
-  // (class, props, slots, theme) and slots these in beside them.
+  // (class, props, slots, theme) and slots these in beside them — ADDITIVE only
+  // in v1, a host panel never replaces a built-in one. `ctx` exposes the engine's
+  // own mutation primitives (setProp/setData/…) so a host panel writes through the
+  // same paths the built-ins use, never a second node-mutation API.
   inspectorPanels?(node: BuilderNode): InspectorPanel[];
 
   // ASSETS — the media picker. The engine invokes it when an image/video slot
@@ -179,10 +223,22 @@ interface BuilderHost {
   onChange(document: BuilderDocument): void;
 }
 
-type Resolved = { value: unknown; label?: string };
+interface InspectorPanel {
+  id: string;
+  title: string;
+  order?: number;
+  render(node: BuilderNode, ctx: InspectorCtx): unknown; // a host-rendered subtree
+}
+
+interface DataSource {
+  key: string;
+  label: string;
+  cardinality: 'scalar' | 'array' | 'object';
+  fields?: DataSource[]; // nested shape, for scopeAt's ancestor-narrowing walk
+}
 ```
 
-That's it. Six methods, three of them optional. A host that implements `catalog`, `validateClass`, and `onChange` gets a working static-site builder. Add the three data/asset methods and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
+That's it. Two required methods (`onChange`, plus whichever of the rest a host's use case needs); everything else is optional. A host that implements `onChange` alone gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`pickAsset` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
 
 ---
 
@@ -227,7 +283,29 @@ The engine renders the document as a **`[data-theme]` themed island** (the canva
 
 ---
 
-## 9. Definition of done — the minimal buildable surface
+## 9. Security floors — engine-owned, host may only tighten
+
+Two floors that exist **unconditionally in the engine**, never behind an opt-in host hook — the same category of thing HTML-escaping already is. A host's `validateClass` (§5) composes *on top of* the first; the second has no host hook at all.
+
+**The class-string floor.** `@wizeworks/silicaui-html`'s `lint.ts` denylist (`fixed`, arbitrary `z-[…]`, arbitrary `content-[…]`, any `url(...)`) runs as the built-in first gate on every class mutation (typed edit, paste, import, AI-assist) — today it only runs at build time against authored blocks; it must also run live, in the engine, at every `setClass` call site. `host.validateClass`, if supplied, runs *after* this floor and can only add restrictions:
+
+```ts
+type AllowlistRule = { kind: 'prefix' | 'exact' | 'substring'; value: string }; // never a free regex — avoids ReDoS
+
+/** The declarative common case — most hosts never need to hand-write a validator.
+ *  Always ANDs with the built-in floor. */
+function buildClassValidator(config: { blocks: AllowlistRule[] }): BuilderHost['validateClass'];
+```
+
+**The raw-element/attribute floor.** `to-html.ts` renders `node.tag` and `attrs` verbatim today — no tag allowlist, no `on*` stripping, no `rel=noopener` enforcement, no URL scheme check. This is a live gap independent of the builder (any `el:<tag>` node with attrs is unsanitized output) and must be fixed regardless of host-seam work. `@wizeworks/silicaui-html` ships a canonical, closed whitelist (`element.ts`) enforced **unconditionally**, with no host hook:
+
+- A closed tag set (excluding `script style object embed link meta base noscript template iframe`), each mapped to its allowed attribute keys.
+- Attribute names are a **closed positive union** — `on*` handlers are excluded by never being enumerated, not stripped by pattern-matching (fails closed, not open).
+- `rel="noopener noreferrer"` force-set whenever `target="_blank"`.
+- `href`/`src` scheme-checked against a safe-URL pattern (relative / `http(s)` / `mailto` / `tel` / anchor only).
+- Raw `style` attributes are never accepted, on any tag.
+
+## 10. Definition of done — the minimal buildable surface
 
 - [ ] `BuilderDocument` / `BuilderNode` / `ThemeConfig` / `DocumentFrame` types (§2), one shape shared with @wizeworks/silicaui-blocks (+ `id`).
 - [ ] `mountBuilder(el, { document, host })` → `BuilderHandle` with `extract()` symmetric to load (§4).

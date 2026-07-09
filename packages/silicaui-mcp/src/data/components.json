@@ -3305,7 +3305,7 @@
         ]
       }
     ],
-    "usageExample": "import {\n    Field,\n    FieldLabel,\n    FieldControl,\n    FieldDescription,\n    FieldError,\n    FieldStatus,\n    Textarea,\n} from \"@wizeworks/silicaui-react\";\nimport { Section, Stack } from \"../lib/Section\";\n\nexport function FieldDemo() {\n    return (\n        <>\n            <Section title=\"Real use · required field with description\">\n                <Field className=\"max-w-sm\">\n                    <FieldLabel required>Full name</FieldLabel>\n                    <FieldControl required placeholder=\"Ada Lovelace\" />\n                    <FieldDescription>As it appears on your ID.</FieldDescription>\n                    <FieldError />\n                </Field>\n            </Section>\n\n            <Section title=\"Non-input control via render (Textarea)\">\n                <Field className=\"max-w-sm\">\n                    <FieldLabel>Bio</FieldLabel>\n                    <FieldControl render={<Textarea rows={3} />} />\n                    <FieldDescription>Shown on your public profile.</FieldDescription>\n                </Field>\n            </Section>\n\n            <Section title=\"Disabled\">\n                <Stack className=\"max-w-sm\">\n                    <Field disabled>\n                        <FieldLabel>Organization</FieldLabel>\n                        <FieldControl defaultValue=\"Silica UI\" />\n                    </Field>\n                    <Field disabled disabledMessage=\"Contact your admin to change this.\">\n                        <FieldLabel>Billing plan</FieldLabel>\n                        <FieldControl defaultValue=\"Enterprise\" />\n                    </Field>\n                </Stack>\n            </Section>\n\n            <Section title=\"FieldStatus · attached (border+icon+message panel)\">\n                <Stack className=\"max-w-sm\">\n                    <Field status=\"error\" statusMessage=\"Please enter a valid email address.\">\n                        <FieldLabel>Email</FieldLabel>\n                        <FieldControl defaultValue=\"sarah@\" />\n                    </Field>\n                    <Field status=\"warning\" statusMessage=\"This username is already taken — try adding a number.\">\n                        <FieldLabel>Username</FieldLabel>\n                        <FieldControl defaultValue=\"sarah_chen\" />\n                    </Field>\n                    <Field status=\"success\" statusMessage=\"URL is valid and reachable.\">\n                        <FieldLabel>Website</FieldLabel>\n                        <FieldControl defaultValue=\"https://sarahchen.dev\" />\n                    </Field>\n                    <Field status=\"error\">\n                        <FieldLabel>Status without message</FieldLabel>\n                        <FieldControl defaultValue=\"test\" />\n                    </Field>\n                    <Field loading>\n                        <FieldLabel>Loading field</FieldLabel>\n                        <FieldControl defaultValue=\"sarahc\" />\n                    </Field>\n                </Stack>\n            </Section>\n\n            <Section title=\"FieldStatus · detached (for checkboxes/switches/custom controls)\">\n                <Stack className=\"max-w-sm\">\n                    <FieldStatus status=\"error\" attached={false}>\n                        This field is required\n                    </FieldStatus>\n                    <FieldStatus status=\"success\" attached={false}>\n                        Your changes have been saved\n                    </FieldStatus>\n                </Stack>\n            </Section>\n        </>\n    );\n}"
+    "usageExample": "import {\n    Field,\n    FieldLabel,\n    FieldControl,\n    FieldDescription,\n    FieldError,\n    FieldStatus,\n    Textarea,\n} from \"@wizeworks/silicaui-react\";\nimport { Section, Stack } from \"../lib/Section\";\n\nexport function FieldDemo() {\n    return (\n        <>\n            <Section title=\"Real use · required field with description\">\n                <Field className=\"max-w-sm\">\n                    <FieldLabel required>Full name</FieldLabel>\n                    <FieldControl required placeholder=\"Ada Lovelace\" />\n                    <FieldDescription>As it appears on your ID.</FieldDescription>\n                    <FieldError />\n                </Field>\n            </Section>\n\n            <Section title=\"Non-input control via render (Textarea)\">\n                <Field className=\"max-w-sm\">\n                    <FieldLabel>Bio</FieldLabel>\n                    <FieldControl render={<Textarea rows={3} />} />\n                    <FieldDescription>Shown on your public profile.</FieldDescription>\n                </Field>\n            </Section>\n\n            <Section title=\"Disabled\">\n                <Stack className=\"max-w-sm\">\n                    <Field disabled>\n                        <FieldLabel>Organization</FieldLabel>\n                        <FieldControl defaultValue=\"Silica UI\" />\n                    </Field>\n                    <Field disabled disabledMessage=\"Contact your admin to change this.\">\n                        <FieldLabel>Billing plan</FieldLabel>\n                        <FieldControl defaultValue=\"Enterprise\" />\n                    </Field>\n                </Stack>\n            </Section>\n\n            <Section title=\"FieldStatus · attached (border+icon+message panel)\">\n                <Stack className=\"max-w-sm\">\n                    <Field status=\"error\" statusMessage=\"Please enter a valid email address.\">\n                        <FieldLabel>Email</FieldLabel>\n                        <FieldControl defaultValue=\"sarah@\" />\n                    </Field>\n                    <Field status=\"warning\" statusMessage=\"This username is already taken — try adding a number.\">\n                        <FieldLabel>Username</FieldLabel>\n                        <FieldControl defaultValue=\"sarah_chen\" />\n                    </Field>\n                    <Field status=\"success\" statusMessage=\"URL is valid and reachable.\">\n                        <FieldLabel>Website</FieldLabel>\n                        <FieldControl defaultValue=\"https://sarahchen.dev\" />\n                    </Field>\n                    <Field status=\"error\">\n                        <FieldLabel>Status without message</FieldLabel>\n                        <FieldControl defaultValue=\"test\" />\n                    </Field>\n                    <Field status=\"error\" statusMessage=\"Key is required.\">\n                        <FieldLabel required>Key</FieldLabel>\n                        <FieldControl placeholder=\"case_study\" />\n                        <FieldDescription>\n                            Immutable URL-safe identifier (lowercase, underscores).\n                        </FieldDescription>\n                    </Field>\n                    <Field loading>\n                        <FieldLabel>Loading field</FieldLabel>\n                        <FieldControl defaultValue=\"sarahc\" />\n                    </Field>\n                </Stack>\n            </Section>\n\n            <Section title=\"FieldStatus · detached (for checkboxes/switches/custom controls)\">\n                <Stack className=\"max-w-sm\">\n                    <FieldStatus status=\"error\" attached={false}>\n                        This field is required\n                    </FieldStatus>\n                    <FieldStatus status=\"success\" attached={false}>\n                        Your changes have been saved\n                    </FieldStatus>\n                </Stack>\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "Fieldset",
@@ -6782,7 +6782,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Advanced / composite",
     "sourceFile": "silicaui-react/src/toolbar.tsx",
-    "description": "Silica Toolbar — a group of controls with roving arrow-key focus. <Toolbar aria-label=\"Formatting\"> <ToolbarButton><BoldIcon /></ToolbarButton> <ToolbarButton><ItalicIcon /></ToolbarButton> <ToolbarSeparator /> <ToolbarLink href=\"/help\">Help</ToolbarLink> </Toolbar>",
+    "description": "Silica Toolbar — a group of controls with roving arrow-key focus. <Toolbar aria-label=\"Formatting\"> <ToolbarButton><BoldIcon /></ToolbarButton> <ToolbarButton><ItalicIcon /></ToolbarButton> <ToolbarSeparator /> <ToolbarLink href=\"/help\">Help</ToolbarLink> </Toolbar> For a start/center/end layout (e.g. centered tabs with actions on either side), give the bar exactly 3 direct children — a start child, a `<ToolbarCenter>`, and an end child: <Toolbar aria-label=\"Section navigation\"> <ToolbarGroup>...</ToolbarGroup> <ToolbarCenter><ToolbarGroup>...tabs...</ToolbarGroup></ToolbarCenter> <ToolbarGroup>...</ToolbarGroup> </Toolbar>",
     "props": [
       {
         "name": "ToolbarProps",
@@ -6803,9 +6803,13 @@
       {
         "name": "ToolbarSeparatorProps",
         "members": []
+      },
+      {
+        "name": "ToolbarCenterProps",
+        "members": []
       }
     ],
-    "usageExample": "import { useState } from \"react\";\nimport {\n    Toolbar,\n    ToolbarButton,\n    ToolbarGroup,\n    ToolbarLink,\n    ToolbarSeparator,\n} from \"@wizeworks/silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nfunction BoldIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z\" strokeLinejoin=\"round\" />\n        </svg>\n    );\n}\nfunction ItalicIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M15 4h-5M14 20H9M14 4l-4 16\" strokeLinecap=\"round\" />\n        </svg>\n    );\n}\nfunction UnderlineIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M7 4v6a5 5 0 0 0 10 0V4M6 21h12\" strokeLinecap=\"round\" />\n        </svg>\n    );\n}\n\nexport function ToolbarDemo() {\n    const [format, setFormat] = useState<string[]>([\"bold\"]);\n\n    const toggle = (key: string) =>\n        setFormat((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));\n\n    return (\n        <Section title=\"Real use · text formatting toolbar\">\n            <Toolbar aria-label=\"Formatting\">\n                <ToolbarGroup>\n                    <ToolbarButton\n                        aria-pressed={format.includes(\"bold\")}\n                        onClick={() => toggle(\"bold\")}\n                    >\n                        <BoldIcon />\n                    </ToolbarButton>\n                    <ToolbarButton\n                        aria-pressed={format.includes(\"italic\")}\n                        onClick={() => toggle(\"italic\")}\n                    >\n                        <ItalicIcon />\n                    </ToolbarButton>\n                    <ToolbarButton\n                        aria-pressed={format.includes(\"underline\")}\n                        onClick={() => toggle(\"underline\")}\n                    >\n                        <UnderlineIcon />\n                    </ToolbarButton>\n                </ToolbarGroup>\n                <ToolbarSeparator />\n                <ToolbarLink href=\"#\">Help</ToolbarLink>\n            </Toolbar>\n        </Section>\n    );\n}"
+    "usageExample": "import { useState } from \"react\";\nimport {\n    Toolbar,\n    ToolbarButton,\n    ToolbarCenter,\n    ToolbarGroup,\n    ToolbarLink,\n    ToolbarSeparator,\n} from \"@wizeworks/silicaui-react\";\nimport { Section, Stack } from \"../lib/Section\";\n\nfunction BoldIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z\" strokeLinejoin=\"round\" />\n        </svg>\n    );\n}\nfunction ItalicIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M15 4h-5M14 20H9M14 4l-4 16\" strokeLinecap=\"round\" />\n        </svg>\n    );\n}\nfunction UnderlineIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M7 4v6a5 5 0 0 0 10 0V4M6 21h12\" strokeLinecap=\"round\" />\n        </svg>\n    );\n}\nfunction PlusIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M12 5v14M5 12h14\" strokeLinecap=\"round\" />\n        </svg>\n    );\n}\nfunction TrashIcon() {\n    return (\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\">\n            <path d=\"M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n        </svg>\n    );\n}\n\nexport function ToolbarDemo() {\n    const [format, setFormat] = useState<string[]>([\"bold\"]);\n\n    const toggle = (key: string) =>\n        setFormat((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));\n\n    return (\n        <>\n            <Section title=\"Real use · text formatting toolbar\">\n                <Toolbar aria-label=\"Formatting\">\n                    <ToolbarGroup>\n                        <ToolbarButton\n                            aria-pressed={format.includes(\"bold\")}\n                            onClick={() => toggle(\"bold\")}\n                        >\n                            <BoldIcon />\n                        </ToolbarButton>\n                        <ToolbarButton\n                            aria-pressed={format.includes(\"italic\")}\n                            onClick={() => toggle(\"italic\")}\n                        >\n                            <ItalicIcon />\n                        </ToolbarButton>\n                        <ToolbarButton\n                            aria-pressed={format.includes(\"underline\")}\n                            onClick={() => toggle(\"underline\")}\n                        >\n                            <UnderlineIcon />\n                        </ToolbarButton>\n                    </ToolbarGroup>\n                    <ToolbarSeparator />\n                    <ToolbarLink href=\"#\">Help</ToolbarLink>\n                </Toolbar>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <Stack className=\"items-start\">\n                    {([\"sm\", \"md\", \"lg\"] as const).map((size) => (\n                        <Toolbar key={size} aria-label={`${size} toolbar`} size={size}>\n                            <ToolbarButton>\n                                <PlusIcon />\n                                Add\n                            </ToolbarButton>\n                            <ToolbarSeparator />\n                            <ToolbarLink href=\"#\">{size}</ToolbarLink>\n                        </Toolbar>\n                    ))}\n                </Stack>\n            </Section>\n\n            <Section title=\"Variant + dividers · bulk-selection bar\">\n                <div className=\"w-full max-w-md rounded-box border border-base-300\">\n                    <Toolbar aria-label=\"Bulk actions\" size=\"sm\" variant=\"muted\" dividers=\"bottom\" className=\"w-full\">\n                        <ToolbarGroup>\n                            <span className=\"px-1 text-xs font-medium opacity-70\">3 selected</span>\n                        </ToolbarGroup>\n                        <ToolbarSeparator />\n                        <ToolbarGroup>\n                            <ToolbarButton>\n                                <TrashIcon />\n                            </ToolbarButton>\n                        </ToolbarGroup>\n                        <ToolbarLink href=\"#\" className=\"ml-auto\">\n                            Deselect all\n                        </ToolbarLink>\n                    </Toolbar>\n                    <div className=\"p-4 text-sm opacity-60\">…table content…</div>\n                </div>\n            </Section>\n\n            <Section title=\"Dividers · card header\">\n                <div className=\"w-full max-w-md rounded-box border border-base-300\">\n                    <Toolbar aria-label=\"Card actions\" dividers=\"bottom\" className=\"w-full\">\n                        <span className=\"px-1 text-sm font-semibold\">Card title</span>\n                        <ToolbarButton className=\"ml-auto\">\n                            <PlusIcon />\n                        </ToolbarButton>\n                    </Toolbar>\n                    <div className=\"p-4 text-sm opacity-60\">…card content…</div>\n                </div>\n            </Section>\n\n            <Section title=\"Center region · start / center / end\">\n                <div className=\"w-full max-w-md rounded-box border border-base-300\">\n                    <Toolbar aria-label=\"Section navigation\" dividers=\"bottom\" className=\"w-full\">\n                        <ToolbarGroup />\n                        <ToolbarCenter>\n                            <ToolbarGroup>\n                                <ToolbarButton aria-pressed={true}>Overview</ToolbarButton>\n                                <ToolbarButton aria-pressed={false}>Analytics</ToolbarButton>\n                                <ToolbarButton aria-pressed={false}>Settings</ToolbarButton>\n                            </ToolbarGroup>\n                        </ToolbarCenter>\n                        <ToolbarGroup>\n                            <ToolbarButton>\n                                <PlusIcon />\n                            </ToolbarButton>\n                        </ToolbarGroup>\n                    </Toolbar>\n                </div>\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "TreeView",
@@ -8427,6 +8431,16 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
+    "sourceFile": "silicaui-html/src/component.ts:989"
+  },
+  {
+    "name": "ToolbarCenter",
+    "package": "@wizeworks/silicaui-html",
+    "category": "nav",
+    "label": "ToolbarCenter",
+    "icon": "box",
+    "container": true,
+    "behaviors": [],
     "sourceFile": "silicaui-html/src/component.ts"
   },
   {
@@ -8437,7 +8451,7 @@
     "icon": "sidebarTrigger",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:991"
+    "sourceFile": "silicaui-html/src/component.ts:1010"
   },
   {
     "name": "InputGroupButton",
@@ -8447,7 +8461,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:999"
+    "sourceFile": "silicaui-html/src/component.ts:1018"
   },
   {
     "name": "ToolbarButton",
@@ -8457,7 +8471,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1007"
+    "sourceFile": "silicaui-html/src/component.ts:1026"
   },
   {
     "name": "ToolbarLink",
@@ -8467,7 +8481,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1015"
+    "sourceFile": "silicaui-html/src/component.ts:1034"
   },
   {
     "name": "ToolbarSeparator",
@@ -8477,7 +8491,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1023"
+    "sourceFile": "silicaui-html/src/component.ts:1042"
   },
   {
     "name": "ClickableCard",
@@ -8487,7 +8501,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1032"
+    "sourceFile": "silicaui-html/src/component.ts:1051"
   },
   {
     "name": "SearchInput",
@@ -8497,7 +8511,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1048"
+    "sourceFile": "silicaui-html/src/component.ts:1067"
   },
   {
     "name": "PasswordInput",
@@ -8507,7 +8521,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1055"
+    "sourceFile": "silicaui-html/src/component.ts:1074"
   },
   {
     "name": "CheckboxGroup",
@@ -8517,7 +8531,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1065"
+    "sourceFile": "silicaui-html/src/component.ts:1084"
   },
   {
     "name": "CheckboxOption",
@@ -8527,7 +8541,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1073"
+    "sourceFile": "silicaui-html/src/component.ts:1092"
   },
   {
     "name": "Swap",
@@ -8537,7 +8551,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1086"
+    "sourceFile": "silicaui-html/src/component.ts:1105"
   },
   {
     "name": "Display",
@@ -8547,7 +8561,7 @@
     "icon": "heading",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1100"
+    "sourceFile": "silicaui-html/src/component.ts:1119"
   },
   {
     "name": "Timestamp",
@@ -8557,7 +8571,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1115"
+    "sourceFile": "silicaui-html/src/component.ts:1134"
   },
   {
     "name": "EmptyState",
@@ -8567,7 +8581,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1149"
+    "sourceFile": "silicaui-html/src/component.ts:1168"
   },
   {
     "name": "RadioGroup",
@@ -8577,7 +8591,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1168"
+    "sourceFile": "silicaui-html/src/component.ts:1187"
   },
   {
     "name": "RadioOption",
@@ -8587,7 +8601,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1176"
+    "sourceFile": "silicaui-html/src/component.ts:1195"
   },
   {
     "name": "Stats",
@@ -8607,7 +8621,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1192"
+    "sourceFile": "silicaui-html/src/component.ts:1211"
   },
   {
     "name": "RadialProgress",
@@ -8617,7 +8631,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1206"
+    "sourceFile": "silicaui-html/src/component.ts:1225"
   },
   {
     "name": "Accordion",
@@ -8629,7 +8643,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1239"
+    "sourceFile": "silicaui-html/src/component.ts:1258"
   },
   {
     "name": "AccordionItem",
@@ -8649,7 +8663,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1255"
+    "sourceFile": "silicaui-html/src/component.ts:1274"
   },
   {
     "name": "AccordionPanel",
@@ -8659,7 +8673,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1267"
+    "sourceFile": "silicaui-html/src/component.ts:1286"
   },
   {
     "name": "Collapsible",
@@ -8671,7 +8685,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1283"
+    "sourceFile": "silicaui-html/src/component.ts:1302"
   },
   {
     "name": "CollapsibleTrigger",
@@ -8681,7 +8695,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1295"
+    "sourceFile": "silicaui-html/src/component.ts:1314"
   },
   {
     "name": "CollapsiblePanel",
@@ -8691,7 +8705,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1307"
+    "sourceFile": "silicaui-html/src/component.ts:1326"
   },
   {
     "name": "Carousel",
@@ -8703,7 +8717,7 @@
     "behaviors": [
       "carousel"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1325"
+    "sourceFile": "silicaui-html/src/component.ts:1344"
   },
   {
     "name": "CarouselItem",
@@ -8713,7 +8727,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1359"
+    "sourceFile": "silicaui-html/src/component.ts:1378"
   },
   {
     "name": "DropdownMenu",
@@ -8725,7 +8739,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1376"
+    "sourceFile": "silicaui-html/src/component.ts:1395"
   },
   {
     "name": "DropdownMenuTrigger",
@@ -8735,7 +8749,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1388"
+    "sourceFile": "silicaui-html/src/component.ts:1407"
   },
   {
     "name": "DropdownMenuContent",
@@ -8745,7 +8759,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1400"
+    "sourceFile": "silicaui-html/src/component.ts:1419"
   },
   {
     "name": "DropdownMenuItem",
@@ -8755,7 +8769,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1412"
+    "sourceFile": "silicaui-html/src/component.ts:1431"
   },
   {
     "name": "Tabs",
@@ -8767,7 +8781,7 @@
     "behaviors": [
       "tabs"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1427"
+    "sourceFile": "silicaui-html/src/component.ts:1446"
   },
   {
     "name": "TabsList",
@@ -8787,7 +8801,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1440"
+    "sourceFile": "silicaui-html/src/component.ts:1459"
   },
   {
     "name": "TabsPanel",
@@ -8797,7 +8811,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1452"
+    "sourceFile": "silicaui-html/src/component.ts:1471"
   },
   {
     "name": "Outline",
@@ -8809,7 +8823,7 @@
     "behaviors": [
       "toc"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1469"
+    "sourceFile": "silicaui-html/src/component.ts:1488"
   },
   {
     "name": "Dialog",
@@ -8821,7 +8835,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1502"
+    "sourceFile": "silicaui-html/src/component.ts:1521"
   },
   {
     "name": "DialogTrigger",
@@ -8831,7 +8845,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1514"
+    "sourceFile": "silicaui-html/src/component.ts:1533"
   },
   {
     "name": "DialogBackdrop",
@@ -8841,7 +8855,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1526"
+    "sourceFile": "silicaui-html/src/component.ts:1545"
   },
   {
     "name": "DialogContent",
@@ -8851,7 +8865,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1537"
+    "sourceFile": "silicaui-html/src/component.ts:1556"
   },
   {
     "name": "DialogClose",
@@ -8861,7 +8875,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1552"
+    "sourceFile": "silicaui-html/src/component.ts:1571"
   },
   {
     "name": "DialogTitle",
@@ -8893,7 +8907,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1570"
+    "sourceFile": "silicaui-html/src/component.ts:1589"
   },
   {
     "name": "DrawerTrigger",
@@ -8903,7 +8917,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1582"
+    "sourceFile": "silicaui-html/src/component.ts:1601"
   },
   {
     "name": "DrawerBackdrop",
@@ -8913,7 +8927,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1594"
+    "sourceFile": "silicaui-html/src/component.ts:1613"
   },
   {
     "name": "DrawerContent",
@@ -8923,7 +8937,7 @@
     "icon": "sidebar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1605"
+    "sourceFile": "silicaui-html/src/component.ts:1624"
   },
   {
     "name": "DrawerClose",
@@ -8933,7 +8947,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1621"
+    "sourceFile": "silicaui-html/src/component.ts:1640"
   },
   {
     "name": "DrawerTitle",
@@ -8965,7 +8979,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1640"
+    "sourceFile": "silicaui-html/src/component.ts:1659"
   },
   {
     "name": "AlertDialogTrigger",
@@ -8975,7 +8989,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1652"
+    "sourceFile": "silicaui-html/src/component.ts:1671"
   },
   {
     "name": "AlertDialogBackdrop",
@@ -8985,7 +8999,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1664"
+    "sourceFile": "silicaui-html/src/component.ts:1683"
   },
   {
     "name": "AlertDialogContent",
@@ -8995,7 +9009,7 @@
     "icon": "warning",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1675"
+    "sourceFile": "silicaui-html/src/component.ts:1694"
   },
   {
     "name": "AlertDialogClose",
@@ -9005,7 +9019,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1690"
+    "sourceFile": "silicaui-html/src/component.ts:1709"
   },
   {
     "name": "AlertDialogCancel",
@@ -9015,7 +9029,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1702"
+    "sourceFile": "silicaui-html/src/component.ts:1721"
   },
   {
     "name": "AlertDialogAction",
@@ -9025,7 +9039,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1714"
+    "sourceFile": "silicaui-html/src/component.ts:1733"
   },
   {
     "name": "AlertDialogTitle",
@@ -9057,7 +9071,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1732"
+    "sourceFile": "silicaui-html/src/component.ts:1751"
   },
   {
     "name": "LightboxTrigger",
@@ -9067,7 +9081,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1744"
+    "sourceFile": "silicaui-html/src/component.ts:1763"
   },
   {
     "name": "LightboxBackdrop",
@@ -9077,7 +9091,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1756"
+    "sourceFile": "silicaui-html/src/component.ts:1775"
   },
   {
     "name": "LightboxContent",
@@ -9087,7 +9101,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1767"
+    "sourceFile": "silicaui-html/src/component.ts:1786"
   },
   {
     "name": "LightboxSlide",
@@ -9097,7 +9111,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1782"
+    "sourceFile": "silicaui-html/src/component.ts:1801"
   },
   {
     "name": "LightboxPrev",
@@ -9107,7 +9121,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1794"
+    "sourceFile": "silicaui-html/src/component.ts:1813"
   },
   {
     "name": "LightboxNext",
@@ -9117,7 +9131,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1808"
+    "sourceFile": "silicaui-html/src/component.ts:1827"
   },
   {
     "name": "LightboxClose",
@@ -9127,7 +9141,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1822"
+    "sourceFile": "silicaui-html/src/component.ts:1841"
   },
   {
     "name": "LightboxCounter",
@@ -9137,7 +9151,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1837"
+    "sourceFile": "silicaui-html/src/component.ts:1856"
   },
   {
     "name": "CommandPalette",
@@ -9149,7 +9163,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1852"
+    "sourceFile": "silicaui-html/src/component.ts:1871"
   },
   {
     "name": "CommandPaletteBackdrop",
@@ -9159,7 +9173,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1867"
+    "sourceFile": "silicaui-html/src/component.ts:1886"
   },
   {
     "name": "CommandPaletteContent",
@@ -9169,7 +9183,7 @@
     "icon": "search",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1878"
+    "sourceFile": "silicaui-html/src/component.ts:1897"
   },
   {
     "name": "CommandPaletteInput",
@@ -9179,7 +9193,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1893"
+    "sourceFile": "silicaui-html/src/component.ts:1912"
   },
   {
     "name": "CommandPaletteItem",
@@ -9189,7 +9203,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1906"
+    "sourceFile": "silicaui-html/src/component.ts:1925"
   },
   {
     "name": "Popover",
@@ -9201,7 +9215,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1923"
+    "sourceFile": "silicaui-html/src/component.ts:1942"
   },
   {
     "name": "PopoverTrigger",
@@ -9211,7 +9225,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1935"
+    "sourceFile": "silicaui-html/src/component.ts:1954"
   },
   {
     "name": "PopoverContent",
@@ -9221,7 +9235,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1947"
+    "sourceFile": "silicaui-html/src/component.ts:1966"
   },
   {
     "name": "PopoverClose",
@@ -9231,7 +9245,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1959"
+    "sourceFile": "silicaui-html/src/component.ts:1978"
   },
   {
     "name": "PopoverTitle",
@@ -9263,7 +9277,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1977"
+    "sourceFile": "silicaui-html/src/component.ts:1996"
   },
   {
     "name": "TooltipTrigger",
@@ -9273,7 +9287,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1989"
+    "sourceFile": "silicaui-html/src/component.ts:2008"
   },
   {
     "name": "TooltipContent",
@@ -9283,7 +9297,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2001"
+    "sourceFile": "silicaui-html/src/component.ts:2020"
   },
   {
     "name": "PreviewCard",
@@ -9295,7 +9309,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2016"
+    "sourceFile": "silicaui-html/src/component.ts:2035"
   },
   {
     "name": "PreviewCardTrigger",
@@ -9305,7 +9319,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2028"
+    "sourceFile": "silicaui-html/src/component.ts:2047"
   },
   {
     "name": "PreviewCardContent",
@@ -9315,7 +9329,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2040"
+    "sourceFile": "silicaui-html/src/component.ts:2059"
   },
   {
     "name": "ContextMenu",
@@ -9327,7 +9341,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2058"
+    "sourceFile": "silicaui-html/src/component.ts:2077"
   },
   {
     "name": "ContextMenuTrigger",
@@ -9337,7 +9351,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2070"
+    "sourceFile": "silicaui-html/src/component.ts:2089"
   },
   {
     "name": "ContextMenuContent",
@@ -9347,7 +9361,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2082"
+    "sourceFile": "silicaui-html/src/component.ts:2101"
   },
   {
     "name": "ContextMenuItem",
@@ -9357,7 +9371,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2094"
+    "sourceFile": "silicaui-html/src/component.ts:2113"
   },
   {
     "name": "Menubar",
@@ -9379,7 +9393,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2112"
+    "sourceFile": "silicaui-html/src/component.ts:2131"
   },
   {
     "name": "MenubarTrigger",
@@ -9389,7 +9403,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2124"
+    "sourceFile": "silicaui-html/src/component.ts:2143"
   },
   {
     "name": "MenubarContent",
@@ -9399,7 +9413,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2136"
+    "sourceFile": "silicaui-html/src/component.ts:2155"
   },
   {
     "name": "MenubarItem",
@@ -9409,7 +9423,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2148"
+    "sourceFile": "silicaui-html/src/component.ts:2167"
   },
   {
     "name": "NavigationMenu",
@@ -9431,7 +9445,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2166"
+    "sourceFile": "silicaui-html/src/component.ts:2185"
   },
   {
     "name": "NavigationMenuTrigger",
@@ -9441,7 +9455,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2178"
+    "sourceFile": "silicaui-html/src/component.ts:2197"
   },
   {
     "name": "NavigationMenuContent",
@@ -9451,7 +9465,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2190"
+    "sourceFile": "silicaui-html/src/component.ts:2209"
   },
   {
     "name": "NavigationMenuLink",
@@ -9461,7 +9475,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2202"
+    "sourceFile": "silicaui-html/src/component.ts:2221"
   },
   {
     "name": "Combobox",
@@ -9473,7 +9487,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2217"
+    "sourceFile": "silicaui-html/src/component.ts:2236"
   },
   {
     "name": "Autocomplete",
@@ -9485,7 +9499,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2224"
+    "sourceFile": "silicaui-html/src/component.ts:2243"
   },
   {
     "name": "MultiSelect",
@@ -9497,7 +9511,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2231"
+    "sourceFile": "silicaui-html/src/component.ts:2250"
   },
   {
     "name": "DateInput",
@@ -9509,7 +9523,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2243"
+    "sourceFile": "silicaui-html/src/component.ts:2262"
   },
   {
     "name": "DateRangeInput",
@@ -9521,7 +9535,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2261"
+    "sourceFile": "silicaui-html/src/component.ts:2280"
   },
   {
     "name": "DateTimeInput",
@@ -9533,7 +9547,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2277"
+    "sourceFile": "silicaui-html/src/component.ts:2296"
   },
   {
     "name": "TimeInput",
@@ -9545,7 +9559,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2303"
+    "sourceFile": "silicaui-html/src/component.ts:2322"
   },
   {
     "name": "PinInput",
@@ -9557,7 +9571,7 @@
     "behaviors": [
       "pin-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2329"
+    "sourceFile": "silicaui-html/src/component.ts:2348"
   },
   {
     "name": "Calendar",
@@ -9569,7 +9583,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2374"
+    "sourceFile": "silicaui-html/src/component.ts:2393"
   },
   {
     "name": "DatePicker",
@@ -9581,7 +9595,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2386"
+    "sourceFile": "silicaui-html/src/component.ts:2405"
   },
   {
     "name": "DatePickerTrigger",
@@ -9591,7 +9605,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2398"
+    "sourceFile": "silicaui-html/src/component.ts:2417"
   },
   {
     "name": "DatePickerContent",
@@ -9603,7 +9617,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2410"
+    "sourceFile": "silicaui-html/src/component.ts:2429"
   },
   {
     "name": "DateRangePicker",
@@ -9615,7 +9629,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2424"
+    "sourceFile": "silicaui-html/src/component.ts:2443"
   },
   {
     "name": "DateRangePickerTrigger",
@@ -9625,7 +9639,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2436"
+    "sourceFile": "silicaui-html/src/component.ts:2455"
   },
   {
     "name": "DateRangePickerContent",
@@ -9637,7 +9651,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2448"
+    "sourceFile": "silicaui-html/src/component.ts:2467"
   },
   {
     "name": "TreeView",
@@ -9649,7 +9663,7 @@
     "behaviors": [
       "tree"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2468"
+    "sourceFile": "silicaui-html/src/component.ts:2487"
   },
   {
     "name": "TreeNode",
@@ -9659,7 +9673,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2480"
+    "sourceFile": "silicaui-html/src/component.ts:2499"
   },
   {
     "name": "TreeToggle",
@@ -9669,7 +9683,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2492"
+    "sourceFile": "silicaui-html/src/component.ts:2511"
   },
   {
     "name": "TreeGroup",
@@ -9679,7 +9693,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2506"
+    "sourceFile": "silicaui-html/src/component.ts:2525"
   },
   {
     "name": "Wizard",
@@ -9691,7 +9705,7 @@
     "behaviors": [
       "wizard"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2520"
+    "sourceFile": "silicaui-html/src/component.ts:2539"
   },
   {
     "name": "WizardStep",
@@ -9701,7 +9715,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2532"
+    "sourceFile": "silicaui-html/src/component.ts:2551"
   },
   {
     "name": "WizardPanel",
@@ -9711,7 +9725,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2546"
+    "sourceFile": "silicaui-html/src/component.ts:2565"
   },
   {
     "name": "WizardBack",
@@ -9721,7 +9735,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2558"
+    "sourceFile": "silicaui-html/src/component.ts:2577"
   },
   {
     "name": "WizardNext",
@@ -9731,7 +9745,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2570"
+    "sourceFile": "silicaui-html/src/component.ts:2589"
   },
   {
     "name": "NumberField",
@@ -9743,7 +9757,7 @@
     "behaviors": [
       "number-field"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2588"
+    "sourceFile": "silicaui-html/src/component.ts:2607"
   },
   {
     "name": "ToggleGroup",
@@ -9755,7 +9769,7 @@
     "behaviors": [
       "toggle-group"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2618"
+    "sourceFile": "silicaui-html/src/component.ts:2637"
   },
   {
     "name": "ToggleGroupItem",
@@ -9765,7 +9779,7 @@
     "icon": "toggle",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2636"
+    "sourceFile": "silicaui-html/src/component.ts:2655"
   },
   {
     "name": "Range",
@@ -9777,7 +9791,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2656"
+    "sourceFile": "silicaui-html/src/component.ts:2675"
   },
   {
     "name": "Slider",
@@ -9789,7 +9803,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2657"
+    "sourceFile": "silicaui-html/src/component.ts:2676"
   },
   {
     "name": "Switch",
@@ -9801,7 +9815,7 @@
     "behaviors": [
       "switch"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2663"
+    "sourceFile": "silicaui-html/src/component.ts:2682"
   },
   {
     "name": "Rating",
@@ -9813,7 +9827,7 @@
     "behaviors": [
       "rating"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2687"
+    "sourceFile": "silicaui-html/src/component.ts:2706"
   },
   {
     "name": "ScrollArea",
@@ -9825,7 +9839,7 @@
     "behaviors": [
       "scroll-area"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2723"
+    "sourceFile": "silicaui-html/src/component.ts:2742"
   },
   {
     "name": "OverflowList",
@@ -9837,7 +9851,7 @@
     "behaviors": [
       "overflow-list"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2743"
+    "sourceFile": "silicaui-html/src/component.ts:2762"
   },
   {
     "name": "OverflowListItem",
@@ -9847,7 +9861,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2768"
+    "sourceFile": "silicaui-html/src/component.ts:2787"
   },
   {
     "name": "Dropzone",
@@ -9859,7 +9873,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2785"
+    "sourceFile": "silicaui-html/src/component.ts:2804"
   },
   {
     "name": "FileUpload",
@@ -9871,7 +9885,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2786"
+    "sourceFile": "silicaui-html/src/component.ts:2805"
   },
   {
     "name": "PhoneInput",
@@ -9883,7 +9897,7 @@
     "behaviors": [
       "phone-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2792"
+    "sourceFile": "silicaui-html/src/component.ts:2811"
   },
   {
     "name": "ThemeController",
@@ -9895,7 +9909,7 @@
     "behaviors": [
       "theme-toggle"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2831"
+    "sourceFile": "silicaui-html/src/component.ts:2850"
   },
   {
     "name": "Overlay",
@@ -9905,7 +9919,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2853"
+    "sourceFile": "silicaui-html/src/component.ts:2872"
   },
   {
     "name": "OverlayScrim",
@@ -9915,6 +9929,6 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2861"
+    "sourceFile": "silicaui-html/src/component.ts:2880"
   }
 ]

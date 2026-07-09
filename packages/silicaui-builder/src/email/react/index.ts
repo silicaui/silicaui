@@ -10,6 +10,7 @@ export { EmailCanvas } from "./Canvas";
 export { EmailPreview } from "./EmailPreview";
 export { EmailPalette } from "./Palette";
 export { EmailInspector } from "./Inspector";
+export { Navigator as EmailNavigator } from "./Navigator";
 export { resolveEmailColorDefaults } from "./theme-defaults";
 export { useSavedBlocks, getSavedBlockNode } from "./saved-blocks";
 export type { SavedBlock } from "./saved-blocks";

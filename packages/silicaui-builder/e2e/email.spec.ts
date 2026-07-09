@@ -24,6 +24,13 @@ async function ready(page: Page): Promise<void> {
   await page.waitForSelector(".sui-email-canvas");
 }
 
+/** The left rail defaults to the Layers tab (the new Navigator) — switch to
+ *  Insert before looking up a `data-insert-key` palette row, same as the site
+ *  builder's specs do. */
+async function openInsert(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Insert", exact: true }).click();
+}
+
 test("renders the seeded section + text block with no error", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
@@ -34,7 +41,7 @@ test("renders the seeded section + text block with no error", async ({ page }) =
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("clicking a block selects it (overlay appears) and shows its fields", async ({ page }) => {
+test("clicking a block selects it (overlay appears) and shows its Design/Settings fields", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
@@ -43,13 +50,19 @@ test("clicking a block selects it (overlay appears) and shows its fields", async
   await text.click();
 
   await expect(page.locator(".sui-email-canvas .outline-primary").first()).toBeVisible();
-  await expect(page.getByText("Content", { exact: true })).toBeVisible();
+  // Design is the default tab — its Text group shows.
+  await expect(page.getByText("Text", { exact: true })).toBeVisible();
+  await expect(page.getByText("Font size", { exact: true })).toBeVisible();
+  // Settings holds the node's content.
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByText("Content", { exact: true }).first()).toBeVisible();
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
 test("inserting a Button from the palette adds it to the canvas and it's editable", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
+  await openInsert(page);
 
   await page.locator('[data-insert-key="button"]').click();
 
@@ -61,8 +74,9 @@ test("inserting a Button from the palette adds it to the canvas and it's editabl
   const buttonText = canvas.getByText("Shop now").first();
   await expect(buttonText).toBeVisible();
 
-  // Selecting it surfaces the Button fields; editing Label updates the canvas.
+  // Selecting it surfaces the Button fields (Settings tab: Label/Link).
   await buttonText.click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(page.getByText("Label", { exact: true })).toBeVisible();
   const labelInput = page.locator("label", { hasText: "Label" }).locator("input");
   await labelInput.fill("Get 20% off");
@@ -95,6 +109,7 @@ test("double-click a text block edits in place and commits", async ({ page }) =>
 test("move up / duplicate / delete act on the selected block via the Inspector toolbar", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
+  await openInsert(page);
 
   // Insert a divider so there are two siblings to reorder.
   await page.locator('[data-insert-key="divider"]').click();
@@ -118,7 +133,12 @@ test("Export HTML produces valid table-based markup with the current subject", a
   const errors = trackErrors(page);
   await ready(page);
 
-  // Set a subject via the empty-selection Email settings panel.
+  // Subject lives on the document root's Settings tab now (nothing-selected
+  // shows an EmptyState, same as the site builder) — select "Email" first.
+  // Click the row's own `.tree-node` (always the first in document order),
+  // not the `treeitem` <li> (whose bounding box spans its expanded children).
+  await page.locator(".tree-node").first().click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.locator("label", { hasText: "Subject" }).locator("input").fill("Weekend sale");
   await page.locator("label", { hasText: "Subject" }).locator("input").blur();
 
@@ -135,6 +155,7 @@ test("Export HTML produces valid table-based markup with the current subject", a
 test("dragging a palette item onto the canvas margin inserts it (drag-from-palette)", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
+  await openInsert(page);
 
   const canvas = page.locator(".sui-email-canvas");
   const before = await canvas.locator("[data-sui-id]").count();
@@ -159,6 +180,7 @@ test("dragging a block on the canvas reorders it (drag-to-reorder)", async ({ pa
   await page.keyboard.type("FIRST");
   await page.keyboard.press("ControlOrMeta+Enter");
 
+  await openInsert(page);
   await page.locator('[data-insert-key="text"]').click(); // inserts after the selected FIRST block
   await canvas.getByText("Write something…").first().dblclick();
   await page.keyboard.press("ControlOrMeta+a");
@@ -194,9 +216,11 @@ test("the rich text toolbar bolds the selected text", async ({ page }) => {
   const text = canvas.getByText("Start writing your email…").first();
   await text.dblclick();
 
-  // Select all the text inside the now-editable field, then click Bold.
+  // Select all the text inside the now-editable field, then click Bold. Scoped
+  // to its exact title (not a name regex) — the Inspector's Weight chip is
+  // also labeled "Bold" and is visible at the same time.
   await page.keyboard.press("ControlOrMeta+a");
-  await page.getByRole("button", { name: /^bold/i }).click();
+  await page.getByRole("button", { name: "Bold (Ctrl/Cmd+B)" }).click();
 
   // Commit the edit and confirm the HTML actually carries a <b>/<strong>.
   await page.keyboard.press("ControlOrMeta+Enter");
@@ -209,6 +233,7 @@ test("the rich text toolbar bolds the selected text", async ({ page }) => {
 test("inserting Social/Video/HTML blocks renders them on the canvas", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
+  await openInsert(page);
 
   const canvas = page.locator(".sui-email-canvas");
   await page.locator('[data-insert-key="social"]').click();
@@ -232,6 +257,7 @@ test("saving a block adds it to the palette, inserts a copy, and can be deleted"
   await page.evaluate(() => localStorage.removeItem("silicaui-email-saved-blocks"));
   await page.reload();
   await ready(page);
+  await openInsert(page);
 
   const canvas = page.locator(".sui-email-canvas");
   await canvas.getByText("Start writing your email…").first().click();
