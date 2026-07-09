@@ -1,5 +1,13 @@
 # @wizeworks/silicaui-table
 
+## 0.9.0
+
+### Minor Changes
+
+- e8bd507: Toolbar: add `size` ("sm"/"md"/"lg"), `variant` ("muted"), `dividers` ("top"/"bottom"/"both"), and a `ToolbarCenter` region for start/center/end layouts (e.g. centered tabs with actions on either side).
+
+  Email builder: add a Navigator (layers) panel to the left rail, mirroring the site builder's tree view; text blocks gain a `fontWeight` control and the color palette now exposes the full set of semantic roles (secondary/accent/neutral/info/success/warning/error), not just primary/base.
+
 ## 0.8.0
 
 ## 0.7.0
