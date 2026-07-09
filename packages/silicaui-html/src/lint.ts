@@ -19,24 +19,45 @@ export interface LintIssue {
 
 const VIEWPORT: ReadonlySet<string> = new Set(["sm", "md", "lg", "xl", "2xl"]);
 
+export interface ClassDenial {
+  rule: string;
+  message: string;
+}
+
+/**
+ * The security-load-bearing denylist, factored out so it's ONE set of rules
+ * shared by this build-time block linter AND the runtime `class-policy.ts`
+ * floor a live builder enforces on every class-string commit — not two
+ * independently-maintained copies. Viewport-variant banning stays linter-only
+ * below (it's a blocks-authoring convention, not a live-editing security
+ * concern — a live document isn't restricted to container queries).
+ */
+export function deniedToken(token: string): ClassDenial | undefined {
+  const segs = token.split(":");
+  const base = segs[segs.length - 1] ?? token;
+  if (base === "fixed") {
+    return { rule: "no-fixed", message: "`fixed` is banned (full-viewport overlay vector)" };
+  }
+  if (base.startsWith("z-[")) {
+    return { rule: "no-arbitrary-z", message: "arbitrary `z-[…]` is banned; use the named z-scale" };
+  }
+  if (base.startsWith("content-[")) {
+    return { rule: "no-content", message: "`content-[…]` is banned (injection vector)" };
+  }
+  if (/url\(/i.test(token)) {
+    return { rule: "no-url", message: "`url(…)` in a class is banned (external load / exfiltration)" };
+  }
+  return undefined;
+}
+
 function lintClass(cls: string, hint: string, issues: LintIssue[]): void {
   for (const token of cls.split(/\s+/).filter(Boolean)) {
     const segs = token.split(":");
-    const base = segs[segs.length - 1] ?? token;
     const variants = segs.slice(0, -1);
 
-    if (base === "fixed") {
-      issues.push({ level: "error", rule: "no-fixed", message: "`fixed` is banned (full-viewport overlay vector)", node: hint });
-    }
-    if (base.startsWith("z-[")) {
-      issues.push({ level: "error", rule: "no-arbitrary-z", message: "arbitrary `z-[…]` is banned; use the named z-scale", node: hint });
-    }
-    if (base.startsWith("content-[")) {
-      issues.push({ level: "error", rule: "no-content", message: "`content-[…]` is banned (injection vector)", node: hint });
-    }
-    if (/url\(/i.test(token)) {
-      issues.push({ level: "error", rule: "no-url", message: "`url(…)` in a class is banned (external load / exfiltration)", node: hint });
-    }
+    const denial = deniedToken(token);
+    if (denial) issues.push({ level: "error", rule: denial.rule, message: denial.message, node: hint });
+
     for (const v of variants) {
       if (VIEWPORT.has(v)) {
         issues.push({ level: "error", rule: "no-viewport", message: `viewport variant \`${v}:\` is banned in blocks; use container queries (@…)`, node: hint });

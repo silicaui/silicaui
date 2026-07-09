@@ -16,20 +16,22 @@
 import * as React from "react";
 import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
+import { useHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
-import { paletteGroups } from "../palette";
-import type { PaletteItem } from "../palette";
+import { paletteGroups, mergeCatalog } from "../palette";
+import type { PaletteItem, PaletteGroup } from "../palette";
 import { nodeName } from "../node-display";
 import { DRAG_MIME, encodeDrag } from "../../shared/dnd";
 
-const GROUPS = paletteGroups();
+const DEFAULT_GROUPS = paletteGroups();
 
 /** Every item flattened once, tagged with its group — the search corpus. */
 interface FlatItem {
   item: PaletteItem;
   groupLabel: string;
 }
-const FLAT: FlatItem[] = GROUPS.flatMap((g) => g.items.map((item) => ({ item, groupLabel: g.label })));
+const flatten = (groups: readonly PaletteGroup[]): FlatItem[] =>
+  groups.flatMap((g) => g.items.map((item) => ({ item, groupLabel: g.label })));
 
 /**
  * Subsequence fuzzy score: `null` when `q`'s characters don't all appear in `t`
@@ -176,17 +178,24 @@ function TargetHint() {
 
 export function Palette() {
   const editor = useEditor();
+  const host = useHost();
   const [query, setQuery] = React.useState("");
   const q = query.trim();
 
-  // Ranked flat results while searching; recomputed only when the query changes.
+  // Host-merged groups (builder-contract.md §5) — recomputed only when the
+  // host's catalog() identity changes, not on every render.
+  const GROUPS = React.useMemo(() => mergeCatalog(DEFAULT_GROUPS, host?.catalog?.()), [host]);
+  const FLAT = React.useMemo(() => flatten(GROUPS), [GROUPS]);
+
+  // Ranked flat results while searching; recomputed only when the query (or the
+  // merged catalog) changes.
   const results = React.useMemo(() => {
     if (!q) return null;
     return FLAT.map((f) => ({ f, score: scoreItem(q, f) }))
       .filter((r): r is { f: FlatItem; score: number } => r.score != null)
       .sort((a, b) => b.score - a.score)
       .map((r) => r.f);
-  }, [q]);
+  }, [q, FLAT]);
 
   return (
     <div className="flex flex-col gap-3 px-1.5 py-2">

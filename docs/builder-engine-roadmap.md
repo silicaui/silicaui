@@ -1,11 +1,13 @@
 # The Builder Engine Roadmap — answers to the gap questions
 
-**Version:** 1.0
+**Version:** 1.1
 **Author:** Brandon Korous / WizeWorks (drafted with Claude)
 **Last Updated:** 2026-07-09
 **Answers:** [sparx's 119-silicaui-builder-gap-questions.md](../../sparx.works/docs/119-silicaui-builder-gap-questions.md)
 
 > **Purpose.** sparx's gap doc turned "should we adopt the engine?" into 19 generic design questions and proposed "candidate directions" for each. This doc **answers them** — not by re-stating the candidates, but by first auditing what `silicaui-builder` and `silicaui-html` **actually ship today** (2026-07-09), then deciding, sometimes agreeing with the candidate, sometimes proposing something better, grounded in sparx's own reference implementations where they exist. This is a decision record, not a spec — the concrete contract deltas it lands on get folded into [`builder-contract.md`](builder-contract.md) directly.
+>
+> **v1.1: Stage F1 and the F2 keystone are now SHIPPED**, same day as the decision (§6a). Every §7 contract delta below is landed, not aspirational — see §6a for the file-by-file inventory and what's still open.
 
 ---
 
@@ -153,15 +155,38 @@ Doc 118's Phase D-vs-F call: **F1 changes the calculus immediately** — it is c
 
 ---
 
+## 6a. Shipped (2026-07-09) — both stages landed, same day as the decision
+
+**Stage F1 — complete.**
+- `BuilderHost` (`silicaui-builder/src/site/react/host.ts`): `catalog`, `dataSources`, `validateClass`, `inspectorPanels`, `pickAsset`, plus F2's `resolveBinding`/`resolveCollection`. Wired onto `<Builder host={...} />` via a new `HostProvider`/`useHost()` (`host-context.tsx`); reactive for the render-affecting hooks, seeded-once (same lifecycle as `document`) for `validateClass` since it's baked into the `Editor` at construction (`EditorOptions`, `engine.ts`).
+- `catalog()` merge semantics (`mergeCatalog` in `palette.ts`, `extend`/`hide`) wired into both `Palette.tsx` (Insert panel) and `Canvas.tsx` (drag-and-drop insert resolution) — a host-extended item works identically to a built-in one, including drag.
+- `validateClass` composes with a new **non-optional, built-in floor**: `silicaui-html`'s `lint.ts` denylist (`fixed`/`z-[…]`/`content-[…]`/`url(…)`) is now also a *runtime* check (`class-policy.ts`: `validateClassString`, `composeValidators`, `buildClassValidator`), enforced on every `setClass` call, not just at block-authoring lint time. `ClassField`'s raw-class textarea now surfaces the rejection reason instead of silently no-opping.
+- `dataSources()` + engine-owned `scopeAt` (`silicaui-html/src/data-sources.ts`) power a real binding picker in `DataSection` — Reference becomes a `<select>` of ancestor-scoped fields instead of a raw ref text input when a host supplies it; falls back cleanly when it doesn't.
+- `inspectorPanels(node)` render as additive `Group`s in the Settings tab (`HostPanels` in `Inspector.tsx`), writing through the same `setProp`/`setAttr`/`setData`/`setClass` primitives the built-in panels use (`InspectorPanelCtx`) — never a second mutation API.
+- `pickAsset` wired into a new `"asset"` Inspector prop-control (Avatar's `src`) and the raw `<img>` accessibility section's new Source row.
+- **The raw-element/attribute security floor** (`silicaui-html/src/element.ts`, `RAW_ELEMENTS`/`GLOBAL_ATTRS`/`sanitizeElement`) — a closed tag+attribute whitelist, `aria-*`/`data-*` allowed by namespace (safe by construction; enumerating them individually only creates gaps, as `aria-current` briefly proved), everything else a closed positive list, `on*` excluded by never being enumerated, `rel=noopener` force-set on `target=_blank`, a URL scheme check on `href`/`src`. Enforced **unconditionally** in `to-html.ts` (the publish path) — and, a real gap the original audit under-scoped, in **`Canvas.tsx` too**: the live editor canvas had ZERO tag/attr sanitization before this (any string tag reached `React.createElement` directly), which is a more exploitable surface than the publish path since it's the builder's own browser session. Both now share the one `sanitizeElement` function.
+
+**Stage F2 — the keystone primitive is shipped; the canvas integration is intentionally scoped.**
+- `resolveTree(tree, host, scope?)` (`silicaui-html/src/resolve.ts`) — the single synchronous walker owning `value`/`collection` resolution together (repetition included, unlike sparx's own split between a shared leaf-renderer and two independently-implemented repeat loops — see §1). `DataScope = { item, index }` threads the real resolved item, not a path. `Resolved.visible` gives one conditional-visibility primitive with no expression language. Absent both hooks → identity, zero cost. 20 direct checks (`verify-resolve.mjs`, `pnpm verify`) cover value-fill, image-fill, visible:false dropping, empty-collection-shows-one-placeholder, no-resolver-shows-placeholder, action-nodes-untouched, and **nested repeats resolving each level against its own item** — the case that actually proves the single-walker design over sparx's split one.
+- **This is directly usable by any host today**, unchanged: `toHtml(resolveTree(page.root, { resolveBinding, resolveCollection }))` is the live-render call a host's own server route makes at real request time (Q3's "published-time resolution lives outside the editor, forever" — this doesn't change; `resolveTree` is what a host now has to do it *with*, replacing a hand-built `renderLeaf`-style runtime).
+- **The canvas integration was deliberately scoped down from "materialize repeats live in the editable tree."** Feeding `resolveTree`'s output (which clones/multiplies nodes without minting fresh ids) into the interactive canvas would break id-based selection, drag-and-drop, and inline-editing for anything inside a repeat — and conceptually you *edit the template*, not each resolved instance. Instead, the Inspector's `DataSection` grew a live **Preview** row (`DataPreview` in `Inspector.tsx`) that calls `host.resolveBinding`/`resolveCollection` directly against the node being edited (scope `{}` — a bind nested under a `repeat` ancestor says so rather than guessing a representative item) — real data visible while authoring, zero risk to the extensively-tested canvas render/selection/drag machinery. **Full interactive per-item canvas rendering of a resolved repeat remains a real, open follow-on**, not something this landing claims to have solved.
+- e2e: `host-seam.spec.ts` (`silicaui-builder/e2e/`) covers `catalog` extend+drag, `validateClass` (built-in floor AND host policy both rejecting, independently), `inspectorPanels` writing through the shared ctx, `dataSources`/`scopeAt` picker, and the Preview row (value, visible:false, and collection count) — mounted via a new `?host=demo` harness switch (`harness/main.tsx`) exercising every hook.
+
+All of the above: typechecks clean in both packages, and the full e2e suite (64 tests, single-worker to rule out cross-test flakiness) passes with zero regressions.
+
+**What's still genuinely open, not done here:** the interactive per-item canvas repeat rendering noted above; richer type-directed value-filling in `resolveTree` (currently a pragmatic text/`src` heuristic, not a slot-type-keyed registry); Q7–Q18's items the roadmap already marked "adequate as shipped" or "host-owned by design" were re-confirmed by this pass, not re-touched.
+
+---
+
 ## 7. What this changes in `builder-contract.md`
 
-Concrete deltas to land there directly (companion edit, this session):
-- §3: `resolveBinding`/`resolveCollection` → synchronous only, drop `| Promise<...>`.
-- §3: `DataScope` → `{ item?: unknown; index?: number }`, replacing the path-array shape.
-- §3: `Resolved` → add `visible?: boolean`.
-- §3: new `resolveTree(tree, host, scope?)` primitive in `silicaui-html`, single walker owning bind+repeat+action.
-- §5: `catalog()` → merge semantics (`extend`/`hide`), not flat replace.
-- §5: new `dataSources()` + engine-owned `scopeAt()` (rename to avoid the `catalog()`/`dataSources()` naming collision).
-- §5: `validateClass` gets a built-in engine-side floor (the `lint.ts` denylist) it can only add to; ship `buildClassValidator(config)` as the declarative common case.
-- New §: the `element.ts`-shaped raw-element/attribute whitelist, enforced unconditionally in `to-html.ts`, not host-optional.
-- Note Q9's mode-toggle pattern as the documented answer to "multi-document editing," not an open question.
+Concrete deltas landed there directly (companion edit, same session) — **all SHIPPED, per §6a above, not just specced:**
+- §3: `resolveBinding`/`resolveCollection` → synchronous only, drop `| Promise<...>`. ✅
+- §3: `DataScope` → `{ item?: unknown; index?: number }`, replacing the path-array shape. ✅
+- §3: `Resolved` → add `visible?: boolean`. ✅
+- §3: new `resolveTree(tree, host, scope?)` primitive in `silicaui-html`, single walker owning bind+repeat (action stays untouched by design, §2). ✅
+- §5: `catalog()` → merge semantics (`extend`/`hide`), not flat replace. ✅
+- §5: new `dataSources()` + engine-owned `scopeAt()` (kept distinct names — `catalog()` is the Insert-palette hook, `dataSources()` is the binding-picker hook; no rename needed once both existed side by side, they read clearly). ✅
+- §5: `validateClass` gets a built-in engine-side floor (the `lint.ts` denylist) it can only add to; ship `buildClassValidator(config)` as the declarative common case. ✅
+- New §: the `element.ts`-shaped raw-element/attribute whitelist, enforced unconditionally in `to-html.ts` **and, the audit's own blind spot corrected mid-build, `Canvas.tsx`**, not host-optional. ✅
+- Note Q9's mode-toggle pattern as the documented answer to "multi-document editing," not an open question. ✅ (already true of shipped code, confirmed, no change needed)

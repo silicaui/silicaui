@@ -3,7 +3,9 @@
  * plugin) + @wizeworks/silicaui-react, styled entirely with Tailwind + @wizeworks/silicaui classes.
  */
 export { Builder } from "./Builder";
-export type { BuilderProps } from "./Builder";
+export type { BuilderProps, PublishPayload } from "./Builder";
+export type { BuilderHost, InspectorPanel, InspectorPanelCtx, AssetRef } from "./host";
+export { useHost } from "./host-context";
 export {
   EditorProvider,
   useEditor,
@@ -18,3 +20,5 @@ export { Canvas } from "./Canvas";
 export { Navigator } from "./Navigator";
 export { Palette } from "./Palette";
 export { Inspector } from "./Inspector";
+export { paletteGroups, paletteItemByKey, mergeCatalog } from "../palette";
+export type { PaletteGroup, PaletteItem } from "../palette";

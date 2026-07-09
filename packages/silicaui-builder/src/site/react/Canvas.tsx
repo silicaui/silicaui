@@ -18,22 +18,28 @@
  */
 import * as React from "react";
 import type { Child, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { applyOverrides, expandComponent, rolesOf, walk } from "@wizeworks/silicaui-html";
+import { applyOverrides, expandComponent, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
+import { useHost } from "./host-context";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
 import { customColorCss } from "../color-cascade";
 import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
 import type { DropEdge } from "../../shared/dnd";
-import { paletteItemByKey } from "../palette";
+import { paletteGroups, paletteItemByKey, mergeCatalog } from "../palette";
+import type { PaletteGroup } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
 
+const DEFAULT_GROUPS = paletteGroups();
+
 /** Resolve a palette drag key to the node to insert: a `symbol:<id>` key builds a
- *  linked instance (through the engine), any other key is a static catalog item. */
-function nodeForInsertKey(editor: Editor, key: string): Node | undefined {
+ *  linked instance (through the engine); any other key is a catalog item — looked
+ *  up against `groups` (the host-merged catalog) so a dragged host-extended
+ *  composite resolves identically to a built-in one. */
+function nodeForInsertKey(editor: Editor, key: string, groups: readonly PaletteGroup[]): Node | undefined {
   if (key.startsWith("symbol:")) return editor.makeInstanceNode(key.slice("symbol:".length));
-  return paletteItemByKey(key)?.make();
+  return paletteItemByKey(key, groups)?.make();
 }
 
 /** A composite selection/edit key that targets a node INSIDE an instance. */
@@ -528,20 +534,25 @@ function CanvasNode({
   const isIcon = node.kind === "component" && node.component === "Icon";
   const cls =
     ((el.class ?? "") + deco + (empty ? EMPTY_DECOR : "")) || (isIcon ? ICON_PLACEHOLDER : "");
-  const attrs = canvasAttrs(el);
+  // Sanitized FIRST — the live canvas is its own render target (real DOM in the
+  // builder's own browser session), so it needs the SAME raw-element/attribute
+  // floor `toHtml` enforces (element.ts), not just the design-surface UX tweaks
+  // below. An unlisted tag downgrades to `div`; every subsequent tag check uses
+  // the SANITIZED tag, never the original.
+  const { tag, attrs } = canvasAttrs(el);
 
-  if (VOID.has(el.tag)) {
-    return React.createElement(el.tag, { className: cls || undefined, ...attrs, ...inter });
+  if (VOID.has(tag)) {
+    return React.createElement(tag, { className: cls || undefined, ...attrs, ...inter });
   }
   // <textarea> can't take children in React — surface its value as defaultValue so
   // the canvas preview stays uncontrolled + warning-free (production uses children).
-  if (el.tag === "textarea") {
+  if (tag === "textarea") {
     const text = textOf(el.children);
     if (text) attrs.defaultValue = text;
-    return React.createElement(el.tag, { className: cls || undefined, ...attrs, ...inter });
+    return React.createElement(tag, { className: cls || undefined, ...attrs, ...inter });
   }
   return React.createElement(
-    el.tag,
+    tag,
     { className: cls || undefined, ...attrs, ...inter },
     empty ? <EmptyHint /> : renderChildren(el.children, id ?? "", ctx),
   );
@@ -573,25 +584,31 @@ const REACT_ATTR: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /**
- * The render-ready attributes for a canvas element: the expansion's own attrs,
- * plus a canvas-only stand-in `src` so an unset Image still has presence on the
- * design surface (production markup — via `toHtml` — omits it). `<a href>` is
- * neutralized to "#" by `sanitizeAttrs` so a canvas click never navigates away.
+ * The render-ready tag + attributes for a canvas element: sanitized against the
+ * SAME raw-element/attribute floor `toHtml` enforces (`sanitizeElement`, element.ts)
+ * — the live canvas is real DOM in the builder's own session, not a lesser-risk
+ * surface — then, on top of that, a canvas-only stand-in `src` so an unset Image
+ * still has presence on the design surface (production markup — via `toHtml` —
+ * omits it), and `<a href>` neutralized to "#" so a canvas click never navigates
+ * away.
  */
-function canvasAttrs(el: ElementNode): Record<string, string | number | boolean> {
-  const attrs = sanitizeAttrs(el.attrs);
+function canvasAttrs(el: ElementNode): { tag: string; attrs: Record<string, string | number | boolean> } {
+  const sanitized = sanitizeElement(el.tag, el.attrs);
+  const tag = sanitized.tag;
+  const attrs = { ...(sanitized.attrs ?? {}) };
+  if ("href" in attrs) attrs.href = "#"; // design surface — never navigate away
   // React demands certain HTML attributes in camelCase and warns on the raw
   // lowercase DOM name. Authored nodes carry standard HTML names (what `toHtml`
   // emits), so normalize the common set here — canvas-only; production markup is
   // unchanged. `aria-*`/`data-*`/`role`/`hidden` are already correct lowercase.
   for (const [dom, react] of REACT_ATTR) rename(attrs, dom, react);
-  if (el.tag === "img" && attrs.src == null) attrs.src = PLACEHOLDER_IMG;
+  if (tag === "img" && attrs.src == null) attrs.src = PLACEHOLDER_IMG;
   // Form controls: render UNCONTROLLED on the design surface. React warns if a
   // form field gets `value`/`checked` without an `onChange`; the canvas is a static
   // preview, so map them to their default* forms (production HTML keeps value/checked).
   // Scoped to the controls themselves — an `<option value>` is a plain attribute,
   // not controlled state, and must keep its `value` (React infers from it otherwise).
-  if (el.tag === "input" || el.tag === "select") {
+  if (tag === "input" || tag === "select") {
     rename(attrs, "value", "defaultValue");
     rename(attrs, "checked", "defaultChecked");
   }
@@ -603,7 +620,7 @@ function canvasAttrs(el: ElementNode): Record<string, string | number | boolean>
   // touches `node.attrs`, just the ephemeral render-time copy) — canvas is
   // already an approximation, and the option's own text still reads fine
   // unselected.
-  if (el.tag === "option") delete attrs.selected;
+  if (tag === "option") delete attrs.selected;
   // Behavior parts (a disclosure/tabs/menu `panel`) ship `hidden` so they don't
   // flash open before the runtime hydrates. The canvas has no runtime, so a hidden
   // panel would be un-editable — reveal it here, exactly as the runtime's preview
@@ -617,7 +634,7 @@ function canvasAttrs(el: ElementNode): Record<string, string | number | boolean>
   // would also catch Tabs/Accordion/Wizard's normal-flow panels and break
   // their layout by yanking them out of flow).
   if (el.part) attrs["data-sui-part"] = el.part;
-  return attrs;
+  return { tag, attrs };
 }
 
 /** Move `attrs[from]` to `attrs[to]` if present (canvas prop normalization). */
@@ -632,19 +649,6 @@ function rename(
   }
 }
 
-/** Keep only render-safe HTML attributes; neutralize live navigation on <a>. */
-function sanitizeAttrs(
-  attrs: Record<string, string | number | boolean> | undefined,
-): Record<string, string | number | boolean> {
-  if (!attrs) return {};
-  const out: Record<string, string | number | boolean> = {};
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "href") out.href = "#"; // design surface — never navigate away
-    else out[k] = v;
-  }
-  return out;
-}
-
 // A neutral gradient stand-in so an unset Image still has presence on the canvas.
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ede9fe'/%3E%3Cstop offset='1' stop-color='%23c7d2fe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='240' fill='url(%23g)'/%3E%3C/svg%3E";
@@ -652,6 +656,8 @@ const PLACEHOLDER_IMG =
 export function Canvas({ device = "desktop" }: { device?: string }) {
   const doc = useDocument();
   const editor = useEditor();
+  const host = useHost();
+  const catalogGroups = React.useMemo(() => mergeCatalog(DEFAULT_GROUPS, host?.catalog?.()), [host]);
   const selectedId = useSelection();
   const selectedNode = useSelectedNode();
   const activeTree = useActiveTree();
@@ -722,7 +728,7 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
       if (!payload) return;
       const place = placement(info, edge);
       if (payload.kind === "insert") {
-        const node = nodeForInsertKey(editor, payload.key);
+        const node = nodeForInsertKey(editor, payload.key, catalogGroups);
         if (node) editor.insert(node, place.parentId, place.index);
       } else {
         if (payload.id === place.parentId) return; // can't drop into itself
@@ -738,7 +744,7 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     clearDrag();
     if (!payload || !rootId) return;
     if (payload.kind === "insert") {
-      const node = nodeForInsertKey(editor, payload.key);
+      const node = nodeForInsertKey(editor, payload.key, catalogGroups);
       if (node) editor.insert(node, rootId);
     } else {
       editor.move(payload.id, rootId, childCount(rootId));

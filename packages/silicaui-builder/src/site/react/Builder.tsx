@@ -16,6 +16,8 @@ import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizework
 import { Editor } from "../engine";
 import { DraftStore } from "../../shared/persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
+import { HostProvider } from "./host-context";
+import type { BuilderHost } from "./host";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
 import { RecoveryBanner } from "../../shared/react/RecoveryBanner";
 import { useEditorShortcuts } from "./use-shortcuts";
@@ -356,6 +358,14 @@ export interface BuilderProps {
   document: SuiDocument;
   studioTheme?: string;
   /**
+   * The domain-specific seam (builder-contract.md §5) — everything about what a
+   * binding means, what the palette/inspector offer beyond the defaults, and the
+   * class-string policy. Every field is optional; omit it entirely for a
+   * static-site builder off the default catalog. Read once at mount / at each
+   * "start fresh" reseed (same lifecycle as `document`), not re-read live.
+   */
+  host?: BuilderHost;
+  /**
    * Fires after every edit that changes stored state (theme, structure, text,
    * pages…), with the whole `Site` to persist. View-only changes — selection,
    * page/mode switches, the local theme library — don't fire. The host debounces
@@ -384,12 +394,16 @@ const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
 export function Builder({
   document,
   studioTheme = "studio",
+  host,
   onChange,
   onPublish,
   persistKey = DEFAULT_PERSIST_KEY,
 }: BuilderProps) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
   const docRef = React.useRef(document);
+  // Seeded once, same lifecycle as `docRef` — a policy change mid-session takes
+  // effect on the next "start fresh" / boot, not live (matches BuilderProps.host's doc).
+  const hostRef = React.useRef(host);
   // The editor is created only after we've checked storage, so a recovered draft
   // seeds it directly (no editor-swap flash). `gen` bumps on every editor swap so
   // the whole subtree remounts — no stale canvas DOM (e.g. a contentEditable edit)
@@ -405,7 +419,11 @@ export function Builder({
     void (async () => {
       const snap = store ? await store.load() : undefined;
       if (cancelled) return;
-      setCurrent({ editor: new Editor(snap?.data ?? docRef.current), recoveredAt: snap?.savedAt ?? null, gen: 0 });
+      setCurrent({
+        editor: new Editor(snap?.data ?? docRef.current, { validateClass: hostRef.current?.validateClass }),
+        recoveredAt: snap?.savedAt ?? null,
+        gen: 0,
+      });
     })();
     return () => {
       cancelled = true;
@@ -441,7 +459,11 @@ export function Builder({
   // Bumping `gen` remounts the subtree so no stale canvas DOM carries over.
   const startFresh = React.useCallback(() => {
     void store?.clear();
-    setCurrent((c) => ({ editor: new Editor(docRef.current), recoveredAt: null, gen: (c?.gen ?? 0) + 1 }));
+    setCurrent((c) => ({
+      editor: new Editor(docRef.current, { validateClass: hostRef.current?.validateClass }),
+      recoveredAt: null,
+      gen: (c?.gen ?? 0) + 1,
+    }));
   }, [store]);
 
   const dismissBanner = React.useCallback(() => setCurrent((c) => (c ? { ...c, recoveredAt: null } : c)), []);
@@ -458,20 +480,22 @@ export function Builder({
   }
 
   return (
-    <EditorProvider key={current.gen} editor={editor}>
-      <StudioThemeProvider value={studioTheme}>
-        <div
-          className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased"
-          data-theme={studioTheme}
-        >
-          <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
-            {current.recoveredAt !== null && (
-              <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
-            )}
-            <Chrome onPublish={onPublish} />
-          </ErrorBoundary>
-        </div>
-      </StudioThemeProvider>
-    </EditorProvider>
+    <HostProvider host={host}>
+      <EditorProvider key={current.gen} editor={editor}>
+        <StudioThemeProvider value={studioTheme}>
+          <div
+            className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased"
+            data-theme={studioTheme}
+          >
+            <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
+              {current.recoveredAt !== null && (
+                <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
+              )}
+              <Chrome onPublish={onPublish} />
+            </ErrorBoundary>
+          </div>
+        </StudioThemeProvider>
+      </EditorProvider>
+    </HostProvider>
   );
 }

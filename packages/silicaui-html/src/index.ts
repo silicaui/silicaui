@@ -39,8 +39,29 @@ export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage
 export type { RenderedPage } from "./site";
 
 // The block linter (§6.3).
-export { lintBlock, assertBlockClean } from "./lint";
-export type { LintIssue } from "./lint";
+export { lintBlock, assertBlockClean, deniedToken } from "./lint";
+export type { LintIssue, ClassDenial } from "./lint";
+
+// The raw-element/attribute security floor (builder-contract.md §9) — enforced
+// unconditionally inside `toHtml`; exported so a consumer can reason about or
+// test the whitelist directly.
+export { RAW_ELEMENTS, GLOBAL_ATTRS, sanitizeElement } from "./element";
+export type { ElementGroup, RawElementMeta, SanitizedElement } from "./element";
+
+// The runtime class-string policy floor (builder-contract.md §9, §5) — a live
+// builder's `setClass` composes this with an optional host validator.
+export { validateClassString, buildClassValidator, composeValidators } from "./class-policy";
+export type { ClassValidator, AllowlistRule } from "./class-policy";
+
+// The binding-picker scope model (builder-contract.md §5, §3).
+export { scopeAt } from "./data-sources";
+export type { DataSource } from "./data-sources";
+
+// The data-resolution layer (builder-contract.md §3, the Q3/Q19 keystone) — ONE
+// synchronous walker owning bind + repeat, shared by the canvas and a host's
+// live-render path so preview == production is structural.
+export { resolveTree } from "./resolve";
+export type { DataScope, Resolved, ResolveHost } from "./resolve";
 
 // The component registry (§4) — the single definition each @wizeworks/silicaui component
 // derives from. A component is a macro that EXPANDS to an element subtree, so a

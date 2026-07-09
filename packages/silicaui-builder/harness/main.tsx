@@ -2,9 +2,77 @@ import "./styles.css";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Builder } from "@wizeworks/silicaui-builder/react";
+import type { BuilderHost } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
-import { stamp } from "@wizeworks/silicaui-html";
+import { stamp, el } from "@wizeworks/silicaui-html";
 import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
+
+/**
+ * A demo `BuilderHost` (builder-contract.md §5) exercising every hook, mounted
+ * under `?host=demo` — a small stand-in for what sparx (or any host) plugs in,
+ * so e2e coverage of the host seam doesn't need a real backend.
+ */
+const demoHost: BuilderHost = {
+  catalog: () => ({
+    extend: [
+      {
+        key: "host",
+        label: "Host",
+        items: [
+          {
+            key: "host:callout",
+            label: "Host callout",
+            icon: "box",
+            hint: "Contributed by the demo host",
+            // `id` (not `data-testid`) — the raw-element attr floor (element.ts)
+            // deliberately excludes ALL `data-*` from authored nodes, `id` is
+            // whitelisted, so the e2e spec locates this by DOM id instead.
+            make: () => el("div", "card bg-accent/10 p-4", { text: "Host-contributed block", attrs: { id: "host-callout" } }),
+          },
+        ],
+      },
+    ],
+  }),
+  dataSources: () => [
+    { key: "site.title", label: "Site title", cardinality: "scalar" },
+    {
+      key: "products",
+      label: "Products",
+      cardinality: "array",
+      fields: [
+        { key: "product.title", label: "Title", cardinality: "scalar" },
+        { key: "product.price", label: "Price", cardinality: "scalar" },
+      ],
+    },
+  ],
+  validateClass: (cls) =>
+    cls.includes("host-banned") ? { ok: false, reason: 'the demo host blocks "host-banned"' } : { ok: true },
+  inspectorPanels: () => [
+    {
+      id: "demo-panel",
+      title: "Host panel",
+      render: (node, ctx) => (
+        <div data-testid="host-panel">
+          <p className="mb-1 text-xs text-base-content/60">Contributed by the demo host, for {node.kind === "outlet" ? "outlet" : node.kind}.</p>
+          <button
+            type="button"
+            className="btn btn-xs btn-soft"
+            data-testid="host-panel-set-attr"
+            onClick={() => ctx.setAttr("data-host-note", "set-by-host-panel")}
+          >
+            Set host attr
+          </button>
+        </div>
+      ),
+    },
+  ],
+  pickAsset: async () => ({ url: "https://picsum.photos/seed/host/400/300", alt: "Host-picked asset" }),
+  // Fixed sample data, resolved SYNCHRONOUSLY (§3 of builder-contract.md) — a
+  // real host would fetch once, up front, into a closure this reads from.
+  resolveBinding: (ref) =>
+    ref === "site.title" ? { value: "Acme Storefront", label: "Site title" } : { value: undefined, visible: false },
+  resolveCollection: (ref) => (ref === "products" ? ["Widget", "Gadget", "Gizmo"] : []),
+};
 
 // The editable DOCUMENT theme — a complete "lightsilica" palette (every surface +
 // role) so the Theme editor's tile grid and the component board are fully
@@ -66,6 +134,10 @@ const persistKey = persist ? "silicaui-designer" : null;
 // `?editor=email` mounts the email builder instead of the site builder — a query
 // switch (not a route) since this is a single-page dev harness, not the product.
 const editorMode = params.get("editor");
+// `?host=demo` mounts the site builder with `demoHost` (the host adapter, §5)
+// wired in — exercises catalog/dataSources/validateClass/inspectorPanels/pickAsset
+// end to end without a real backend.
+const host = params.get("host") === "demo" ? demoHost : undefined;
 
 const root = createRoot(document.getElementById("app") as HTMLElement);
 if (editorMode === "email") {
@@ -94,6 +166,7 @@ if (editorMode === "email") {
     <React.StrictMode>
       <Builder
         document={stamp(heroSplitCta, theme)}
+        host={host}
         persistKey={persistKey}
         onChange={(site) => {
           bus.__lastChange = site;

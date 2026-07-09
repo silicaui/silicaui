@@ -10,9 +10,16 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
-import { applyOverrides, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "@wizeworks/silicaui-html";
+import type { ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
+import { applyOverrides, composeValidators, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "@wizeworks/silicaui-html";
 import { defaultFrameRoot } from "./frame";
+
+/** Constructor-time options — currently just the host's class policy (§9 of
+ *  builder-contract.md). Composed with the engine's built-in denylist floor;
+ *  see `composeValidators`. */
+export interface EditorOptions {
+  validateClass?: ClassValidator;
+}
 
 /** A node that carries id/class/children — everything except an outlet. */
 type Markable = ElementNode | ComponentNode;
@@ -90,6 +97,25 @@ function locate(root: Node, id: string): Located | undefined {
     }
   }
   return undefined;
+}
+
+/** The path from (excl.) root to (excl.) `id` — root-first, empty if `id` is the
+ *  root itself or isn't found. Powers the binding picker's ancestor-based scope
+ *  narrowing (`scopeAt`) — a plain read, no engine mutation involved. */
+function ancestorPath(root: Node, id: string): Node[] {
+  if (root.kind === "outlet" || root.id === id) return [];
+  const path: Node[] = [];
+  function search(node: Markable): boolean {
+    for (const child of node.children ?? []) {
+      if (typeof child === "string" || child.kind === "outlet") continue;
+      if (child.id === id) return true;
+      path.push(child);
+      if (search(child)) return true;
+      path.pop();
+    }
+    return false;
+  }
+  return search(root) ? [root, ...path] : [];
 }
 
 /** True when `ancestorId` is `id` or contains it — a cycle guard for moves. */
@@ -171,10 +197,14 @@ export class Editor {
   private past: Site[] = [];
   private future: Site[] = [];
   private static readonly HISTORY_LIMIT = 100;
+  // The composed class-string validator (built-in floor + optional host policy),
+  // fixed at construction — same single-seed-at-boot lifecycle as `document`.
+  private readonly validateClass: ClassValidator;
 
   /** Accepts a legacy single-page `Document` (wrapped as a one-page site) or a
    *  full multi-page `Site`. */
-  constructor(input: Document | Site) {
+  constructor(input: Document | Site, options: EditorOptions = {}) {
+    this.validateClass = composeValidators(options.validateClass);
     this.site = "pages" in input ? structuredClone(input) : siteFromDocument(input);
     // A site always has a layout — a page renders *within* the shared shell, it is
     // never layout-less. So materialize a default frame up front (rather than
@@ -646,15 +676,28 @@ export class Editor {
   }
 
   // ── node edits ─────────────────────────────────────────────────────────────
-  /** Replace a node's class string (the sole styling surface). */
-  setClass(id: string, className: string): void {
+  /** Replace a node's class string (the sole styling surface). Runs the
+   *  composed floor+host policy (§9) first — a rejected string is a no-op and
+   *  the reason comes back so the UI (e.g. `ClassField`) can surface it. */
+  setClass(id: string, className: string): { ok: true } | { ok: false; reason: string } {
     const found = locate(this.activeRoot(), id);
-    if (!found) return;
+    if (!found) return { ok: true };
+    const value = className.trim();
+    if (value) {
+      const result = this.validateClass(value);
+      if (!result.ok) return result;
+    }
     this.commit("class", () => {
-      const value = className.trim();
       if (value) found.node.class = value;
       else delete found.node.class;
     });
+    return { ok: true };
+  }
+
+  /** The path from (excl.) root to (excl.) `id` within the ACTIVE tree — for a
+   *  host-supplied binding picker's ancestor-based scope narrowing (`scopeAt`). */
+  ancestorsOf(id: string): Node[] {
+    return ancestorPath(this.activeRoot(), id);
   }
 
   /** Set (or clear, with undefined) a component node's typed prop. */

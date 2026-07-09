@@ -1240,11 +1240,40 @@ export function paletteGroups(): PaletteGroup[] {
     ];
 }
 
-/** Resolve a palette item by its key — the drop target decodes a drag this way. */
-export function paletteItemByKey(key: string): PaletteItem | undefined {
-    for (const group of paletteGroups()) {
+/** Resolve a palette item by its key — the drop target decodes a drag this way.
+ *  Defaults to the built-in catalog; pass a host-merged `groups` (see
+ *  `mergeCatalog`) so a dragged host-extended item resolves too. */
+export function paletteItemByKey(key: string, groups: readonly PaletteGroup[] = paletteGroups()): PaletteItem | undefined {
+    for (const group of groups) {
         const hit = group.items.find((i) => i.key === key);
         if (hit) return hit;
     }
     return undefined;
+}
+
+/**
+ * Merge a host's catalog additions/hides (builder-contract.md §5) over the
+ * default groups — additive, never a flat replace, so a host adding one domain
+ * composite never has to re-enumerate the whole default index just to keep it.
+ * `hide` matches against item keys OR whole group keys.
+ */
+export function mergeCatalog(
+    base: readonly PaletteGroup[],
+    host?: { extend?: PaletteGroup[]; hide?: string[] },
+): PaletteGroup[] {
+    const hidden = new Set(host?.hide ?? []);
+    const filtered = base
+        .filter((g) => !hidden.has(g.key))
+        .map((g) => ({ ...g, items: g.items.filter((i) => !hidden.has(i.key)) }))
+        .filter((g) => g.items.length > 0);
+    if (!host?.extend?.length) return filtered;
+    // A host group whose key matches an existing one merges its items in
+    // (appended); a new key becomes a new trailing group.
+    const merged = filtered.map((g) => ({ ...g, items: [...g.items] }));
+    for (const group of host.extend) {
+        const existing = merged.find((g) => g.key === group.key);
+        if (existing) existing.items.push(...group.items);
+        else merged.push({ ...group, items: [...group.items] });
+    }
+    return merged;
 }

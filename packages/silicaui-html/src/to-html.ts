@@ -20,6 +20,7 @@ import type {
 } from "./schema";
 import { applyPrefix, attr, esc, VOID_ELEMENTS } from "./class-utils";
 import { expandComponent } from "./component";
+import { sanitizeElement } from "./element";
 
 export interface ToHtmlOptions {
   /** Applied to @wizeworks/silicaui component classes only (`btn` → `st-btn`). */
@@ -73,16 +74,19 @@ function renderNode(node: Node, opts: ToHtmlOptions): string {
     return renderNode(expandComponent(node), opts);
   }
 
-  // element
+  // element — sanitized against the raw-element/attribute floor (security
+  // §, builder-contract.md §9) UNCONDITIONALLY, before anything else touches
+  // tag/attrs. Not a host-optional policy.
+  const { tag, attrs: safeAttrs } = sanitizeElement(node.tag, node.attrs);
   const cls = node.class ? applyPrefix(node.class, opts.prefix ?? "") : "";
   const classAttr = cls ? ` class="${cls}"` : "";
-  const attrsHtml = renderAttrs(node.attrs);
+  const attrsHtml = renderAttrs(safeAttrs);
   const meta = metaAttrs(node, opts);
-  if (VOID_ELEMENTS.has(node.tag)) {
-    return `<${node.tag}${classAttr}${attrsHtml}${meta}/>`;
+  if (VOID_ELEMENTS.has(tag)) {
+    return `<${tag}${classAttr}${attrsHtml}${meta}/>`;
   }
   const childrenHtml = renderChildren(node.children, opts);
-  return `<${node.tag}${classAttr}${attrsHtml}${meta}>${childrenHtml}</${node.tag}>`;
+  return `<${tag}${classAttr}${attrsHtml}${meta}>${childrenHtml}</${tag}>`;
 }
 
 function renderChildren(children: Child[] | undefined, opts: ToHtmlOptions): string {

@@ -12,10 +12,12 @@
  * utility a node can WEAR is a LITERAL string here so the harness safelists it.
  */
 import * as React from "react";
-import type { ComponentNode, DataBinding, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { rolesOf, colorValue, SURFACE_TOKENS, walk } from "@wizeworks/silicaui-html";
+import type { ComponentNode, DataBinding, DataSource, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
+import { rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
+import { useHost } from "./host-context";
+import type { InspectorPanelCtx } from "./host";
 import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 
@@ -161,7 +163,7 @@ const BTN_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
 // (the same family-by-name pattern as the Button block); the values map straight
 // to the props the ComponentDef's `expand()` reads, so editing here changes the
 // published HTML. Options for Select are edited separately (a list, not a scalar).
-type PropControl = "text" | "number" | "toggle" | "select" | "list";
+type PropControl = "text" | "number" | "toggle" | "select" | "list" | "asset";
 interface PropField {
   key: string;
   label: string;
@@ -227,7 +229,7 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
     { key: "desc", label: "Description", control: "text" },
   ],
   Avatar: [
-    { key: "src", label: "Image URL", control: "text" },
+    { key: "src", label: "Image URL", control: "asset" },
     { key: "alt", label: "Alt text", control: "text" },
   ],
   Collapse: [
@@ -627,6 +629,35 @@ function SettingsTab({ id, node }: { id: string; node: Node }) {
       {node.kind === "element" && <AccessibilitySection id={id} node={node} isImg={node.tag === "img"} />}
       {node.kind === "element" && <AttributesSection id={id} node={node} />}
       {node.kind === "element" && <CustomDataSection id={id} node={node} />}
+      <HostPanels id={id} node={node} />
+    </>
+  );
+}
+
+/** Host-contributed domain panels (SEO, product-pin, a per-module editor) — ADDITIVE
+ *  only, rendered after every built-in Settings section, writing through the SAME
+ *  mutation primitives the built-ins use. Absent `host.inspectorPanels` → renders
+ *  nothing (a static-site host needs none of this). */
+function HostPanels({ id, node }: { id: string; node: Node }) {
+  const editor = useEditor();
+  const host = useHost();
+  const panels = host?.inspectorPanels?.(node) ?? [];
+  if (panels.length === 0) return null;
+  const ctx: InspectorPanelCtx = {
+    setProp: (key, value) => editor.setProp(id, key, value),
+    setAttr: (key, value) => editor.setAttr(id, key, value),
+    setData: (binding) => editor.setData(id, binding),
+    setClass: (className) => editor.setClass(id, className),
+  };
+  return (
+    <>
+      {[...panels]
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((panel) => (
+          <Group key={panel.id} label={panel.title}>
+            {panel.render(node, ctx)}
+          </Group>
+        ))}
     </>
   );
 }
@@ -732,11 +763,25 @@ const DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "action", label: "Action (host handler)" },
 ];
 
+/** Flatten a `DataSource` tree into pickable options, deepest-first label path
+ *  (`"Products > Price"`) — presentation-only, so it stays local to the picker. */
+function flattenSources(sources: readonly DataSource[], pathLabel = ""): Array<{ value: string; label: string }> {
+  return sources.flatMap((s) => {
+    const label = pathLabel ? `${pathLabel} > ${s.label}` : s.label;
+    const own = s.cardinality === "scalar" ? [{ value: s.key, label }] : [];
+    const nested = s.fields ? flattenSources(s.fields, label) : [];
+    return [...own, ...nested];
+  });
+}
+
 /** Dynamic content — the node's single `DataBinding`. A kind selector plus an
- *  opaque `ref` (@wizeworks/silicaui never parses it; the host/sparx interprets it), and an
- *  optional href for the action kind. Lowers to `data-sui-*` in `toHtml`. */
+ *  opaque `ref` (@wizeworks/silicaui never parses it; the host interprets it), and an
+ *  optional href for the action kind. Lowers to `data-sui-*` in `toHtml`. When the
+ *  host supplies `dataSources()`, the Reference field becomes a generic picker
+ *  scoped to the node's ancestors (`scopeAt`) instead of a raw text input. */
 function DataSection({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
+  const host = useHost();
   const data = node.kind !== "outlet" ? node.data : undefined;
   const kind = data?.kind ?? "";
   const ref = data?.ref ?? "";
@@ -751,10 +796,17 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       editor.setData(id, { kind: k as "value" | "collection", ref: r });
     }
   };
+  const options = React.useMemo(() => {
+    if (!host?.dataSources) return undefined;
+    const scoped = scopeAt(host.dataSources(), editor.ancestorsOf(id));
+    return kind === "collection"
+      ? scoped.filter((s) => s.cardinality !== "scalar").map((s) => ({ value: s.key, label: s.label }))
+      : flattenSources(scoped);
+  }, [host, editor, id, kind]);
   return (
     <Group label="Data binding">
       <Row label="Bind">
-        <NativeSelect size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href)}>
+        <NativeSelect data-testid="data-kind" size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href)}>
           {DATA_KINDS.map((k) => (
             <option key={k.value} value={k.value}>
               {k.label}
@@ -764,7 +816,18 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       </Row>
       {kind && (
         <Row label="Reference">
-          <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write(kind, v, href)} />
+          {options ? (
+            <NativeSelect data-testid="data-ref-picker" size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(kind, e.target.value, href)}>
+              <option value="">Choose a field…</option>
+              {options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </NativeSelect>
+          ) : (
+            <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write(kind, v, href)} />
+          )}
         </Row>
       )}
       {kind === "action" && (
@@ -772,8 +835,59 @@ function DataSection({ id, node }: { id: string; node: Node }) {
           <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write(kind, ref, v)} />
         </Row>
       )}
+      {kind && kind !== "action" && ref && <DataPreview id={id} kind={kind} ref_={ref} />}
     </Group>
   );
+}
+
+/**
+ * A live preview of what this bind/repeat resolves to RIGHT NOW, using the
+ * host's own `resolveBinding`/`resolveCollection` (§3) — so an author sees
+ * realistic data while editing, without leaving the canvas. Only meaningful at
+ * top-level scope (`{}`); a bind nested under a `repeat` ancestor has no single
+ * representative item to preview, so it says so rather than guessing one.
+ */
+function DataPreview({ id, kind, ref_ }: { id: string; kind: string; ref_: string }) {
+  const editor = useEditor();
+  const host = useHost();
+  const nestedUnderRepeat = React.useMemo(
+    () => editor.ancestorsOf(id).some((a) => a.kind !== "outlet" && a.data?.kind === "collection"),
+    [editor, id],
+  );
+  if (nestedUnderRepeat) {
+    return (
+      <Row label="Preview">
+        <p className="text-xs text-base-content/45">No preview — this is nested inside a repeat, one per item.</p>
+      </Row>
+    );
+  }
+  if (kind === "value") {
+    if (!host?.resolveBinding) return null;
+    const resolved = host.resolveBinding(ref_, {});
+    return (
+      <Row label="Preview">
+        <p className="truncate text-xs text-base-content/70">
+          {resolved.visible === false ? (
+            <em className="text-base-content/45">hidden (visible: false)</em>
+          ) : (
+            String(resolved.value ?? "")
+          )}
+        </p>
+      </Row>
+    );
+  }
+  if (kind === "collection") {
+    if (!host?.resolveCollection) return null;
+    const items = host.resolveCollection(ref_, {});
+    return (
+      <Row label="Preview">
+        <p className="text-xs text-base-content/70">
+          {items.length === 0 ? "0 items — the template renders once as a placeholder" : `${items.length} item${items.length === 1 ? "" : "s"}`}
+        </p>
+      </Row>
+    );
+  }
+  return null;
 }
 
 /** Accessibility attributes on an element — aria-label, role, tabindex, and (for
@@ -785,6 +899,14 @@ function AccessibilitySection({ id, node, isImg }: { id: string; node: ElementNo
   const set = (k: string) => (v: string) => editor.setAttr(id, k, v || undefined);
   return (
     <Group label="Accessibility">
+      {isImg && (
+        <AssetProp
+          id={id}
+          field={{ key: "src", label: "Source", control: "asset" }}
+          value={val("src")}
+          onPick={set("src")}
+        />
+      )}
       {isImg && (
         <Row label="Alt text">
           <CommitInput value={val("alt")} reseed={id} placeholder="Describe the image" onCommit={set("alt")} />
@@ -1184,7 +1306,60 @@ function PropRow({ id, node, field }: { id: string; node: ComponentNode; field: 
   if (field.control === "list") {
     return <ListProp id={id} field={field} value={node.props?.[field.key]} />;
   }
+  if (field.control === "asset") {
+    return (
+      <AssetProp
+        value={raw != null ? String(raw) : ""}
+        onPick={(url) => editor.setProp(id, field.key, url || undefined)}
+        field={field}
+        id={id}
+      />
+    );
+  }
   return <TextProp id={id} field={field} value={raw != null ? String(raw) : ""} />;
+}
+
+/** A URL field with an optional "Browse" button when the host supplies
+ *  `pickAsset` — without a host, it's a plain text field (paste a URL). */
+function AssetProp({ id, field, value, onPick }: { id: string; field: PropField; value: string; onPick: (url: string) => void }) {
+  const host = useHost();
+  const [draft, setDraft] = React.useState(value);
+  React.useEffect(() => setDraft(value), [value, id]);
+  const commit = () => {
+    if (draft !== value) onPick(draft);
+  };
+  const browse = async () => {
+    const asset = await host?.pickAsset?.("image");
+    if (asset) {
+      setDraft(asset.url);
+      onPick(asset.url);
+    }
+  };
+  return (
+    <Row label={field.label}>
+      <div className="flex items-center gap-1">
+        <Input
+          className="w-full"
+          size="sm"
+          value={draft}
+          placeholder={field.placeholder ?? "https://…"}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            }
+          }}
+        />
+        {host?.pickAsset && (
+          <button type="button" className="btn btn-xs btn-ghost flex-none" title="Browse…" onClick={() => void browse()}>
+            <Icon name="image" />
+          </button>
+        )}
+      </div>
+    </Row>
+  );
 }
 
 /** A string-list prop (Breadcrumb/Menu/Steps/Timeline items) — one item per line,
@@ -1432,15 +1607,24 @@ function textToIds(text: string): string[] {
 function ClassField({ id, cls }: { id: string; cls: string }) {
   const editor = useEditor();
   const [draft, setDraft] = React.useState(cls);
+  const [error, setError] = React.useState<string | undefined>(undefined);
   // Re-seed when the selection (or the class from a chip edit) changes.
-  React.useEffect(() => setDraft(cls), [cls, id]);
+  React.useEffect(() => {
+    setDraft(cls);
+    setError(undefined);
+  }, [cls, id]);
   const commit = () => {
-    if (draft !== cls) editor.setClass(id, draft);
+    if (draft === cls) return;
+    const result = editor.setClass(id, draft);
+    // A rejected string (the built-in denylist floor, or a host policy) is a
+    // no-op on the document — keep the user's draft on screen with the reason
+    // rather than silently reverting it, so they can see what to fix.
+    setError(result.ok ? undefined : result.reason);
   };
   return (
     <Group label="Classes">
       <Textarea
-        className="w-full font-mono text-xs leading-relaxed"
+        className={`w-full font-mono text-xs leading-relaxed ${error ? "textarea-error" : ""}`}
         rows={3}
         spellCheck={false}
         value={draft}
@@ -1453,7 +1637,11 @@ function ClassField({ id, cls }: { id: string; cls: string }) {
           }
         }}
       />
-      <p className="mt-1 text-xs text-base-content/40">The one styling surface. Chips above edit this same set.</p>
+      {error ? (
+        <p className="mt-1 text-xs text-error">{error}</p>
+      ) : (
+        <p className="mt-1 text-xs text-base-content/40">The one styling surface. Chips above edit this same set.</p>
+      )}
     </Group>
   );
 }
