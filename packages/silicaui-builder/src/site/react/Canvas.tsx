@@ -81,6 +81,34 @@ const VOID = new Set(["img", "hr", "br", "input", "source", "track", "wbr", "col
  *  on the canvas — production has no such class, so this is canvas-only. */
 const ICON_PLACEHOLDER = "inline-block size-4 rounded bg-base-content/20";
 
+/**
+ * Reveal-safe positioning for the MODAL-family panels/backdrops (Dialog,
+ * Drawer, AlertDialog, Lightbox, CommandPalette — the ones `component.ts`
+ * documents as sharing one `modal` behavior shape). Their real CSS is
+ * `position: fixed` (Lightbox's is full-viewport `inset: 0`) — correct in
+ * production, but on the canvas a revealed one (see `canvasAttrs`'s
+ * `data-sui-part` reveal) permanently blankets the WHOLE APP (palette,
+ * inspector, everything), since there's no dismiss affordance the way there
+ * is at runtime. Forcing `absolute` docks it to the board (`position:
+ * relative`) instead — bounded, still fully visible/editable. Deliberately
+ * scoped to these LITERAL classes, not a generic `[data-sui-part="panel"]`
+ * selector — Tabs/Accordion/Collapsible/Wizard panels also carry `part:
+ * "panel"` but render in normal document flow; forcing `absolute` on THOSE
+ * pulls them out of flow and collapses/overlaps sibling content (a real
+ * regression caught by `catalog-gap.spec.ts`'s Wizard test).
+ */
+const FIXED_POSITION_OVERLAY_CLASSES = [
+  "dialog-popup", "dialog-backdrop",
+  "drawer-popup", "drawer-backdrop",
+  "lightbox-popup", "lightbox-backdrop",
+  "command-palette-popup", "command-palette-backdrop",
+];
+const REVEALED_PANEL_CSS = `
+.sui-canvas ${FIXED_POSITION_OVERLAY_CLASSES.map((c) => `.${c}`).join(", .sui-canvas ")} {
+  position: absolute !important;
+}
+`.trim();
+
 /** A component is a macro: expand it to the element (sub)tree a projection renders.
  *  The canvas draws that element through its normal element path — so a new
  *  component needs a def, not a render branch here. The expansion root always is an
@@ -239,8 +267,8 @@ function computeEdge(clientY: number, rect: DOMRect, node: Node): DropEdge {
 
 /**
  * The hover affordance — a light layout-safe outline. Selection is drawn by the
- * `SelectionOverlay` (handles + label), so the selected node gets no inline ring;
- * we also suppress the hover ring on it so the two don't stack.
+ * `SelectionOverlay` (focus ring + label), so the selected node gets no inline
+ * ring; we also suppress the hover ring on it so the two don't stack.
  */
 function ring(id: string | undefined, ctx: RenderCtx): string {
   if (id && id === ctx.hoveredId && id !== ctx.selectedId) {
@@ -567,6 +595,15 @@ function canvasAttrs(el: ElementNode): Record<string, string | number | boolean>
     rename(attrs, "value", "defaultValue");
     rename(attrs, "checked", "defaultChecked");
   }
+  // `<option selected>` (e.g. PhoneInput's country picker authors this
+  // directly) has no uncontrolled equivalent the way input/select do — React
+  // only recognizes `selected` via the PARENT <select>'s `value`/`defaultValue`,
+  // not a per-option prop (there's no real `defaultSelected`). Simplest correct
+  // canvas-only fix: drop it. Production `toHtml` is untouched (this never
+  // touches `node.attrs`, just the ephemeral render-time copy) — canvas is
+  // already an approximation, and the option's own text still reads fine
+  // unselected.
+  if (el.tag === "option") delete attrs.selected;
   // Behavior parts (a disclosure/tabs/menu `panel`) ship `hidden` so they don't
   // flash open before the runtime hydrates. The canvas has no runtime, so a hidden
   // panel would be un-editable — reveal it here, exactly as the runtime's preview
@@ -574,6 +611,12 @@ function canvasAttrs(el: ElementNode): Record<string, string | number | boolean>
   if (el.part === "panel" && (attrs.hidden === true || attrs.hidden === "")) {
     delete attrs.hidden;
   }
+  // Canvas-only debug hook, mirroring what production `toHtml` already emits
+  // (to-html.ts) — NOT what `REVEALED_PANEL_CSS` below keys off (that targets
+  // specific known-fixed-position classes; a generic `part="panel"` selector
+  // would also catch Tabs/Accordion/Wizard's normal-flow panels and break
+  // their layout by yanking them out of flow).
+  if (el.part) attrs["data-sui-part"] = el.part;
   return attrs;
 }
 
@@ -772,6 +815,7 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
       onDragOver={(e) => e.preventDefault()}
       onDrop={onCanvasDrop}
     >
+      <style dangerouslySetInnerHTML={{ __html: REVEALED_PANEL_CSS }} />
       {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
       <div
         ref={boardRef}

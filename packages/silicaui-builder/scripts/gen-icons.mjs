@@ -54,6 +54,8 @@ const USED = {
   copy: "copy", chevronUp: "chevron-up", chevronDown: "chevron-down", mail: "mail",
   share: "share-2", video: "video", play: "play", bold: "bold", italic: "italic",
   saved: "bookmark", send: "send",
+  // site palette gap-fill (overlay/form/data/nav/media/layout/content/feedback)
+  calendar: "calendar", upload: "upload", clock: "clock",
 };
 
 // Pull the inner markup out of each <svg>…</svg> (Lucide files share one root svg).
