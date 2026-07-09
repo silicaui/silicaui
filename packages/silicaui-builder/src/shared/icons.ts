@@ -91,6 +91,16 @@ const ICON_BODY = {
   sidebarTrigger: "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M9 3v18\" /> <path d=\"m16 15-3-3 3-3\" />",
   wordmark: "<path d=\"m2 16 4.039-9.69a.5.5 0 0 1 .923 0L11 16\" /> <path d=\"M22 9v7\" /> <path d=\"M3.304 13h6.392\" /> <circle cx=\"18.5\" cy=\"12.5\" r=\"3.5\" />",
   selectionList: "<path d=\"M13 5h8\" /> <path d=\"M13 12h8\" /> <path d=\"M13 19h8\" /> <path d=\"m3 17 2 2 4-4\" /> <path d=\"m3 7 2 2 4-4\" />",
+  columns: "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M12 3v18\" />",
+  divider: "<path d=\"m16 16-4 4-4-4\" /> <path d=\"M3 12h18\" /> <path d=\"m8 8 4-4 4 4\" />",
+  spacer: "<path d=\"M12 22v-6\" /> <path d=\"M12 8V2\" /> <path d=\"M4 12H2\" /> <path d=\"M10 12H8\" /> <path d=\"M16 12h-2\" /> <path d=\"M22 12h-2\" /> <path d=\"m15 19-3 3-3-3\" /> <path d=\"m15 5-3-3-3 3\" />",
+  alignLeft: "<path d=\"M21 5H3\" /> <path d=\"M15 12H3\" /> <path d=\"M17 19H3\" />",
+  alignCenter: "<path d=\"M21 5H3\" /> <path d=\"M17 12H7\" /> <path d=\"M19 19H5\" />",
+  alignRight: "<path d=\"M21 5H3\" /> <path d=\"M21 12H9\" /> <path d=\"M21 19H7\" />",
+  copy: "<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\" /> <path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\" />",
+  chevronUp: "<path d=\"m18 15-6-6-6 6\" />",
+  chevronDown: "<path d=\"m6 9 6 6 6-6\" />",
+  mail: "<path d=\"m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7\" /> <rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\" />",
 } as const;
 
 /**

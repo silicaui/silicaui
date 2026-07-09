@@ -22,6 +22,14 @@
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js"
     },
+    "./email": {
+      "types": "./dist/email/index.d.ts",
+      "import": "./dist/email/index.js"
+    },
+    "./email/react": {
+      "types": "./dist/email/react/index.d.ts",
+      "import": "./dist/email/react/index.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
@@ -35,6 +43,7 @@
     "harness": "vite harness",
     "typecheck": "tsc --noEmit",
     "verify:symbols": "esbuild probe-symbols.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-symbols.mjs && node node_modules/.cache/probe-symbols.mjs",
+    "verify:email": "esbuild probe-email.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-email.mjs && node node_modules/.cache/probe-email.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

@@ -27,6 +27,7 @@ import { DRAG_MIME, decodeDrag } from "../dnd";
 import type { DropEdge } from "../dnd";
 import { paletteItemByKey } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
+import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
 
 /** Resolve a palette drag key to the node to insert: a `symbol:<id>` key builds a
  *  linked instance (through the engine), any other key is a static catalog item. */
@@ -604,93 +605,6 @@ function sanitizeAttrs(
 // A neutral gradient stand-in so an unset Image still has presence on the canvas.
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ede9fe'/%3E%3Cstop offset='1' stop-color='%23c7d2fe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='240' fill='url(%23g)'/%3E%3C/svg%3E";
-
-/** The measured box (in board-local coords) the selection chrome draws around. */
-interface Box {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}
-
-/**
- * The selection chrome — a Figma/Framer-style overlay drawn OVER the canvas, not
- * baked into the node's classes: a crisp 1px accent frame, four corner handles,
- * and a floating element-name tag. It measures the selected node's real rect
- * (relative to the scrolling board) and re-measures on any edit / device / resize,
- * so it tracks reflow. Pointer-inert, so it never eats clicks meant for a node.
- */
-function SelectionOverlay({
-  boardRef,
-  selectedId,
-  label,
-  version,
-}: {
-  boardRef: React.RefObject<HTMLDivElement | null>;
-  selectedId: string | undefined;
-  label: string | undefined;
-  version: unknown;
-}) {
-  const [box, setBox] = React.useState<Box | null>(null);
-
-  React.useLayoutEffect(() => {
-    const board = boardRef.current;
-    if (!board || !selectedId) {
-      setBox(null);
-      return;
-    }
-    const measure = () => {
-      const el = board.querySelector<HTMLElement>(`[data-sui-id="${CSS.escape(selectedId)}"]`);
-      if (!el) {
-        setBox(null);
-        return;
-      }
-      const b = board.getBoundingClientRect();
-      const r = el.getBoundingClientRect();
-      // rect diff is scroll-agnostic (both shift together), and the overlay lives
-      // inside the board so it scrolls with the content.
-      setBox({ top: r.top - b.top, left: r.left - b.left, width: r.width, height: r.height });
-    };
-    measure();
-    // Late layout (web fonts, images, async reflow) → re-measure.
-    const ro = new ResizeObserver(measure);
-    ro.observe(board);
-    const el = board.querySelector<HTMLElement>(`[data-sui-id="${CSS.escape(selectedId)}"]`);
-    if (el) ro.observe(el);
-    return () => ro.disconnect();
-    // `version` (the live document) is in deps so a committed edit re-measures.
-  }, [boardRef, selectedId, version]);
-
-  if (!box) return null;
-  // Inflate the frame a few px beyond the node so it reads as "around" the element,
-  // not painted on its edge.
-  const INSET = 4;
-  // Each handle is anchored to a corner and pulled back by half its own size, so it
-  // sits centered on the corner regardless of handle size (no magic offsets).
-  const handle = "absolute size-1.5 rounded-[2px] bg-base-100 border border-primary shadow-sm";
-  return (
-    <div
-      className="pointer-events-none absolute z-20 border border-primary rounded-[4px]"
-      style={{
-        top: box.top - INSET,
-        left: box.left - INSET,
-        width: box.width + INSET * 2,
-        height: box.height + INSET * 2,
-      }}
-      aria-hidden
-    >
-      {label && (
-        <span className="absolute -top-[21px] left-0 max-w-[180px] truncate rounded-[3px] bg-primary px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-content shadow-sm">
-          {label}
-        </span>
-      )}
-      <span className={`${handle} top-0 left-0 -translate-x-1/2 -translate-y-1/2`} />
-      <span className={`${handle} top-0 right-0 translate-x-1/2 -translate-y-1/2`} />
-      <span className={`${handle} bottom-0 left-0 -translate-x-1/2 translate-y-1/2`} />
-      <span className={`${handle} bottom-0 right-0 translate-x-1/2 translate-y-1/2`} />
-    </div>
-  );
-}
 
 export function Canvas({ device = "desktop" }: { device?: string }) {
   const doc = useDocument();

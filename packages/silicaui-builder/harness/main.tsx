@@ -2,6 +2,7 @@ import "./styles.css";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Builder } from "@wizeworks/silicaui-builder/react";
+import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
 import { stamp } from "@wizeworks/silicaui-html";
 import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
 
@@ -48,6 +49,7 @@ const bus = window as unknown as {
   __lastChange?: unknown;
   __changeCount: number;
   __published?: unknown;
+  __exported?: string;
 };
 bus.__changeCount = 0;
 
@@ -60,21 +62,42 @@ const persist = params.has("persist")
   : !navigator.webdriver;
 const persistKey = persist ? "silicaui-designer" : null;
 
-createRoot(document.getElementById("app") as HTMLElement).render(
-  <React.StrictMode>
-    <Builder
-      document={stamp(heroSplitCta, theme)}
-      persistKey={persistKey}
-      onChange={(site) => {
-        bus.__lastChange = site;
-        bus.__changeCount += 1;
-      }}
-      onPublish={(payload) => {
-        bus.__published = payload;
-      }}
-    />
-  </React.StrictMode>,
-);
+// `?editor=email` mounts the email builder instead of the site builder — a query
+// switch (not a route) since this is a single-page dev harness, not the product.
+const editorMode = params.get("editor");
+
+const root = createRoot(document.getElementById("app") as HTMLElement);
+if (editorMode === "email") {
+  root.render(
+    <React.StrictMode>
+      <EmailBuilder
+        onChange={(doc) => {
+          bus.__lastChange = doc;
+          bus.__changeCount += 1;
+        }}
+        onExport={(html) => {
+          bus.__exported = html;
+        }}
+      />
+    </React.StrictMode>,
+  );
+} else {
+  root.render(
+    <React.StrictMode>
+      <Builder
+        document={stamp(heroSplitCta, theme)}
+        persistKey={persistKey}
+        onChange={(site) => {
+          bus.__lastChange = site;
+          bus.__changeCount += 1;
+        }}
+        onPublish={(payload) => {
+          bus.__published = payload;
+        }}
+      />
+    </React.StrictMode>,
+  );
+}
 
 // Signal readiness for Playwright.
 bus.__ready = true;

@@ -9,6 +9,12 @@
       "@wizeworks/silicaui-builder/react": [
         "./src/react/index.ts"
       ],
+      "@wizeworks/silicaui-builder/email/react": [
+        "./src/email/react/index.ts"
+      ],
+      "@wizeworks/silicaui-builder/email": [
+        "./src/email/index.ts"
+      ],
       "@wizeworks/silicaui-builder": [
         "./src/index.ts"
       ]

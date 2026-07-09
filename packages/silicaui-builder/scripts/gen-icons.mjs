@@ -48,6 +48,10 @@ const USED = {
   // gap-fill components
   sidebar: "panel-left", sidebarTrigger: "panel-left-close",
   wordmark: "case-sensitive", selectionList: "list-checks",
+  // email editor
+  columns: "columns", divider: "separator-horizontal", spacer: "unfold-vertical",
+  alignLeft: "align-left", alignCenter: "align-center", alignRight: "align-right",
+  copy: "copy", chevronUp: "chevron-up", chevronDown: "chevron-down", mail: "mail",
 };
 
 // Pull the inner markup out of each <svg>…</svg> (Lucide files share one root svg).
@@ -95,5 +99,5 @@ export function typeIcon(typeLabelText: string): IconName {
 }
 `;
 
-writeFileSync(join(HERE, "..", "src", "icons.ts"), out);
+writeFileSync(join(HERE, "..", "src", "shared", "icons.ts"), out);
 console.log(`icons.ts generated — ${Object.keys(USED).length} icons`);

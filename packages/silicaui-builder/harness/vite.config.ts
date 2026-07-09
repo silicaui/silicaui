@@ -17,6 +17,8 @@ export default defineConfig({
       "@wizeworks/silicaui-html": fileURLToPath(new URL("../../silicaui-html/src/index.ts", import.meta.url)),
       "@wizeworks/silicaui-react": fileURLToPath(new URL("../../silicaui-react/src/index.ts", import.meta.url)),
       "@wizeworks/silicaui-builder/react": fileURLToPath(new URL("../src/react/index.ts", import.meta.url)),
+      "@wizeworks/silicaui-builder/email/react": fileURLToPath(new URL("../src/email/react/index.ts", import.meta.url)),
+      "@wizeworks/silicaui-builder/email": fileURLToPath(new URL("../src/email/index.ts", import.meta.url)),
       "@wizeworks/silicaui-builder": fileURLToPath(new URL("../src/index.ts", import.meta.url)),
     },
   },
