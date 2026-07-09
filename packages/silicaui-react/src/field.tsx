@@ -96,6 +96,28 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field
     () => ({ status, loading, disabled, disabledMessage }),
     [status, loading, disabled, disabledMessage],
   );
+
+  // The attached status panel's CSS (negative margin + corner-merge) assumes
+  // it's the control's immediate next sibling, so it must be spliced in right
+  // after FieldControl — not appended after everything (which would land it
+  // after a FieldDescription and visually detach it from the control).
+  let content: React.ReactNode = children;
+  if (statusMessage != null) {
+    const autoStatus = <FieldStatus key="__field-status">{statusMessage}</FieldStatus>;
+    const childArray = React.Children.toArray(children);
+    const controlIndex = childArray.findIndex(
+      (child) => React.isValidElement(child) && child.type === FieldControl,
+    );
+    content =
+      controlIndex === -1
+        ? [...childArray, autoStatus]
+        : [
+            ...childArray.slice(0, controlIndex + 1),
+            autoStatus,
+            ...childArray.slice(controlIndex + 1),
+          ];
+  }
+
   return (
     <BaseField.Root
       ref={ref}
@@ -104,8 +126,7 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field
       {...rest}
     >
       <FieldStatusContext.Provider value={ctx}>
-        {children}
-        {statusMessage != null && <FieldStatus>{statusMessage}</FieldStatus>}
+        {content}
         {disabled && disabledMessage != null && (
           <FieldStatus attached={false}>{disabledMessage}</FieldStatus>
         )}

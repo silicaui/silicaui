@@ -60,6 +60,13 @@ export function FieldDemo() {
                         <FieldLabel>Status without message</FieldLabel>
                         <FieldControl defaultValue="test" />
                     </Field>
+                    <Field status="error" statusMessage="Key is required.">
+                        <FieldLabel required>Key</FieldLabel>
+                        <FieldControl placeholder="case_study" />
+                        <FieldDescription>
+                            Immutable URL-safe identifier (lowercase, underscores).
+                        </FieldDescription>
+                    </Field>
                     <Field loading>
                         <FieldLabel>Loading field</FieldLabel>
                         <FieldControl defaultValue="sarahc" />

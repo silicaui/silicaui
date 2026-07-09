@@ -60,8 +60,8 @@ test("clicking a component node selects it (overlay appears)", async ({ page }) 
   const button = page.locator(".sui-canvas button[data-sui-id]").first();
   await button.click();
 
-  // The SelectionOverlay draws a border-primary chrome box over the selection.
-  await expect(page.locator(".sui-canvas .border-primary").first()).toBeVisible();
+  // The SelectionOverlay draws a focus-ring-style outline over the selection.
+  await expect(page.locator(".sui-canvas .outline-primary").first()).toBeVisible();
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 

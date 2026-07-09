@@ -42,7 +42,7 @@ test("clicking a block selects it (overlay appears) and shows its fields", async
   const text = page.locator('.sui-email-canvas [data-sui-id]').last();
   await text.click();
 
-  await expect(page.locator(".sui-email-canvas .border-primary").first()).toBeVisible();
+  await expect(page.locator(".sui-email-canvas .outline-primary").first()).toBeVisible();
   await expect(page.getByText("Content", { exact: true })).toBeVisible();
   expect(errors, errors.join("\n")).toHaveLength(0);
 });

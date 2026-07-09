@@ -1,8 +1,11 @@
 /**
- * The selection chrome shared by both editors' canvases — a Figma/Framer-style
- * overlay drawn OVER the canvas, not baked into the node's classes: a crisp 1px
- * accent frame, four corner handles, and a floating element-name tag. It measures
- * the selected node's real rect (relative to the scrolling board, found via
+ * The selection chrome shared by both editors' canvases — drawn OVER the canvas,
+ * not baked into the node's classes. It mimics silicaui's own focus ring (same
+ * `--focus-width`/`--focus-offset` gap, same accent color) rather than an
+ * invented style, and matches the selected node's own corner radius so a
+ * rounded card gets a rounded ring. No corner handles: the builder doesn't
+ * support drag-resize, so we don't draw an affordance for it. It measures the
+ * selected node's real rect (relative to the scrolling board, found via
  * `[data-sui-id="<selectedId>"]`) and re-measures on any edit / device / resize,
  * so it tracks reflow. Pointer-inert, so it never eats clicks meant for a node.
  */
@@ -28,6 +31,10 @@ export function SelectionOverlay({
   version: unknown;
 }) {
   const [box, setBox] = React.useState<Box | null>(null);
+  // The selected node's own corner radius, so the ring rounds the same way the
+  // element itself does — read fresh on every measure since it can change (e.g.
+  // switching an element's rounding in the inspector).
+  const [radius, setRadius] = React.useState("0px");
 
   React.useLayoutEffect(() => {
     const board = boardRef.current;
@@ -44,8 +51,19 @@ export function SelectionOverlay({
       const b = board.getBoundingClientRect();
       const r = el.getBoundingClientRect();
       // rect diff is scroll-agnostic (both shift together), and the overlay lives
-      // inside the board so it scrolls with the content.
-      setBox({ top: r.top - b.top, left: r.left - b.left, width: r.width, height: r.height });
+      // inside the board so it scrolls with the content. `board`'s own border
+      // (rounded-box border-base-300) is included in its bounding rect but NOT in
+      // an absolutely-positioned child's coordinate space (that's the padding
+      // box) — subtract `clientTop`/`clientLeft` (the border widths) or every
+      // overlay lands a border-width too far down/right, e.g. the ring would sit
+      // 1px closer to the node on top/left than on bottom/right.
+      setBox({
+        top: r.top - b.top - board.clientTop,
+        left: r.left - b.left - board.clientLeft,
+        width: r.width,
+        height: r.height,
+      });
+      setRadius(getComputedStyle(el).borderRadius);
     };
     measure();
     // Late layout (web fonts, images, async reflow) → re-measure.
@@ -58,32 +76,41 @@ export function SelectionOverlay({
   }, [boardRef, selectedId, version]);
 
   if (!box) return null;
-  // Inflate the frame a few px beyond the node so it reads as "around" the element,
-  // not painted on its edge.
-  const INSET = 4;
-  // Each handle is anchored to a corner and pulled back by half its own size, so it
-  // sits centered on the corner regardless of handle size (no magic offsets).
-  const handle = "absolute size-1.5 rounded-[2px] bg-base-100 border border-primary shadow-sm";
   return (
     <div
-      className="pointer-events-none absolute z-20 border border-primary rounded-[4px]"
+      // Same token-driven gap as every other silicaui focus ring — an `outline`
+      // (not a border/box-shadow) so it sits outside the node's own box without
+      // affecting layout, offset by `--focus-offset` for the gap.
+      className="pointer-events-none absolute z-20 outline outline-primary"
       style={{
-        top: box.top - INSET,
-        left: box.left - INSET,
-        width: box.width + INSET * 2,
-        height: box.height + INSET * 2,
+        top: box.top,
+        left: box.left,
+        width: box.width,
+        height: box.height,
+        borderRadius: radius,
+        outlineWidth: "var(--focus-width, 2px)",
+        outlineOffset: "var(--focus-offset, 2px)",
       }}
       aria-hidden
     >
       {label && (
-        <span className="absolute -top-[21px] left-0 max-w-[180px] truncate rounded-[3px] bg-primary px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-content shadow-sm">
+        <span
+          className="absolute max-w-[180px] truncate rounded-[3px] bg-primary px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-content shadow-sm"
+          // Sits on the ring's own top edge — bottom flush with the ring's
+          // outward reach (offset + width) so the tag reads as attached to the
+          // ring, not floating above it. The `- 1px` overlaps by a hair to weld
+          // that seam shut regardless of sub-pixel/anti-aliasing rounding.
+          // Left is nudged in past the ring's own corner curve (rather than
+          // flush with its outer-left edge) so the tag doesn't overhang the
+          // curve at an angle.
+          style={{
+            bottom: "calc(100% + var(--focus-offset, 2px) + var(--focus-width, 2px) - 1px)",
+            left: "6px",
+          }}
+        >
           {label}
         </span>
       )}
-      <span className={`${handle} top-0 left-0 -translate-x-1/2 -translate-y-1/2`} />
-      <span className={`${handle} top-0 right-0 translate-x-1/2 -translate-y-1/2`} />
-      <span className={`${handle} bottom-0 left-0 -translate-x-1/2 translate-y-1/2`} />
-      <span className={`${handle} bottom-0 right-0 translate-x-1/2 translate-y-1/2`} />
     </div>
   );
 }
