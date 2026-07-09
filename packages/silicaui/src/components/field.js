@@ -17,6 +17,7 @@ export function field(prefix = "") {
   const base = {
     [sel()]: {
       "--field-gap": "0.375rem",
+      "--field-ring-reach": "calc(var(--focus-offset, 2px) + var(--focus-width, 2px) + 2px)",
       display: "flex",
       flexDirection: "column",
       gap: "var(--field-gap)",
@@ -88,6 +89,45 @@ export function field(prefix = "") {
       borderColor: "var(--field-status-color, var(--color-base-300))",
       borderTopWidth: "0",
     },
+
+    // When a control is focused inside a Field with an attached status panel,
+    // draw ONE continuous ring around the whole compound shape (control +
+    // panel), keeping the SAME gapped look as every other control's own
+    // `outline`/`outline-offset` ring — just built from a double `box-shadow`
+    // (an inner shadow matching the surface color stands in for the gap, an
+    // outer shadow draws the ring) since a real `outline` can't merge across
+    // a touching sibling. Each piece clips its shadow with `clip-path` so it
+    // only shows on the OUTER perimeter: the control's ring is cut flush at
+    // its bottom edge, the panel's ring is cut flush at its top edge, so the
+    // two never double up into a visible line at the shared seam.
+    [`${sel()}:has(${status("-attached")}) .${prefix}input:focus`]: {
+      outline: "none",
+      boxShadow:
+        "0 0 0 var(--focus-offset, 2px) var(--color-base-100), 0 0 0 calc(var(--focus-offset, 2px) + var(--focus-width, 2px)) var(--input-accent, var(--color-primary))",
+      clipPath:
+        "inset(calc(-1 * var(--field-ring-reach)) calc(-1 * var(--field-ring-reach)) 0 calc(-1 * var(--field-ring-reach)))",
+    },
+    [`${sel()}:has(${status("-attached")}) .${prefix}select:focus`]: {
+      outline: "none",
+      boxShadow:
+        "0 0 0 var(--focus-offset, 2px) var(--color-base-100), 0 0 0 calc(var(--focus-offset, 2px) + var(--focus-width, 2px)) var(--select-accent, var(--color-primary))",
+      clipPath:
+        "inset(calc(-1 * var(--field-ring-reach)) calc(-1 * var(--field-ring-reach)) 0 calc(-1 * var(--field-ring-reach)))",
+    },
+    [`${sel()}:has(${status("-attached")}) .${prefix}textarea:focus`]: {
+      outline: "none",
+      boxShadow:
+        "0 0 0 var(--focus-offset, 2px) var(--color-base-100), 0 0 0 calc(var(--focus-offset, 2px) + var(--focus-width, 2px)) var(--textarea-accent, var(--color-primary))",
+      clipPath:
+        "inset(calc(-1 * var(--field-ring-reach)) calc(-1 * var(--field-ring-reach)) 0 calc(-1 * var(--field-ring-reach)))",
+    },
+    [`${sel()}:has(.${prefix}input:focus, .${prefix}select:focus, .${prefix}textarea:focus) ${status("-attached")}`]:
+      {
+        boxShadow:
+          "0 0 0 var(--focus-offset, 2px) var(--color-base-100), 0 0 0 calc(var(--focus-offset, 2px) + var(--focus-width, 2px)) var(--field-status-color, var(--color-primary))",
+        clipPath:
+          "inset(0 calc(-1 * var(--field-ring-reach)) calc(-1 * var(--field-ring-reach)) calc(-1 * var(--field-ring-reach)))",
+      },
   };
 
   for (const [name, color] of [
