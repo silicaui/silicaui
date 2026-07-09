@@ -121,7 +121,8 @@ test("move up / duplicate / delete act on the selected block via the Inspector t
     .toBeGreaterThan(before);
 
   const afterDuplicate = await page.locator(".sui-email-canvas [data-sui-id]").count();
-  await page.getByLabel("Delete").click();
+  // exact: true — "Delete" is a substring of the Templates panel's "Delete template".
+  await page.getByLabel("Delete", { exact: true }).click();
   await expect
     .poll(() => page.locator(".sui-email-canvas [data-sui-id]").count())
     .toBeLessThan(afterDuplicate);

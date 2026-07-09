@@ -166,6 +166,27 @@ export interface EmailDocument {
   root: EmailBody;
 }
 
+/** One named email in a project — the unit the template switcher lists, adds,
+ *  renames, and deletes. Mirrors the site engine's `Page` (name + its own tree),
+ *  minus a route `slug` — a template has no URL to route. */
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  document: EmailDocument;
+}
+
+/**
+ * A project is one or more independent templates sharing nothing but the brand
+ * color defaults they were seeded with — mirrors the site engine's `Site`
+ * (pages sharing one theme + frame), scaled down: an email has no shared frame
+ * or theme tokens to hold at the project level, so a project is JUST the
+ * roster. `EmailEditor` edits one template at a time (its `activeTemplateId`).
+ */
+export interface EmailProject {
+  version: "1";
+  templates: EmailTemplate[];
+}
+
 /**
  * Hex color defaults new blocks / a fresh document seed with. Plain hex — no
  * `Theme`/OKLCH knowledge here, so the engine stays framework-neutral; the

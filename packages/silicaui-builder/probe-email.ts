@@ -230,5 +230,55 @@ console.log("fallbackParent");
   check("a content node falls back to the LAST section", ed.fallbackParent(btn) === sectionId);
 }
 
+// ── 7. multi-template project: add/rename/remove/switch + whole-project undo ──
+console.log("multi-template project");
+{
+  const ed = new EmailEditor();
+  const firstId = ed.templatesView.activeId;
+  check("a fresh editor starts with exactly one template", ed.templatesView.templates.length === 1);
+
+  const secondId = ed.addTemplate("Welcome series #2");
+  check("addTemplate appends a second template and switches to it", ed.templatesView.templates.length === 2 && ed.activeTemplate === secondId);
+  check("the new template is a fresh, independent document (one seeded section)", ed.root.children.length === 1);
+
+  ed.setActiveTemplate(firstId);
+  check("setActiveTemplate switches back", ed.activeTemplate === firstId);
+  const firstSectionId = ed.root.children[0]!.id;
+  ed.update(ed.root.children[0]!.children[0]!.id, { html: "Edited on template 1 only" });
+  check("an edit on template 1 doesn't touch template 2", ed.root.children[0]!.children[0]!.kind === "text");
+
+  ed.setActiveTemplate(secondId);
+  check("template 2's own content is untouched by template 1's edit", (ed.root.children[0]!.children[0] as TextNode).html !== "Edited on template 1 only");
+
+  ed.renameTemplate(secondId, "Renamed");
+  check("renameTemplate updates the roster label", ed.templatesView.templates.find((t) => t.id === secondId)?.name === "Renamed");
+
+  const project = ed.extractProject();
+  check("extractProject returns every template, not just the active one", project.templates.length === 2);
+  const extracted = ed.extract();
+  check("extract() still returns just the ACTIVE template's document (unchanged contract)", extracted.root.children[0]!.id !== firstSectionId);
+
+  ed.removeTemplate(firstId);
+  check("removeTemplate drops a template and falls back to the remaining one", ed.templatesView.templates.length === 1 && ed.activeTemplate === secondId);
+  ed.removeTemplate(secondId);
+  check("removeTemplate refuses to drop the LAST template", ed.templatesView.templates.length === 1);
+
+  // Undo restores the whole PROJECT (template roster + content), same as the
+  // site engine's whole-site history spans page add/remove/rename.
+  const ed2 = new EmailEditor();
+  const t1 = ed2.templatesView.activeId;
+  ed2.addTemplate("T2");
+  check("history: 2 templates exist after addTemplate", ed2.templatesView.templates.length === 2);
+  ed2.setActiveTemplate(t1);
+  ed2.setActiveTemplate(ed2.templatesView.templates[1]!.id);
+  ed2.undo();
+  check(
+    "history: undo removes the added template in ONE step (switching is not its own history entry)",
+    ed2.templatesView.templates.length === 1 && ed2.activeTemplate === t1,
+  );
+  ed2.redo();
+  check("history: redo re-adds it", ed2.templatesView.templates.length === 2);
+}
+
 console.log(`\n${failures === 0 ? "✅ email engine: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

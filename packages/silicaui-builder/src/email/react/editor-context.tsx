@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import type { EmailDocument, EmailNode } from "../schema";
-import type { EmailEditor } from "../engine";
+import type { EmailEditor, TemplatesView } from "../engine";
 
 const EmailEditorContext = React.createContext<EmailEditor | null>(null);
 
@@ -35,6 +35,21 @@ export function useEmailDocument(): EmailDocument {
       [editor],
     ),
     () => ref.current,
+  );
+}
+
+/**
+ * The template roster + active template id (for the template switcher) —
+ * mirrors the site editor's `usePages`. The engine hands back a stable object
+ * that only changes when the roster or active template mutate, so
+ * getSnapshot is referentially safe and unrelated edits don't re-render the
+ * switcher.
+ */
+export function useEmailTemplates(): TemplatesView {
+  const editor = useEmailEditor();
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    () => editor.templatesView,
   );
 }
 

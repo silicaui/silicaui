@@ -24,7 +24,7 @@ import {
 } from "@wizeworks/silicaui-react";
 import type { Theme } from "@wizeworks/silicaui-html";
 import { EmailEditor } from "../engine";
-import type { EmailDocument } from "../schema";
+import type { EmailDocument, EmailProject } from "../schema";
 import { toEmailHtml } from "../projector";
 import { EmailEditorProvider, useEmailDocument, useEmailEditor, useEmailHistory } from "./editor-context";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
@@ -37,6 +37,7 @@ import { EmailPreview } from "./EmailPreview";
 import { EmailPalette } from "./Palette";
 import { EmailInspector } from "./Inspector";
 import { Navigator } from "./Navigator";
+import { TemplatesPanel } from "./TemplatesPanel";
 import { Icon } from "../../shared/react/Icon";
 
 function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
@@ -250,6 +251,9 @@ function Chrome({
       <div className={`grid flex-1 min-h-0 ${mode === "edit" ? "grid-cols-[240px_1fr_300px]" : "grid-cols-1"}`}>
         {mode === "edit" && (
           <aside className="flex flex-col min-h-0 bg-base-100 border-r border-base-300">
+            {/* Templates sit above Layers/Insert — a navigation peer to the tree,
+                same placement as the site builder's Pages switcher. */}
+            <TemplatesPanel studioTheme={studioTheme} />
             <PanelHead>
               <ToggleGroup
                 className="toggle-group-xs"
@@ -302,7 +306,19 @@ function Chrome({
 }
 
 export interface EmailBuilderProps {
+  /**
+   * Seeds a single-template project (back-compat with a builder that predates
+   * multi-template support). Ignored if `project` is also given.
+   */
   document?: EmailDocument;
+  /**
+   * Seeds the FULL multi-template project — the shape a host should actually
+   * persist and hand back on the next mount, since `onChange` below hands back
+   * the whole project too (an email builder can hold more than one template,
+   * the same way the site builder holds more than one page). Takes precedence
+   * over `document` when both are given.
+   */
+  project?: EmailProject;
   studioTheme?: string;
   /**
    * A @wizeworks/silicaui brand `Theme` (the same shape the site builder edits) —
@@ -313,10 +329,11 @@ export interface EmailBuilderProps {
    * built-in neutral palette.
    */
   theme?: Theme;
-  /** Fires after every committed edit, with the whole document to persist. The
-   *  builder stores nothing itself (beyond the local crash-recovery draft below)
-   *  — the host owns real persistence. */
-  onChange?: (doc: EmailDocument) => void;
+  /** Fires after every committed edit, with the WHOLE project (every template,
+   *  not just the active one) to persist. The builder stores nothing itself
+   *  (beyond the local crash-recovery draft below) — the host owns real
+   *  persistence. */
+  onChange?: (project: EmailProject) => void;
   /** Fires (in addition to the built-in client-side download) when the user
    *  clicks Export HTML, with the projected HTML string. */
   onExport?: (html: string) => void;
@@ -344,6 +361,7 @@ const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder-email";
 /** The full email builder. Mount it anywhere; it fills its host container. */
 export function EmailBuilder({
   document,
+  project,
   studioTheme = "studio",
   theme,
   onChange,
@@ -351,8 +369,9 @@ export function EmailBuilder({
   onSendTest,
   persistKey = DEFAULT_PERSIST_KEY,
 }: EmailBuilderProps) {
-  const store = React.useMemo(() => (persistKey ? new DraftStore<EmailDocument>(persistKey) : null), [persistKey]);
-  const docRef = React.useRef(document);
+  const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
+  // `project` takes precedence over the legacy single-template `document`.
+  const seedRef = React.useRef(project ?? document);
   const colorsRef = React.useRef(theme);
   // `gen` bumps on every editor swap (start-fresh) so the whole subtree remounts
   // — no stale canvas DOM (e.g. a contentEditable edit) survives a restore.
@@ -361,16 +380,17 @@ export function EmailBuilder({
   >(null);
   const editor = current?.editor ?? null;
 
-  // Boot: restore a saved draft if one exists, else seed from the `document` prop.
-  // `colorDefaults` seeds a FRESH document's colors; a restored draft already
-  // has its own, but still needs the current theme resolved for FUTURE inserts.
+  // Boot: restore a saved draft if one exists, else seed from the `project`/
+  // `document` prop. `colorDefaults` seeds a FRESH document's colors; a
+  // restored draft already has its own, but still needs the current theme
+  // resolved for FUTURE inserts.
   React.useEffect(() => {
     let cancelled = false;
     void (async () => {
       const snap = store ? await store.load() : undefined;
       if (cancelled) return;
       const colors = resolveEmailColorDefaults(colorsRef.current);
-      setCurrent({ editor: new EmailEditor(snap?.data ?? docRef.current, colors), recoveredAt: snap?.savedAt ?? null, gen: 0 });
+      setCurrent({ editor: new EmailEditor(snap?.data ?? seedRef.current, colors), recoveredAt: snap?.savedAt ?? null, gen: 0 });
     })();
     return () => {
       cancelled = true;
@@ -378,16 +398,19 @@ export function EmailBuilder({
   }, [store]);
 
   // Autosave (local durable store) + relay edits to the host. A final flush runs
-  // on tab-hide / pagehide / unmount so the very last edit always lands.
+  // on tab-hide / pagehide / unmount so the very last edit always lands. The
+  // WHOLE project is relayed (every template), not just the active one — a
+  // template switch alone doesn't relay (no edit happened), but any commit
+  // afterward captures the full current roster.
   React.useEffect(() => {
     if (!editor) return;
     const relay = () => {
-      const doc = editor.extract();
-      store?.save(doc);
-      onChange?.(doc);
+      const proj = editor.extractProject();
+      store?.save(proj);
+      onChange?.(proj);
     };
     const unsub = editor.subscribe((e) => {
-      if (e.kind !== "selection") relay();
+      if (e.kind !== "selection" && e.kind !== "active") relay();
     });
     const flush = () => store?.flush();
     window.addEventListener("visibilitychange", flush);
@@ -400,11 +423,11 @@ export function EmailBuilder({
     };
   }, [editor, store, onChange]);
 
-  // "Start fresh" — discard the recovered draft and reseed from the prop document.
+  // "Start fresh" — discard the recovered draft and reseed from the prop project/document.
   const startFresh = React.useCallback(() => {
     void store?.clear();
     const colors = resolveEmailColorDefaults(colorsRef.current);
-    setCurrent((c) => ({ editor: new EmailEditor(docRef.current, colors), recoveredAt: null, gen: (c?.gen ?? 0) + 1 }));
+    setCurrent((c) => ({ editor: new EmailEditor(seedRef.current, colors), recoveredAt: null, gen: (c?.gen ?? 0) + 1 }));
   }, [store]);
 
   const dismissBanner = React.useCallback(() => setCurrent((c) => (c ? { ...c, recoveredAt: null } : c)), []);

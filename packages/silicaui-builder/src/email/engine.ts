@@ -14,11 +14,26 @@ import type {
   EmailColorDefaults,
   EmailDocument,
   EmailNode,
+  EmailProject,
+  EmailTemplate,
   SectionNode,
 } from "./schema";
 import { DEFAULT_EMAIL_COLORS, emptyEmailDocument, isContentKind } from "./schema";
 
-export type ChangeKind = "structure" | "props" | "selection" | "meta" | "replace";
+export type ChangeKind = "structure" | "props" | "selection" | "meta" | "replace" | "template" | "active";
+
+/** Lightweight template descriptor for the template switcher (no tree — just identity). */
+export interface TemplateMeta {
+  id: string;
+  name: string;
+}
+
+/** The current template roster + which one is active — a referentially-stable
+ *  view for the switcher (rebuilt only when the roster or active id change). */
+export interface TemplatesView {
+  templates: readonly TemplateMeta[];
+  activeId: string;
+}
 
 export interface ChangeEvent {
   kind: ChangeKind;
@@ -106,12 +121,22 @@ function stampIds(node: EmailNode, makeId: () => string): EmailNode {
 }
 
 export class EmailEditor {
-  private doc: EmailDocument;
+  // The whole project — one or more templates. The builder edits ONE template
+  // at a time (`activeTemplateId`); `doc` resolves to just that template's
+  // document so the rest of the editing spine (locate/commit/insert/…) reads
+  // exactly as it did before templates existed.
+  private project: EmailProject;
+  private activeTemplateId: string;
+  // Cached switcher view — swapped (never mutated) only when the roster or the
+  // active template changes, so `useSyncExternalStore` stays referentially stable.
+  private templatesViewCache: TemplatesView = { templates: [], activeId: "" };
   private listeners = new Set<(e: ChangeEvent) => void>();
   private selectedId: string | undefined;
   private clipboard: EmailNode | undefined;
-  private past: EmailDocument[] = [];
-  private future: EmailDocument[] = [];
+  // Whole-PROJECT undo history (mirrors the site engine's whole-site snapshots) —
+  // a node edit on any template, and template add/remove/rename, all undo together.
+  private past: EmailProject[] = [];
+  private future: EmailProject[] = [];
   private static readonly HISTORY_LIMIT = 100;
   private readonly colors: EmailColorDefaults;
 
@@ -121,10 +146,27 @@ export class EmailEditor {
    * `EmailColorDefaults`'s doc comment for why). Omit it for the built-in
    * neutral fallback; the React `EmailBuilder` resolves an actual brand
    * `Theme` down to this shape before constructing the editor.
+   *
+   * Accepts a legacy single-template `EmailDocument` (wrapped as a one-template
+   * project) or a full multi-template `EmailProject` — same shape-sniffing
+   * pattern as the site engine's `Document | Site` union.
    */
-  constructor(input?: EmailDocument, colorDefaults: EmailColorDefaults = DEFAULT_EMAIL_COLORS) {
+  constructor(input?: EmailDocument | EmailProject, colorDefaults: EmailColorDefaults = DEFAULT_EMAIL_COLORS) {
     this.colors = colorDefaults;
-    this.doc = input ? structuredClone(input) : emptyEmailDocument(defaultMakeId, colorDefaults);
+    if (input && "templates" in input) {
+      this.project = structuredClone(input);
+    } else {
+      const document = input ? structuredClone(input) : emptyEmailDocument(defaultMakeId, colorDefaults);
+      this.project = { version: "1", templates: [{ id: defaultMakeId(), name: "Email 1", document }] };
+    }
+    // A project always has at least one template.
+    if (this.project.templates.length === 0) {
+      this.project.templates = [
+        { id: defaultMakeId(), name: "Email 1", document: emptyEmailDocument(defaultMakeId, colorDefaults) },
+      ];
+    }
+    this.activeTemplateId = this.project.templates[0]!.id;
+    this.syncTemplates();
   }
 
   /** The resolved brand color defaults — the Palette/Canvas use this for new
@@ -143,9 +185,29 @@ export class EmailEditor {
     for (const l of this.listeners) l({ kind });
   }
 
-  /** A defensive clone of the whole document, for saving. */
+  // ── active template + document ──────────────────────────────────────────────
+  private currentTemplate(): EmailTemplate {
+    return this.project.templates.find((t) => t.id === this.activeTemplateId) ?? this.project.templates[0]!;
+  }
+
+  /** The active template's document — every existing method below reads/writes
+   *  through this unchanged, exactly as when there was only ever one document. */
+  private get doc(): EmailDocument {
+    return this.currentTemplate().document;
+  }
+  private set doc(value: EmailDocument) {
+    this.currentTemplate().document = value;
+  }
+
+  /** A defensive clone of the ACTIVE template's document, for saving/preview —
+   *  the shape every existing consumer (Canvas, Inspector, projector) expects. */
   extract(): EmailDocument {
     return structuredClone(this.doc);
+  }
+
+  /** A defensive clone of the WHOLE project — every template — for saving. */
+  extractProject(): EmailProject {
+    return structuredClone(this.project);
   }
 
   get root(): EmailBody {
@@ -170,9 +232,91 @@ export class EmailEditor {
     this.emit("meta");
   }
 
+  // ── templates (multi-template project) ──────────────────────────────────────
+  /** Rebuild the cached switcher view (roster + active id). Called after any
+   *  template change and after undo/redo, so `templatesView` swaps only when
+   *  it truly changes. */
+  private syncTemplates(): void {
+    this.templatesViewCache = {
+      templates: this.project.templates.map((t) => ({ id: t.id, name: t.name })),
+      activeId: this.activeTemplateId,
+    };
+  }
+
+  /** The current template roster + active id — a stable snapshot for the switcher. */
+  get templatesView(): TemplatesView {
+    return this.templatesViewCache;
+  }
+
+  /** The active template's id. */
+  get activeTemplate(): string {
+    return this.activeTemplateId;
+  }
+
+  /**
+   * Switch which template the builder edits. A view concern (like selection) —
+   * NOT history — so it never lands on the undo stack. Selection is
+   * template-scoped (an id in one template means nothing in another), so it
+   * clears.
+   */
+  setActiveTemplate(id: string): void {
+    if (id === this.activeTemplateId) return;
+    if (!this.project.templates.some((t) => t.id === id)) return;
+    this.activeTemplateId = id;
+    this.selectedId = undefined;
+    this.syncTemplates();
+    this.emit("active");
+  }
+
+  /** Add a fresh, empty template (auto-named "Email N") and switch to it.
+   *  Undoable. Returns the new template's id. */
+  addTemplate(name?: string): string {
+    const label = name?.trim() || `Email ${this.project.templates.length + 1}`;
+    const template: EmailTemplate = {
+      id: defaultMakeId(),
+      name: label,
+      document: emptyEmailDocument(defaultMakeId, this.colors),
+    };
+    this.pushHistory();
+    this.project.templates.push(template);
+    this.activeTemplateId = template.id;
+    this.selectedId = undefined;
+    this.syncTemplates();
+    this.emit("template");
+    return template.id;
+  }
+
+  /** Remove a template. Refuses to remove the last one (a project needs ≥1
+   *  template). If it was active, falls back to the previous template. Undoable. */
+  removeTemplate(id: string): void {
+    if (this.project.templates.length <= 1) return;
+    const idx = this.project.templates.findIndex((t) => t.id === id);
+    if (idx < 0) return;
+    this.pushHistory();
+    this.project.templates.splice(idx, 1);
+    if (this.activeTemplateId === id) {
+      this.activeTemplateId = (this.project.templates[idx - 1] ?? this.project.templates[0]!).id;
+      this.selectedId = undefined;
+    }
+    this.syncTemplates();
+    this.emit("template");
+  }
+
+  /** Rename a template's label (no-op on empty/unchanged). Undoable. */
+  renameTemplate(id: string, name: string): void {
+    const template = this.project.templates.find((t) => t.id === id);
+    if (!template) return;
+    const value = name.trim();
+    if (!value || value === template.name) return;
+    this.pushHistory();
+    template.name = value;
+    this.syncTemplates();
+    this.emit("template");
+  }
+
   // ── history-aware commit ───────────────────────────────────────────────────
   private pushHistory(): void {
-    this.past.push(structuredClone(this.doc));
+    this.past.push(structuredClone(this.project));
     if (this.past.length > EmailEditor.HISTORY_LIMIT) this.past.shift();
     this.future = [];
   }
@@ -421,8 +565,9 @@ export class EmailEditor {
   undo(): void {
     const prev = this.past.pop();
     if (!prev) return;
-    this.future.push(structuredClone(this.doc));
-    this.doc = prev;
+    this.future.push(structuredClone(this.project));
+    this.project = prev;
+    this.clampActiveTemplate();
     this.clampSelection();
     this.emit("replace");
   }
@@ -430,10 +575,21 @@ export class EmailEditor {
   redo(): void {
     const next = this.future.pop();
     if (!next) return;
-    this.past.push(structuredClone(this.doc));
-    this.doc = next;
+    this.past.push(structuredClone(this.project));
+    this.project = next;
+    this.clampActiveTemplate();
     this.clampSelection();
     this.emit("replace");
+  }
+
+  /** After undo/redo restores a project snapshot, the active template id may no
+   *  longer exist (a template add/remove was itself undone/redone) — fall back
+   *  to the first template, same fallback `currentTemplate()` already has. */
+  private clampActiveTemplate(): void {
+    if (!this.project.templates.some((t) => t.id === this.activeTemplateId)) {
+      this.activeTemplateId = this.project.templates[0]!.id;
+    }
+    this.syncTemplates();
   }
 
   private clampSelection(): void {

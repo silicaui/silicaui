@@ -124,7 +124,8 @@ test("nothing selected shows the same empty state as the site builder; selecting
 
   // The root can't be moved/duplicated/deleted/saved-as-block.
   await expect(page.getByLabel("Duplicate")).toBeDisabled();
-  await expect(page.getByLabel("Delete")).toBeDisabled();
+  // exact: true — "Delete" is a substring of the Templates panel's "Delete template".
+  await expect(page.getByLabel("Delete", { exact: true })).toBeDisabled();
   await expect(page.getByLabel("Save as block")).toHaveCount(0);
 
   expect(errors, errors.join("\n")).toHaveLength(0);
