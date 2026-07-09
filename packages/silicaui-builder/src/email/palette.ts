@@ -3,18 +3,22 @@
  * entry is a pure factory returning a fresh `EmailNode` (the `id` is a
  * placeholder; `EmailEditor.insert` stamps a real one). Unlike the site
  * palette, this catalog is small and CLOSED — it mirrors `schema.ts`'s fixed
- * vocabulary exactly, one entry per insertable kind (plus 2/3-column presets,
- * since a bare "columns" block with zero columns isn't useful to insert).
+ * vocabulary exactly, one entry per insertable kind (plus 2/3/4-column
+ * presets, since a bare "columns" block with zero columns isn't useful to
+ * insert). `make` takes the current brand color defaults (`editor.colorDefaults`)
+ * so a newly-inserted Button/Text/Divider lands on-brand rather than on a
+ * generic neutral gray.
  */
 import type { IconName } from "../shared/icons";
-import type { ColumnNode, ColumnsNode, EmailNode } from "./schema";
+import { DEFAULT_EMAIL_COLORS } from "./schema";
+import type { ColumnNode, ColumnsNode, EmailColorDefaults, EmailNode } from "./schema";
 
 export interface EmailPaletteItem {
   key: string;
   label: string;
   hint: string;
   icon: IconName;
-  make: () => EmailNode;
+  make: (colors?: EmailColorDefaults) => EmailNode;
 }
 
 function column(widthPct: number): ColumnNode {
@@ -31,7 +35,7 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     label: "Section",
     hint: "A full-width row — the top-level building block",
     icon: "section",
-    make: () => ({ id: "x", kind: "section", bg: "#ffffff", paddingX: 24, paddingY: 24, children: [] }),
+    make: (c = DEFAULT_EMAIL_COLORS) => ({ id: "x", kind: "section", bg: c.base100, paddingX: 24, paddingY: 24, children: [] }),
   },
   {
     key: "columns-2",
@@ -48,16 +52,23 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     make: () => columns([33.33, 33.33, 33.34]),
   },
   {
+    key: "columns-4",
+    label: "4 columns",
+    hint: "An even four-column row",
+    icon: "columns",
+    make: () => columns([25, 25, 25, 25]),
+  },
+  {
     key: "text",
     label: "Text",
     hint: "A paragraph of copy",
     icon: "text",
-    make: () => ({
+    make: (c = DEFAULT_EMAIL_COLORS) => ({
       id: "x",
       kind: "text",
       html: "Write something…",
       align: "left",
-      color: "#18181b",
+      color: c.baseContent,
       fontSize: 16,
       lineHeight: 24,
     }),
@@ -74,13 +85,13 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     label: "Button",
     hint: "A bulletproof call-to-action link",
     icon: "button",
-    make: () => ({
+    make: (c = DEFAULT_EMAIL_COLORS) => ({
       id: "x",
       kind: "button",
       label: "Shop now",
       href: "",
-      bg: "#111827",
-      color: "#ffffff",
+      bg: c.primary,
+      color: c.primaryContent,
       radius: 6,
       align: "center",
       paddingX: 20,
@@ -92,7 +103,7 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     label: "Divider",
     hint: "A thin horizontal rule",
     icon: "divider",
-    make: () => ({ id: "x", kind: "divider", color: "#e4e4e7", thickness: 1 }),
+    make: (c = DEFAULT_EMAIL_COLORS) => ({ id: "x", kind: "divider", color: c.base300, thickness: 1 }),
   },
   {
     key: "spacer",
@@ -100,6 +111,38 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     hint: "Vertical breathing room",
     icon: "spacer",
     make: () => ({ id: "x", kind: "spacer", height: 24 }),
+  },
+  {
+    key: "social",
+    label: "Social icons",
+    hint: "A row of linked platform badges",
+    icon: "share",
+    make: () => ({
+      id: "x",
+      kind: "social",
+      links: [
+        { platform: "facebook", url: "" },
+        { platform: "instagram", url: "" },
+        { platform: "x", url: "" },
+      ],
+      align: "center",
+      iconSize: 32,
+      gap: 12,
+    }),
+  },
+  {
+    key: "video",
+    label: "Video",
+    hint: "A linked thumbnail — email clients can't embed real video",
+    icon: "video",
+    make: () => ({ id: "x", kind: "video", href: "", thumbnail: "", width: 400, align: "center", showPlayButton: true }),
+  },
+  {
+    key: "html",
+    label: "Custom HTML",
+    hint: "Raw HTML passthrough — for merge tags or hand-authored markup",
+    icon: "code",
+    make: () => ({ id: "x", kind: "html", html: "<p>Custom HTML…</p>" }),
   },
 ];
 

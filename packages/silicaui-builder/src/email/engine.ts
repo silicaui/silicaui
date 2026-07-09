@@ -11,11 +11,12 @@ import type {
   ColumnsNode,
   ContentNode,
   EmailBody,
+  EmailColorDefaults,
   EmailDocument,
   EmailNode,
   SectionNode,
 } from "./schema";
-import { emptyEmailDocument, isContentKind } from "./schema";
+import { DEFAULT_EMAIL_COLORS, emptyEmailDocument, isContentKind } from "./schema";
 
 export type ChangeKind = "structure" | "props" | "selection" | "meta" | "replace";
 
@@ -40,7 +41,11 @@ function canHold(parent: EmailNode, child: EmailNode): boolean {
     case "columns":
       return child.kind === "column";
     case "column":
-      return isContentKind(child.kind);
+      // A column holds bare content OR a nested columns row (the "2x2 grid"
+      // pattern) — `LayoutChild`. Nesting depth is unbounded by the schema
+      // (real email tables nest fine); the Palette just has no reason to
+      // encourage going deeper than one level in practice.
+      return child.kind === "columns" || isContentKind(child.kind);
     default:
       return false;
   }
@@ -48,6 +53,12 @@ function canHold(parent: EmailNode, child: EmailNode): boolean {
 
 function childrenOf(node: EmailNode): EmailNode[] | undefined {
   return isContainer(node) ? (node.children as EmailNode[]) : undefined;
+}
+
+/** Redistribute a columns row's widths evenly (used after add/remove-column). */
+function rebalanceColumns(row: ColumnsNode): void {
+  const share = Math.round((100 / row.children.length) * 100) / 100;
+  for (const c of row.children) c.widthPct = share;
 }
 
 interface Located {
@@ -102,9 +113,25 @@ export class EmailEditor {
   private past: EmailDocument[] = [];
   private future: EmailDocument[] = [];
   private static readonly HISTORY_LIMIT = 100;
+  private readonly colors: EmailColorDefaults;
 
-  constructor(input?: EmailDocument) {
-    this.doc = input ? structuredClone(input) : emptyEmailDocument(defaultMakeId);
+  /**
+   * `colorDefaults` seeds a brand-new document's colors AND is what new
+   * palette inserts (Button/Text/Divider) pick up — plain hex (see
+   * `EmailColorDefaults`'s doc comment for why). Omit it for the built-in
+   * neutral fallback; the React `EmailBuilder` resolves an actual brand
+   * `Theme` down to this shape before constructing the editor.
+   */
+  constructor(input?: EmailDocument, colorDefaults: EmailColorDefaults = DEFAULT_EMAIL_COLORS) {
+    this.colors = colorDefaults;
+    this.doc = input ? structuredClone(input) : emptyEmailDocument(defaultMakeId, colorDefaults);
+  }
+
+  /** The resolved brand color defaults — the Palette/Canvas use this for new
+   *  block inserts (`item.make(editor.colorDefaults)`) so a Button/Text/Divider
+   *  a user adds lands on-brand instead of a generic neutral default. */
+  get colorDefaults(): EmailColorDefaults {
+    return this.colors;
   }
 
   subscribe(cb: (e: ChangeEvent) => void): () => void {
@@ -212,8 +239,10 @@ export class EmailEditor {
 
   /** The body's own children can't hold this — fall back to its LAST section
    *  (append-to-end), since a bare content block or columns row has nowhere else
-   *  sensible to land. Undefined if the body holds no section yet. */
-  private lastSectionFallback(node: EmailNode): string | undefined {
+   *  sensible to land. Undefined if the body holds no section yet. Public: the
+   *  Canvas reuses this for a margin drop of an EXISTING node (a `move`, not an
+   *  `insert`, so it can't go through `insertRelative`). */
+  fallbackParent(node: EmailNode): string | undefined {
     if (canHold(this.doc.root, node)) return this.doc.root.id;
     const last = this.doc.root.children[this.doc.root.children.length - 1];
     return last && canHold(last, node) ? last.id : undefined;
@@ -226,7 +255,7 @@ export class EmailEditor {
   insertRelative(node: EmailNode, targetId?: string): string | undefined {
     const target = targetId ?? this.selectedId;
     const fallback = () => {
-      const parentId = this.lastSectionFallback(node);
+      const parentId = this.fallbackParent(node);
       return parentId ? this.insert(node, parentId) : undefined;
     };
     if (!target) return fallback();
@@ -267,6 +296,51 @@ export class EmailEditor {
       const at = Math.max(0, Math.min(index - shift, to.length));
       to.splice(at, 0, moved);
     });
+  }
+
+  /** Append a new, evenly-shared column to a columns row (rebalances every
+   *  column's `widthPct` so they still sum to 100). No-op past 6 columns —
+   *  more than that stops being a usable email layout at any real width. */
+  addColumn(columnsId: string): void {
+    const found = locate(this.doc.root, columnsId);
+    if (!found || found.node.kind !== "columns") return;
+    const node = found.node;
+    if (node.children.length >= 6) return;
+    this.commit("structure", () => {
+      node.children.push({ id: defaultMakeId(), kind: "column", widthPct: 0, children: [] });
+      rebalanceColumns(node);
+    });
+  }
+
+  /** Remove a column from its row (rebalancing the rest). Refuses to drop the
+   *  last column in a row — remove the `columns` node itself instead. */
+  removeColumn(columnId: string): void {
+    const found = locate(this.doc.root, columnId);
+    if (!found || !found.parent || found.parent.kind !== "columns") return;
+    const row = found.parent;
+    if (row.children.length <= 1) return;
+    this.commit("structure", () => {
+      row.children.splice(found.index, 1);
+      rebalanceColumns(row);
+    });
+    if (this.selectedId === columnId) this.select(row.id);
+  }
+
+  /** Duplicate a column within its row and rebalance widths (a plain
+   *  `duplicate()` would leave the row's `widthPct`s summing past 100). No-op
+   *  past 6 columns. */
+  duplicateColumn(columnId: string): string | undefined {
+    const found = locate(this.doc.root, columnId);
+    if (!found || !found.parent || found.parent.kind !== "columns" || found.node.kind !== "column") return undefined;
+    const row = found.parent;
+    if (row.children.length >= 6) return undefined;
+    const copy = stampIds(found.node, defaultMakeId) as ColumnNode;
+    this.commit("structure", () => {
+      row.children.splice(found.index + 1, 0, copy);
+      rebalanceColumns(row);
+    });
+    this.select(copy.id);
+    return copy.id;
   }
 
   /** This node's position among its siblings — for the Inspector's move

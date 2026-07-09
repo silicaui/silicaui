@@ -3,7 +3,21 @@
  * Shared by the Canvas (selection label) and the Inspector (breadcrumb + header).
  */
 import type { IconName } from "../shared/icons";
-import type { EmailNode } from "./schema";
+import type { EmailNode, SocialPlatform } from "./schema";
+
+/** Per-platform badge color + short label — a self-contained text badge (no
+ *  hotlinked icon image, so a Social block never depends on an external asset
+ *  host staying up). Shared by the projector (real output) and the Canvas
+ *  (live preview), so what you see while editing IS what ships. */
+export const SOCIAL_PLATFORM: Record<SocialPlatform, { color: string; label: string }> = {
+  facebook: { color: "#1877f2", label: "f" },
+  instagram: { color: "#e1306c", label: "IG" },
+  x: { color: "#000000", label: "X" },
+  linkedin: { color: "#0a66c2", label: "in" },
+  youtube: { color: "#ff0000", label: "▶" },
+  tiktok: { color: "#000000", label: "TT" },
+  pinterest: { color: "#e60023", label: "P" },
+};
 
 const KIND_ICON: Record<EmailNode["kind"], IconName> = {
   body: "page",
@@ -15,6 +29,9 @@ const KIND_ICON: Record<EmailNode["kind"], IconName> = {
   button: "button",
   divider: "divider",
   spacer: "spacer",
+  social: "share",
+  html: "code",
+  video: "video",
 };
 
 export function nodeIcon(node: EmailNode): IconName {
@@ -31,6 +48,9 @@ const KIND_LABEL: Record<EmailNode["kind"], string> = {
   button: "Button",
   divider: "Divider",
   spacer: "Spacer",
+  social: "Social",
+  html: "Custom HTML",
+  video: "Video",
 };
 
 /** A short display name — the text content for a text node, else the kind label. */

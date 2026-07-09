@@ -23,8 +23,8 @@ import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, 
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
 import { customColorCss } from "../color-cascade";
-import { DRAG_MIME, decodeDrag } from "../dnd";
-import type { DropEdge } from "../dnd";
+import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
+import type { DropEdge } from "../../shared/dnd";
 import { paletteItemByKey } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";

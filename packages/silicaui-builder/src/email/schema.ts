@@ -3,13 +3,15 @@
  * site engine's open element/component tree. Email HTML has no room for arbitrary
  * nesting (it has to survive Outlook's Word rendering engine and Gmail stripping
  * `<style>` blocks), so the vocabulary mirrors what every mainstream email
- * builder converges on: a body of sections, sections holding either columns or
- * content directly, columns holding content, content being the leaf kinds.
+ * builder converges on: a body of sections, sections and columns both holding
+ * `LayoutChild` (a nested columns row OR bare content — one level of
+ * column-in-column nesting is allowed, the common "2x2 grid" pattern), content
+ * being the leaf kinds.
  *
- * Structural nesting is enforced by TYPES, not runtime validation: `SectionChild`
- * can't hold a `ColumnNode` directly (only via `ColumnsNode`), a `ColumnNode` can't
- * hold a `SectionNode`, etc. `engine.ts`'s `canHold` is the single runtime mirror
- * of these rules — keep the two in sync.
+ * Structural nesting is enforced by TYPES, not runtime validation: a
+ * `LayoutChild` can't hold a `ColumnNode` directly (only via `ColumnsNode`), a
+ * `ColumnNode` can't hold a `SectionNode`, etc. `engine.ts`'s `canHold` is the
+ * single runtime mirror of these rules — keep the two in sync.
  */
 
 export type Align = "left" | "center" | "right";
@@ -61,19 +63,65 @@ export interface SpacerNode extends BaseNode {
   height: number;
 }
 
-export type ContentNode = TextNode | ImageNode | ButtonNode | DividerNode | SpacerNode;
+/** The social platforms with a built-in badge color. Rendered as small
+ *  self-contained text badges (a letter on the platform's brand color), not
+ *  hotlinked icon images — no external asset dependency for the output HTML. */
+export type SocialPlatform = "facebook" | "instagram" | "x" | "linkedin" | "youtube" | "tiktok" | "pinterest";
+
+export interface SocialLink {
+  platform: SocialPlatform;
+  url: string;
+}
+
+export interface SocialNode extends BaseNode {
+  kind: "social";
+  links: SocialLink[];
+  align: Align;
+  iconSize: number;
+  gap: number;
+}
+
+/** Raw HTML passthrough for power users — merge tags (`{{first_name}}`, an
+ *  ESP's own syntax) pass through untouched since the projector never parses
+ *  this string, just emits it verbatim. */
+export interface HtmlNode extends BaseNode {
+  kind: "html";
+  html: string;
+}
+
+/**
+ * A video: email clients can't embed/autoplay `<video>` reliably (most strip
+ * it), so the universal technique is a linked thumbnail image that opens the
+ * video's real URL — this node IS that, not a video embed.
+ */
+export interface VideoNode extends BaseNode {
+  kind: "video";
+  href: string;
+  thumbnail: string;
+  width: number;
+  align: Align;
+  /** A centered play-glyph overlay drawn over the thumbnail. */
+  showPlayButton: boolean;
+}
+
+export type ContentNode = TextNode | ImageNode | ButtonNode | DividerNode | SpacerNode | SocialNode | HtmlNode | VideoNode;
 export type ContentKind = ContentNode["kind"];
 
-const CONTENT_KINDS = new Set<ContentKind>(["text", "image", "button", "divider", "spacer"]);
+const CONTENT_KINDS = new Set<ContentKind>(["text", "image", "button", "divider", "spacer", "social", "html", "video"]);
 export function isContentKind(kind: EmailNode["kind"]): kind is ContentKind {
   return CONTENT_KINDS.has(kind as ContentKind);
 }
+
+/** What a section OR a column can hold directly — either a nested multi-column
+ *  row (one level of column-in-column nesting, the common "2x2 grid" pattern
+ *  most email builders support), or bare content. */
+export type LayoutChild = ColumnsNode | ContentNode;
 
 export interface ColumnNode extends BaseNode {
   kind: "column";
   /** This column's share of the row; a row's columns should sum to 100. */
   widthPct: number;
-  children: ContentNode[];
+  children: LayoutChild[];
 }
 
 export interface ColumnsNode extends BaseNode {
@@ -82,16 +130,16 @@ export interface ColumnsNode extends BaseNode {
   stackOnMobile: boolean;
 }
 
-/** What a section can hold directly — either a multi-column row, or bare content
- *  (treated as one implicit full-width column by the projector). */
-export type SectionChild = ColumnsNode | ContentNode;
-
 export interface SectionNode extends BaseNode {
   kind: "section";
   bg: string;
+  /** An optional background image URL. Email clients vary wildly on support
+   *  (Outlook desktop needs a VML fallback, which the projector emits); `bg`
+   *  always renders too, underneath, as the graceful-degradation fallback. */
+  bgImage?: string;
   paddingX: number;
   paddingY: number;
-  children: SectionChild[];
+  children: LayoutChild[];
 }
 
 export interface EmailBody extends BaseNode {
@@ -116,8 +164,40 @@ export interface EmailDocument {
   root: EmailBody;
 }
 
+/**
+ * Hex color defaults new blocks / a fresh document seed with. Plain hex — no
+ * `Theme`/OKLCH knowledge here, so the engine stays framework-neutral; the
+ * React layer (`email/react/theme-defaults.ts`) resolves an actual brand
+ * `Theme` down to this shape before constructing an `EmailEditor`, since email
+ * HTML can't ship OKLCH (Outlook and most clients don't support CSS color
+ * functions) — every stored color must already be a literal hex string.
+ */
+export interface EmailColorDefaults {
+  /** Button background / links / accents. */
+  primary: string;
+  /** Text color that reads on top of `primary`. */
+  primaryContent: string;
+  /** Body copy color. */
+  baseContent: string;
+  /** Section / content background. */
+  base100: string;
+  /** Outer canvas background. */
+  base200: string;
+  /** Divider color. */
+  base300: string;
+}
+
+export const DEFAULT_EMAIL_COLORS: EmailColorDefaults = {
+  primary: "#111827",
+  primaryContent: "#ffffff",
+  baseContent: "#18181b",
+  base100: "#ffffff",
+  base200: "#f4f4f5",
+  base300: "#e4e4e7",
+};
+
 /** A fresh, empty document — one section with an intro text block. */
-export function emptyEmailDocument(makeId: () => string): EmailDocument {
+export function emptyEmailDocument(makeId: () => string, colors: EmailColorDefaults = DEFAULT_EMAIL_COLORS): EmailDocument {
   return {
     version: "1",
     subject: "New email",
@@ -126,14 +206,14 @@ export function emptyEmailDocument(makeId: () => string): EmailDocument {
       id: makeId(),
       kind: "body",
       width: 600,
-      bg: "#f4f4f5",
-      contentBg: "#ffffff",
+      bg: colors.base200,
+      contentBg: colors.base100,
       fontFamily: "Arial, Helvetica, sans-serif",
       children: [
         {
           id: makeId(),
           kind: "section",
-          bg: "#ffffff",
+          bg: colors.base100,
           paddingX: 24,
           paddingY: 24,
           children: [
@@ -142,7 +222,7 @@ export function emptyEmailDocument(makeId: () => string): EmailDocument {
               kind: "text",
               html: "Start writing your email…",
               align: "left",
-              color: "#18181b",
+              color: colors.baseContent,
               fontSize: 16,
               lineHeight: 24,
             },

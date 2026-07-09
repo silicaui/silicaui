@@ -20,7 +20,7 @@ import { Icon } from "../../shared/react/Icon";
 import { paletteGroups } from "../palette";
 import type { PaletteItem } from "../palette";
 import { nodeName } from "../node-display";
-import { DRAG_MIME, encodeDrag } from "../dnd";
+import { DRAG_MIME, encodeDrag } from "../../shared/dnd";
 
 const GROUPS = paletteGroups();
 

@@ -10,12 +10,28 @@
  * STYLING RULE (hard): Tailwind utilities + @wizeworks/silicaui classes + baked <Icon> only.
  */
 import * as React from "react";
-import { ColorPicker, Input, Textarea, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
+import { ColorPicker, Input, NativeSelect, Textarea, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
-import type { Align, ButtonNode, ColumnNode, ColumnsNode, DividerNode, ImageNode, SpacerNode, TextNode } from "../schema";
+import { useSavedBlocks } from "./saved-blocks";
+import type {
+  Align,
+  ButtonNode,
+  ColumnNode,
+  ColumnsNode,
+  DividerNode,
+  EmailNode,
+  HtmlNode,
+  ImageNode,
+  SocialLink,
+  SocialNode,
+  SocialPlatform,
+  SpacerNode,
+  TextNode,
+  VideoNode,
+} from "../schema";
 
 // ── field primitives ──────────────────────────────────────────────────────────
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -152,6 +168,97 @@ function SpacerFields({ node, update }: { node: SpacerNode; update: (patch: Part
   return <NumberField label="Height (px)" defaultValue={node.height} min={0} max={240} onCommit={(height) => update({ height })} />;
 }
 
+const SOCIAL_PLATFORM_LABEL: Record<SocialPlatform, string> = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  x: "X",
+  linkedin: "LinkedIn",
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  pinterest: "Pinterest",
+};
+
+function SocialFields({ node, update }: { node: SocialNode; update: (patch: Partial<SocialNode>) => void }) {
+  const setLink = (i: number, patch: Partial<SocialLink>) =>
+    update({ links: node.links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) });
+  const addLink = () => update({ links: [...node.links, { platform: "facebook", url: "" }] });
+  const removeLink = (i: number) => update({ links: node.links.filter((_, idx) => idx !== i) });
+  return (
+    <>
+      <AlignField value={node.align} onCommit={(align) => update({ align })} />
+      <div className="grid grid-cols-2 gap-x-2">
+        <NumberField label="Icon size" defaultValue={node.iconSize} min={16} max={64} onCommit={(iconSize) => update({ iconSize })} />
+        <NumberField label="Gap" defaultValue={node.gap} min={0} max={40} onCommit={(gap) => update({ gap })} />
+      </div>
+      <Row label={`Links (${node.links.length})`}>
+        <div className="flex flex-col gap-2">
+          {node.links.map((l, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <NativeSelect
+                size="sm"
+                value={l.platform}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLink(i, { platform: e.target.value as SocialPlatform })}
+              >
+                {(Object.keys(SOCIAL_PLATFORM_LABEL) as SocialPlatform[]).map((p) => (
+                  <option key={p} value={p}>
+                    {SOCIAL_PLATFORM_LABEL[p]}
+                  </option>
+                ))}
+              </NativeSelect>
+              <Input
+                size="sm"
+                placeholder="https://…"
+                defaultValue={l.url}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => setLink(i, { url: e.target.value })}
+              />
+              <IconButton icon="close" label="Remove link" onClick={() => removeLink(i)} />
+            </div>
+          ))}
+          <button type="button" className="btn btn-outline btn-sm" onClick={addLink}>
+            <Icon name="plus" /> Add link
+          </button>
+        </div>
+      </Row>
+    </>
+  );
+}
+
+function HtmlFields({ node, update }: { node: HtmlNode; update: (patch: Partial<HtmlNode>) => void }) {
+  return (
+    <Row label="Raw HTML">
+      <Textarea
+        size="sm"
+        rows={8}
+        className="font-mono text-xs"
+        defaultValue={node.html}
+        onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => update({ html: e.target.value })}
+      />
+    </Row>
+  );
+}
+
+function VideoFields({ node, update }: { node: VideoNode; update: (patch: Partial<VideoNode>) => void }) {
+  return (
+    <>
+      <TextField label="Thumbnail image URL" defaultValue={node.thumbnail} onCommit={(thumbnail) => update({ thumbnail })} />
+      <TextField label="Video URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
+      <NumberField label="Width (px)" defaultValue={node.width} min={80} max={1200} onCommit={(width) => update({ width })} />
+      <AlignField value={node.align} onCommit={(align) => update({ align })} />
+      <Row label="Play button overlay">
+        <ToggleGroup
+          className="toggle-group-sm"
+          aria-label="Play button overlay"
+          value={[node.showPlayButton ? "on" : "off"]}
+          onValueChange={(v: string[]) => v.length && update({ showPlayButton: v[v.length - 1] === "on" })}
+        >
+          <ToggleGroupItem value="off">No</ToggleGroupItem>
+          <ToggleGroupItem value="on">Yes</ToggleGroupItem>
+        </ToggleGroup>
+      </Row>
+    </>
+  );
+}
+
 function ColumnFields({ node, update }: { node: ColumnNode; update: (patch: Partial<ColumnNode>) => void }) {
   return (
     <NumberField
@@ -165,18 +272,56 @@ function ColumnFields({ node, update }: { node: ColumnNode; update: (patch: Part
 }
 
 function ColumnsFields({ node, update }: { node: ColumnsNode; update: (patch: Partial<ColumnsNode>) => void }) {
+  const editor = useEmailEditor();
   return (
-    <Row label="Stack on mobile">
-      <ToggleGroup
-        className="toggle-group-sm"
-        aria-label="Stack on mobile"
-        value={[node.stackOnMobile ? "on" : "off"]}
-        onValueChange={(v: string[]) => v.length && update({ stackOnMobile: v[v.length - 1] === "on" })}
-      >
-        <ToggleGroupItem value="off">No</ToggleGroupItem>
-        <ToggleGroupItem value="on">Yes</ToggleGroupItem>
-      </ToggleGroup>
-    </Row>
+    <>
+      <Row label="Stack on mobile">
+        <ToggleGroup
+          className="toggle-group-sm"
+          aria-label="Stack on mobile"
+          value={[node.stackOnMobile ? "on" : "off"]}
+          onValueChange={(v: string[]) => v.length && update({ stackOnMobile: v[v.length - 1] === "on" })}
+        >
+          <ToggleGroupItem value="off">No</ToggleGroupItem>
+          <ToggleGroupItem value="on">Yes</ToggleGroupItem>
+        </ToggleGroup>
+      </Row>
+      <Row label={`Columns (${node.children.length})`}>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm w-full"
+          disabled={node.children.length >= 6}
+          onClick={() => editor.addColumn(node.id)}
+        >
+          <Icon name="plus" /> Add column
+        </button>
+      </Row>
+    </>
+  );
+}
+
+function SectionFields({ node, update }: { node: import("../schema").SectionNode; update: (patch: Record<string, unknown>) => void }) {
+  return (
+    <>
+      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} />
+      <Row label="Background image URL">
+        <div className="flex gap-1.5">
+          <Input
+            size="sm"
+            defaultValue={node.bgImage ?? ""}
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => update({ bgImage: e.target.value || undefined })}
+            placeholder="https://…"
+          />
+          {node.bgImage && (
+            <IconButton icon="close" label="Clear background image" onClick={() => update({ bgImage: undefined })} />
+          )}
+        </div>
+      </Row>
+      <div className="grid grid-cols-2 gap-x-2">
+        <NumberField label="Padding X" defaultValue={node.paddingX} min={0} max={80} onCommit={(paddingX) => update({ paddingX })} />
+        <NumberField label="Padding Y" defaultValue={node.paddingY} min={0} max={80} onCommit={(paddingY) => update({ paddingY })} />
+      </div>
+    </>
   );
 }
 
@@ -200,11 +345,21 @@ function EmailSettings() {
 }
 
 // ── toolbar (breadcrumb + move/duplicate/delete) ────────────────────────────────
-function Toolbar({ selectedId }: { selectedId: string }) {
+function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
+  const { save: saveBlock } = useSavedBlocks();
   const path = ancestorPath(doc.root, selectedId) ?? [];
   const sibling = editor.siblingInfo(selectedId);
+  // A column's `widthPct`s must keep summing to 100 — duplicate/delete route
+  // through the rebalancing engine methods instead of the generic ones.
+  const isColumn = node.kind === "column";
+  const duplicate = () => (isColumn ? editor.duplicateColumn(selectedId) : editor.duplicate(selectedId));
+  const remove = () => (isColumn ? editor.removeColumn(selectedId) : editor.remove(selectedId));
+  const saveAsBlock = () => {
+    const name = window.prompt("Name this saved block", nodeName(node));
+    if (name) saveBlock(name, node);
+  };
   return (
     <div className="flex flex-col gap-1.5 border-b border-base-200 px-3.5 py-2">
       <div className="flex items-center gap-1 overflow-x-auto text-xs text-base-content/55">
@@ -235,9 +390,21 @@ function Toolbar({ selectedId }: { selectedId: string }) {
           disabled={!sibling || sibling.index >= sibling.count - 1}
           onClick={() => editor.moveDown(selectedId)}
         />
-        <IconButton icon="copy" label="Duplicate" onClick={() => editor.duplicate(selectedId)} />
+        <IconButton
+          icon="copy"
+          label="Duplicate"
+          disabled={isColumn && (sibling?.count ?? 0) >= 6}
+          onClick={duplicate}
+        />
+        <IconButton icon="saved" label="Save as block" onClick={saveAsBlock} />
         <div className="flex-1" />
-        <IconButton icon="trash" label="Delete" tone="error" onClick={() => editor.remove(selectedId)} />
+        <IconButton
+          icon="trash"
+          label="Delete"
+          tone="error"
+          disabled={isColumn && (sibling?.count ?? 0) <= 1}
+          onClick={remove}
+        />
       </div>
     </div>
   );
@@ -287,7 +454,7 @@ export function EmailInspector() {
 
   return (
     <div key={selectedId} className="flex flex-1 flex-col min-h-0">
-      <Toolbar selectedId={selectedId} />
+      <Toolbar selectedId={selectedId} node={node} />
       {/* Fields are `defaultValue`-based (uncontrolled, committed on blur) so
           typing doesn't fight a re-render — but that means they'd go stale if
           the node changes from elsewhere (a canvas inline text edit, an
@@ -300,17 +467,12 @@ export function EmailInspector() {
         {node.kind === "button" && <ButtonFields node={node} update={update} />}
         {node.kind === "divider" && <DividerFields node={node} update={update} />}
         {node.kind === "spacer" && <SpacerFields node={node} update={update} />}
+        {node.kind === "social" && <SocialFields node={node} update={update} />}
+        {node.kind === "html" && <HtmlFields node={node} update={update} />}
+        {node.kind === "video" && <VideoFields node={node} update={update} />}
         {node.kind === "column" && <ColumnFields node={node} update={update} />}
         {node.kind === "columns" && <ColumnsFields node={node} update={update} />}
-        {node.kind === "section" && (
-          <>
-            <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} />
-            <div className="grid grid-cols-2 gap-x-2">
-              <NumberField label="Padding X" defaultValue={node.paddingX} min={0} max={80} onCommit={(paddingX) => update({ paddingX })} />
-              <NumberField label="Padding Y" defaultValue={node.paddingY} min={0} max={80} onCommit={(paddingY) => update({ paddingY })} />
-            </div>
-          </>
-        )}
+        {node.kind === "section" && <SectionFields node={node} update={update} />}
         {node.kind === "body" && <EmailSettings />}
       </div>
     </div>

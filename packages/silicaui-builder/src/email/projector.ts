@@ -19,11 +19,15 @@ import type {
   ContentNode,
   DividerNode,
   EmailDocument,
+  HtmlNode,
   ImageNode,
-  SectionChild,
+  LayoutChild,
+  SocialNode,
   SpacerNode,
   TextNode,
+  VideoNode,
 } from "./schema";
+import { SOCIAL_PLATFORM } from "./node-display";
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -88,6 +92,76 @@ function renderSpacer(node: SpacerNode): string {
   return `<div${styleAttr({ height: `${node.height}px`, "line-height": `${node.height}px`, "font-size": "1px" })}>&nbsp;</div>`;
 }
 
+function renderSocial(node: SocialNode): string {
+  const cells = node.links
+    .map(
+      (l) =>
+        `<td${styleAttr({ padding: `0 ${node.gap / 2}px` })}>` +
+        `<a href="${esc(l.url)}" target="_blank"${styleAttr({
+          display: "inline-block",
+          width: `${node.iconSize}px`,
+          height: `${node.iconSize}px`,
+          "line-height": `${node.iconSize}px`,
+          "text-align": "center",
+          "border-radius": "50%",
+          background: SOCIAL_PLATFORM[l.platform].color,
+          color: "#ffffff",
+          "font-size": `${Math.max(10, node.iconSize * 0.45)}px`,
+          "font-weight": "bold",
+          "text-decoration": "none",
+        })}>${esc(SOCIAL_PLATFORM[l.platform].label)}</a></td>`,
+    )
+    .join("");
+  return (
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"${styleAttr({
+      margin: node.align === "center" ? "0 auto" : node.align === "right" ? "0 0 0 auto" : "0",
+    })}><tr>${cells}</tr></table>`
+  );
+}
+
+function renderHtml(node: HtmlNode): string {
+  // Verbatim passthrough — no escaping (it IS markup), no parsing (a merge tag
+  // like `{{first_name}}` rides through untouched for the ESP to substitute).
+  return node.html;
+}
+
+function renderVideo(node: VideoNode): string {
+  const img = `<img src="${esc(node.thumbnail)}" alt="Video thumbnail" width="${node.width}"${styleAttr({
+    display: "block",
+    width: `${node.width}px`,
+    "max-width": "100%",
+  })} />`;
+  // The play glyph is `position:absolute` — a graceful-degradation overlay:
+  // clients that honor it show a centered play button; Outlook's Word engine
+  // (which ignores absolute positioning) just renders it as plain text under
+  // the image instead of breaking. No MSO-specific branch needed either way.
+  const play = node.showPlayButton
+    ? `<div${styleAttr({
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%,-50%)",
+        width: "56px",
+        height: "56px",
+        "border-radius": "50%",
+        background: "rgba(0,0,0,0.6)",
+        color: "#ffffff",
+        "text-align": "center",
+        "line-height": "56px",
+        "font-size": "20px",
+      })}>&#9658;</div>`
+    : "";
+  const justify = node.align === "center" ? "center" : node.align === "right" ? "flex-end" : "flex-start";
+  return (
+    `<a href="${esc(node.href)}" target="_blank"${styleAttr({
+      display: "flex",
+      "justify-content": justify,
+      position: "relative",
+      "text-decoration": "none",
+    })}>${img}${play}</a>`
+  );
+}
+
 function renderContent(node: ContentNode): string {
   switch (node.kind) {
     case "text":
@@ -100,11 +174,19 @@ function renderContent(node: ContentNode): string {
       return renderDivider(node);
     case "spacer":
       return renderSpacer(node);
+    case "social":
+      return renderSocial(node);
+    case "html":
+      return renderHtml(node);
+    case "video":
+      return renderVideo(node);
   }
 }
 
 function renderColumn(col: ColumnNode, index: number): string {
-  const body = col.children.map(renderContent).join("\n");
+  // A column's children are `LayoutChild` too — a nested `columns` row renders
+  // through `renderColumns` recursively (one level of column-in-column nesting).
+  const body = col.children.map(renderLayoutChild).join("\n");
   return (
     `<!--[if mso]><td width="${col.widthPct}%" valign="top"><![endif]-->` +
     `<div class="sui-col" data-col="${index}"${styleAttr({
@@ -127,12 +209,34 @@ function renderColumns(node: ColumnsNode): string {
   );
 }
 
-function renderSectionChild(child: SectionChild): string {
+function renderLayoutChild(child: LayoutChild): string {
   return child.kind === "columns" ? renderColumns(child) : renderContent(child);
 }
 
+/**
+ * A section with a background image: `background`/`background-image` covers
+ * Gmail, Apple Mail, and most webmail; Outlook desktop (the Word engine) needs
+ * a VML `v:rect` wrapper carrying its own `v:fill` — everything else in the
+ * `[if mso]` branch is invisible there. `bg` always renders too (both as the
+ * `bgcolor` attribute and inside the VML fill), so a client that drops the
+ * image entirely still shows a sane solid color.
+ */
+function renderSectionBgImage(node: import("./schema").SectionNode, body: string): string {
+  return (
+    `<td align="center" background="${esc(node.bgImage!)}" bgcolor="${node.bg}"${styleAttr({
+      background: `${node.bg} url(${node.bgImage}) center/cover no-repeat`,
+      padding: "0",
+    })}>` +
+    `<!--[if mso]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="mso-width-percent:1000"><v:fill type="tile" src="${esc(node.bgImage!)}" color="${node.bg}" /><v:textbox inset="0,0,0,0"><![endif]-->` +
+    `<div${styleAttr({ padding: `${node.paddingY}px ${node.paddingX}px` })}>${body}</div>` +
+    `<!--[if mso]></v:textbox></v:rect><![endif]-->` +
+    `</td>`
+  );
+}
+
 function renderSection(node: import("./schema").SectionNode): string {
-  const body = node.children.map(renderSectionChild).join("\n");
+  const body = node.children.map(renderLayoutChild).join("\n");
+  if (node.bgImage) return `<tr>${renderSectionBgImage(node, body)}</tr>`;
   return (
     `<tr><td align="center" bgcolor="${node.bg}"${styleAttr({
       background: node.bg,

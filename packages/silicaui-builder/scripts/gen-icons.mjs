@@ -52,6 +52,8 @@ const USED = {
   columns: "columns", divider: "separator-horizontal", spacer: "unfold-vertical",
   alignLeft: "align-left", alignCenter: "align-center", alignRight: "align-right",
   copy: "copy", chevronUp: "chevron-up", chevronDown: "chevron-down", mail: "mail",
+  share: "share-2", video: "video", play: "play", bold: "bold", italic: "italic",
+  saved: "bookmark", send: "send",
 };
 
 // Pull the inner markup out of each <svg>…</svg> (Lucide files share one root svg).

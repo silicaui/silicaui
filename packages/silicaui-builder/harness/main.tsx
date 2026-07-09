@@ -50,6 +50,7 @@ const bus = window as unknown as {
   __changeCount: number;
   __published?: unknown;
   __exported?: string;
+  __sentTest?: { to: string; subject: string };
 };
 bus.__changeCount = 0;
 
@@ -71,12 +72,19 @@ if (editorMode === "email") {
   root.render(
     <React.StrictMode>
       <EmailBuilder
+        theme={theme}
+        persistKey={persist ? "silicaui-designer-email" : null}
         onChange={(doc) => {
           bus.__lastChange = doc;
           bus.__changeCount += 1;
         }}
         onExport={(html) => {
           bus.__exported = html;
+        }}
+        onSendTest={async ({ to, subject }) => {
+          // Simulate a real (slow, sometimes-fails) send: a host's ESP call.
+          await new Promise((r) => setTimeout(r, 150));
+          bus.__sentTest = { to, subject };
         }}
       />
     </React.StrictMode>,

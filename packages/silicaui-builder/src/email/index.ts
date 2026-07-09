@@ -18,7 +18,7 @@ export type {
   EmailDocument,
   EmailNode,
   ImageNode,
-  SectionChild,
+  LayoutChild,
   SectionNode,
   SpacerNode,
   TextNode,

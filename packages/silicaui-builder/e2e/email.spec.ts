@@ -131,3 +131,176 @@ test("Export HTML produces valid table-based markup with the current subject", a
   expect(value).not.toContain("<link");
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
+
+test("dragging a palette item onto the canvas margin inserts it (drag-from-palette)", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  const canvas = page.locator(".sui-email-canvas");
+  const before = await canvas.locator("[data-sui-id]").count();
+
+  // Drop on the canvas's left margin (outside the centered board, safely inside
+  // the scrollable canvas area regardless of viewport height).
+  await page.locator('[data-insert-key="divider"]').dragTo(canvas, { targetPosition: { x: 20, y: 100 } });
+
+  await expect.poll(() => canvas.locator("[data-sui-id]").count()).toBeGreaterThan(before);
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("dragging a block on the canvas reorders it (drag-to-reorder)", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  const canvas = page.locator(".sui-email-canvas");
+
+  // Retitle the seeded text, then insert a second, distinguishable text block.
+  await canvas.getByText("Start writing your email…").first().dblclick();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("FIRST");
+  await page.keyboard.press("ControlOrMeta+Enter");
+
+  await page.locator('[data-insert-key="text"]').click(); // inserts after the selected FIRST block
+  await canvas.getByText("Write something…").first().dblclick();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("SECOND");
+  await page.keyboard.press("ControlOrMeta+Enter");
+
+  await expect(canvas.getByText("FIRST").first()).toBeVisible();
+  await expect(canvas.getByText("SECOND").first()).toBeVisible();
+
+  // FIRST should currently precede SECOND in the DOM (insertion order).
+  const orderBefore = await canvas.locator("[data-sui-id]").allTextContents();
+  expect(orderBefore.indexOf("FIRST")).toBeLessThan(orderBefore.indexOf("SECOND"));
+
+  // Drag SECOND above FIRST (drop on FIRST's upper edge → "before").
+  const second = canvas.getByText("SECOND").first();
+  const first = canvas.getByText("FIRST").first();
+  const firstBox = await first.boundingBox();
+  await second.dragTo(first, { targetPosition: { x: (firstBox?.width ?? 100) / 2, y: 2 } });
+
+  await expect.poll(async () => {
+    const order = await canvas.locator("[data-sui-id]").allTextContents();
+    return order.indexOf("SECOND") < order.indexOf("FIRST");
+  }).toBe(true);
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("the rich text toolbar bolds the selected text", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  const canvas = page.locator(".sui-email-canvas");
+  const text = canvas.getByText("Start writing your email…").first();
+  await text.dblclick();
+
+  // Select all the text inside the now-editable field, then click Bold.
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.getByRole("button", { name: /^bold/i }).click();
+
+  // Commit the edit and confirm the HTML actually carries a <b>/<strong>.
+  await page.keyboard.press("ControlOrMeta+Enter");
+  const html = await canvas.locator('[data-sui-id]').first().innerHTML();
+  expect(/<b>|<strong>/i.test(html)).toBe(true);
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("inserting Social/Video/HTML blocks renders them on the canvas", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  const canvas = page.locator(".sui-email-canvas");
+  await page.locator('[data-insert-key="social"]').click();
+  await expect(canvas.locator("text=f").first()).toBeVisible(); // the Facebook badge glyph
+
+  await page.locator('[data-insert-key="video"]').click();
+  await expect(canvas.locator("img").last()).toBeVisible();
+
+  await page.locator('[data-insert-key="html"]').click();
+  await expect(canvas.getByText("Custom HTML", { exact: true }).first()).toBeVisible();
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("saving a block adds it to the palette, inserts a copy, and can be deleted", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  // Clear any saved blocks left by a prior run (localStorage isn't wiped
+  // between specs the way IndexedDB drafts are cleaned in persistence.spec).
+  await page.evaluate(() => localStorage.removeItem("silicaui-email-saved-blocks"));
+  await page.reload();
+  await ready(page);
+
+  const canvas = page.locator(".sui-email-canvas");
+  await canvas.getByText("Start writing your email…").first().click();
+
+  page.once("dialog", (d) => d.accept("My Saved Intro"));
+  await page.getByLabel("Save as block").click();
+
+  const savedRow = page.locator('[data-insert-key^="saved:"]');
+  await expect(savedRow).toContainText("My Saved Intro");
+
+  const before = await canvas.locator("[data-sui-id]").count();
+  await savedRow.click();
+  await expect.poll(() => canvas.locator("[data-sui-id]").count()).toBeGreaterThan(before);
+
+  // Delete it — the row disappears from the palette (existing canvas copies stay).
+  await page.locator('[data-insert-key^="saved:"]').hover();
+  await page.getByTitle("Delete saved block").click();
+  await expect(page.locator('[data-insert-key^="saved:"]')).toHaveCount(0);
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("Preview mode renders the real projected HTML in an iframe, and rails hide", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  // Retitle the seeded text so we can confirm the SAME content round-trips
+  // into the projected HTML the iframe renders (not a stale/cached copy).
+  await page.locator(".sui-email-canvas").getByText("Start writing your email…").first().dblclick();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("Preview me");
+  await page.keyboard.press("ControlOrMeta+Enter");
+
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+
+  // The editable canvas + Insert/Design rails are gone; a real iframe renders.
+  await expect(page.locator(".sui-email-canvas")).toHaveCount(0);
+  await expect(page.getByText("Insert", { exact: true })).toHaveCount(0);
+  const frame = page.frameLocator('iframe[title="Email preview"]');
+  await expect(frame.locator("body")).toContainText("Preview me");
+  // It's the literal projected markup — table-based, not the live-DOM approximation.
+  await expect(frame.locator('table[role="presentation"]').first()).toBeVisible();
+
+  await page.getByRole("button", { name: /^edit/i }).click();
+  await expect(page.locator(".sui-email-canvas")).toBeVisible();
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("Send test validates the address, calls onSendTest, and shows Sent!", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  await page.getByRole("button", { name: /send test/i }).click();
+  const sendButton = page.getByRole("button", { name: /^send$/i });
+  await expect(sendButton).toBeDisabled(); // empty address
+
+  await page.getByPlaceholder("you@example.com").fill("not-an-email");
+  await expect(sendButton).toBeDisabled(); // invalid format
+
+  await page.getByPlaceholder("you@example.com").fill("qa@example.com");
+  await expect(sendButton).toBeEnabled();
+  await sendButton.click();
+
+  await expect(page.getByRole("button", { name: /sent!/i })).toBeVisible();
+  const sent = await page.waitForFunction(
+    () => (window as unknown as { __sentTest?: { to: string } }).__sentTest,
+  );
+  expect((await sent.jsonValue()) as { to: string }).toMatchObject({ to: "qa@example.com" });
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});

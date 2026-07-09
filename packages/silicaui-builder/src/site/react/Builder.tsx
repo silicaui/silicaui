@@ -14,9 +14,10 @@ import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/sil
 import { renderSite } from "@wizeworks/silicaui-html";
 import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizeworks/silicaui-react";
 import { Editor } from "../engine";
-import { DraftStore } from "../persistence";
+import { DraftStore } from "../../shared/persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
+import { RecoveryBanner } from "../../shared/react/RecoveryBanner";
 import { useEditorShortcuts } from "./use-shortcuts";
 import { ThemeEditor } from "./ThemeEditor";
 import { ComponentBoard } from "./ComponentBoard";
@@ -387,7 +388,7 @@ export function Builder({
   onPublish,
   persistKey = DEFAULT_PERSIST_KEY,
 }: BuilderProps) {
-  const store = React.useMemo(() => (persistKey ? new DraftStore(persistKey) : null), [persistKey]);
+  const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
   const docRef = React.useRef(document);
   // The editor is created only after we've checked storage, so a recovered draft
   // seeds it directly (no editor-swap flash). `gen` bumps on every editor swap so
@@ -404,7 +405,7 @@ export function Builder({
     void (async () => {
       const snap = store ? await store.load() : undefined;
       if (cancelled) return;
-      setCurrent({ editor: new Editor(snap?.site ?? docRef.current), recoveredAt: snap?.savedAt ?? null, gen: 0 });
+      setCurrent({ editor: new Editor(snap?.data ?? docRef.current), recoveredAt: snap?.savedAt ?? null, gen: 0 });
     })();
     return () => {
       cancelled = true;
@@ -473,49 +474,4 @@ export function Builder({
       </StudioThemeProvider>
     </EditorProvider>
   );
-}
-
-/** A slim, dismissible bar confirming a recovered session — reassurance that work
- *  wasn't lost, with an escape hatch to start over from the original document. */
-function RecoveryBanner({
-  at,
-  onDismiss,
-  onStartFresh,
-}: {
-  at: number;
-  onDismiss: () => void;
-  onStartFresh: () => void;
-}) {
-  // Auto-dismiss after a few seconds so it never lingers as chrome.
-  React.useEffect(() => {
-    const t = setTimeout(onDismiss, 7000);
-    return () => clearTimeout(t);
-  }, [onDismiss]);
-  return (
-    <div
-      data-testid="recovery-banner"
-      className="flex flex-none items-center gap-2 border-b border-base-300 bg-primary/10 px-3.5 py-1.5 text-xs text-base-content"
-    >
-      <Icon name="database" />
-      <span>Restored your last session ({relativeTime(at)}).</span>
-      <span className="flex-1" />
-      <button type="button" className="btn btn-xs btn-ghost" onClick={onStartFresh}>
-        Start fresh
-      </button>
-      <button type="button" className="btn btn-xs btn-ghost btn-square" aria-label="Dismiss" onClick={onDismiss}>
-        <Icon name="close" />
-      </button>
-    </div>
-  );
-}
-
-/** "just now" / "3 min ago" / "2 hr ago" — a coarse relative timestamp. */
-function relativeTime(at: number): string {
-  const s = Math.max(0, Math.round((Date.now() - at) / 1000));
-  if (s < 45) return "just now";
-  const m = Math.round(s / 60);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h} hr ago`;
-  return `${Math.round(h / 24)} d ago`;
 }
