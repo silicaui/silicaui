@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-table",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Silica UI DataTable — TanStack Table wrapped in the Silica table CSS (sort, select, paginate).",
   "type": "module",
   "license": "MIT",
