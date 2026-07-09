@@ -52,7 +52,8 @@
   },
   "peerDependencies": {
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "@wizeworks/silicaui-react": ">=0.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

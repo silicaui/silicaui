@@ -25,10 +25,9 @@
   },
   {
     "name": "@wizeworks/silicaui-builder",
-    "purpose": "The visual document editor/engine used to build the SilicaUI sitebuilder itself — not typically installed by app developers.",
-    "install": null,
-    "private": true,
-    "version": "0.8.0"
+    "purpose": "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react`.",
+    "install": "pnpm add @wizeworks/silicaui-builder @wizeworks/silicaui-react",
+    "version": "0.10.0"
   },
   {
     "name": "@wizeworks/silicaui-charts",
