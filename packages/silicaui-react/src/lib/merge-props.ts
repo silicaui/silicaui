@@ -14,7 +14,13 @@ type Props = Record<string, unknown>;
  *   - Everything else: theirs wins, so `<Button render={<a href="…" />}>` keeps
  *     its own `href`, `target`, etc.
  */
-export function mergeProps(ours: Props, theirs: Props): Props {
+/**
+ * `theirs` defaults to `{}` because `render.props` can be `undefined` at
+ * runtime — an element that crossed a Server→Client Component boundary comes
+ * across as a lazy client reference, and reading `.props` off it is `undefined`
+ * rather than a real props object.
+ */
+export function mergeProps(ours: Props, theirs: Props = {}): Props {
   const merged: Props = { ...ours, ...theirs };
 
   merged.className = cx(ours.className as string, theirs.className as string);

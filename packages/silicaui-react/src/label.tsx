@@ -60,7 +60,7 @@ export const FloatingLabel = React.forwardRef<
   // Guarantee a placeholder so the at-rest (non-floated) state resolves.
   const control = React.isValidElement(children)
     ? React.cloneElement(children, {
-        placeholder: children.props.placeholder ?? " ",
+        placeholder: children.props?.placeholder ?? " ",
       })
     : children;
   return (

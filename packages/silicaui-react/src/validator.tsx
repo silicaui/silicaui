@@ -22,7 +22,7 @@ export function Validator({ children }: ValidatorProps) {
   const sc = useSilicaClass();
   if (!React.isValidElement(children)) return <>{children}</>;
   return React.cloneElement(children, {
-    className: cx(sc("validator"), children.props.className),
+    className: cx(sc("validator"), children.props?.className),
   });
 }
 

@@ -1,13 +1,20 @@
-export { Button } from "./button";
+export { Button, buttonClasses } from "./button";
 export type {
   ButtonProps,
   ButtonColor,
   ButtonVariant,
   ButtonSize,
+  ButtonClassOptions,
 } from "./button";
 
-export { Badge } from "./badge";
-export type { BadgeProps, BadgeColor, BadgeVariant, BadgeSize } from "./badge";
+export { Badge, badgeClasses } from "./badge";
+export type {
+  BadgeProps,
+  BadgeColor,
+  BadgeVariant,
+  BadgeSize,
+  BadgeClassOptions,
+} from "./badge";
 
 export { Input } from "./input";
 export type { InputProps, InputColor, InputSize } from "./input";
@@ -66,6 +73,7 @@ export {
   CardActions,
   ClickableCard,
   SelectableCard,
+  clickableCardClasses,
 } from "./card";
 export type { CardProps, ClickableCardProps, SelectableCardProps } from "./card";
 
