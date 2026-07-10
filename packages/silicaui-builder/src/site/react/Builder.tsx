@@ -105,7 +105,13 @@ function PanelHead({ children, theme }: { children: React.ReactNode; theme?: boo
   );
 }
 
-function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void | Promise<void> }) {
+function Chrome({
+  onPublish,
+  toolbarSlot,
+}: {
+  onPublish?: (payload: PublishPayload) => void | Promise<void>;
+  toolbarSlot?: React.ReactNode;
+}) {
   const editor = useEditor();
   const { canUndo, canRedo } = useHistory();
   const { activeId } = usePages();
@@ -220,6 +226,7 @@ function Chrome({ onPublish }: { onPublish?: (payload: PublishPayload) => void |
           <IconItem value="light" icon="sun">Light</IconItem>
           <IconItem value="dark" icon="moon">Dark</IconItem>
         </ToggleGroup>
+        {toolbarSlot}
         <Button color="primary" size="sm" disabled={!onPublish || publishing} onClick={publish}>
           {publishing ? "Publishing…" : "Publish"}
         </Button>
@@ -355,7 +362,10 @@ export interface PublishPayload {
 }
 
 export interface BuilderProps {
-  document: SuiDocument;
+  /** A single page (`Document`) or a whole multi-page site (`Site`) — the `Editor`
+   *  accepts either natively, so hosts that already have a `Site` on hand don't
+   *  need to cast or wrap it. */
+  document: SuiDocument | Site;
   studioTheme?: string;
   /**
    * The domain-specific seam (builder-contract.md §5) — everything about what a
@@ -386,6 +396,14 @@ export interface BuilderProps {
    * (e.g. a host that is fully server-authoritative). Independent of `onChange`.
    */
   persistKey?: string | null;
+  /**
+   * Arbitrary host UI rendered in the header, immediately before the Publish
+   * button — e.g. a save-status badge, a "last saved" timestamp, an environment
+   * tag. The builder has no opinion on save/publish status: it only knows about
+   * local edits, not whether the host's own `onChange` persistence succeeded,
+   * failed, or is still in flight, so it renders nothing here by default.
+   */
+  toolbarSlot?: React.ReactNode;
 }
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
@@ -398,6 +416,7 @@ export function Builder({
   onChange,
   onPublish,
   persistKey = DEFAULT_PERSIST_KEY,
+  toolbarSlot,
 }: BuilderProps) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
   const docRef = React.useRef(document);
@@ -491,7 +510,7 @@ export function Builder({
               {current.recoveredAt !== null && (
                 <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
               )}
-              <Chrome onPublish={onPublish} />
+              <Chrome onPublish={onPublish} toolbarSlot={toolbarSlot} />
             </ErrorBoundary>
           </div>
         </StudioThemeProvider>

@@ -103,15 +103,23 @@ function resolveChildren(children: Child[] | undefined, host: ResolveHost, scope
  * Fill a node's PRIMARY content with a resolved value. Text is the dominant
  * case (element children, a component's `label`/`text` prop); an `img`/`source`
  * element or a component that already carries a `src` prop treats a string
- * value as a source URL instead. This is a pragmatic default for the common
- * shapes, not an exhaustive per-component-type registry — richer type-directed
- * filling (keyed off a slot type) is a candidate follow-on, not required for
- * the primitive to be correct on the dominant cases.
+ * value as a source URL instead, and an `input` treats it as its `value`
+ * attribute (its children never render — see below). This is a pragmatic
+ * default for the common shapes, not an exhaustive per-component-type
+ * registry — richer type-directed filling (keyed off a slot type) is a
+ * candidate follow-on, not required for the primitive to be correct on the
+ * dominant cases.
  */
 function fillValue(node: ElementNode | ComponentNode, value: unknown): ElementNode | ComponentNode {
   if (node.kind === "element") {
     if ((node.tag === "img" || node.tag === "source") && typeof value === "string") {
       return { ...node, attrs: { ...(node.attrs ?? {}), src: value } };
+    }
+    // A form control's primary content IS its value, not its children — and for
+    // a void element (input) children never reach the output at all (toHtml
+    // drops them unconditionally), so writing there would silently vanish.
+    if (node.tag === "input") {
+      return { ...node, attrs: { ...(node.attrs ?? {}), value: String(value ?? "") } };
     }
     return { ...node, children: [String(value ?? "")] };
   }

@@ -99,6 +99,18 @@ function check(name, cond) {
   check("string value on <img> sets src, not children", out.attrs?.src === "https://example.com/p.jpg" && !out.children);
 }
 
+// ── input fill: a value sets the `value` attribute, not children (void tag) ─
+{
+  const input = el("input", "input");
+  input.attrs = { type: "hidden", name: "variantId" };
+  input.data = { kind: "value", ref: "product.variantId" };
+  const host = { resolveBinding: () => ({ value: "variant-123" }) };
+  const out = resolveTree(input, host);
+  check("bound <input> gets value attr", out.attrs?.value === "variant-123");
+  check("bound <input> keeps its other attrs", out.attrs?.name === "variantId" && out.attrs?.type === "hidden");
+  check("<input>'s value survives toHtml (void element drops children, not attrs)", toHtml(out).includes('value="variant-123"'));
+}
+
 // ── nested repeats: inner collection resolves against the outer item scope ─
 {
   const innerItem = el("li", "review", { text: "placeholder review" });
