@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-builder",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "silicaui's visual builder — chrome built ON silicaui (Tailwind v4 plugin) + silicaui-react, over a framework-neutral document engine.",
   "type": "module",
   "license": "MIT",
