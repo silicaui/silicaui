@@ -35,7 +35,8 @@ export type BehaviorType =
   | "switch"
   | "rating"
   | "theme-toggle"
-  | "phone-input";
+  | "phone-input"
+  | "reveal";
 
 /** A gathered form value: one control's value, or many for a repeated name. */
 export type FormValue = string | string[];
@@ -59,7 +60,9 @@ export type ActionPayload = FormSubmitPayload;
 export interface HydrateOptions {
   /**
    * Editor-canvas preview mode (§9.8): autoplay (carousel/marquee/counter)
-   * is suppressed and collapsed panels (disclosure/tabs/menu) are revealed.
+   * is suppressed, `reveal` shows its final state immediately (no
+   * scroll-jank while editing), and collapsed panels (disclosure/tabs/menu)
+   * are revealed.
    * A `form` in preview validates but never dispatches (no host side effects).
    */
   preview?: boolean;

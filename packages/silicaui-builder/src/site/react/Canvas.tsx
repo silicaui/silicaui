@@ -540,6 +540,14 @@ function CanvasNode({
   // below. An unlisted tag downgrades to `div`; every subsequent tag check uses
   // the SANITIZED tag, never the original.
   const { tag, attrs } = canvasAttrs(el);
+  // A `sui-reveal-*` preset (assignable Scroll-trigger animation) sits at its
+  // HIDDEN state until `[data-sui-inview]` lands on it — the real behavior
+  // (packages/silicaui-behaviors) sets that via IntersectionObserver, but the
+  // canvas never runs behaviors. Stamp it statically instead: the edit canvas
+  // shows the element in its FINAL state (no scroll-jank while editing); the
+  // scroll trigger only actually plays in Preview and the exported/published
+  // site, which run the real behavior.
+  if (/\bsui-reveal-/.test(cls)) attrs["data-sui-inview"] = "true";
 
   if (VOID.has(tag)) {
     return React.createElement(tag, { className: cls || undefined, ...attrs, ...inter });

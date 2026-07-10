@@ -10,7 +10,7 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
+import type { BehaviorMarker, ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
 import { applyOverrides, composeValidators, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "@wizeworks/silicaui-html";
 import { defaultFrameRoot } from "./frame";
 
@@ -787,6 +787,21 @@ export class Editor {
     this.commit("props", () => {
       if (binding) node.data = binding;
       else delete node.data;
+    });
+  }
+
+  /**
+   * Set (or clear, with undefined) a node's behavior marker — e.g. the
+   * Inspector's Animate section attaching `{ type: "reveal", params }` for a
+   * Scroll trigger. Lowers to `data-sui-behavior` / `-params` in `toHtml`.
+   */
+  setBehavior(id: string, marker: BehaviorMarker | undefined): void {
+    const found = locate(this.activeRoot(), id);
+    if (!found) return;
+    const node = found.node;
+    this.commit("props", () => {
+      if (marker) node.behavior = marker;
+      else delete node.behavior;
     });
   }
 

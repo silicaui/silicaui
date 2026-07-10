@@ -111,6 +111,7 @@ import { ToggleDemo } from "./Toggle";
 import { WordmarkDemo } from "./Wordmark";
 import { SelectionListDemo } from "./SelectionList";
 import { SidebarDemo } from "./Sidebar";
+import { AnimationsDemo } from "./Animations";
 
 /**
  * One entry per component. The shell walks this list to render every demo under
@@ -239,4 +240,5 @@ export const DEMOS: DemoEntry[] = [
     { id: "wordmark", title: "Wordmark", Demo: WordmarkDemo },
     { id: "selection-list", title: "Selection List", Demo: SelectionListDemo },
     { id: "sidebar", title: "Sidebar", Demo: SidebarDemo },
+    { id: "animations", title: "Animations", Demo: AnimationsDemo },
 ];

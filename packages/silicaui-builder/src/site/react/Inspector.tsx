@@ -158,6 +158,55 @@ const BTN_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "btn-lg", label: "LG" },
 ];
 
+// Assignable animations — one preset list per trigger (packages/silicaui/src/
+// components/animations.js generates the matching `sui-animate-*`/`sui-reveal-*`/
+// `sui-hover-*` classes). Load/Scroll share the same preset NAMES under a
+// different class prefix; Hover has its own small set (interactive feedback,
+// not an entrance shape).
+const ANIMATE_LOAD_PRESET: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "sui-animate-fade-in", label: "Fade in" },
+  { cls: "sui-animate-slide-up", label: "Slide up" },
+  { cls: "sui-animate-slide-down", label: "Slide down" },
+  { cls: "sui-animate-slide-left", label: "Slide left" },
+  { cls: "sui-animate-slide-right", label: "Slide right" },
+  { cls: "sui-animate-scale-in", label: "Scale in" },
+  { cls: "sui-animate-zoom-in", label: "Zoom in" },
+];
+const ANIMATE_SCROLL_PRESET: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "sui-reveal-fade-in", label: "Fade in" },
+  { cls: "sui-reveal-slide-up", label: "Slide up" },
+  { cls: "sui-reveal-slide-down", label: "Slide down" },
+  { cls: "sui-reveal-slide-left", label: "Slide left" },
+  { cls: "sui-reveal-slide-right", label: "Slide right" },
+  { cls: "sui-reveal-scale-in", label: "Scale in" },
+  { cls: "sui-reveal-zoom-in", label: "Zoom in" },
+];
+const ANIMATE_HOVER_PRESET: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "sui-hover-lift", label: "Lift" },
+  { cls: "sui-hover-scale", label: "Scale" },
+  { cls: "sui-hover-glow", label: "Glow" },
+];
+const ANIMATE_DURATION: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "sui-duration-fast", label: "Fast" },
+  { cls: "sui-duration-normal", label: "Normal" },
+  { cls: "sui-duration-slow", label: "Slow" },
+];
+const ANIMATE_DELAY: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "sui-delay-1", label: "1" },
+  { cls: "sui-delay-2", label: "2" },
+  { cls: "sui-delay-3", label: "3" },
+];
+const ANIMATE_TRIGGER: ReadonlyArray<{ cls: "load" | "scroll" | "hover"; label: string }> = [
+  { cls: "load", label: "Load" },
+  { cls: "scroll", label: "Scroll" },
+  { cls: "hover", label: "Hover" },
+];
+const ALL_ANIMATE_PRESET_CLASSES: readonly string[] = [
+  ...ANIMATE_LOAD_PRESET,
+  ...ANIMATE_SCROLL_PRESET,
+  ...ANIMATE_HOVER_PRESET,
+].map((o) => o.cls);
+
 // ── form-control prop vocab ───────────────────────────────────────────────────
 // Which `props` each form component exposes for editing. Keyed by component name
 // (the same family-by-name pattern as the Button block); the values map straight
@@ -470,6 +519,39 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
     if (value) t.add(value);
     editor.setClass(id, [...t].join(" "));
   };
+
+  // Animate: which trigger (if any) is active, derived from which preset
+  // family's class is currently worn — same "read state back out of the class
+  // string" approach as every other group here.
+  const existingBehavior = node.kind !== "outlet" ? node.behavior : undefined;
+  const animateTrigger: "" | "load" | "scroll" | "hover" = activeIn(cls, ANIMATE_LOAD_PRESET.map((o) => o.cls))
+    ? "load"
+    : activeIn(cls, ANIMATE_SCROLL_PRESET.map((o) => o.cls))
+      ? "scroll"
+      : activeIn(cls, ANIMATE_HOVER_PRESET.map((o) => o.cls))
+        ? "hover"
+        : "";
+  const animatePresetList =
+    animateTrigger === "load" ? ANIMATE_LOAD_PRESET : animateTrigger === "scroll" ? ANIMATE_SCROLL_PRESET : animateTrigger === "hover" ? ANIMATE_HOVER_PRESET : [];
+  // A node's `behavior` marker is a single slot (architecture §7) — Scroll
+  // would clobber an existing interactive behavior (Tabs, Carousel, …), so
+  // it's disabled rather than silently stealing the slot.
+  const behaviorConflict = !!existingBehavior && existingBehavior.type !== "reveal";
+  const setAnimateTrigger = (next: "" | "load" | "scroll" | "hover") => {
+    const t = tokensOf(cls);
+    for (const c of ALL_ANIMATE_PRESET_CLASSES) t.delete(c);
+    if (next) {
+      const defaults = next === "load" ? ANIMATE_LOAD_PRESET : next === "scroll" ? ANIMATE_SCROLL_PRESET : ANIMATE_HOVER_PRESET;
+      t.add(defaults[0]!.cls);
+    }
+    editor.setClass(id, [...t].join(" "));
+    // Only ever touch OUR OWN "reveal" marker — never clobber an unrelated
+    // behavior root (Tabs, Carousel, …) the Scroll button is disabled for.
+    if (!existingBehavior || existingBehavior.type === "reveal") {
+      editor.setBehavior(id, next === "scroll" ? { type: "reveal", params: { once: true } } : undefined);
+    }
+  };
+
   return (
     <>
       {node.kind === "component" && node.component === "Button" && (
@@ -526,6 +608,69 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         <Row label="Self align">
           <ChipGroup options={SELF_ALIGN} active={activeIn(cls, SELF_ALIGN.map((o) => o.cls))} onPick={(v) => setToken(SELF_ALIGN.map((o) => o.cls), v)} />
         </Row>
+      </Group>
+
+      <Group label="Animate">
+        <Row label="Trigger">
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              data-testid="animate-trigger-none"
+              className={`btn btn-xs ${animateTrigger === "" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setAnimateTrigger("")}
+            >
+              None
+            </button>
+            {ANIMATE_TRIGGER.map((t) => {
+              const disabled = t.cls === "scroll" && behaviorConflict;
+              return (
+                <button
+                  key={t.cls}
+                  type="button"
+                  data-testid={`animate-trigger-${t.cls}`}
+                  disabled={disabled}
+                  title={disabled ? `Already used by this element's "${existingBehavior?.type}" behavior` : undefined}
+                  className={`btn btn-xs ${animateTrigger === t.cls ? "btn-primary" : "btn-ghost"} ${disabled ? "btn-disabled" : ""}`}
+                  onClick={() => setAnimateTrigger(t.cls)}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </Row>
+
+        {animateTrigger !== "" && (
+          <>
+            <Row label="Preset">
+              <ChipGroup
+                options={animatePresetList}
+                active={activeIn(cls, animatePresetList.map((o) => o.cls))}
+                onPick={(v) => setToken(animatePresetList.map((o) => o.cls), v)}
+              />
+            </Row>
+            <Row label="Speed">
+              <ChipGroup
+                options={ANIMATE_DURATION}
+                active={activeIn(cls, ANIMATE_DURATION.map((o) => o.cls))}
+                onPick={(v) => setToken(ANIMATE_DURATION.map((o) => o.cls), v)}
+              />
+            </Row>
+            <Row label="Delay">
+              <ChipGroup
+                options={ANIMATE_DELAY}
+                active={activeIn(cls, ANIMATE_DELAY.map((o) => o.cls))}
+                onPick={(v) => setToken(ANIMATE_DELAY.map((o) => o.cls), v)}
+              />
+            </Row>
+          </>
+        )}
+
+        {animateTrigger === "scroll" && (
+          <div className="text-xs text-base-content/55">
+            Plays in Preview &amp; the published site — the canvas shows its final state while editing.
+          </div>
+        )}
       </Group>
 
       <ClassField id={id} cls={cls} />

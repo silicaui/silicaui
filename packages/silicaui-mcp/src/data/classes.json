@@ -1,6 +1,11 @@
 {
   "accordion": [
-    "primary"
+    "accordion",
+    "accordion-content",
+    "accordion-header",
+    "accordion-item",
+    "accordion-panel",
+    "accordion-trigger"
   ],
   "alert": [
     "alert",
@@ -29,8 +34,37 @@
     "alert-xl",
     "alert-xs"
   ],
+  "animations": [
+    "sui-animate-fade-in",
+    "sui-animate-scale-in",
+    "sui-animate-slide-down",
+    "sui-animate-slide-left",
+    "sui-animate-slide-right",
+    "sui-animate-slide-up",
+    "sui-animate-zoom-in",
+    "sui-delay-1",
+    "sui-delay-2",
+    "sui-delay-3",
+    "sui-duration-fast",
+    "sui-duration-normal",
+    "sui-duration-slow",
+    "sui-hover-glow",
+    "sui-hover-lift",
+    "sui-hover-scale",
+    "sui-reveal-fade-in",
+    "sui-reveal-scale-in",
+    "sui-reveal-slide-down",
+    "sui-reveal-slide-left",
+    "sui-reveal-slide-right",
+    "sui-reveal-slide-up",
+    "sui-reveal-zoom-in"
+  ],
   "app-shell": [
-    "primary"
+    "app-shell",
+    "app-shell-footer",
+    "app-shell-header",
+    "app-shell-main",
+    "app-shell-sidebar"
   ],
   "avatar": [
     "avatar",
@@ -74,7 +108,7 @@
     "badge-xs"
   ],
   "breadcrumb": [
-    "primary"
+    "breadcrumb"
   ],
   "button": [
     "btn",
@@ -127,16 +161,48 @@
     "date-field-value"
   ],
   "card": [
-    "primary"
+    "card",
+    "card-actions",
+    "card-body",
+    "card-clickable",
+    "card-selectable",
+    "card-selectable-indicator",
+    "card-title",
+    "checkbox",
+    "radio"
   ],
   "carousel": [
-    "primary"
+    "carousel",
+    "carousel-center",
+    "carousel-control",
+    "carousel-dot",
+    "carousel-dot-active",
+    "carousel-end",
+    "carousel-indicators",
+    "carousel-item",
+    "carousel-next",
+    "carousel-number",
+    "carousel-number-active",
+    "carousel-prev",
+    "carousel-root",
+    "carousel-vertical"
   ],
   "chart": [
-    "primary"
+    "chart"
   ],
   "chat-suite": [
-    "primary"
+    "chat-composer",
+    "chat-composer-actions",
+    "chat-composer-field",
+    "chat-layout",
+    "chat-layout-messages",
+    "chat-message-metadata",
+    "chat-system-message",
+    "chat-tool-calls",
+    "chat-typing",
+    "chat-typing-dot",
+    "collapsible-content",
+    "collapsible-trigger"
   ],
   "chat": [
     "chat",
@@ -155,7 +221,8 @@
     "chat-image"
   ],
   "checkbox-group": [
-    "primary"
+    "checkbox-group",
+    "checkbox-option"
   ],
   "checkbox": [
     "checkbox",
@@ -174,22 +241,70 @@
     "checkbox-xs"
   ],
   "collapse": [
-    "primary"
+    "details",
+    "details-content",
+    "details-ghost",
+    "details-title"
   ],
   "collapsible": [
-    "primary"
+    "collapsible",
+    "collapsible-content",
+    "collapsible-panel",
+    "collapsible-trigger",
+    "collapsible-trigger-icon"
   ],
   "color-picker": [
-    "primary"
+    "color-picker",
+    "color-picker-hex",
+    "color-picker-hex-input",
+    "color-picker-hex-label",
+    "color-picker-popover",
+    "color-picker-preview",
+    "color-picker-slider",
+    "color-picker-slider-label",
+    "color-picker-slider-value",
+    "color-picker-sliders",
+    "color-picker-swatch",
+    "color-picker-swatch-trigger",
+    "color-picker-swatch-trigger-chip",
+    "color-picker-swatch-trigger-label",
+    "color-picker-thumb",
+    "color-picker-track",
+    "color-picker-value-hex",
+    "color-picker-value-oklch",
+    "color-picker-values"
   ],
   "combobox": [
-    "primary"
+    "combobox-clear",
+    "combobox-control",
+    "combobox-empty",
+    "combobox-input",
+    "combobox-item",
+    "combobox-trigger"
   ],
   "command-palette": [
-    "primary"
+    "command-palette-backdrop",
+    "command-palette-empty",
+    "command-palette-group",
+    "command-palette-group-label",
+    "command-palette-input",
+    "command-palette-item",
+    "command-palette-item-body",
+    "command-palette-item-desc",
+    "command-palette-item-icon",
+    "command-palette-item-label",
+    "command-palette-item-shortcut",
+    "command-palette-list",
+    "command-palette-popup",
+    "command-palette-search",
+    "command-palette-search-icon"
   ],
   "countdown": [
-    "primary"
+    "countdown",
+    "countdown-label",
+    "countdown-plain",
+    "countdown-unit",
+    "countdown-value"
   ],
   "data-table": [
     "data-table",
@@ -212,13 +327,25 @@
     "data-table-warning"
   ],
   "dialog": [
-    "primary"
+    "dialog-backdrop",
+    "dialog-description",
+    "dialog-footer",
+    "dialog-footer-sticky",
+    "dialog-header",
+    "dialog-header-sticky",
+    "dialog-popup",
+    "dialog-title"
   ],
   "diff": [
-    "primary"
+    "diff",
+    "diff-grip",
+    "diff-item-1",
+    "diff-item-2",
+    "diff-resizer"
   ],
   "divider": [
-    "primary"
+    "divider",
+    "divider-vertical"
   ],
   "dock": [
     "dock",
@@ -235,28 +362,72 @@
     "dock-warning"
   ],
   "drawer": [
-    "primary"
+    "drawer-backdrop",
+    "drawer-description",
+    "drawer-footer",
+    "drawer-footer-sticky",
+    "drawer-header",
+    "drawer-header-sticky",
+    "drawer-popup",
+    "drawer-title"
   ],
   "dropdown": [
-    "primary"
+    "dropdown",
+    "dropdown-item",
+    "dropdown-item-arrow",
+    "dropdown-label",
+    "dropdown-separator"
   ],
   "dropzone": [
-    "primary"
+    "dropzone",
+    "dropzone-hint",
+    "dropzone-icon",
+    "dropzone-input",
+    "dropzone-title"
   ],
   "empty-state": [
-    "primary"
+    "empty-state",
+    "empty-state-actions",
+    "empty-state-description",
+    "empty-state-icon",
+    "empty-state-sm",
+    "empty-state-title"
   ],
   "field": [
-    "primary"
+    "field",
+    "field-description",
+    "field-error",
+    "field-label",
+    "field-status",
+    "field-status-attached",
+    "field-status-error",
+    "field-status-success",
+    "field-status-warning",
+    "input",
+    "select",
+    "textarea"
   ],
   "fieldset": [
-    "primary"
+    "fieldset",
+    "fieldset-label",
+    "fieldset-legend"
   ],
   "file-input": [
-    "primary"
+    "file-input",
+    "file-input-lg",
+    "file-input-sm"
   ],
   "file-upload": [
-    "primary"
+    "file-upload",
+    "file-upload-item",
+    "file-upload-item-icon",
+    "file-upload-item-meta",
+    "file-upload-item-name",
+    "file-upload-item-remove",
+    "file-upload-item-size",
+    "file-upload-item-thumb",
+    "file-upload-list",
+    "file-upload-rejections"
   ],
   "filter": [
     "filter",
@@ -272,16 +443,26 @@
     "filter-warning"
   ],
   "footer": [
-    "primary"
+    "footer",
+    "footer-center",
+    "footer-title"
   ],
   "hero": [
-    "primary"
+    "hero",
+    "hero-content",
+    "hero-overlay"
   ],
   "indicator": [
-    "primary"
+    "indicator",
+    "indicator-bottom",
+    "indicator-item",
+    "indicator-start"
   ],
   "input-group": [
-    "primary"
+    "input-group",
+    "input-group-btn",
+    "input-group-end",
+    "input-group-start"
   ],
   "input": [
     "input",
@@ -302,16 +483,32 @@
     "input-xs"
   ],
   "join": [
-    "primary"
+    "join",
+    "join-vertical"
   ],
   "kbd": [
-    "primary"
+    "kbd",
+    "kbd-lg",
+    "kbd-md",
+    "kbd-sm",
+    "kbd-xl",
+    "kbd-xs"
   ],
   "label": [
-    "primary"
+    "floating-label",
+    "label",
+    "label-required"
   ],
   "lightbox": [
-    "primary"
+    "lightbox-backdrop",
+    "lightbox-caption",
+    "lightbox-close",
+    "lightbox-counter",
+    "lightbox-image",
+    "lightbox-nav",
+    "lightbox-nav-next",
+    "lightbox-nav-prev",
+    "lightbox-popup"
   ],
   "link": [
     "link",
@@ -326,22 +523,50 @@
     "link-warning"
   ],
   "list": [
-    "primary"
+    "list",
+    "list-col-grow",
+    "list-hover",
+    "list-row",
+    "list-title"
   ],
   "loading": [
-    "primary"
+    "loading",
+    "loading-lg",
+    "loading-md",
+    "loading-sm",
+    "loading-xl",
+    "loading-xs"
   ],
   "mask": [
-    "primary"
+    "mask",
+    "mask-circle",
+    "mask-decagon",
+    "mask-diamond",
+    "mask-heart",
+    "mask-hexagon",
+    "mask-hexagon-2",
+    "mask-parallelogram",
+    "mask-pentagon",
+    "mask-squircle",
+    "mask-star",
+    "mask-star-2",
+    "mask-triangle",
+    "mask-triangle-2",
+    "mask-triangle-3",
+    "mask-triangle-4"
   ],
   "menu": [
-    "primary"
+    "menu",
+    "menu-title"
   ],
   "menubar": [
-    "primary"
+    "menubar",
+    "menubar-trigger"
   ],
   "metadata-list": [
-    "primary"
+    "metadata-list",
+    "metadata-list-label",
+    "metadata-list-value"
   ],
   "meter": [
     "meter",
@@ -364,7 +589,13 @@
     "meter-xs"
   ],
   "mockup": [
-    "primary"
+    "mockup-browser",
+    "mockup-browser-input",
+    "mockup-browser-toolbar",
+    "mockup-code",
+    "mockup-phone",
+    "mockup-phone-display",
+    "mockup-window"
   ],
   "multi-select": [
     "multi-select",
@@ -386,22 +617,44 @@
     "multi-select-warning"
   ],
   "navbar": [
-    "primary"
+    "navbar",
+    "navbar-center",
+    "navbar-end",
+    "navbar-start"
   ],
   "navigation-menu": [
-    "primary"
+    "navigation-menu",
+    "navigation-menu-content",
+    "navigation-menu-icon",
+    "navigation-menu-link",
+    "navigation-menu-list",
+    "navigation-menu-popup",
+    "navigation-menu-positioner",
+    "navigation-menu-trigger",
+    "navigation-menu-viewport"
   ],
   "number-field": [
-    "primary"
+    "number-field",
+    "number-field-button",
+    "number-field-decrement",
+    "number-field-group",
+    "number-field-increment",
+    "number-field-input"
   ],
   "outline": [
-    "primary"
+    "outline",
+    "outline-link",
+    "outline-list"
   ],
   "overflow-list": [
-    "primary"
+    "overflow-list",
+    "overflow-list-badge",
+    "overflow-list-measure",
+    "overflow-list-popup"
   ],
   "overlay": [
-    "primary"
+    "overlay",
+    "overlay-scrim"
   ],
   "pagination": [
     "pagination",
@@ -422,7 +675,7 @@
     "pagination-xs"
   ],
   "phone-input": [
-    "primary"
+    "phone-input-country"
   ],
   "pin-input": [
     "pin-input",
@@ -442,13 +695,30 @@
     "pin-input-cell-xs"
   ],
   "popover": [
-    "primary"
+    "popover",
+    "popover-arrow",
+    "popover-description",
+    "popover-title"
   ],
   "power-search": [
-    "primary"
+    "power-search",
+    "power-search-add",
+    "power-search-chip",
+    "power-search-chip-field",
+    "power-search-chip-remove",
+    "power-search-chip-trigger",
+    "power-search-field-item",
+    "power-search-field-list",
+    "power-search-input",
+    "power-search-option-list",
+    "power-search-value-form",
+    "power-search-value-picker",
+    "power-search-value-picker-back",
+    "power-search-value-picker-label"
   ],
   "preview-card": [
-    "primary"
+    "preview-card",
+    "preview-card-arrow"
   ],
   "progress": [
     "progress",
@@ -473,13 +743,17 @@
     "progress-xs"
   ],
   "prose": [
-    "primary"
+    "prose",
+    "prose-lg",
+    "prose-sm",
+    "prose-xl"
   ],
   "radial-progress": [
-    "primary"
+    "radial-progress"
   ],
   "radio-group": [
-    "primary"
+    "radio-group",
+    "radio-option"
   ],
   "radio": [
     "radio",
@@ -531,15 +805,27 @@
     "rating-xs"
   ],
   "resizable-panels": [
-    "primary"
+    "resizable-group",
+    "resizable-handle",
+    "resizable-handle-grip",
+    "resizable-panel"
   ],
   "rich-text-editor": [
     "ProseMirror",
     "is-editor-empty",
-    "primary"
+    "rich-text-editor",
+    "rich-text-editor-btn",
+    "rich-text-editor-content",
+    "rich-text-editor-sep",
+    "rich-text-editor-toolbar"
   ],
   "scroll-area": [
-    "primary"
+    "scroll-area",
+    "scroll-area-content",
+    "scroll-area-corner",
+    "scroll-area-scrollbar",
+    "scroll-area-thumb",
+    "scroll-area-viewport"
   ],
   "segment-field": [
     "date-range-input",
@@ -559,7 +845,16 @@
     "segment-field-warning"
   ],
   "select-menu": [
-    "primary"
+    "select-group-label",
+    "select-icon",
+    "select-item",
+    "select-item-indicator",
+    "select-placeholder",
+    "select-popup",
+    "select-scroll-arrow",
+    "select-separator",
+    "select-trigger",
+    "select-value"
   ],
   "select": [
     "select",
@@ -578,7 +873,12 @@
     "select-xs"
   ],
   "selection-list": [
-    "primary"
+    "selection-list",
+    "selection-list-item",
+    "selection-list-item-body",
+    "selection-list-item-description",
+    "selection-list-item-icon",
+    "selection-list-item-label"
   ],
   "sidebar": [
     "sidebar",
@@ -603,7 +903,9 @@
     "sidebar-warning"
   ],
   "skeleton": [
-    "primary"
+    "skeleton",
+    "skeleton-circle",
+    "skeleton-text"
   ],
   "slider": [
     "slider",
@@ -624,13 +926,24 @@
     "slider-warning"
   ],
   "sortable-list": [
-    "primary"
+    "sortable-handle",
+    "sortable-item",
+    "sortable-list"
   ],
   "stack": [
-    "primary"
+    "stack",
+    "stack-bottom",
+    "stack-end",
+    "stack-start"
   ],
   "stat": [
-    "primary"
+    "stat",
+    "stat-desc",
+    "stat-figure",
+    "stat-title",
+    "stat-value",
+    "stats",
+    "stats-vertical"
   ],
   "status": [
     "status",
@@ -662,7 +975,11 @@
     "steps"
   ],
   "swap": [
-    "primary"
+    "swap",
+    "swap-flip",
+    "swap-off",
+    "swap-on",
+    "swap-rotate"
   ],
   "switch": [
     "switch",
@@ -682,7 +999,14 @@
     "switch-xs"
   ],
   "table": [
-    "primary"
+    "table",
+    "table-hover",
+    "table-lg",
+    "table-md",
+    "table-sm",
+    "table-xl",
+    "table-xs",
+    "table-zebra"
   ],
   "tabs": [
     "tabs",
@@ -735,10 +1059,16 @@
     "textarea-xs"
   ],
   "timeline": [
-    "primary"
+    "timeline",
+    "timeline-box",
+    "timeline-dot",
+    "timeline-end",
+    "timeline-horizontal",
+    "timeline-middle",
+    "timeline-start"
   ],
   "timestamp": [
-    "primary"
+    "timestamp"
   ],
   "toast": [
     "toast",
@@ -749,7 +1079,14 @@
     "toast-viewport"
   ],
   "toggle-group": [
-    "primary"
+    "toggle-group",
+    "toggle-group-accent",
+    "toggle-group-item",
+    "toggle-group-lg",
+    "toggle-group-primary",
+    "toggle-group-secondary",
+    "toggle-group-sm",
+    "toggle-group-xs"
   ],
   "toggle": [
     "toggle",
@@ -768,19 +1105,43 @@
     "toggle-xs"
   ],
   "toolbar": [
-    "primary"
+    "toolbar",
+    "toolbar-button",
+    "toolbar-center",
+    "toolbar-group",
+    "toolbar-link",
+    "toolbar-separator"
   ],
   "tooltip": [
-    "primary"
+    "tooltip",
+    "tooltip-arrow"
   ],
   "tree-view": [
-    "primary"
+    "tree",
+    "tree-group",
+    "tree-item",
+    "tree-node",
+    "tree-node-icon",
+    "tree-node-label",
+    "tree-toggle",
+    "tree-toggle-spacer"
   ],
   "typography": [
-    "primary"
+    "blockquote",
+    "blockquote-cite",
+    "caption",
+    "display",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "lead"
   ],
   "validator": [
-    "primary"
+    "validator",
+    "validator-hint"
   ],
   "wizard": [
     "wizard",

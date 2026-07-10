@@ -118,5 +118,9 @@
   {
     "type": "phone-input",
     "description": "`phone-input` — a `country` `<select>` (options carry `data-dial`) joined with a digits `input`; a hidden input carries the combined `+{dial}{digits}` value for form submission. No React-only mechanism was involved in the original — the country list is plain static data, ported verbatim into the `PhoneInput` macro's expansion (see `component.ts`)."
+  },
+  {
+    "type": "reveal",
+    "description": "`reveal` — the ON SCROLL trigger for @wizeworks/silicaui's assignable entrance animations. Sets `data-sui-inview` on the root once it enters the viewport, which a `.sui-reveal-*` preset class (packages/silicaui/src/components/ animations.js) reads to transition from its hidden to visible state. `params.once` (default `true`) stops observing after the first reveal; `params.threshold` is passed straight to `IntersectionObserver`. Suppressed (reveals immediately, no observer) in preview, under reduced motion, or without `IntersectionObserver` — same guard shape as `counter`."
   }
 ]

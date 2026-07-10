@@ -108,6 +108,7 @@ import { resizablePanels } from "./components/resizable-panels.js";
 import { wordmark } from "./components/wordmark.js";
 import { selectionList } from "./components/selection-list.js";
 import { sidebar } from "./components/sidebar.js";
+import { animations } from "./components/animations.js";
 
 /**
  * Parse the `colors` option from `@plugin "@wizeworks/silicaui" { colors: … }`.
@@ -264,6 +265,7 @@ export default plugin.withOptions(
       addBase(wordmark(colors, prefix));
       addBase(selectionList(prefix));
       addBase(sidebar(colors, prefix));
+      addBase(animations(prefix));
       addBase(tooltip(prefix));
       addBase(dialog(prefix));
       addBase(popover(prefix));

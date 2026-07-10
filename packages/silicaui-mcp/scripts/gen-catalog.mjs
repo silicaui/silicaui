@@ -50,7 +50,7 @@ const PACKAGES = [
   { name: "silicaui-react", purpose: "Typed React components over the silicaui classes, built on Base UI.", install: "pnpm add silicaui-react" },
   { name: "silicaui-html", purpose: "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output).", install: "pnpm add silicaui-html" },
   { name: "silicaui-behaviors", purpose: "Zero-dependency runtime that hydrates data-sui-* markers with interactivity (the vanilla-JS counterpart to silicaui-react's Base UI behavior).", install: "pnpm add silicaui-behaviors" },
-  { name: "silicaui-builder", purpose: "The visual document editor/engine used to build the SilicaUI sitebuilder itself — not typically installed by app developers.", install: null, private: true },
+  { name: "silicaui-builder", purpose: "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react`.", install: "pnpm add silicaui-builder silicaui-react" },
   { name: "silicaui-charts", purpose: "Apache ECharts wrapped and auto-themed to Silica's design tokens.", install: "pnpm add silicaui-charts silicaui-react" },
   { name: "silicaui-table", purpose: "TanStack Table wrapped in Silica's table CSS.", install: "pnpm add silicaui-table silicaui-react" },
   { name: "silicaui-editor", purpose: "TipTap rich-text editor with a Silica-styled toolbar.", install: "pnpm add silicaui-editor silicaui-react" },
@@ -105,14 +105,18 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
   }
   const classSet = new Set();
   for (const [, fn] of Object.entries(mod).filter(([, v]) => typeof v === "function")) {
+    // Every generator in this directory is `(prefix = "")` or `(colors, prefix = "")`
+    // — `prefix` always carries a default, so `fn.length` (params BEFORE the first
+    // default) is 0 for the former, 1 for the latter. That makes the call shape
+    // deterministic instead of guessed: trying `fn(SEMANTIC_COLORS, "")` first (the
+    // old approach) silently succeeds against a `(prefix = "")`-only function too
+    // (SEMANTIC_COLORS just becomes `prefix`), producing garbage class names with
+    // no error to catch.
     let result = null;
-    for (const args of [[SEMANTIC_COLORS, ""], [SEMANTIC_COLORS], []]) {
-      try {
-        result = fn(...args);
-        break;
-      } catch {
-        result = null;
-      }
+    try {
+      result = fn.length >= 1 ? fn(SEMANTIC_COLORS) : fn();
+    } catch (err) {
+      console.warn(`  ! ${file}: calling ${fn.name || "(anonymous)"} with fn.length=${fn.length} failed: ${err.message}`);
     }
     if (result && typeof result === "object") {
       for (const key of Object.keys(result)) {

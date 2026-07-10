@@ -137,7 +137,8 @@ export type BehaviorType =
   | "switch"
   | "rating"
   | "theme-toggle"
-  | "phone-input";
+  | "phone-input"
+  | "reveal";
 
 export type BehaviorRole =
   | "track"
