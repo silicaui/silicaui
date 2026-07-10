@@ -41,6 +41,18 @@ export function ToastDemo() {
                 >
                     Plain toast
                 </Button>
+                <Button
+                    variant="outline"
+                    onClick={() =>
+                        toast.add({
+                            title: "Glass toast",
+                            description: 'toast.add({ data: { className: "glass" } })',
+                            data: { className: "glass" },
+                        })
+                    }
+                >
+                    Glass toast
+                </Button>
             </Row>
         </Section>
     );

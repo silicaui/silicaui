@@ -89,6 +89,73 @@ export function softUtilities(prefix = "") {
   };
 }
 
+/**
+ * The `glass` utility — Tier-0 frosted-glass treatment (blur + saturate,
+ * no SVG refraction). Rides the same `--u-accent` mechanism as `soft`: a
+ * `bg-<c>` stacked alongside `glass` tints the frost with that color; bare
+ * `glass` frosts neutral (`base-100`). No new color plumbing.
+ *
+ * Degrades to a flat tint (no blur, same mix as `soft`'s) under
+ * `@supports not (backdrop-filter: …)` and `prefers-reduced-transparency:
+ * reduce` — both read as a plain translucent surface, nothing broken.
+ *
+ * The rim sheen is a `::before` inset box-shadow rather than the host's own
+ * `box-shadow`, so it composes with `.card-clickable`'s hover-lift shadow
+ * instead of overwriting it. The sheen stays white regardless of theme (it
+ * represents a specular highlight, not a themed surface color); the border
+ * itself is theme-adaptive via `--color-base-content` so it stays visible
+ * against both light and dark backdrops.
+ *
+ * Same `addUtilities` + `[class]` specificity bump as `soft` (see its doc
+ * above) — reliably outranks any `addBase` surface (e.g. Card) and any
+ * registered `bg-<c>`, regardless of source order.
+ *
+ * @param {string} [prefix] - prepended verbatim to every class
+ */
+export function glassUtilities(prefix = "") {
+  const accent = "var(--u-accent, var(--color-base-100))";
+  const tint = `color-mix(in oklab, ${accent} var(--glass-tint, 55%), transparent)`;
+  const flatTint = `color-mix(in oklab, ${accent} 15%, var(--color-base-100))`;
+  const blur = "blur(var(--glass-blur, 16px)) saturate(var(--glass-saturate, 1.4))";
+  const sel = (cls) => `.${prefix}${cls}[class]`;
+
+  // addUtilities requires every TOP-LEVEL key to be a single class selector
+  // (unlike addBase, which accepts arbitrary CSS) — so the @supports/@media
+  // fallbacks must nest INSIDE the `.glass[class]` rule rather than sit
+  // alongside it as sibling at-rules.
+  //
+  // Only the standard `backdropFilter` is declared — Lightning CSS (this
+  // plugin's build target) auto-generates the `-webkit-` prefix itself from
+  // the configured browserslist. Also declaring `WebkitBackdropFilter`
+  // ourselves made Lightning CSS treat the pair as a duplicate and collapse
+  // them down to JUST the prefixed one, silently dropping the standard
+  // property from the output — verified against the compiled CSS.
+  return {
+    [sel("glass")]: {
+      position: "relative",
+      backgroundColor: tint,
+      backdropFilter: blur,
+      borderColor: "color-mix(in oklab, var(--color-base-content) 20%, transparent)",
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        inset: "0",
+        borderRadius: "inherit",
+        boxShadow: "inset 0 1px 0 0 color-mix(in oklab, white 45%, transparent)",
+        pointerEvents: "none",
+      },
+      "@supports not (backdrop-filter: blur(1px))": {
+        backgroundColor: flatTint,
+        backdropFilter: "none",
+      },
+      "@media (prefers-reduced-transparency: reduce)": {
+        backgroundColor: flatTint,
+        backdropFilter: "none",
+      },
+    },
+  };
+}
+
 /** The neutral surface ramp + ink — always emitted (not part of `colors`). */
 const SURFACES = ["base-100", "base-200", "base-300", "base-content"];
 

@@ -99,6 +99,70 @@ export function CardDemo() {
                     ))}
                 </div>
             </Section>
+
+            <Section title="Glass · Tier-0 frosted treatment (backdrop-filter blur + saturate, no SVG refraction)">
+                <div
+                    className="rounded-box p-8"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))",
+                    }}
+                >
+                    <div className="grid gap-6 sm:grid-cols-2">
+                        <Card className="glass">
+                            <CardBody>
+                                <CardTitle>Neutral frost</CardTitle>
+                                <p className="opacity-80">
+                                    Plain <code>glass</code> — no color declared, so it
+                                    frosts the neutral <code>base-100</code> surface.
+                                </p>
+                            </CardBody>
+                        </Card>
+
+                        <Card className="bg-primary glass">
+                            <CardBody>
+                                <CardTitle>Tinted frost</CardTitle>
+                                <p className="opacity-80">
+                                    <code>bg-primary glass</code> — same{" "}
+                                    <code>--u-accent</code> hook <code>soft</code> uses,
+                                    so the frost picks up primary for colored depth.
+                                </p>
+                            </CardBody>
+                        </Card>
+                    </div>
+
+                    <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                        <ClickableCard
+                            className="glass"
+                            onClick={() => console.log("open repo")}
+                        >
+                            <CardBody>
+                                <CardTitle>Clickable + glass</CardTitle>
+                                <p className="opacity-80">
+                                    Hover still lifts — the rim sheen lives on its own
+                                    pseudo-element, not the hover shadow.
+                                </p>
+                            </CardBody>
+                        </ClickableCard>
+
+                        {(["Starter", "Pro"] as const).map((plan, i) => (
+                            <SelectableCard
+                                key={plan}
+                                name="selectable-plan-glass"
+                                defaultChecked={i === 0}
+                                className="glass"
+                            >
+                                <CardBody>
+                                    <CardTitle>{plan}</CardTitle>
+                                    <p className="opacity-80">
+                                        Checked ring still reads through the frost.
+                                    </p>
+                                </CardBody>
+                            </SelectableCard>
+                        ))}
+                    </div>
+                </div>
+            </Section>
         </>
     );
 }

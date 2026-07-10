@@ -1,7 +1,7 @@
 import plugin from "tailwindcss/plugin";
 import { LIGHT, SEMANTIC_COLORS } from "./colors.js";
 import { buildBase } from "./theme.js";
-import { colorUtilities, softUtilities } from "./color-utilities.js";
+import { colorUtilities, softUtilities, glassUtilities } from "./color-utilities.js";
 import { button } from "./components/button.js";
 import { badge } from "./components/badge.js";
 import { input } from "./components/input.js";
@@ -287,6 +287,11 @@ export default plugin.withOptions(
       // `.bg-soft`/`.text-soft`/`.border-soft` in that same utilities layer, after
       // Tailwind's core output, so they reliably win. See softUtilities' doc.
       addUtilities(softUtilities(prefix));
+      // `glass` — Tier-0 frosted-glass utility (blur/saturate, no SVG
+      // refraction). Same addUtilities + [class] bump as `soft`, for the
+      // same reason: must reliably outrank addBase surfaces (Card) and any
+      // registered `bg-<c>`. See glassUtilities' doc.
+      addUtilities(glassUtilities(prefix));
     },
   // Register the semantic colors as real theme values so Tailwind generates the
   // matching CSS variables (`--color-primary`, …) AND utilities (`bg-primary`,

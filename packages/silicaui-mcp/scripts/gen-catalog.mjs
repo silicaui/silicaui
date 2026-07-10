@@ -126,11 +126,11 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
   }
   if (classSet.size) classesByComponent[path.basename(file, ".js")] = [...classSet].sort();
 }
-const { colorUtilities, softUtilities } = await import(
+const { colorUtilities, softUtilities, glassUtilities } = await import(
   pathToFileURL(path.join(componentsDir, "..", "color-utilities.js")).href
 );
 const utilClasses = new Set();
-for (const key of Object.keys({ ...colorUtilities(SEMANTIC_COLORS), ...softUtilities() })) {
+for (const key of Object.keys({ ...colorUtilities(SEMANTIC_COLORS), ...softUtilities(), ...glassUtilities() })) {
   for (const m of key.matchAll(/\.([a-zA-Z0-9_-]+)/g)) utilClasses.add(m[1]);
 }
 classesByComponent["color-utilities"] = [...utilClasses].sort();

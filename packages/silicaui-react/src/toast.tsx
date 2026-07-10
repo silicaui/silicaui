@@ -60,8 +60,14 @@ function ToastList() {
       <BaseToast.Viewport className={cx(sc("toast-viewport"))}>
         {toasts.map((toast) => {
           const Icon = toast.type ? TYPE_ICONS[toast.type] : undefined;
+          // Base UI's `data` is a free-form per-toast extension point (there's
+          // no `className` on ToastObject itself, since toasts are fired
+          // imperatively via `add()`, not authored as JSX) — Silica reads a
+          // `className` off it so a caller can request e.g. `glass` per toast:
+          // `toast.add({ title: "Saved", data: { className: "glass" } })`.
+          const data = toast.data as { className?: string } | undefined;
           return (
-            <BaseToast.Root key={toast.id} toast={toast} className={cx(sc("toast"))}>
+            <BaseToast.Root key={toast.id} toast={toast} className={cx(sc("toast"), data?.className)}>
               {Icon && <Icon />}
               <div className={cx(sc("toast-content"))}>
                 <BaseToast.Title className={cx(sc("toast-title"))} />
@@ -87,6 +93,11 @@ function ToastList() {
  *
  *   const toast = useToast();
  *   toast.add({ title: "Saved", description: "Your changes are saved.", type: "success" });
+ *
+ * For a glass toast, pass a `className` through `data` (there's no direct
+ * `className` on the imperative `add()` call):
+ *
+ *   toast.add({ title: "Saved", data: { className: "glass" } });
  */
 export function ToastProvider({ children, ...rest }: ToastProviderProps) {
   return (

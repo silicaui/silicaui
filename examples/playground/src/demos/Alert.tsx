@@ -125,6 +125,41 @@ export function AlertDemo() {
                     ))}
                 </Stack>
             </Section>
+
+            <Section title="Glass · notice floating over a colored background">
+                <div
+                    className="rounded-box p-8"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))",
+                    }}
+                >
+                    <Stack className="gap-3">
+                        <Alert className="glass">
+                            <InfoIcon />A new software update is available.
+                        </Alert>
+                        <Alert color="success" className="glass">
+                            <CheckIcon />
+                            Your changes have been saved.
+                        </Alert>
+                        <Alert color="error" className="glass">
+                            <XIcon />
+                            <AlertContent>
+                                <AlertTitle>Upload failed</AlertTitle>
+                                <AlertDescription>
+                                    The file exceeds the 5 MB limit — glass still reads clearly
+                                    at error severity.
+                                </AlertDescription>
+                            </AlertContent>
+                            <AlertActions>
+                                <Button size="sm" color="error" variant="soft">
+                                    Retry
+                                </Button>
+                            </AlertActions>
+                        </Alert>
+                    </Stack>
+                </div>
+            </Section>
         </>
     );
 }

@@ -102,6 +102,31 @@ export function DialogDemo() {
                     </Dialog>
                 </Row>
             </Section>
+
+            <Section title="Glass · frosted popup over the dimmed backdrop">
+                <Dialog>
+                    <DialogTrigger>
+                        <Button variant="outline">Glass dialog</Button>
+                    </DialogTrigger>
+                    <DialogContent className="glass">
+                        <DialogTitle>Restart required</DialogTitle>
+                        <DialogDescription>
+                            <code>DialogContent className=&quot;glass&quot;</code> frosts the
+                            popup over the existing dimmed backdrop — same class, no new prop.
+                        </DialogDescription>
+                        <div className="mt-4 flex justify-end gap-2">
+                            <DialogClose>
+                                <Button variant="ghost" color="neutral">
+                                    Later
+                                </Button>
+                            </DialogClose>
+                            <DialogClose>
+                                <Button>Restart now</Button>
+                            </DialogClose>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </Section>
         </>
     );
 }

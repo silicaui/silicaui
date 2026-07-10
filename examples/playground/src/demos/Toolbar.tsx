@@ -127,6 +127,30 @@ export function ToolbarDemo() {
                 </div>
             </Section>
 
+            <Section title="Glass · floating action bar">
+                <div
+                    className="flex justify-center rounded-box p-16"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))",
+                    }}
+                >
+                    <Toolbar aria-label="Floating actions" className="glass">
+                        <ToolbarGroup>
+                            <ToolbarButton>
+                                <PlusIcon />
+                                Add
+                            </ToolbarButton>
+                            <ToolbarButton>
+                                <TrashIcon />
+                            </ToolbarButton>
+                        </ToolbarGroup>
+                        <ToolbarSeparator />
+                        <ToolbarLink href="#">Help</ToolbarLink>
+                    </Toolbar>
+                </div>
+            </Section>
+
             <Section title="Center region · start / center / end">
                 <div className="w-full max-w-md rounded-box border border-base-300">
                     <Toolbar aria-label="Section navigation" dividers="bottom" className="w-full">

@@ -33,6 +33,36 @@ export function FooterDemo() {
                     </div>
                 </Footer>
             </Section>
+
+            <Section title="Glass · footer over a colored page background">
+                <div
+                    className="flex flex-col justify-end gap-24 rounded-box p-4"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))",
+                    }}
+                >
+                    <Footer className="glass p-6">
+                        <nav>
+                            <FooterTitle>Product</FooterTitle>
+                            <Link href="#">Features</Link>
+                            <Link href="#">Pricing</Link>
+                            <Link href="#">Changelog</Link>
+                        </nav>
+                        <nav>
+                            <FooterTitle>Company</FooterTitle>
+                            <Link href="#">About</Link>
+                            <Link href="#">Careers</Link>
+                            <Link href="#">Contact</Link>
+                        </nav>
+                        <nav>
+                            <FooterTitle>Legal</FooterTitle>
+                            <Link href="#">Terms</Link>
+                            <Link href="#">Privacy</Link>
+                        </nav>
+                    </Footer>
+                </div>
+            </Section>
         </>
     );
 }

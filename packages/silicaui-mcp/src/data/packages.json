@@ -3,60 +3,60 @@
     "name": "@wizeworks/silicaui",
     "purpose": "Tailwind v4 plugin — design tokens + component CSS classes (the vocabulary every other package builds on).",
     "install": "pnpm add -D @wizeworks/silicaui tailwindcss",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-react",
     "purpose": "Typed React components over the @wizeworks/silicaui classes, built on Base UI.",
     "install": "pnpm add @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-html",
     "purpose": "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output).",
     "install": "pnpm add @wizeworks/silicaui-html",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-behaviors",
     "purpose": "Zero-dependency runtime that hydrates data-sui-* markers with interactivity (the vanilla-JS counterpart to @wizeworks/silicaui-react's Base UI behavior).",
     "install": "pnpm add @wizeworks/silicaui-behaviors",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-builder",
     "purpose": "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react`.",
     "install": "pnpm add @wizeworks/silicaui-builder @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-charts",
     "purpose": "Apache ECharts wrapped and auto-themed to Silica's design tokens.",
     "install": "pnpm add @wizeworks/silicaui-charts @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-table",
     "purpose": "TanStack Table wrapped in Silica's table CSS.",
     "install": "pnpm add @wizeworks/silicaui-table @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-editor",
     "purpose": "TipTap rich-text editor with a Silica-styled toolbar.",
     "install": "pnpm add @wizeworks/silicaui-editor @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-dnd",
     "purpose": "dnd-kit wrapped — SortableList + drag primitives.",
     "install": "pnpm add @wizeworks/silicaui-dnd @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   },
   {
     "name": "@wizeworks/silicaui-panels",
     "purpose": "react-resizable-panels wrapped in Silica styling.",
     "install": "pnpm add @wizeworks/silicaui-panels @wizeworks/silicaui-react",
-    "version": "0.10.1"
+    "version": "0.14.0"
   }
 ]

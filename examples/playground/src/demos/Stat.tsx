@@ -49,6 +49,37 @@ export function StatDemo() {
                     </Stat>
                 </Stats>
             </Section>
+
+            <Section title="Glass · KPI band over a colored hero">
+                <div
+                    className="rounded-box p-8"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))",
+                    }}
+                >
+                    <Stats className="glass">
+                        <Stat>
+                            <StatFigure>
+                                <UserIcon />
+                            </StatFigure>
+                            <StatTitle>New users</StatTitle>
+                            <StatValue>1,204</StatValue>
+                            <StatDesc>↗︎ 3.2% this month</StatDesc>
+                        </Stat>
+                        <Stat>
+                            <StatTitle>Revenue</StatTitle>
+                            <StatValue>$14,300</StatValue>
+                            <StatDesc>↗︎ 12.4% this month</StatDesc>
+                        </Stat>
+                        <Stat>
+                            <StatTitle>Churn</StatTitle>
+                            <StatValue>1.8%</StatValue>
+                            <StatDesc>↘︎ 0.6% this month</StatDesc>
+                        </Stat>
+                    </Stats>
+                </div>
+            </Section>
         </>
     );
 }
