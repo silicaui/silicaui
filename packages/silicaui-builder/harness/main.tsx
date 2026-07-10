@@ -119,6 +119,7 @@ const bus = window as unknown as {
   __published?: unknown;
   __exported?: string;
   __sentTest?: { to: string; subject: string };
+  __activePage?: unknown;
 };
 bus.__changeCount = 0;
 
@@ -172,9 +173,17 @@ if (editorMode === "email") {
           bus.__lastChange = site;
           bus.__changeCount += 1;
         }}
+        onActivePageChange={(page) => {
+          bus.__activePage = page;
+        }}
         onPublish={(payload) => {
           bus.__published = payload;
         }}
+        toolbarSlot={
+          <span data-testid="toolbar-slot" className="text-xs text-base-content/50 px-1">
+            Demo host UI
+          </span>
+        }
       />
     </React.StrictMode>,
   );

@@ -14,6 +14,7 @@ import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/sil
 import { renderSite } from "@wizeworks/silicaui-html";
 import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizeworks/silicaui-react";
 import { Editor } from "../engine";
+import type { PageMeta } from "../engine";
 import { DraftStore } from "../../shared/persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
 import { HostProvider } from "./host-context";
@@ -383,6 +384,17 @@ export interface BuilderProps {
    */
   onChange?: (site: Site) => void;
   /**
+   * Fires on mount and whenever the ACTIVE page's identity changes — a page
+   * switch, or a rename/slug edit of the page currently open — with that page's
+   * `{id, name, slug}`. This is a UI-focus signal, not a persistence hook: it's
+   * how a host keys its own page-scoped side panel (e.g. an SEO/metadata drawer
+   * rendered in `toolbarSlot`) to whichever page the author is looking at. Page
+   * domain data itself doesn't belong on `Page` (deliberately flat — see
+   * builder-contract.md) — the host already gets the full page roster via
+   * `onChange` and owns its own metadata storage keyed by page id.
+   */
+  onActivePageChange?: (page: PageMeta) => void;
+  /**
    * Fires when the user clicks Publish, with the site + rendered HTML per page.
    * May be async (the button shows a pending state until it settles). Omit it and
    * the Publish button is disabled.
@@ -414,6 +426,7 @@ export function Builder({
   studioTheme = "studio",
   host,
   onChange,
+  onActivePageChange,
   onPublish,
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
@@ -473,6 +486,28 @@ export function Builder({
       store?.flush();
     };
   }, [editor, store, onChange]);
+
+  // Notify the host of the ACTIVE page's identity — mount + every switch/rename —
+  // so it can key its own page-scoped UI (e.g. a `toolbarSlot` settings drawer)
+  // without a new mutation API or any `Page` schema change. Deduped against the
+  // last-sent value so an unrelated page's rename ("page" fires for any page)
+  // doesn't trigger a spurious callback.
+  React.useEffect(() => {
+    if (!editor || !onActivePageChange) return;
+    let last: PageMeta | null = null;
+    const notify = () => {
+      const { pages, activeId } = editor.pagesView;
+      const page = pages.find((p) => p.id === activeId) ?? pages[0];
+      if (!page) return;
+      if (last && last.id === page.id && last.name === page.name && last.slug === page.slug) return;
+      last = page;
+      onActivePageChange(page);
+    };
+    notify();
+    return editor.subscribe((e) => {
+      if (e.kind === "active" || e.kind === "page") notify();
+    });
+  }, [editor, onActivePageChange]);
 
   // "Start fresh" — discard the recovered draft and reseed from the prop document.
   // Bumping `gen` remounts the subtree so no stale canvas DOM carries over.

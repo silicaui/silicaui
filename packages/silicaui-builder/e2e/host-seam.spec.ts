@@ -110,6 +110,41 @@ test("a value bind's Target attribute round-trips through editor.setData", async
   await expect(page.getByPlaceholder("auto-detected (e.g. leave blank for text/src)")).toHaveValue("href");
 });
 
+test("toolbarSlot renders host UI in the header, next to Publish", async ({ page }) => {
+  await ready(page);
+  await expect(page.getByTestId("toolbar-slot")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
+});
+
+test("onActivePageChange fires on mount, and again on a page switch/rename", async ({ page }) => {
+  await ready(page);
+
+  await page.waitForFunction(() => (window as unknown as { __activePage?: unknown }).__activePage !== undefined);
+  const initial = (await page.evaluate(
+    () => (window as unknown as { __activePage: { id: string; name: string; slug: string } }).__activePage,
+  )) as { id: string; name: string; slug: string };
+  expect(initial.name).toBeTruthy();
+
+  // Adding a page switches to it — the callback fires again with the NEW page.
+  await page.getByRole("button", { name: "Add page" }).click();
+  await page.waitForFunction(
+    (prevId) => (window as unknown as { __activePage: { id: string } }).__activePage.id !== prevId,
+    initial.id,
+  );
+  const afterAdd = (await page.evaluate(
+    () => (window as unknown as { __activePage: { id: string; name: string } }).__activePage,
+  )) as { id: string; name: string };
+  expect(afterAdd.name).toBe("Page 2");
+
+  // Renaming the (now active) page fires again with the updated name.
+  await page.getByRole("button", { name: "Rename page" }).click();
+  await page.locator("input").last().fill("Landing");
+  await page.locator("input").last().press("Enter");
+  await page.waitForFunction(
+    () => (window as unknown as { __activePage: { name: string } }).__activePage.name === "Landing",
+  );
+});
+
 test("the Data binding Preview row calls host.resolveBinding/resolveCollection live", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");

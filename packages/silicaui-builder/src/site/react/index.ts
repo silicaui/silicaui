@@ -4,6 +4,7 @@
  */
 export { Builder } from "./Builder";
 export type { BuilderProps, PublishPayload } from "./Builder";
+export type { PageMeta } from "../engine";
 export type { BuilderHost, InspectorPanel, InspectorPanelCtx, AssetRef } from "./host";
 export { useHost } from "./host-context";
 export {
