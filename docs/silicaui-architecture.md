@@ -149,7 +149,7 @@ interface ComponentNode extends NodeBase {
 
 /** Dynamic-content primitives — three, and only three (§8). */
 type DataBinding =
-  | { kind: 'value'; ref: string }               // fill this node from a resolved value
+  | { kind: 'value'; ref: string; attr?: string } // fill this node from a resolved value; `attr` targets a specific attribute/prop instead of the auto-detected primary slot
   | { kind: 'collection'; ref: string }          // render `children` once per item
   | { kind: 'action'; ref: string; href?: string };  // this node triggers a host action
 ```
@@ -429,10 +429,13 @@ type DataScope = { path: string[] };                  // opaque repeat ancestry;
 ```
 
 - **`value`** — @wizeworks/silicaui calls `resolveValue(ref, scope)` and renders `value` into the
-  node's **primary content** (text for text elements, `src`/`href` for media/links,
-  the primary prop for a component). No resolver / no result → the node's static
-  placeholder renders. A builder additionally paints a "bound" affordance labeled
-  `label`.
+  node's **primary content**: text for text elements, `src` for `img`/`source`,
+  the `value` attribute for `input`, and `label`/`text`/`src` for the matching
+  component prop. Anything else the auto-detection doesn't cover — an anchor's
+  own `href`, `alt`, `title`, an arbitrary component prop — sets `attr` on the
+  binding to target it explicitly instead of guessing. No resolver / no result
+  → the node's static placeholder renders. A builder additionally paints a
+  "bound" affordance labeled `label`.
 - **`collection`** — @wizeworks/silicaui calls `resolveCollection(ref, scope)` → an array of
   **item scopes**, renders `children` once per scope, and threads each scope down so
   nested `value` bindings resolve per item. **@wizeworks/silicaui owns the repetition; the host

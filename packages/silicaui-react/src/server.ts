@@ -8,3 +8,22 @@
  */
 export { cx } from "./lib/cx";
 export { mergeProps } from "./lib/merge-props";
+
+export { buttonClasses } from "./lib/button-classes";
+export type {
+  ButtonColor,
+  ButtonVariant,
+  ButtonSize,
+  ButtonClassOptions,
+} from "./lib/button-classes";
+
+export { badgeClasses } from "./lib/badge-classes";
+export type {
+  BadgeColor,
+  BadgeVariant,
+  BadgeSize,
+  BadgeClassOptions,
+} from "./lib/badge-classes";
+
+export { clickableCardClasses } from "./lib/card-classes";
+export type { ClickableCardClassOptions } from "./lib/card-classes";

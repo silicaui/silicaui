@@ -2,8 +2,15 @@ import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass, useSilicaConfig } from "./lib/config";
 import { mergeProps } from "./lib/merge-props";
+import {
+  clickableCardClasses,
+  type ClickableCardClassOptions,
+} from "./lib/card-classes";
 import { Checkbox } from "./checkbox";
 import { Radio } from "./radio";
+
+export { clickableCardClasses };
+export type { ClickableCardClassOptions };
 
 export type CardProps = React.HTMLAttributes<HTMLDivElement>;
 
@@ -63,20 +70,6 @@ export interface ClickableCardProps
    *   <ClickableCard render={<a href="/projects/silica" />}>…</ClickableCard>
    */
   render?: React.ReactElement;
-}
-
-/**
- * The class-string logic behind `<ClickableCard>`, as a standalone function
- * with no React context dependency — usable from a Server Component to style
- * a plain element directly. Pass `prefix` to match a non-default
- * `<SilicaProvider prefix>`.
- */
-export function clickableCardClasses(
-  { className }: { className?: string } = {},
-  { prefix = "" }: { prefix?: string } = {},
-): string {
-  const sc = (name: string) => `${prefix}${name}`;
-  return cx(sc("card"), sc("card-clickable"), className);
 }
 
 /** A `Card` that's a whole clickable surface — a `<button>` by default, or any element via `render`. */

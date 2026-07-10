@@ -82,7 +82,7 @@ export interface OutletNode {
 
 /** The three opaque dynamic-content primitives (§8). */
 export type DataBinding =
-  | { kind: "value"; ref: string } // fill this node from a resolved value
+  | { kind: "value"; ref: string; attr?: string } // fill this node from a resolved value; `attr` targets a specific attribute/prop (e.g. "href") instead of the auto-detected primary slot
   | { kind: "collection"; ref: string } // render `children` once per item
   | { kind: "action"; ref: string; href?: string }; // triggers a host action
 

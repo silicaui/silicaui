@@ -99,6 +99,29 @@ function check(name, cond) {
   check("string value on <img> sets src, not children", out.attrs?.src === "https://example.com/p.jpg" && !out.children);
 }
 
+// ── attr-targeted fill: a value binds to a NAMED attribute, e.g. an <a> href ─
+{
+  const link = el("a", "card-link");
+  link.attrs = { target: "_blank" };
+  link.data = { kind: "value", ref: "product.url", attr: "href" };
+  const host = { resolveBinding: () => ({ value: "/products/widget" }) };
+  const out = resolveTree(link, host);
+  check("attr-targeted fill sets the named attribute", out.attrs?.href === "/products/widget");
+  check("attr-targeted fill keeps other authored attrs", out.attrs?.target === "_blank");
+  check("attr-targeted fill leaves children untouched", out.children === undefined);
+  check("attr-targeted fill survives toHtml", toHtml(out).includes('href="/products/widget"'));
+}
+
+// ── attr-targeted fill on a component node: writes the named prop ──────────
+{
+  const link = atom("PreviewCard", "preview-card", { label: "Widget" });
+  link.data = { kind: "value", ref: "product.url", attr: "href" };
+  const host = { resolveBinding: () => ({ value: "/products/widget" }) };
+  const out = resolveTree(link, host);
+  check("attr-targeted fill on a component writes the named prop", out.props?.href === "/products/widget");
+  check("attr-targeted fill on a component leaves other props untouched", out.props?.label === "Widget");
+}
+
 // ── input fill: a value sets the `value` attribute, not children (void tag) ─
 {
   const input = el("input", "input");

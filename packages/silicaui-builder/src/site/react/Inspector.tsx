@@ -920,10 +920,13 @@ function flattenSources(sources: readonly DataSource[], pathLabel = ""): Array<{
 }
 
 /** Dynamic content — the node's single `DataBinding`. A kind selector plus an
- *  opaque `ref` (@wizeworks/silicaui never parses it; the host interprets it), and an
- *  optional href for the action kind. Lowers to `data-sui-*` in `toHtml`. When the
- *  host supplies `dataSources()`, the Reference field becomes a generic picker
- *  scoped to the node's ancestors (`scopeAt`) instead of a raw text input. */
+ *  opaque `ref` (@wizeworks/silicaui never parses it; the host interprets it), an
+ *  optional href for the action kind, and (for `value`) an optional target
+ *  `attr` — set it to write the resolved value onto a specific attribute/prop
+ *  (e.g. `href` on a card's own anchor) instead of the auto-detected primary
+ *  slot. Lowers to `data-sui-*` in `toHtml`. When the host supplies
+ *  `dataSources()`, the Reference field becomes a generic picker scoped to the
+ *  node's ancestors (`scopeAt`) instead of a raw text input. */
 function DataSection({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
   const host = useHost();
@@ -931,14 +934,19 @@ function DataSection({ id, node }: { id: string; node: Node }) {
   const kind = data?.kind ?? "";
   const ref = data?.ref ?? "";
   const href = data?.kind === "action" ? data.href ?? "" : "";
-  const write = (k: string, r: string, h: string) => {
+  const attr = data?.kind === "value" ? data.attr ?? "" : "";
+  const write = (k: string, r: string, h: string, a: string) => {
     if (!k) return editor.setData(id, undefined);
     if (k === "action") {
       const b: DataBinding = { kind: "action", ref: r };
       if (h) b.href = h;
       editor.setData(id, b);
+    } else if (k === "value") {
+      const b: DataBinding = { kind: "value", ref: r };
+      if (a) b.attr = a;
+      editor.setData(id, b);
     } else {
-      editor.setData(id, { kind: k as "value" | "collection", ref: r });
+      editor.setData(id, { kind: "collection", ref: r });
     }
   };
   const options = React.useMemo(() => {
@@ -951,7 +959,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
   return (
     <Group label="Data binding">
       <Row label="Bind">
-        <NativeSelect data-testid="data-kind" size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href)}>
+        <NativeSelect data-testid="data-kind" size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href, attr)}>
           {DATA_KINDS.map((k) => (
             <option key={k.value} value={k.value}>
               {k.label}
@@ -962,7 +970,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       {kind && (
         <Row label="Reference">
           {options ? (
-            <NativeSelect data-testid="data-ref-picker" size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(kind, e.target.value, href)}>
+            <NativeSelect data-testid="data-ref-picker" size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(kind, e.target.value, href, attr)}>
               <option value="">Choose a field…</option>
               {options.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -971,13 +979,24 @@ function DataSection({ id, node }: { id: string; node: Node }) {
               ))}
             </NativeSelect>
           ) : (
-            <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write(kind, v, href)} />
+            <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write(kind, v, href, attr)} />
           )}
         </Row>
       )}
       {kind === "action" && (
         <Row label="Fallback href">
-          <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write(kind, ref, v)} />
+          <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write(kind, ref, v, attr)} />
+        </Row>
+      )}
+      {kind === "value" && (
+        <Row label="Target attribute">
+          <CommitInput
+            value={attr}
+            reseed={id}
+            placeholder="auto-detected (e.g. leave blank for text/src)"
+            mono
+            onCommit={(v) => write(kind, ref, href, v)}
+          />
         </Row>
       )}
       {kind && kind !== "action" && ref && <DataPreview id={id} kind={kind} ref_={ref} />}

@@ -62,7 +62,7 @@ function resolveNode(node: Node, host: ResolveHost, scope: DataScope): Node | un
   if (node.data?.kind === "value" && host.resolveBinding) {
     const resolved = host.resolveBinding(node.data.ref, scope);
     if (resolved.visible === false) return undefined;
-    const filled = fillValue(node, resolved.value);
+    const filled = fillValue(node, resolved.value, node.data.attr);
     const { data: _data, ...rest } = filled; // consumed — the resolved output carries no residual marker
     return { ...rest } as Node;
   }
@@ -100,18 +100,26 @@ function resolveChildren(children: Child[] | undefined, host: ResolveHost, scope
 }
 
 /**
- * Fill a node's PRIMARY content with a resolved value. Text is the dominant
- * case (element children, a component's `label`/`text` prop); an `img`/`source`
+ * Fill a node's content with a resolved value. With an explicit `attr`, the
+ * value is written to exactly that attribute (element) or prop (component) —
+ * e.g. a product card's own `<a>` binding `href` — instead of guessing. Absent
+ * `attr`, PRIMARY-content auto-detection applies: text is the dominant case
+ * (element children, a component's `label`/`text` prop); an `img`/`source`
  * element or a component that already carries a `src` prop treats a string
  * value as a source URL instead, and an `input` treats it as its `value`
- * attribute (its children never render — see below). This is a pragmatic
- * default for the common shapes, not an exhaustive per-component-type
- * registry — richer type-directed filling (keyed off a slot type) is a
- * candidate follow-on, not required for the primitive to be correct on the
- * dominant cases.
+ * attribute (its children never render — see below). This auto-detection is a
+ * pragmatic default for the common shapes, not an exhaustive per-component-type
+ * registry — `attr` is the escape hatch for anything it doesn't guess right.
  */
-function fillValue(node: ElementNode | ComponentNode, value: unknown): ElementNode | ComponentNode {
+function fillValue(node: ElementNode | ComponentNode, value: unknown, attr?: string): ElementNode | ComponentNode {
   if (node.kind === "element") {
+    if (attr) {
+      const attrValue =
+        typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+          ? value
+          : String(value ?? "");
+      return { ...node, attrs: { ...(node.attrs ?? {}), [attr]: attrValue } };
+    }
     if ((node.tag === "img" || node.tag === "source") && typeof value === "string") {
       return { ...node, attrs: { ...(node.attrs ?? {}), src: value } };
     }
@@ -122,6 +130,9 @@ function fillValue(node: ElementNode | ComponentNode, value: unknown): ElementNo
       return { ...node, attrs: { ...(node.attrs ?? {}), value: String(value ?? "") } };
     }
     return { ...node, children: [String(value ?? "")] };
+  }
+  if (attr) {
+    return { ...node, props: { ...(node.props ?? {}), [attr]: value } };
   }
   const props = { ...(node.props ?? {}) };
   if (typeof value === "string" && ("src" in props || node.component === "Image" || node.component === "Avatar")) {

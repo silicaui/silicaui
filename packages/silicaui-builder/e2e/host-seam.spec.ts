@@ -88,6 +88,28 @@ test("host.dataSources() + scopeAt turn the Reference field into a picker", asyn
   await expect(refSelect).toHaveValue("site.title");
 });
 
+test("a value bind's Target attribute round-trips through editor.setData", async ({ page }) => {
+  await ready(page);
+  const canvas = page.locator(".sui-canvas");
+
+  const HEADLINE = "Ship your store in an afternoon";
+  await canvas.getByText(HEADLINE).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByTestId("data-kind").selectOption("value");
+  await page.getByTestId("data-ref-picker").selectOption("site.title");
+
+  const attrField = page.getByPlaceholder("auto-detected (e.g. leave blank for text/src)");
+  await attrField.fill("href");
+  await attrField.blur();
+
+  // Select a genuinely different node and back — the field must reseed from
+  // the persisted `data.attr` (a fresh `id` prop), not just retain whatever
+  // local draft state the input happened to have.
+  await canvas.getByText("Get started").click();
+  await canvas.getByText(HEADLINE).click();
+  await expect(page.getByPlaceholder("auto-detected (e.g. leave blank for text/src)")).toHaveValue("href");
+});
+
 test("the Data binding Preview row calls host.resolveBinding/resolveCollection live", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");
