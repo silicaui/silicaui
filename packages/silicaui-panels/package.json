@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-panels",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Silica UI resizable panels — react-resizable-panels wrapped with a Silica-styled resize handle.",
   "type": "module",
   "license": "MIT",
