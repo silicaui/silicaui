@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-charts",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Silica UI charts — Apache ECharts wrapped and auto-themed to Silica's design tokens.",
   "type": "module",
   "license": "MIT",
