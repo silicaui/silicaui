@@ -10,7 +10,7 @@ import * as React from "react";
 import type { Node } from "@wizeworks/silicaui-html";
 import { walk } from "@wizeworks/silicaui-html";
 import { TreeView } from "@wizeworks/silicaui-react";
-import type { TreeNode } from "@wizeworks/silicaui-react";
+import type { TreeDropEdge, TreeNode } from "@wizeworks/silicaui-react";
 import { useActiveRoot, useEditor, useSelection } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, textHint } from "../node-display";
@@ -42,6 +42,38 @@ function containerIds(root: Node): string[] {
   return ids;
 }
 
+/** Depth-first search for `id`'s parent + position, for resolving a Navigator
+ *  drop into the (parentId, index) shape `editor.move` expects. Mirrors the
+ *  Canvas's own placement logic — indices count the REAL children array
+ *  (string children included) so they line up with what `editor.move` splices. */
+function locateInfo(root: Node, id: string): { parentId: string; index: number } | undefined {
+  if (root.kind === "outlet") return undefined;
+  const stack: Node[] = [root];
+  while (stack.length) {
+    const parent = stack.pop()!;
+    if (parent.kind === "outlet" || !parent.id) continue;
+    const children = parent.children ?? [];
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (child === undefined || typeof child === "string" || child.kind === "outlet") continue;
+      if (child.id === id) return { parentId: parent.id, index: i };
+      stack.push(child);
+    }
+  }
+  return undefined;
+}
+
+/** Resolve a Navigator drag release into a concrete (parentId, index) for
+ *  `editor.move` — same before/after/inside → placement mapping the Canvas
+ *  uses, so dropping a row "before" the root's first child, say, behaves the
+ *  same regardless of which surface you dragged it on. */
+function placement(root: Node, targetId: string, edge: TreeDropEdge): { parentId: string; index?: number } {
+  if (edge === "inside") return { parentId: targetId };
+  const info = locateInfo(root, targetId);
+  if (!info) return { parentId: targetId }; // root has no siblings
+  return { parentId: info.parentId, index: edge === "before" ? info.index : info.index + 1 };
+}
+
 export function Navigator() {
   const root = useActiveRoot();
   const editor = useEditor();
@@ -61,6 +93,13 @@ export function Navigator() {
       onExpandedChange={setExpanded}
       selected={selectedId}
       onSelectedChange={(id) => editor.select(id)}
+      onMove={(id, targetId, edge) => {
+        if (id === targetId) return;
+        const place = placement(root, targetId, edge);
+        const parent = editor.node(place.parentId);
+        const childCount = parent && parent.kind !== "outlet" ? parent.children?.length ?? 0 : 0;
+        editor.move(id, place.parentId, place.index ?? childCount);
+      }}
     />
   );
 }

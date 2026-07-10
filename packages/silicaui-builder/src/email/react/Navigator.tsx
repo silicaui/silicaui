@@ -7,7 +7,7 @@
  */
 import * as React from "react";
 import { TreeView } from "@wizeworks/silicaui-react";
-import type { TreeNode } from "@wizeworks/silicaui-react";
+import type { TreeDropEdge, TreeNode } from "@wizeworks/silicaui-react";
 import type { EmailNode } from "../schema";
 import { useEmailDocument, useEmailEditor, useEmailSelection } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
@@ -41,6 +41,31 @@ function containerIds(root: EmailNode): string[] {
   return ids;
 }
 
+/** Depth-first search for `id`'s parent + position, for resolving a Navigator
+ *  drop into the (parentId, index) shape `editor.move` expects. */
+function locateInfo(root: EmailNode, id: string): { parentId: string; index: number } | undefined {
+  const stack: EmailNode[] = [root];
+  while (stack.length) {
+    const parent = stack.pop()!;
+    const children = childrenOf(parent);
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i]!;
+      if (child.id === id) return { parentId: parent.id, index: i };
+      stack.push(child);
+    }
+  }
+  return undefined;
+}
+
+/** Resolve a Navigator drag release into a concrete (parentId, index) for
+ *  `editor.move` — mirrors the email Canvas's own before/after/inside → placement mapping. */
+function placement(root: EmailNode, targetId: string, edge: TreeDropEdge): { parentId: string; index?: number } {
+  if (edge === "inside") return { parentId: targetId };
+  const info = locateInfo(root, targetId);
+  if (!info) return { parentId: targetId }; // root has no siblings
+  return { parentId: info.parentId, index: edge === "before" ? info.index : info.index + 1 };
+}
+
 export function Navigator() {
   const doc = useEmailDocument();
   const editor = useEmailEditor();
@@ -71,6 +96,13 @@ export function Navigator() {
       onExpandedChange={setExpanded}
       selected={selectedId}
       onSelectedChange={(id) => editor.select(id)}
+      onMove={(id, targetId, edge) => {
+        if (id === targetId) return;
+        const place = placement(doc.root, targetId, edge);
+        const parent = editor.node(place.parentId);
+        const childCount = parent ? childrenOf(parent).length : 0;
+        editor.move(id, place.parentId, place.index ?? childCount);
+      }}
     />
   );
 }

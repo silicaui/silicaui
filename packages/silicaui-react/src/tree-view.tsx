@@ -14,6 +14,9 @@ export interface TreeNode {
   disabled?: boolean;
 }
 
+/** Where, relative to the row a drag is released over, the dragged node lands. */
+export type TreeDropEdge = "before" | "after" | "inside";
+
 export interface TreeViewProps
   extends Omit<React.HTMLAttributes<HTMLUListElement>, "onSelect"> {
   /** The node forest. */
@@ -30,6 +33,16 @@ export interface TreeViewProps
   onSelectedChange?: (id: string) => void;
   /** Fires with the full node when one is selected. */
   onSelect?: (node: TreeNode) => void;
+  /**
+   * Enables row drag-to-reorder/-reparent (rows become `draggable`) and fires
+   * once a drag is released over a valid row: `edge` is "before"/"after" a
+   * sibling or "inside" (append as a child). TreeView only guards against
+   * dropping a node onto itself or its own descendant (which the geometry
+   * already knows); it does NOT know which nodes are valid containers, so the
+   * consumer's own move logic is the source of truth for the rest — an
+   * "inside" drop onto something that can't hold children should just no-op.
+   */
+  onMove?: (id: string, targetId: string, edge: TreeDropEdge) => void;
 }
 
 interface Flat {
@@ -64,6 +77,31 @@ const Chevron = (
   </svg>
 );
 
+function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = node.children && findNode(node.children, id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** `node`'s id plus every descendant's — the set no drag of `node` may land on. */
+function subtreeIds(node: TreeNode, out: Set<string> = new Set()): Set<string> {
+  out.add(node.id);
+  node.children?.forEach((child) => subtreeIds(child, out));
+  return out;
+}
+
+/** Which edge of a row at `rect` a drag release at `clientY` targets. */
+function computeDropEdge(clientY: number, rect: DOMRect): TreeDropEdge {
+  const y = clientY - rect.top;
+  const band = Math.min(rect.height * 0.3, 10);
+  if (y < band) return "before";
+  if (y > rect.height - band) return "after";
+  return "inside";
+}
+
 /**
  * TreeView — a hierarchical tree with full keyboard support (↑/↓ move,
  * →/← expand-or-descend / collapse-or-ascend, Home/End, Enter selects, Space
@@ -82,6 +120,7 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
       defaultSelected,
       onSelectedChange,
       onSelect,
+      onMove,
       className,
       ...rest
     },
@@ -111,6 +150,22 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
     const [focusedId, setFocusedId] = React.useState<string | undefined>();
     const activeId = focusedId ?? flat[0]?.node.id;
     const nodeRefs = React.useRef(new Map<string, HTMLLIElement>());
+
+    const [draggingId, setDraggingId] = React.useState<string | undefined>();
+    const [dropHint, setDropHint] = React.useState<
+      { id: string; edge: TreeDropEdge } | undefined
+    >();
+    // Every id a node currently being dragged may NOT land on (itself + its
+    // own descendants — dropping there would orphan the subtree).
+    const blockedIds = React.useMemo(() => {
+      if (!draggingId) return undefined;
+      const node = findNode(items, draggingId);
+      return node && subtreeIds(node);
+    }, [items, draggingId]);
+    const clearDrag = () => {
+      setDraggingId(undefined);
+      setDropHint(undefined);
+    };
 
     const commitExpanded = (next: Set<string>) => {
       if (!expandedControlled) setExpandedInternal(next);
@@ -229,11 +284,41 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
                 style={{ "--tree-depth": level } as React.CSSProperties}
                 data-selected={selectedId === node.id || undefined}
                 data-disabled={node.disabled || undefined}
+                data-dragging={draggingId === node.id || undefined}
+                data-drag-over={dropHint?.id === node.id ? dropHint.edge : undefined}
+                draggable={!!onMove && !node.disabled}
                 onClick={() => {
                   selectNode(node);
                   if (hasChildren) toggleExpand(node.id);
                   focusId(node.id);
                 }}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", node.id);
+                  setDraggingId(node.id);
+                }}
+                onDragOver={(e) => {
+                  if (!draggingId || blockedIds?.has(node.id)) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  const edge = computeDropEdge(e.clientY, e.currentTarget.getBoundingClientRect());
+                  setDropHint((prev) =>
+                    prev?.id === node.id && prev.edge === edge ? prev : { id: node.id, edge },
+                  );
+                }}
+                onDragLeave={(e) => {
+                  if (e.currentTarget === e.target) {
+                    setDropHint((prev) => (prev?.id === node.id ? undefined : prev));
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const from = draggingId;
+                  const edge = dropHint?.id === node.id ? dropHint.edge : undefined;
+                  clearDrag();
+                  if (from && edge) onMove?.(from, node.id, edge);
+                }}
+                onDragEnd={clearDrag}
               >
                 {hasChildren ? (
                   <button

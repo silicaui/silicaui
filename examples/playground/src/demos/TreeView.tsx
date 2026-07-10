@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TreeView } from "@wizeworks/silicaui-react";
-import type { TreeNode } from "@wizeworks/silicaui-react";
+import type { TreeDropEdge, TreeNode } from "@wizeworks/silicaui-react";
 import { Section } from "../lib/Section";
 
 const FolderIcon = (
@@ -48,18 +48,56 @@ const TREE_ITEMS: TreeNode[] = [
     { id: "settings", label: "Settings", icon: FileIcon },
 ];
 
+/** Remove `id` from the forest, returning the pruned tree + the removed node. */
+function removeById(nodes: TreeNode[], id: string): [TreeNode[], TreeNode | undefined] {
+    let removed: TreeNode | undefined;
+    const next = nodes.flatMap((n) => {
+        if (n.id === id) {
+            removed = n;
+            return [];
+        }
+        if (!n.children) return [n];
+        const [children, found] = removeById(n.children, id);
+        if (found) removed = found;
+        return [{ ...n, children }];
+    });
+    return [next, removed];
+}
+
+/** Insert `node` before/after/inside `targetId`, wherever it lives in the forest. */
+function insertRelative(nodes: TreeNode[], targetId: string, edge: TreeDropEdge, node: TreeNode): TreeNode[] {
+    const idx = nodes.findIndex((n) => n.id === targetId);
+    if (idx === -1) {
+        return nodes.map((n) => (n.children ? { ...n, children: insertRelative(n.children, targetId, edge, node) } : n));
+    }
+    if (edge === "inside") {
+        const target = nodes[idx]!;
+        const updated = { ...target, children: [...(target.children ?? []), node] };
+        return [...nodes.slice(0, idx), updated, ...nodes.slice(idx + 1)];
+    }
+    const at = edge === "before" ? idx : idx + 1;
+    return [...nodes.slice(0, at), node, ...nodes.slice(at)];
+}
+
+function moveNode(nodes: TreeNode[], id: string, targetId: string, edge: TreeDropEdge): TreeNode[] {
+    const [without, removed] = removeById(nodes, id);
+    return removed ? insertRelative(without, targetId, edge, removed) : nodes;
+}
+
 export function TreeViewDemo() {
     const [selected, setSelected] = useState("about");
     const [expanded, setExpanded] = useState<string[]>(["pages", "shop"]);
+    const [items, setItems] = useState(TREE_ITEMS);
 
     return (
-        <Section title="Real use · site page tree">
+        <Section title="Real use · site page tree — drag a row to reorder or reparent it">
             <TreeView
-                items={TREE_ITEMS}
+                items={items}
                 selected={selected}
                 onSelectedChange={setSelected}
                 expanded={expanded}
                 onExpandedChange={setExpanded}
+                onMove={(id, targetId, edge) => setItems((prev) => moveNode(prev, id, targetId, edge))}
                 className="max-w-xs"
             />
         </Section>

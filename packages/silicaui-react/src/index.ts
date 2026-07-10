@@ -746,7 +746,7 @@ export { CommandPalette } from "./command-palette";
 export type { CommandPaletteProps, CommandItem } from "./command-palette";
 
 export { TreeView } from "./tree-view";
-export type { TreeViewProps, TreeNode } from "./tree-view";
+export type { TreeViewProps, TreeNode, TreeDropEdge } from "./tree-view";
 
 export { Dropzone } from "./dropzone";
 export type { DropzoneProps, DropzoneRejection } from "./dropzone";

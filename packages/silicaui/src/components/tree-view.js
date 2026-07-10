@@ -62,6 +62,30 @@ export function treeView(prefix = "") {
       outlineOffset: "-2px",
     },
 
+    // Drag-to-reorder (opt-in via `onMove`). The dragged row dims; the
+    // hovered drop target draws a line at the targeted edge (before/after) or
+    // a full-row ring ("inside" — dropping as a child).
+    [`${sel("-node")}[data-dragging]`]: { opacity: "0.4" },
+    [`${sel("-node")}[data-drag-over="inside"]`]: {
+      outline: "2px solid var(--color-primary)",
+      outlineOffset: "-2px",
+      backgroundColor: "color-mix(in oklab, var(--color-primary) 10%, transparent)",
+    },
+    [`${sel("-node")}[data-drag-over="before"], ${sel("-node")}[data-drag-over="after"]`]: {
+      position: "relative",
+    },
+    [`${sel("-node")}[data-drag-over="before"]::before, ${sel("-node")}[data-drag-over="after"]::after`]: {
+      content: '""',
+      position: "absolute",
+      insetInlineStart: "calc(0.4rem + var(--tree-depth, 0) * 1.15rem)",
+      insetInlineEnd: "0.3rem",
+      height: "2px",
+      borderRadius: "1px",
+      backgroundColor: "var(--color-primary)",
+    },
+    [`${sel("-node")}[data-drag-over="before"]::before`]: { top: "-1px" },
+    [`${sel("-node")}[data-drag-over="after"]::after`]: { bottom: "-1px" },
+
     // Expand/collapse chevron (rotates when open). Leaves get a spacer instead.
     [sel("-toggle")]: {
       display: "inline-flex",
