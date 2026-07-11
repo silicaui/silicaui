@@ -1,5 +1,19 @@
 # @wizeworks/silicaui-builder
 
+## 0.18.0
+
+### Minor Changes
+
+- 66ee29f: A `collection` data bind can now opt out of the "zero items renders the authored children once, as a placeholder" convention: `DataBinding`'s collection variant gains an optional `omitWhenEmpty` flag, and both the site and email resolvers honor it identically — a collection resolving to zero items with `omitWhenEmpty: true` drops the node (and its subtree) entirely, the same way a `value` bind's `visible: false` does, instead of rendering the placeholder row. Both Inspectors' Data binding section gain a matching "Omit when empty" toggle on a collection bind.
+- 66ee29f: `EmailBuilder` gains a `toolbarSlot` prop, mirroring the site `Builder`'s: arbitrary host UI (a save-status badge, a template lifecycle strip) renders in the header immediately before the Send test/Export HTML buttons, instead of a host having to render its own chrome outside the builder entirely.
+
+### Patch Changes
+
+- Updated dependencies [66ee29f]
+  - @wizeworks/silicaui-html@0.18.0
+  - @wizeworks/silicaui@0.18.0
+  - @wizeworks/silicaui-panels@0.18.0
+
 ## 0.17.0
 
 ### Minor Changes
