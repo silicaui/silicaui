@@ -1,5 +1,29 @@
 # @wizeworks/silicaui-builder
 
+## 0.16.0
+
+### Minor Changes
+
+- 8b540c0: Both builder shells' left/right rails (site `Builder` and `EmailBuilder`) are now resizable via `@wizeworks/silicaui-panels`, with widths persisted locally per-browser (`autoSaveId`) independent of the document itself — useful once a tree gets deep enough that the fixed 264px/320px rails felt cramped. The `IconItem`/`PanelHead` chrome primitives shared by both builders were also consolidated into one `shared/react/chrome.tsx` so a tweak to one applies to both instead of silently drifting apart.
+- 8b540c0: `EmailBuilder`'s `theme` prop is now live, not read-once-at-mount: every Text/Button/Divider/Section/Body color that's still on its brand default repaints when the host hands down an updated `Theme` (e.g. a theme edited in the site builder elsewhere), so an open email stays on-brand instead of drifting. A field freezes the moment a user picks its own color, so a live theme update never clobbers a deliberate choice. Also moves the email's Subject and Preview text fields into the toolbar (previously buried in a truncated label) and swaps the header/footer branding for a `silicaui.com` link, matching the site builder's chrome.
+- 8b540c0: Add Google Fonts theming to the site builder. `ThemeEditor`'s body and heading typeface controls are now a searchable picker over ~1900 Google Fonts (previously a 4-option body toggle and a 2-option "Match body"/"Serif" heading toggle) — selecting a font live-loads it in the canvas for preview and records the exact family/weights on the new optional `Theme.fonts` field, so a host can self-host the real files at publish time instead of hotlinking Google's CDN (a real EU privacy liability for published sites).
+
+  New package `@wizeworks/silicaui-fonts` provides `selfHostGoogleFonts()` — a Node-only, publish-time utility a host's backend calls to fetch and self-host the actual font files, given `theme.fonts` from `PublishPayload`.
+
+  Also adds `Combobox`'s `popupProps` (mirroring `Select`) so a portaled Combobox popup can re-stamp `[data-theme]` when opened from inside a scoped theme island.
+
+- 8b540c0: The Theme editor's "CSS" button now opens a modal instead of just copying to the clipboard: the theme's CSS custom properties are shown editable in place, with Copy, Reset, and a new Apply that parses pasted CSS back into the theme. Apply only accepts exactly what the theme's own CSS export produces (one `[data-theme]` block, optionally a dark `@media` block) — anything else (an extra selector, `url()`, a comment) is rejected with an inline error and never touches the live theme. Theme names are also now sanitized to a safe charset as you type.
+- 8b540c0: The Theme editor's "This site" saved-theme library is now real, host-persistable site data instead of an in-memory-only convenience. `Site` gains an optional `savedThemes` field; saving/deleting a named theme now flows through `Builder`'s `onChange` and local crash-recovery same as any other edit, so a theme an author starts (e.g. a "Christmas" theme built months ahead) survives a reload and round-trips through a host's own persistence — same as the rest of the site. The shipped `THEME_PRESETS` starting points are unaffected.
+
+### Patch Changes
+
+- 8b540c0: The Navigator tree's root row now reads "Site root" in Layout mode instead of its bare tag name (e.g. "div") — the frame root has no useful ancestor context to hint at what it is, unlike a page root which already carries an explicit "Page" label.
+- Updated dependencies [8b540c0]
+- Updated dependencies [8b540c0]
+  - @wizeworks/silicaui-html@0.16.0
+  - @wizeworks/silicaui-panels@0.16.0
+  - @wizeworks/silicaui@0.16.0
+
 ## 0.15.0
 
 ### Minor Changes
