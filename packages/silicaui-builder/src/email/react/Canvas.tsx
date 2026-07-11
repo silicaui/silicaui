@@ -41,11 +41,15 @@ import type { EmailPaletteItem } from "../palette";
 import { getSavedBlockNode } from "./saved-blocks";
 import type { EmailEditor } from "../engine";
 import { FONT_WEIGHT_CSS } from "../projector";
+import { emailScopeAt, flattenEmailSources } from "../resolve";
+import { filterTokenOptions, matchTokenQuery } from "./token-query";
+import type { TokenMatch } from "./token-query";
 import type {
   ButtonNode,
   ColumnNode,
   ColumnsNode,
   ContentNode,
+  DataSource,
   DividerNode,
   EmailBody,
   EmailColorDefaults,
@@ -185,20 +189,32 @@ function interactionProps(info: NodeInfo, ctx: RenderCtx, editable = false) {
 
 /** In-place rich-text editing for a text node: a `contentEditable` div seeded
  *  once with the node's HTML (never reconciled by React while editing — the
- *  classic contentEditable+React trap), committing `innerHTML` on blur/Enter. */
+ *  classic contentEditable+React trap), committing `innerHTML` on blur/Enter.
+ *  When `tokenSources` is given (the host has `dataSources()`, Q23), typing
+ *  `{{` opens a merge-token autocomplete sibling — it never touches the
+ *  editable's own children, only reads the live `Selection`/`Range`, so the
+ *  contentEditable+React invariant above still holds. */
 const EditableHtml = React.memo(function EditableHtml({
   initial,
   className,
+  tokenSources,
   onCommit,
   onCancel,
 }: {
   initial: string;
   className: string;
+  tokenSources?: readonly DataSource[];
   onCommit: (html: string) => void;
   onCancel: () => void;
 }) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const done = React.useRef(false);
+  const [match, setMatch] = React.useState<TokenMatch | undefined>(undefined);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [popoverPos, setPopoverPos] = React.useState<{ top: number; left: number } | undefined>(undefined);
+
+  const flatSources = React.useMemo(() => flattenEmailSources(tokenSources ?? []), [tokenSources]);
+  const options = match ? filterTokenOptions(flatSources, match.query) : [];
 
   React.useEffect(() => {
     const el = ref.current;
@@ -224,27 +240,124 @@ const EditableHtml = React.memo(function EditableHtml({
     onCancel();
   };
 
+  /** Reads the LIVE caret (not a cached one) — so a popover-option click,
+   *  whose `onMouseDown` deliberately preserves focus/selection (see below),
+   *  still resolves against exactly where typing left off, and a stale ref
+   *  can never drift out of sync with the actual DOM. */
+  const currentMatch = (): { range: Range; match: TokenMatch } | undefined => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return undefined;
+    const range = sel.getRangeAt(0);
+    if (range.startContainer.nodeType !== Node.TEXT_NODE) return undefined;
+    const text = range.startContainer.textContent ?? "";
+    const m = matchTokenQuery(text, range.startOffset);
+    return m ? { range, match: m } : undefined;
+  };
+
+  const syncPopover = () => {
+    if (!tokenSources) return;
+    const found = currentMatch();
+    if (!found) {
+      setMatch(undefined);
+      return;
+    }
+    setMatch(found.match);
+    setActiveIndex(0);
+    const caretRect = found.range.getBoundingClientRect();
+    const wrapperRect = ref.current?.parentElement?.getBoundingClientRect();
+    if (wrapperRect) setPopoverPos({ top: caretRect.bottom - wrapperRect.top + 4, left: caretRect.left - wrapperRect.left });
+  };
+
+  const pick = (value: string) => {
+    const found = currentMatch();
+    if (!found) return;
+    const r = document.createRange();
+    r.setStart(found.range.startContainer, found.match.start);
+    r.setEnd(found.range.startContainer, found.range.startOffset);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(r);
+    document.execCommand("insertText", false, `{{${value}}}`);
+    setMatch(undefined);
+    ref.current?.focus();
+  };
+
   return (
-    <div
-      ref={ref}
-      className={className}
-      contentEditable
-      suppressContentEditableWarning
-      data-sui-editing="true"
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-          e.preventDefault();
+    <>
+      <div
+        ref={ref}
+        className={className}
+        contentEditable
+        suppressContentEditableWarning
+        data-sui-editing="true"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          syncPopover();
+        }}
+        onInput={syncPopover}
+        onKeyUp={(e) => {
+          if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End") syncPopover();
+        }}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (match && options.length > 0) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActiveIndex((i) => (i + 1) % options.length);
+              return;
+            }
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActiveIndex((i) => (i - 1 + options.length) % options.length);
+              return;
+            }
+            if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
+              e.preventDefault();
+              pick(options[activeIndex]!.value);
+              return;
+            }
+          }
+          if (e.key === "Escape" && match) {
+            e.preventDefault();
+            setMatch(undefined);
+            return;
+          }
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            commit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancel();
+          }
+        }}
+        onBlur={() => {
+          // A popover-option's `onMouseDown` preventDefaults, so a pick never
+          // fires this — a real blur (clicking away) closes the popover too.
+          setMatch(undefined);
           commit();
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          cancel();
-        }
-      }}
-      onBlur={commit}
-    />
+        }}
+      />
+      {match && options.length > 0 && popoverPos && (
+        <div
+          className="absolute z-30 max-h-48 w-56 overflow-auto rounded-btn border border-base-300 bg-base-100 py-1 shadow-md"
+          style={{ top: popoverPos.top, left: popoverPos.left }}
+          data-testid="token-autocomplete"
+        >
+          {options.map((o, i) => (
+            <button
+              key={o.value}
+              type="button"
+              className={`block w-full truncate px-2.5 py-1 text-left text-xs ${i === activeIndex ? "bg-base-200" : ""}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => pick(o.value)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
   );
 });
 
@@ -297,14 +410,22 @@ function TextFormatToolbar() {
 }
 
 function RenderText({ node, info, ctx }: { node: TextNode; info: NodeInfo; ctx: RenderCtx }) {
+  const host = useEmailHost();
+  const editor = useEmailEditor();
   const cls = `min-h-[1.5em] outline-none${decorations(node.id, ctx)}`;
   if (node.id === ctx.editingId) {
+    // Scoped the SAME way the Inspector's Data binding Reference picker is
+    // (`emailScopeAt` off this node's ancestors) — only computed while
+    // actually editing, since the demo/real host's `dataSources()` may
+    // allocate a fresh array per call.
+    const tokenSources = host?.dataSources ? emailScopeAt(host.dataSources(), editor.ancestorsOf(node.id)) : undefined;
     return (
       <div className="relative">
         <TextFormatToolbar />
         <EditableHtml
           initial={node.html}
           className={cls}
+          tokenSources={tokenSources}
           onCommit={(html) => ctx.onEditCommit(node.id, html)}
           onCancel={ctx.onEditCancel}
         />

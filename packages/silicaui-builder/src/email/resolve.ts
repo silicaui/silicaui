@@ -76,6 +76,42 @@ function fillEmailValue(node: EmailNode, value: unknown, attr?: string): EmailNo
   return { ...node, [field]: coerced };
 }
 
+const TOKEN_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
+
+/**
+ * Substitute every `{{ref}}` merge token inside `text` via the host's
+ * `resolveBinding` — the INLINE counterpart to a whole-field `value` bind
+ * (Q23): a sentence like "Hi {{customer.firstName}}, your order shipped" has
+ * no single field to bind wholesale, so each token resolves independently
+ * against the SAME `resolveBinding` hook a whole-field bind uses. Absent the
+ * hook, `text` passes through untouched (an author who's typed `{{` before a
+ * host is wired doesn't see it silently vanish). A `visible:false` or missing
+ * resolution elides to empty string — there's no way to hide part of a
+ * sentence. `escapeHtml` is true only for a field the projector embeds
+ * VERBATIM as markup (`TextNode.html`); fields the projector escapes itself
+ * at render time (button label, subject, preheader) pass the raw resolved
+ * value through so it isn't double-escaped.
+ */
+export function resolveTokens(text: string, host: EmailResolveHost, scope: DataScope, escapeHtml: boolean): string {
+  if (!host.resolveBinding || !text.includes("{{")) return text;
+  return text.replace(TOKEN_RE, (_match, ref: string) => {
+    const resolved = host.resolveBinding!(ref, scope);
+    if (resolved.visible === false || resolved.value == null) return "";
+    const s = String(resolved.value);
+    return escapeHtml ? escapeInline(s) : s;
+  });
+}
+
+/** Apply inline token substitution to a node's prose fields — independent of
+ *  any whole-field `data` bind on the SAME node (a button's label can carry a
+ *  token while its href is a separate `action` bind, and vice versa). No-op
+ *  for kinds with no prose field (everything but text/button). */
+function applyTokens(node: EmailNode, host: EmailResolveHost, scope: DataScope): EmailNode {
+  if (node.kind === "text") return { ...node, html: resolveTokens(node.html, host, scope, true) };
+  if (node.kind === "button") return { ...node, label: resolveTokens(node.label, host, scope, false) };
+  return node;
+}
+
 function resolveChildren(children: EmailNode[] | undefined, host: EmailResolveHost, scope: DataScope): EmailNode[] {
   if (!children) return [];
   const out: EmailNode[] = [];
@@ -97,7 +133,7 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
     // section background doesn't strand the bindings inside it unresolved
     // (the exact defect Q22 flags in the site version's early return).
     const withChildren = "children" in rest ? { ...rest, children: resolveChildren((rest as { children: EmailNode[] }).children, host, scope) } : rest;
-    return withChildren as EmailNode;
+    return applyTokens(withChildren as EmailNode, host, scope);
   }
 
   if (node.data?.kind === "collection" && host.resolveCollection && "children" in node) {
@@ -116,7 +152,7 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
     const container = node as EmailNode & { children: EmailNode[] };
     return { ...container, children: resolveChildren(container.children, host, scope) } as EmailNode;
   }
-  return node;
+  return applyTokens(node, host, scope);
 }
 
 /**
@@ -158,4 +194,17 @@ function findSource(sources: readonly DataSource[], ref: string): DataSource | u
     }
   }
   return undefined;
+}
+
+/** Flatten a `DataSource` tree into pickable options, deepest-first label
+ *  path ("Products > Price") — shared by the Inspector's Reference picker and
+ *  the merge-token autocomplete (`email/react/token-query.ts`'s consumers):
+ *  both need "what scalar fields can I pick from here" as a flat list. */
+export function flattenEmailSources(sources: readonly DataSource[], pathLabel = ""): Array<{ value: string; label: string }> {
+  return sources.flatMap((s) => {
+    const label = pathLabel ? `${pathLabel} > ${s.label}` : s.label;
+    const own = s.cardinality === "scalar" ? [{ value: s.key, label }] : [];
+    const nested = s.fields ? flattenEmailSources(s.fields, label) : [];
+    return [...own, ...nested];
+  });
 }

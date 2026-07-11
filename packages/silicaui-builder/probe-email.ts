@@ -9,7 +9,7 @@ import { toEmailHtml } from "./src/email/projector";
 import { EMAIL_PALETTE } from "./src/email/palette";
 import { resolveEmailTree } from "./src/email/resolve";
 import type { EmailResolveHost } from "./src/email/resolve";
-import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, Resolved, SectionNode, TextNode } from "./src/email/schema";
+import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, Resolved, SectionNode, TextNode } from "./src/email/schema";
 
 let failures = 0;
 function check(name: string, cond: boolean): void {
@@ -406,6 +406,113 @@ console.log("data binding");
   );
   const resolvedHtml = toEmailHtml(ed.extract(), host);
   check("toEmailHtml(doc, resolver) bakes the resolved value into the real output", resolvedHtml.includes("Hi") && resolvedHtml.includes("welcome") && !resolvedHtml.includes("Start writing your email"));
+}
+
+// ── 9. merge tokens: inline `{{ref}}` substitution (Q23) ─────────────────────
+// The counterpart to §8's whole-field `data` bind: a sentence like "Hi
+// {{customer.firstName}}, your order shipped" has no single field to bind
+// wholesale, so each token resolves independently via the SAME
+// `resolveBinding` hook, inside text.html/button.label/subject/preheader.
+console.log("merge tokens");
+{
+  const host: EmailResolveHost = {
+    resolveBinding: (ref: string, scope: DataScope): Resolved => {
+      if (ref === "customer.firstName") return { value: "Jordan" };
+      if (ref === "customer.company") return { value: "Acme & Co <Ltd>" };
+      if (ref === "hidden") return { value: "x", visible: false };
+      if (ref === "missing") return { value: undefined };
+      if (ref === "item.name") return { value: (scope.item as { name: string } | undefined)?.name ?? "" };
+      return { value: "" };
+    },
+  };
+
+  const greetingText: TextNode = {
+    id: "tok-txt",
+    kind: "text",
+    html: "Hi {{customer.firstName}}, welcome to {{customer.company}}!",
+    align: "left",
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "normal",
+    lineHeight: 24,
+  };
+  const tokenButton: ButtonNode = {
+    id: "tok-btn",
+    kind: "button",
+    label: "View order, {{customer.firstName}}",
+    href: "#",
+    bg: "#000",
+    color: "#fff",
+    radius: 4,
+    align: "center",
+    paddingX: 16,
+    paddingY: 8,
+    data: { kind: "value", ref: "customer.firstName", attr: "href" },
+  };
+  const htmlNode: HtmlNode = { id: "tok-html", kind: "html", html: "<p>Raw {{customer.firstName}}</p>" };
+  const missingHiddenText: TextNode = {
+    id: "tok-txt2",
+    kind: "text",
+    html: "Missing:[{{missing}}] Hidden:[{{hidden}}]",
+    align: "left",
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "normal",
+    lineHeight: 24,
+  };
+  const tokSection: SectionNode = {
+    id: "tok-sec",
+    kind: "section",
+    bg: "#fff",
+    paddingX: 0,
+    paddingY: 0,
+    children: [greetingText, tokenButton, htmlNode, missingHiddenText],
+  };
+  const tokBody: EmailBody = { id: "tok-body", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [tokSection] };
+
+  const resolvedTok = resolveEmailTree(tokBody, host);
+  const rGreeting = resolvedTok.children[0]!.children[0] as TextNode;
+  const rTokBtn = resolvedTok.children[0]!.children[1] as ButtonNode;
+  const rTokHtml = resolvedTok.children[0]!.children[2] as HtmlNode;
+  const rMissingHidden = resolvedTok.children[0]!.children[3] as TextNode;
+
+  check("no resolver: tokens pass through UNCHANGED (static projection)", resolveEmailTree(tokBody, {}).children[0]!.children[0] === greetingText);
+  check("a text node with NO `data` bind still resolves its inline tokens", rGreeting.html.includes("Jordan"));
+  check("multiple tokens in the same sentence all resolve", rGreeting.html === "Hi Jordan, welcome to Acme &amp; Co &lt;Ltd&gt;!");
+  check("an inline token's resolved value is HTML-escaped inside text.html", rGreeting.html.includes("&amp;") && rGreeting.html.includes("&lt;Ltd&gt;"));
+  check(
+    "a button's label token resolves INDEPENDENTLY of its own whole-field href bind (both apply)",
+    rTokBtn.label === "View order, Jordan" && rTokBtn.href === "Jordan",
+  );
+  check("HtmlNode.html is NEVER token-substituted — raw passthrough stays raw, even with a resolver wired", rTokHtml.html === "<p>Raw {{customer.firstName}}</p>");
+  check("a missing (undefined) token value elides to empty string", rMissingHidden.html.includes("Missing:[]"));
+  check("a visible:false token value elides to empty string too", rMissingHidden.html.includes("Hidden:[]"));
+
+  // Tokens inside a collection repeat resolve against the per-item scope.
+  const itemTok: TextNode = { id: "tok-item", kind: "text", html: "{{item.name}}", align: "left", color: "#000", fontSize: 14, fontWeight: "normal", lineHeight: 20 };
+  const tokRepeatSection: SectionNode = { id: "tok-sec2", kind: "section", bg: "#fff", paddingX: 0, paddingY: 0, data: { kind: "collection", ref: "products" }, children: [itemTok] };
+  const tokRepeatBody: EmailBody = { id: "tok-body2", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [tokRepeatSection] };
+  const items = [{ name: "Aurora Lamp" }, { name: "Solstice Mug" }];
+  const withItems = resolveEmailTree(tokRepeatBody, { ...host, resolveCollection: () => items });
+  const repeated = withItems.children[0]!.children as TextNode[];
+  check("an inline token inside a repeated child resolves per-item, not just a whole-field bind", repeated.map((c) => c.html).join("|") === "Aurora Lamp|Solstice Mug");
+
+  // End-to-end via toEmailHtml: subject + preheader (document-level, outside
+  // the node tree resolveEmailTree walks) plus a text node, all in one pass.
+  const ed = new EmailEditor();
+  ed.setSubject("Hi {{customer.firstName}}, your order shipped");
+  ed.setPreheader("From {{customer.company}}");
+  const introId = ed.root.children[0]!.children[0]!.id;
+  ed.update<TextNode>(introId, { html: "Welcome, {{customer.firstName}}!" });
+
+  const staticHtml = toEmailHtml(ed.extract());
+  check("toEmailHtml with NO resolver leaves subject/preheader/body tokens as literal text", staticHtml.includes("{{customer.firstName}}") && staticHtml.includes("<title>Hi {{customer.firstName}}, your order shipped</title>"));
+
+  const resolvedEmailHtml = toEmailHtml(ed.extract(), host);
+  check("toEmailHtml(doc, resolver) resolves the SUBJECT's token (<title>)", resolvedEmailHtml.includes("<title>Hi Jordan, your order shipped</title>"));
+  check("toEmailHtml(doc, resolver) resolves the PREHEADER's token, escaped exactly ONCE (not double-escaped)", resolvedEmailHtml.includes("From Acme &amp; Co &lt;Ltd&gt;"));
+  check("toEmailHtml(doc, resolver) resolves the BODY text's token", resolvedEmailHtml.includes("Welcome, Jordan!"));
+  check("no unresolved `{{` tokens survive the resolved export", !resolvedEmailHtml.includes("{{customer"));
 }
 
 console.log(`\n${failures === 0 ? "✅ email engine: all checks passed" : `❌ ${failures} check(s) failed`}`);

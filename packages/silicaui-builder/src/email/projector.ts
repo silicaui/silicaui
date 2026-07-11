@@ -28,7 +28,7 @@ import type {
   VideoNode,
 } from "./schema";
 import { SOCIAL_PLATFORM } from "./node-display";
-import { resolveEmailTree } from "./resolve";
+import { resolveEmailTree, resolveTokens } from "./resolve";
 import type { EmailResolveHost } from "./resolve";
 
 export const FONT_WEIGHT_CSS: Record<TextNode["fontWeight"], number> = {
@@ -272,6 +272,12 @@ const MOBILE_CSS = `
  */
 export function toEmailHtml(doc: EmailDocument, resolver?: EmailResolveHost): string {
   const root = resolver ? resolveEmailTree(doc.root, resolver) : doc.root;
+  // Subject/preheader live on the DOCUMENT, not the node tree `resolveEmailTree`
+  // walks — resolved separately here via the same `{{ref}}` merge-token pass
+  // (raw, unescaped: `esc()` below is the one escape, same as every other
+  // field this projector emits).
+  const subject = resolver ? resolveTokens(doc.subject, resolver, {}, false) : doc.subject;
+  const preheader = resolver ? resolveTokens(doc.preheader, resolver, {}, false) : doc.preheader;
   const sections = root.children.map(renderSection).join("\n");
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -279,14 +285,14 @@ export function toEmailHtml(doc: EmailDocument, resolver?: EmailResolveHost): st
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<title>${esc(doc.subject)}</title>
+<title>${esc(subject)}</title>
 <!--[if mso]>
 <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
 <![endif]-->
 <style>${MOBILE_CSS}</style>
 </head>
 <body${styleAttr({ margin: "0", padding: "0", background: root.bg, "font-family": root.fontFamily })}>
-${doc.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(doc.preheader)}</div>` : ""}
+${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>` : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${styleAttr({ background: root.bg })}>
 <tr><td align="center">
 <table role="presentation" width="${root.width}" cellpadding="0" cellspacing="0" border="0"${styleAttr({

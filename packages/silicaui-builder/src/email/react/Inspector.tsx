@@ -37,7 +37,9 @@ import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
 import { useSavedBlocks } from "./saved-blocks";
-import { emailScopeAt } from "../resolve";
+import { emailScopeAt, flattenEmailSources } from "../resolve";
+import { filterTokenOptions, matchTokenQuery } from "./token-query";
+import type { TokenMatch } from "./token-query";
 import type {
   Align,
   ButtonNode,
@@ -97,6 +99,110 @@ function TextField({ label, defaultValue, onCommit }: { label: string; defaultVa
   return (
     <Row label={label}>
       <Input size="sm" defaultValue={defaultValue} onBlur={(e: React.FocusEvent<HTMLInputElement>) => onCommit(e.target.value)} />
+    </Row>
+  );
+}
+
+/** The plain-input twin of the Canvas's contentEditable merge-token
+ *  autocomplete (`Canvas.tsx`'s `EditableHtml`) — sharing the same
+ *  `matchTokenQuery`/`filterTokenOptions` parsing so "what counts as an open
+ *  token" means the same thing in both places. Used only for the prose fields
+ *  `email/resolve.ts`'s `applyTokens` actually substitutes tokens into —
+ *  Subject, Preview text, Button label — not every text field (a URL field
+ *  has no sensible use for an inline sentence variable). Controlled (unlike
+ *  the plain `TextField` above) since the popover needs to read live text;
+ *  still only commits on blur/pick, matching `TextField`'s behavior. */
+function TokenTextField({
+  label,
+  defaultValue,
+  sources,
+  onCommit,
+}: {
+  label: string;
+  defaultValue: string;
+  sources: readonly DataSource[] | undefined;
+  onCommit: (v: string) => void;
+}) {
+  const ref = React.useRef<HTMLInputElement | null>(null);
+  const [text, setText] = React.useState(defaultValue);
+  const [match, setMatch] = React.useState<TokenMatch | undefined>(undefined);
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const flatSources = React.useMemo(() => (sources ? flattenEmailSources(sources) : []), [sources]);
+  const options = match ? filterTokenOptions(flatSources, match.query) : [];
+
+  const sync = () => {
+    const el = ref.current;
+    if (!el || !sources) return;
+    const caret = el.selectionStart ?? el.value.length;
+    setMatch(matchTokenQuery(el.value, caret));
+    setActiveIndex(0);
+  };
+
+  const pick = (value: string) => {
+    const el = ref.current;
+    if (!el || !match) return;
+    const caret = el.selectionStart ?? el.value.length;
+    const next = el.value.slice(0, match.start) + `{{${value}}}` + el.value.slice(caret);
+    const cursor = match.start + value.length + 4;
+    setText(next);
+    setMatch(undefined);
+    onCommit(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  return (
+    <Row label={label}>
+      <div className="relative">
+        <Input
+          ref={ref}
+          size="sm"
+          className="w-full"
+          value={text}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value)}
+          onKeyUp={sync}
+          onClick={sync}
+          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (!match || options.length === 0) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActiveIndex((i) => (i + 1) % options.length);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActiveIndex((i) => (i - 1 + options.length) % options.length);
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              pick(options[activeIndex]!.value);
+            } else if (e.key === "Escape") {
+              setMatch(undefined);
+            }
+          }}
+          onBlur={() => {
+            setMatch(undefined);
+            onCommit(text);
+          }}
+        />
+        {match && options.length > 0 && (
+          <div
+            className="absolute left-0 top-full z-30 mt-1 max-h-48 w-56 overflow-auto rounded-btn border border-base-300 bg-base-100 py-1 shadow-md"
+            data-testid="token-autocomplete"
+          >
+            {options.map((o, i) => (
+              <button
+                key={o.value}
+                type="button"
+                className={`block w-full truncate px-2.5 py-1 text-left text-xs ${i === activeIndex ? "bg-base-200" : ""}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(o.value)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </Row>
   );
 }
@@ -574,10 +680,13 @@ function ButtonDesignFields({ node, update }: { node: ButtonNode; update: (patch
   );
 }
 function ButtonSettingsFields({ node, update }: { node: ButtonNode; update: (patch: Partial<ButtonNode>) => void }) {
+  const editor = useEmailEditor();
+  const host = useEmailHost();
+  const sources = host?.dataSources ? emailScopeAt(host.dataSources(), editor.ancestorsOf(node.id)) : undefined;
   return (
     <>
       <Group label="Content">
-        <TextField label="Label" defaultValue={node.label} onCommit={(label) => update({ label })} />
+        <TokenTextField label="Label" defaultValue={node.label} sources={sources} onCommit={(label) => update({ label })} />
       </Group>
       <Group label="Link">
         <TextField label="Link URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
@@ -798,11 +907,13 @@ function BodyDesignFields({ node, update }: { node: EmailBody; update: (patch: R
 function BodySettingsFields({ node, update }: { node: EmailBody; update: (patch: Record<string, unknown>) => void }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
+  const host = useEmailHost();
+  const sources = host?.dataSources ? emailScopeAt(host.dataSources(), editor.ancestorsOf(node.id)) : undefined;
   return (
     <>
       <Group label="Content">
-        <TextField label="Subject" defaultValue={doc.subject} onCommit={(v) => editor.setSubject(v)} />
-        <TextField label="Preview text" defaultValue={doc.preheader} onCommit={(v) => editor.setPreheader(v)} />
+        <TokenTextField label="Subject" defaultValue={doc.subject} sources={sources} onCommit={(v) => editor.setSubject(v)} />
+        <TokenTextField label="Preview text" defaultValue={doc.preheader} sources={sources} onCommit={(v) => editor.setPreheader(v)} />
       </Group>
       <Group label="Layout">
         <NumberField label="Canvas width (px)" defaultValue={node.width} min={320} max={800} onCommit={(width) => update({ width })} autoValue={600} />
@@ -976,17 +1087,6 @@ const EMAIL_DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "collection", label: "Collection (repeat children)" },
   { value: "action", label: "Action (host handler)" },
 ];
-
-/** Flatten a `DataSource` tree into pickable options, deepest-first label
- *  path ("Products > Price") — presentation-only, local to the picker. */
-function flattenEmailSources(sources: readonly DataSource[], pathLabel = ""): Array<{ value: string; label: string }> {
-  return sources.flatMap((s) => {
-    const label = pathLabel ? `${pathLabel} > ${s.label}` : s.label;
-    const own = s.cardinality === "scalar" ? [{ value: s.key, label }] : [];
-    const nested = s.fields ? flattenEmailSources(s.fields, label) : [];
-    return [...own, ...nested];
-  });
-}
 
 /** Dynamic content — the node's single `DataBinding`, ported field-for-field
  *  from the site Inspector's `DataSection`: a kind selector, an opaque `ref`
