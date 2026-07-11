@@ -1,8 +1,10 @@
 /**
  * The builder engine — framework-neutral document state + a tiny subscription
- * model. Holds the `Document` (root + theme), the site's saved-theme library,
- * the current selection, and the full node-editing spine (class/prop/attr edits,
- * structural insert/remove/move/duplicate) with whole-document undo/redo.
+ * model. Holds the `Document` (root + theme), the site's saved-theme library
+ * (`site.savedThemes` — real site data, round-trips through `onChange` same as
+ * everything else), the current selection, and the full node-editing spine
+ * (class/prop/attr edits, structural insert/remove/move/duplicate) with
+ * whole-document undo/redo.
  *
  * Everything mutates through here; React reads via the hooks in
  * `react/editor-context`. Node mutations run through `commit`, which snapshots
@@ -166,11 +168,6 @@ export class Editor {
   // active page changes, so `useSyncExternalStore` stays referentially stable.
   private pagesViewCache: PagesView = { pages: [], activeId: "" };
   private listeners = new Set<(e: ChangeEvent) => void>();
-  // The site's saved-theme library ("This site" in the Themes panel). Seeded with
-  // the document's own theme so the current site theme is always present. Held as
-  // an immutable array — replaced (never mutated) on change so getSnapshot stays
-  // referentially stable for `useSyncExternalStore`.
-  private saved: readonly Theme[];
   // Currently-selected node id (canvas outline, inspector target). Not part of the
   // document — a view concern — so it rides its own "selection" change kind and is
   // never snapshotted into history.
@@ -220,8 +217,12 @@ export class Editor {
     // Symbols are site-scoped and shared across pages + the frame; a site may
     // arrive without any. (Held on the site so undo/redo + save carry them.)
     this.site.symbols ??= {};
+    // The site's own saved-theme library ("This site" in the Themes panel), as
+    // opposed to the shipped `THEME_PRESETS`. A site that doesn't have one yet
+    // (new site, or one saved before this field existed) starts with just its
+    // current theme, same as the library's prior in-memory default.
+    this.site.savedThemes ??= [structuredClone(this.site.theme)];
     this.activePageId = this.site.pages[0]!.id;
-    this.saved = [structuredClone(this.site.theme)];
     this.syncPages();
     this.syncSymbols();
   }
@@ -1003,29 +1004,30 @@ export class Editor {
   }
 
   // ── saved-theme library ──────────────────────────────────────────────────
-  /** The site's saved themes (read-only snapshot; stable between mutations). */
+  /** The site's saved themes (`site.savedThemes` — read-only snapshot, stable
+   *  between mutations, persisted + relayed to the host like any other site data). */
   get savedThemes(): readonly Theme[] {
-    return this.saved;
+    return this.site.savedThemes ?? [];
   }
 
   /** Snapshot the current theme into the library (replacing any of the same name). */
   saveTheme(): void {
     const snap = structuredClone(this.site.theme);
-    this.saved = [snap, ...this.saved.filter((t) => t.name !== snap.name)];
+    this.site.savedThemes = [snap, ...(this.site.savedThemes ?? []).filter((t) => t.name !== snap.name)];
     this.emit("library");
   }
 
   /** Apply a saved theme by name, preserving the previewed light/dark mode. */
   applySavedTheme(name: string): void {
-    const found = this.saved.find((t) => t.name === name);
+    const found = this.site.savedThemes?.find((t) => t.name === name);
     if (!found) return;
     this.setTheme({ ...structuredClone(found), mode: this.site.theme.mode });
   }
 
   /** Remove a saved theme from the library. */
   deleteSavedTheme(name: string): void {
-    if (!this.saved.some((t) => t.name === name)) return;
-    this.saved = this.saved.filter((t) => t.name !== name);
+    if (!this.site.savedThemes?.some((t) => t.name === name)) return;
+    this.site.savedThemes = this.site.savedThemes.filter((t) => t.name !== name);
     this.emit("library");
   }
 }

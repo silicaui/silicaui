@@ -19,9 +19,9 @@ import {
   DialogDescription,
   Input,
   ToggleGroup,
-  ToggleGroupItem,
   EmptyState,
 } from "@wizeworks/silicaui-react";
+import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import type { Theme } from "@wizeworks/silicaui-html";
 import { EmailEditor } from "../engine";
 import type { EmailDocument, EmailProject } from "../schema";
@@ -39,6 +39,7 @@ import { EmailInspector } from "./Inspector";
 import { Navigator } from "./Navigator";
 import { TemplatesPanel } from "./TemplatesPanel";
 import { Icon } from "../../shared/react/Icon";
+import { IconItem, PanelHead } from "../../shared/react/chrome";
 
 function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   const editor = useEmailEditor();
@@ -60,15 +61,6 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
           </>
         }
       />
-    </div>
-  );
-}
-
-/** A panel header bar (left/right rails) — same chrome as the site builder's. */
-function PanelHead({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-1.5 h-10 flex-none px-3.5 border-b border-base-200 text-sm font-semibold">
-      {children}
     </div>
   );
 }
@@ -205,11 +197,6 @@ function Chrome({
   return (
     <>
       <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
-        <div className="flex items-center gap-2 font-semibold tracking-tight mr-1">
-          <Icon name="mail" className="text-primary" />
-          @wizeworks/silicaui <span className="text-base-content/45 font-medium">email</span>
-        </div>
-
         <Button variant="ghost" size="sm" aria-label="Undo" disabled={!canUndo} onClick={() => editor.undo()}>
           <Icon name="undo" />
         </Button>
@@ -223,8 +210,8 @@ function Chrome({
           value={[device]}
           onValueChange={(v: string[]) => v.length && setDevice(v[v.length - 1]!)}
         >
-          <ToggleGroupItem value="desktop"><Icon name="monitor" /> Desktop</ToggleGroupItem>
-          <ToggleGroupItem value="mobile"><Icon name="smartphone" /> Mobile</ToggleGroupItem>
+          <IconItem value="desktop" icon="monitor">Desktop</IconItem>
+          <IconItem value="mobile" icon="smartphone">Mobile</IconItem>
         </ToggleGroup>
 
         <ToggleGroup
@@ -233,73 +220,117 @@ function Chrome({
           value={[mode]}
           onValueChange={(v: string[]) => v.length && setMode(v[v.length - 1] as "edit" | "preview")}
         >
-          <ToggleGroupItem value="edit"><Icon name="pencil" /> Edit</ToggleGroupItem>
-          <ToggleGroupItem value="preview"><Icon name="eye" /> Preview</ToggleGroupItem>
+          <IconItem value="edit" icon="pencil">Edit</IconItem>
+          <IconItem value="preview" icon="eye">Preview</IconItem>
         </ToggleGroup>
 
         <div className="flex-1" />
 
-        <span className="max-w-[220px] truncate text-sm text-base-content/55" title={doc.subject}>
-          {doc.subject || "Untitled email"}
-        </span>
+        {/* Subject/preview text live here (not just buried in the Settings
+            tab) since every ESP treats them as the two things you set first —
+            keyed on their own current value so a template switch or an undo
+            refreshes the field without fighting the user's typing. */}
+        <Input
+          key={doc.subject}
+          size="sm"
+          className="w-36"
+          placeholder="Subject"
+          aria-label="Email subject"
+          defaultValue={doc.subject}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => editor.setSubject(e.target.value)}
+        />
+        <Input
+          key={doc.preheader}
+          size="sm"
+          className="w-36"
+          placeholder="Preview text"
+          aria-label="Email preview text"
+          defaultValue={doc.preheader}
+          onBlur={(e: React.FocusEvent<HTMLInputElement>) => editor.setPreheader(e.target.value)}
+        />
         <SendTestButton studioTheme={studioTheme} onSendTest={onSendTest} />
         <Button color="primary" size="sm" onClick={exportHtml}>
           <Icon name="download" /> Export HTML
         </Button>
       </header>
 
-      <div className={`grid flex-1 min-h-0 ${mode === "edit" ? "grid-cols-[240px_1fr_300px]" : "grid-cols-1"}`}>
-        {mode === "edit" && (
-          <aside className="flex flex-col min-h-0 bg-base-100 border-r border-base-300">
+      {/* A resizable 3-pane layout in Edit mode — same widths persist locally
+          per-browser via `autoSaveId`, same mechanism as the site builder.
+          Preview mode drops the rails entirely (nothing to resize). */}
+      {mode === "edit" ? (
+        <ResizablePanelGroup
+          direction="horizontal"
+          autoSaveId="silicaui-builder-email-rails"
+          className="flex-1 min-h-0"
+          style={{ border: "none", borderRadius: 0, backgroundColor: "transparent" }}
+        >
+          <ResizablePanel
+            defaultSize={16}
+            minSize={12}
+            maxSize={30}
+            className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-r border-base-300"
+          >
             {/* Templates sit above Layers/Insert — a navigation peer to the tree,
                 same placement as the site builder's Pages switcher. */}
             <TemplatesPanel studioTheme={studioTheme} />
             <PanelHead>
               <ToggleGroup
-                className="toggle-group-xs"
+                className="toggle-group-xs w-full"
                 aria-label="Left panel"
                 value={[leftTab]}
                 onValueChange={(v: string[]) => v.length && setLeftTab(v[v.length - 1] as "layers" | "insert")}
               >
-                <ToggleGroupItem value="layers">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon name="list" /> Layers
-                  </span>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="insert">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon name="plus" /> Insert
-                  </span>
-                </ToggleGroupItem>
+                <IconItem value="layers" icon="list" className="flex-1">Layers</IconItem>
+                <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
               </ToggleGroup>
             </PanelHead>
             <div className="flex-1 min-h-0 overflow-auto">
               {leftTab === "layers" ? <Navigator /> : <EmailPalette />}
             </div>
-          </aside>
-        )}
+          </ResizablePanel>
+          <ResizeHandle />
 
-        <section className="flex flex-col min-w-0 min-h-0">
+          <ResizablePanel defaultSize={64} minSize={30} className="flex flex-col min-w-0 min-h-0 overflow-hidden">
+            <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
+              <EmailCanvas device={device} />
+            </ErrorBoundary>
+          </ResizablePanel>
+          <ResizeHandle />
+
+          <ResizablePanel
+            defaultSize={20}
+            minSize={14}
+            maxSize={32}
+            className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-l border-base-300"
+          >
+            <PanelHead>
+              <Icon name="sliders" /> Design
+            </PanelHead>
+            <EmailInspector />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <section className="flex flex-col min-w-0 min-h-0 flex-1">
           <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
-            {mode === "edit" ? <EmailCanvas device={device} /> : <EmailPreview device={device} />}
+            <EmailPreview device={device} />
           </ErrorBoundary>
         </section>
-
-        {mode === "edit" && (
-          <aside className="flex flex-col min-h-0 bg-base-100 border-l border-base-300">
-            <div className="flex items-center gap-1.5 h-10 flex-none px-3.5 border-b border-base-200 text-sm font-semibold">
-              <Icon name="sliders" /> Design
-            </div>
-            <EmailInspector />
-          </aside>
-        )}
-      </div>
+      )}
 
       <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content/55">
         <span className="capitalize">{device}</span>
         <span className="capitalize text-base-content/40">· {mode}</span>
         <span className="flex-1" />
         <span>{doc.root.width}px canvas</span>
+        <a
+          href="https://silicaui.com"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 font-semibold tracking-tight text-base-content/55 hover:text-base-content"
+        >
+          <span className="size-3 rounded-sm bg-linear-to-br from-primary to-secondary" />
+          silicaui
+        </a>
       </footer>
     </>
   );
@@ -322,11 +353,17 @@ export interface EmailBuilderProps {
   studioTheme?: string;
   /**
    * A @wizeworks/silicaui brand `Theme` (the same shape the site builder edits) —
-   * resolved to hex and used as the default colors for a fresh document AND for
-   * every new Button/Text/Divider/Section a user inserts afterward, so emails
-   * come out on-brand instead of a generic neutral gray. Purely a DEFAULT: any
-   * color stays freely editable per-node once inserted. Omit it for the
-   * built-in neutral palette.
+   * resolved to hex and used as the default colors for a fresh document, for
+   * every new Button/Text/Divider/Section a user inserts, AND live: unlike
+   * most props here (read once at mount), this one is re-read on every
+   * change, so an email open in one tab picks up a theme edited in another
+   * (whatever the host uses to deliver that — sync it in, the builder just
+   * needs the new `Theme` object as a prop). Only fields still on their
+   * default repaint — the moment someone picks a custom color for a field it
+   * freezes, so a live theme update never clobbers a deliberate choice.
+   * There's no `[data-theme]`/CSS-custom-property mechanism in email HTML
+   * (Outlook/Gmail don't support it), so this is the only path theme changes
+   * reach an email at all. Omit `theme` for the built-in neutral palette.
    */
   theme?: Theme;
   /** Fires after every committed edit, with the WHOLE project (every template,
@@ -372,7 +409,10 @@ export function EmailBuilder({
   const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
   // `project` takes precedence over the legacy single-template `document`.
   const seedRef = React.useRef(project ?? document);
-  const colorsRef = React.useRef(theme);
+  // Boot-only: the theme at construction time. `theme` itself stays live in
+  // scope below for the reactive effect and `startFresh` — only the INITIAL
+  // resolve needs a ref (there's no editor yet to push a live update into).
+  const initialThemeRef = React.useRef(theme);
   // `gen` bumps on every editor swap (start-fresh) so the whole subtree remounts
   // — no stale canvas DOM (e.g. a contentEditable edit) survives a restore.
   const [current, setCurrent] = React.useState<
@@ -389,13 +429,23 @@ export function EmailBuilder({
     void (async () => {
       const snap = store ? await store.load() : undefined;
       if (cancelled) return;
-      const colors = resolveEmailColorDefaults(colorsRef.current);
+      const colors = resolveEmailColorDefaults(initialThemeRef.current);
       setCurrent({ editor: new EmailEditor(snap?.data ?? seedRef.current, colors), recoveredAt: snap?.savedAt ?? null, gen: 0 });
     })();
     return () => {
       cancelled = true;
     };
   }, [store]);
+
+  // Live theme inheritance: whenever the host hands us an updated `theme`
+  // (a new object — could be the SAME brand theme re-fetched, or a real
+  // edit), re-resolve and repaint every node still tracking its default.
+  // `setColorDefaults` itself no-ops when the resolved hex is unchanged, so
+  // this is cheap even though it re-runs on every `theme` prop identity change.
+  React.useEffect(() => {
+    if (!editor) return;
+    editor.setColorDefaults(resolveEmailColorDefaults(theme));
+  }, [editor, theme]);
 
   // Autosave (local durable store) + relay edits to the host. A final flush runs
   // on tab-hide / pagehide / unmount so the very last edit always lands. The
@@ -426,9 +476,9 @@ export function EmailBuilder({
   // "Start fresh" — discard the recovered draft and reseed from the prop project/document.
   const startFresh = React.useCallback(() => {
     void store?.clear();
-    const colors = resolveEmailColorDefaults(colorsRef.current);
+    const colors = resolveEmailColorDefaults(theme);
     setCurrent((c) => ({ editor: new EmailEditor(seedRef.current, colors), recoveredAt: null, gen: (c?.gen ?? 0) + 1 }));
-  }, [store]);
+  }, [store, theme]);
 
   const dismissBanner = React.useCallback(() => setCurrent((c) => (c ? { ...c, recoveredAt: null } : c)), []);
 

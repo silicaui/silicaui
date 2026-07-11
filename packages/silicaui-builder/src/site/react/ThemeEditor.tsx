@@ -10,10 +10,26 @@
 import * as React from "react";
 import type { Theme } from "@wizeworks/silicaui-html";
 import { SURFACE_TOKENS, rolesOf, colorValue, presetByName } from "@wizeworks/silicaui-html";
-import { ColorPicker, Switch, ToggleGroup, ToggleGroupItem, Input, Button } from "@wizeworks/silicaui-react";
-import { useEditor, useTheme } from "./editor-context";
-import { randomizePalette, themeToCss, isCustomRole } from "../theme-ops";
+import {
+  ColorPicker,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
+  Input,
+  Button,
+  Combobox,
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  Textarea,
+} from "@wizeworks/silicaui-react";
+import { useEditor, useTheme, useStudioTheme } from "./editor-context";
+import { randomizePalette, themeToCss, isCustomRole, cssToTheme, sanitizeThemeName } from "../theme-ops";
 import { Icon } from "../../shared/react/Icon";
+import { googleFontsCatalog } from "./google-fonts-catalog";
+import { loadGoogleFontPreview } from "./google-fonts-loader";
 
 type Mode = "light" | "dark";
 
@@ -115,27 +131,98 @@ const SCALAR_ROWS: Array<{ key: string; label: string; dflt: string; opts: Array
   },
 ];
 
-// Theme-overridable UI typefaces (system-safe stacks — no webfont load). The
-// picker writes `--font-sans`; headings either match the body or take a serif
-// contrast via `--font-head` (which typography falls back from to --font-sans).
-const FONT_STACKS: Array<{ label: string; value: string }> = [
-  { label: "System", value: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
-  { label: "Serif", value: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' },
-  { label: "Mono", value: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' },
-  { label: "Rounded", value: '"SF Pro Rounded", ui-rounded, "Hiragino Maru Gothic ProN", "Quicksand", system-ui, sans-serif' },
+// Theme-overridable UI typefaces. A font PICK is one of: a system-safe stack (no
+// webfont load), a Google Font (loaded live for editor preview via a <link>; the
+// exact family + weights are also recorded on `theme.fonts` so a host can self-host
+// the real files at publish time — see docs on `Theme.fonts`/`ThemeFontSelection`
+// and @wizeworks/silicaui-fonts' selfHostGoogleFonts), or — for headings only — the
+// "Match body" pseudo-pick that just points `--font-head` at `--font-sans`.
+interface FontOption {
+  label: string;
+  source: "system" | "google";
+  /** The full CSS `font-family` value to write into the theme token. */
+  cssStack: string;
+  /** Weights to load/self-host — only meaningful for a Google source. */
+  weights?: number[];
+}
+
+const SYSTEM_OPTIONS: FontOption[] = [
+  { label: "System", source: "system", cssStack: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' },
+  { label: "Serif", source: "system", cssStack: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' },
+  { label: "Mono", source: "system", cssStack: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' },
+  { label: "Rounded", source: "system", cssStack: '"SF Pro Rounded", ui-rounded, "Hiragino Maru Gothic ProN", "Quicksand", system-ui, sans-serif' },
 ];
-const SERIF_STACK = FONT_STACKS[1]!.value;
+const MATCH_BODY_OPTION: FontOption = { label: "Match body", source: "system", cssStack: "var(--font-sans)" };
+
+/** A CSS generic family to fall back on while a Google Font's real file loads. */
+function genericFallback(category: string): string {
+  const c = category.toLowerCase();
+  if (c.includes("mono")) return "monospace";
+  if (c.includes("handwriting") || c.includes("script")) return "cursive";
+  if (c.includes("serif") && !c.includes("sans")) return "serif";
+  return "sans-serif";
+}
+
+/** Regular/semibold/bold when the family has them; else its first 3 weights. */
+function pickWeights(available: readonly number[]): number[] {
+  const desired = [400, 600, 700].filter((w) => available.includes(w));
+  return desired.length ? desired : available.slice(0, 3);
+}
+
+// Computed once at module load — the catalog is a static import, not theme state.
+const GOOGLE_OPTIONS: FontOption[] = googleFontsCatalog.map((f) => ({
+  label: f.family,
+  source: "google",
+  cssStack: `"${f.family}", ${genericFallback(f.category)}`,
+  weights: pickWeights(f.weights),
+}));
+const BODY_OPTIONS: FontOption[] = [...SYSTEM_OPTIONS, ...GOOGLE_OPTIONS];
+const HEADING_OPTIONS: FontOption[] = [MATCH_BODY_OPTION, ...SYSTEM_OPTIONS, ...GOOGLE_OPTIONS];
+const BODY_LABELS = BODY_OPTIONS.map((o) => o.label);
+const HEADING_LABELS = HEADING_OPTIONS.map((o) => o.label);
+
+/** The option a theme's current token/`fonts` selection resolves to. Prefers the
+ *  structured `theme.fonts` record (unambiguous); falls back to matching the raw
+ *  CSS token against the known system stacks for themes saved before that field
+ *  existed; an unrecognized custom string shows as its own read-only label so it
+ *  never crashes, it just won't highlight any option in the list. */
+function currentFontOption(theme: Theme, key: "sans" | "head", cssVar: string, options: FontOption[]): FontOption {
+  const picked = theme.fonts?.[key];
+  if (picked) {
+    const found = options.find((o) => o.source === "google" && o.label === picked.family);
+    if (found) return found;
+  }
+  const raw = theme.tokens[cssVar] ?? "";
+  const match = options.find((o) => o.cssStack === raw);
+  if (match) return match;
+  return raw ? { label: `Custom (${raw})`, source: "system", cssStack: raw } : options[0]!;
+}
+
+function withFont(theme: Theme, key: "sans" | "head", cssVar: string, option: FontOption): Theme {
+  const next = structuredClone(theme);
+  next.tokens = { ...next.tokens, [cssVar]: option.cssStack };
+  const fonts = { ...(next.fonts ?? {}) };
+  if (option.source === "google") fonts[key] = { family: option.label, source: "google", weights: option.weights };
+  else delete fonts[key];
+  next.fonts = Object.keys(fonts).length ? fonts : undefined;
+  return next;
+}
 
 const last = (vals: string[], fallback: string): string => vals[vals.length - 1] ?? fallback;
 
 export function ThemeEditor() {
   const editor = useEditor();
   const theme = useTheme();
+  const studioTheme = useStudioTheme();
   const mode: Mode = theme.mode === "dark" ? "dark" : "light";
 
   const [openColor, setOpenColor] = React.useState<string | null>(null);
   const [newColor, setNewColor] = React.useState("");
+  const [cssOpen, setCssOpen] = React.useState(false);
+  const [cssText, setCssText] = React.useState("");
+  const [cssError, setCssError] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [applied, setApplied] = React.useState(false);
 
   const roles = rolesOf(theme);
   const surfaces = [...SURFACE_TOKENS];
@@ -143,6 +230,11 @@ export function ThemeEditor() {
   const setColor = (name: string, v: string) => editor.setTheme(withColor(theme, name, v, mode));
   const setToken = (key: string, v: string) => editor.setTheme(withToken(theme, key, v));
   const tokenOf = (key: string, dflt: string) => theme.tokens[key] ?? dflt;
+
+  const setFont = (key: "sans" | "head", cssVar: string, option: FontOption) => {
+    editor.setTheme(withFont(theme, key, cssVar, option));
+    if (option.source === "google") loadGoogleFontPreview(option.label, option.weights ?? [400, 700]);
+  };
 
   const addColor = () => {
     const name = newColor.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "");
@@ -152,9 +244,9 @@ export function ThemeEditor() {
     setOpenColor(name);
   };
 
-  const exportCss = async () => {
+  const copyCss = async () => {
     try {
-      await navigator.clipboard.writeText(themeToCss(theme));
+      await navigator.clipboard.writeText(cssText);
       setCopied(true);
       setTimeout(() => setCopied(false), 1400);
     } catch {
@@ -162,11 +254,37 @@ export function ThemeEditor() {
     }
   };
 
+  const applyCss = () => {
+    const result = cssToTheme(cssText);
+    if (!result.ok) {
+      setCssError(result.reason);
+      return;
+    }
+    const fonts = { ...(theme.fonts ?? {}) };
+    if (theme.tokens["--font-sans"] !== result.tokens["--font-sans"]) delete fonts.sans;
+    if (theme.tokens["--font-head"] !== result.tokens["--font-head"]) delete fonts.head;
+    editor.setTheme({
+      ...structuredClone(theme),
+      name: result.name,
+      tokens: result.tokens,
+      dark: result.dark,
+      fonts: Object.keys(fonts).length ? fonts : undefined,
+    });
+    setCssError(null);
+    setApplied(true);
+    setTimeout(() => setApplied(false), 1400);
+  };
+
+  const resetCss = () => {
+    setCssText(themeToCss(theme));
+    setCssError(null);
+  };
+
   return (
     <div className="p-3.5 pb-8">
       <Input
         value={theme.name}
-        onChange={(e) => editor.setTheme({ ...structuredClone(theme), name: e.target.value })}
+        onChange={(e) => editor.setTheme({ ...structuredClone(theme), name: sanitizeThemeName(e.target.value) })}
         aria-label="Theme name"
         className="w-full font-semibold"
       />
@@ -174,9 +292,52 @@ export function ThemeEditor() {
         <Button variant="outline" size="sm" className="flex-1" onClick={() => editor.setTheme(randomizePalette(theme))}>
           <Icon name="shuffle" /> Random
         </Button>
-        <Button variant="outline" size="sm" className="flex-1" onClick={exportCss}>
-          <Icon name={copied ? "check" : "download"} /> {copied ? "Copied" : "CSS"}
-        </Button>
+        <Dialog
+          open={cssOpen}
+          onOpenChange={(o: boolean) => {
+            setCssOpen(o);
+            if (o) {
+              setCssText(themeToCss(theme));
+              setCssError(null);
+            }
+          }}
+        >
+          <DialogTrigger>
+            <Button variant="outline" size="sm" className="flex-1">
+              <Icon name="download" /> CSS
+            </Button>
+          </DialogTrigger>
+          <DialogContent data-theme={studioTheme} className="w-[min(560px,94vw)] max-h-[82vh] overflow-hidden flex flex-col p-5">
+            <DialogTitle>Theme CSS</DialogTitle>
+            <DialogDescription>
+              Custom-property declarations only — no other selectors, at-rules, or comments. Delete a line to remove that
+              token from the theme.
+            </DialogDescription>
+            <Textarea
+              value={cssText}
+              onChange={(e) => {
+                setCssText(e.target.value);
+                setCssError(null);
+              }}
+              rows={16}
+              spellCheck={false}
+              className="mt-3 flex-1 font-mono text-xs resize-none"
+              aria-label="Theme CSS"
+            />
+            {cssError && <p className="mt-2 text-xs text-error">{cssError}</p>}
+            <div className="mt-3 flex gap-2">
+              <Button variant="outline" size="sm" onClick={resetCss}>
+                <Icon name="undo" /> Reset
+              </Button>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={copyCss}>
+                <Icon name={copied ? "check" : "copy"} /> {copied ? "Copied" : "Copy"}
+              </Button>
+              <Button size="sm" onClick={applyCss}>
+                <Icon name={applied ? "check" : "upload"} /> {applied ? "Applied" : "Apply"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className={GROUP}>
@@ -340,35 +501,34 @@ export function ThemeEditor() {
 
       <div className={GROUP}>
         <Icon name="text" /> Type
+        <span className="ml-auto normal-case tracking-normal font-medium text-xs">
+          {GOOGLE_OPTIONS.length}+ Google Fonts
+        </span>
       </div>
       <div className="mb-1.5 text-sm font-semibold text-base-content/70">Typeface</div>
-      <ToggleGroup
-        className="toggle-group-sm"
-        value={[FONT_STACKS.find((f) => f.value === tokenOf("--font-sans", ""))?.label ?? "System"]}
-        onValueChange={(v: string[]) => {
-          if (!v.length) return;
-          const pick = FONT_STACKS.find((f) => f.label === last(v, "System")) ?? FONT_STACKS[0]!;
-          setToken("--font-sans", pick.value);
+      <Combobox
+        size="sm"
+        items={BODY_LABELS}
+        value={currentFontOption(theme, "sans", "--font-sans", BODY_OPTIONS).label}
+        onValueChange={(v) => {
+          const pick = BODY_OPTIONS.find((o) => o.label === v);
+          if (pick) setFont("sans", "--font-sans", pick);
         }}
-      >
-        {FONT_STACKS.map((f) => (
-          <ToggleGroupItem key={f.label} value={f.label}>
-            {f.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+        popupProps={{ "data-theme": studioTheme }}
+        aria-label="Body typeface"
+      />
       <div className="mt-3 mb-1.5 text-sm font-semibold text-base-content/70">Headings</div>
-      <ToggleGroup
-        className="toggle-group-sm"
-        value={[/serif/.test(tokenOf("--font-head", "")) && !/var\(/.test(tokenOf("--font-head", "")) ? "Serif" : "Match"]}
-        onValueChange={(v: string[]) => {
-          if (!v.length) return;
-          setToken("--font-head", last(v, "Match") === "Serif" ? SERIF_STACK : "var(--font-sans)");
+      <Combobox
+        size="sm"
+        items={HEADING_LABELS}
+        value={currentFontOption(theme, "head", "--font-head", HEADING_OPTIONS).label}
+        onValueChange={(v) => {
+          const pick = HEADING_OPTIONS.find((o) => o.label === v);
+          if (pick) setFont("head", "--font-head", pick);
         }}
-      >
-        <ToggleGroupItem value="Match">Match body</ToggleGroupItem>
-        <ToggleGroupItem value="Serif">Serif</ToggleGroupItem>
-      </ToggleGroup>
+        popupProps={{ "data-theme": studioTheme }}
+        aria-label="Heading typeface"
+      />
     </div>
   );
 }

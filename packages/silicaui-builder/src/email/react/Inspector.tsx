@@ -378,17 +378,24 @@ function ColorField({
 }: {
   label: string;
   value: string;
-  onCommit: (v: string) => void;
+  /** `auto` is true only for the "Auto" reset click — callers persist it
+   *  alongside the hex (e.g. `bgAuto`) so this field keeps tracking the
+   *  theme live; any other pick (a preset swatch or the custom picker)
+   *  passes `false`, freezing the field as a manual override. */
+  onCommit: (v: string, auto: boolean) => void;
   /** The `EmailColorDefaults` key this field's "Auto" resets to — the SAME
    *  value a fresh insert of this kind gets from `../palette.ts`. */
   autoRole?: keyof EmailColorDefaults;
 }) {
   const editor = useEmailEditor();
-  const options = React.useMemo(() => colorOptionsOf(editor.colorDefaults), [editor]);
-  const onAuto = autoRole ? () => onCommit(editor.colorDefaults[autoRole]) : undefined;
+  // Not memoized on `editor` alone: the editor's identity never changes, but
+  // its `colorDefaults` can (a live theme update) — a stale memo would leave
+  // these swatches showing colors the rest of the canvas has moved past.
+  const options = colorOptionsOf(editor.colorDefaults);
+  const onAuto = autoRole ? () => onCommit(editor.colorDefaults[autoRole], true) : undefined;
   return (
     <Row label={label}>
-      <SwatchGroup options={options} active={value} onPick={onCommit} onAuto={onAuto} />
+      <SwatchGroup options={options} active={value} onPick={(v) => onCommit(v, false)} onAuto={onAuto} />
     </Row>
   );
 }
@@ -485,7 +492,7 @@ function AlignField({ value, onCommit, autoValue }: { value: Align; onCommit: (v
 function TextDesignFields({ node, update }: { node: TextNode; update: (patch: Partial<TextNode>) => void }) {
   return (
     <Group label="Text">
-      <ColorField label="Color" value={node.color} onCommit={(color) => update({ color })} autoRole="baseContent" />
+      <ColorField label="Color" value={node.color} onCommit={(color, colorAuto) => update({ color, colorAuto })} autoRole="baseContent" />
       <SizeChipField label="Font size" value={node.fontSize} options={FONT_SIZE_PX} onCommit={(fontSize) => update({ fontSize })} autoValue={16} />
       <Row label="Weight">
         <ChipGroup
@@ -547,8 +554,8 @@ function ButtonDesignFields({ node, update }: { node: ButtonNode; update: (patch
           `btn-<role>` class); email has no such class, so Background and Text
           color are both explicit here. */}
       <Group label="Button">
-        <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} autoRole="primary" />
-        <ColorField label="Text color" value={node.color} onCommit={(color) => update({ color })} autoRole="primaryContent" />
+        <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto) => update({ bg, bgAuto })} autoRole="primary" />
+        <ColorField label="Text color" value={node.color} onCommit={(color, colorAuto) => update({ color, colorAuto })} autoRole="primaryContent" />
       </Group>
       <Group label="Surface">
         <RadiusField label="Corner radius" value={node.radius} onCommit={(radius) => update({ radius })} autoValue={8} />
@@ -577,7 +584,7 @@ function ButtonSettingsFields({ node, update }: { node: ButtonNode; update: (pat
 function DividerDesignFields({ node, update }: { node: DividerNode; update: (patch: Partial<DividerNode>) => void }) {
   return (
     <Group label="Surface">
-      <ColorField label="Color" value={node.color} onCommit={(color) => update({ color })} autoRole="base300" />
+      <ColorField label="Color" value={node.color} onCommit={(color, colorAuto) => update({ color, colorAuto })} autoRole="base300" />
       <NumberField label="Thickness (px)" defaultValue={node.thickness} min={1} max={12} onCommit={(thickness) => update({ thickness })} autoValue={1} />
     </Group>
   );
@@ -748,7 +755,7 @@ function ColumnsSettingsFields({ node }: { node: ColumnsNode }) {
 function SectionDesignFields({ node, update }: { node: import("../schema").SectionNode; update: (patch: Record<string, unknown>) => void }) {
   return (
     <Group label="Surface">
-      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} autoRole="base100" />
+      <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto) => update({ bg, bgAuto })} autoRole="base100" />
       <Row label="Background image URL">
         <div className="flex gap-1.5">
           <Input
@@ -778,8 +785,8 @@ function SectionDesignFields({ node, update }: { node: import("../schema").Secti
 function BodyDesignFields({ node, update }: { node: EmailBody; update: (patch: Record<string, unknown>) => void }) {
   return (
     <Group label="Surface">
-      <ColorField label="Background" value={node.bg} onCommit={(bg) => update({ bg })} autoRole="base200" />
-      <ColorField label="Content background" value={node.contentBg} onCommit={(contentBg) => update({ contentBg })} autoRole="base100" />
+      <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto) => update({ bg, bgAuto })} autoRole="base200" />
+      <ColorField label="Content background" value={node.contentBg} onCommit={(contentBg, contentBgAuto) => update({ contentBg, contentBgAuto })} autoRole="base100" />
     </Group>
   );
 }

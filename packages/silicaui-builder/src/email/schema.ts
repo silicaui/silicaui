@@ -27,6 +27,9 @@ export interface TextNode extends BaseNode {
   html: string;
   align: Align;
   color: string;
+  /** When true, `color` tracks the brand theme's `baseContent` role live (see
+   *  `EmailEditor.setColorDefaults`) instead of being a frozen manual pick. */
+  colorAuto?: boolean;
   fontSize: number;
   fontWeight: FontWeight;
   lineHeight: number;
@@ -47,7 +50,11 @@ export interface ButtonNode extends BaseNode {
   label: string;
   href: string;
   bg: string;
+  /** See `TextNode.colorAuto` — tracks the theme's `primary` role live. */
+  bgAuto?: boolean;
   color: string;
+  /** Tracks the theme's `primaryContent` role live. */
+  colorAuto?: boolean;
   radius: number;
   align: Align;
   paddingX: number;
@@ -57,6 +64,8 @@ export interface ButtonNode extends BaseNode {
 export interface DividerNode extends BaseNode {
   kind: "divider";
   color: string;
+  /** Tracks the theme's `base300` role live. */
+  colorAuto?: boolean;
   thickness: number;
 }
 
@@ -135,6 +144,8 @@ export interface ColumnsNode extends BaseNode {
 export interface SectionNode extends BaseNode {
   kind: "section";
   bg: string;
+  /** Tracks the theme's `base100` role live. */
+  bgAuto?: boolean;
   /** An optional background image URL. Email clients vary wildly on support
    *  (Outlook desktop needs a VML fallback, which the projector emits); `bg`
    *  always renders too, underneath, as the graceful-degradation fallback. */
@@ -150,8 +161,12 @@ export interface EmailBody extends BaseNode {
   width: number;
   /** Background behind the body (visible as side "wallpaper" in wide clients). */
   bg: string;
+  /** Tracks the theme's `base200` role live. */
+  bgAuto?: boolean;
   /** The body's own background. */
   contentBg: string;
+  /** Tracks the theme's `base100` role live. */
+  contentBgAuto?: boolean;
   fontFamily: string;
   children: SectionNode[];
 }
@@ -251,13 +266,16 @@ export function emptyEmailDocument(makeId: () => string, colors: EmailColorDefau
       kind: "body",
       width: 600,
       bg: colors.base200,
+      bgAuto: true,
       contentBg: colors.base100,
+      contentBgAuto: true,
       fontFamily: "Arial, Helvetica, sans-serif",
       children: [
         {
           id: makeId(),
           kind: "section",
           bg: colors.base100,
+          bgAuto: true,
           paddingX: 24,
           paddingY: 24,
           children: [
@@ -267,6 +285,7 @@ export function emptyEmailDocument(makeId: () => string, colors: EmailColorDefau
               html: "Start writing your email…",
               align: "left",
               color: colors.baseContent,
+              colorAuto: true,
               fontSize: 16,
               fontWeight: "normal",
               lineHeight: 24,

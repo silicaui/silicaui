@@ -206,6 +206,17 @@ export interface SymbolDef {
   root: Node;
 }
 
+/** Which webfont (if any) a theme's `--font-sans`/`--font-head` token was built
+ *  from — purely a provenance signal for a publish-time self-hosting step; the CSS
+ *  stack string in `tokens` is what actually renders, this is never read by `toHtml`. */
+export interface ThemeFontSelection {
+  /** The catalog family name, e.g. "Inter" — or a pinned system label like "System". */
+  family: string;
+  source: "system" | "google";
+  /** Weights to load/self-host, e.g. [400, 600, 700]. Absent for a system source. */
+  weights?: number[];
+}
+
 /** A native @wizeworks/silicaui theme — a token set applied via `[data-theme]` (§5). */
 export interface Theme {
   /** The `[data-theme]` value applied to the canvas/site root. */
@@ -216,6 +227,9 @@ export interface Theme {
   dark?: Record<string, string>;
   /** Which mode this expresses; either is renderable. */
   mode?: "light" | "dark";
+  /** Which webfont each font token was picked from, when it's a Google Font — absent
+   *  for a system-stack pick or an untouched/legacy theme. See `ThemeFontSelection`. */
+  fonts?: { sans?: ThemeFontSelection; head?: ThemeFontSelection };
 }
 
 /** Optional surrounding layout: a tree containing exactly one `Outlet` (§9.7). */
@@ -261,4 +275,9 @@ export interface Site {
   /** User-saved reusable components, keyed by symbol id. Instances across any page
    *  or the frame reference these; edit-once-propagate flows from here. */
   symbols?: Record<string, SymbolDef>;
+  /** The site's own saved theme presets ("This site" in the Themes panel) —
+   *  distinct from the shipped `THEME_PRESETS` starting points, which are never
+   *  stored here. A site the author hasn't saved any theme for yet omits this;
+   *  the `Editor` seeds it with `[theme]` on load. */
+  savedThemes?: Theme[];
 }

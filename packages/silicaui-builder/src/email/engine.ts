@@ -76,6 +76,31 @@ function rebalanceColumns(row: ColumnsNode): void {
   for (const c of row.children) c.widthPct = share;
 }
 
+/** Which literal color field(s) each node kind can live-track, and which
+ *  `EmailColorDefaults` role each one follows — keep in sync with the
+ *  `*Auto` fields declared on the corresponding node type in `schema.ts` and
+ *  the `autoRole`s wired in `email/react/Inspector.tsx`'s `ColorField` call
+ *  sites. A field only repaints when its own `<field>Auto` flag is `true` —
+ *  the moment a user picks a custom color it's cleared and that field is
+ *  frozen, exactly like a fresh insert's default before this ever runs. */
+const AUTO_COLOR_FIELDS: Partial<Record<EmailNode["kind"], ReadonlyArray<{
+  field: string;
+  autoField: string;
+  role: keyof EmailColorDefaults;
+}>>> = {
+  text: [{ field: "color", autoField: "colorAuto", role: "baseContent" }],
+  button: [
+    { field: "bg", autoField: "bgAuto", role: "primary" },
+    { field: "color", autoField: "colorAuto", role: "primaryContent" },
+  ],
+  divider: [{ field: "color", autoField: "colorAuto", role: "base300" }],
+  section: [{ field: "bg", autoField: "bgAuto", role: "base100" }],
+  body: [
+    { field: "bg", autoField: "bgAuto", role: "base200" },
+    { field: "contentBg", autoField: "contentBgAuto", role: "base100" },
+  ],
+};
+
 interface Located {
   node: EmailNode;
   parent: Container | undefined;
@@ -138,7 +163,7 @@ export class EmailEditor {
   private past: EmailProject[] = [];
   private future: EmailProject[] = [];
   private static readonly HISTORY_LIMIT = 100;
-  private readonly colors: EmailColorDefaults;
+  private colors: EmailColorDefaults;
 
   /**
    * `colorDefaults` seeds a brand-new document's colors AND is what new
@@ -174,6 +199,35 @@ export class EmailEditor {
    *  a user adds lands on-brand instead of a generic neutral default. */
   get colorDefaults(): EmailColorDefaults {
     return this.colors;
+  }
+
+  /**
+   * Re-resolve the brand color defaults live — the React layer calls this
+   * whenever the host's `theme` prop changes (e.g. the site's theme was
+   * edited elsewhere and the host synced the update down), so an open email
+   * repaints to match instead of drifting from the brand. Repaints every
+   * node across every template still on its default (`<field>Auto === true`)
+   * with the newly-resolved hex; a node whose color a user explicitly picked
+   * is never touched. Not undoable — this mirrors `setActiveTemplate`, an
+   * external resync rather than a user edit, so it doesn't belong on the
+   * undo stack. No-ops if `next` is identical to the current defaults.
+   */
+  setColorDefaults(next: EmailColorDefaults): void {
+    const keys = Object.keys(next) as (keyof EmailColorDefaults)[];
+    if (keys.every((k) => this.colors[k] === next[k])) return;
+    this.colors = next;
+    const repaint = (node: EmailNode): void => {
+      const rules = AUTO_COLOR_FIELDS[node.kind];
+      if (rules) {
+        const rec = node as unknown as Record<string, unknown>;
+        for (const rule of rules) {
+          if (rec[rule.autoField] === true) rec[rule.field] = next[rule.role];
+        }
+      }
+      for (const child of childrenOf(node) ?? []) repaint(child);
+    };
+    for (const template of this.project.templates) repaint(template.document.root);
+    this.emit("props");
   }
 
   subscribe(cb: (e: ChangeEvent) => void): () => void {

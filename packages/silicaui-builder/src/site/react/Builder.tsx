@@ -12,7 +12,8 @@
 import * as React from "react";
 import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/silicaui-html";
 import { renderSite } from "@wizeworks/silicaui-html";
-import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizeworks/silicaui-react";
+import { Button, ToggleGroup, Kbd, EmptyState } from "@wizeworks/silicaui-react";
+import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import { Editor } from "../engine";
 import type { PageMeta } from "../engine";
 import { DraftStore } from "../../shared/persistence";
@@ -33,7 +34,7 @@ import { Navigator } from "./Navigator";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
 import { Icon } from "../../shared/react/Icon";
-import type { IconName } from "../../shared/icons";
+import { IconItem, PanelHead } from "../../shared/react/chrome";
 
 type Mode = "page" | "layout" | "component" | "theme";
 type Appearance = "light" | "dark";
@@ -81,30 +82,6 @@ function ChromeErrorFallback({ error, reset }: { error: Error; reset: () => void
 }
 
 const last = (vals: string[], fallback: string): string => vals[vals.length - 1] ?? fallback;
-
-/** Toggle item with a leading icon — a flex row so icon + label align. */
-function IconItem({ value, icon: name, children }: { value: string; icon: IconName; children: React.ReactNode }) {
-  return (
-    <ToggleGroupItem value={value}>
-      <span className="inline-flex items-center gap-1.5">
-        <Icon name={name} /> {children}
-      </span>
-    </ToggleGroupItem>
-  );
-}
-
-/** A panel header bar (left/right rails). */
-function PanelHead({ children, theme }: { children: React.ReactNode; theme?: boolean }) {
-  return (
-    <div
-      className={`flex items-center gap-1.5 h-10 flex-none px-3.5 border-b border-base-200 text-sm font-semibold ${
-        theme ? "bg-linear-to-r from-primary/12 to-transparent" : ""
-      }`}
-    >
-      {children}
-    </div>
-  );
-}
 
 function Chrome({
   onPublish,
@@ -167,11 +144,6 @@ function Chrome({
     <>
       {/* header */}
       <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
-        <div className="flex items-center gap-2 font-semibold tracking-tight mr-1">
-          <span className="size-4 rounded-md bg-linear-to-br from-primary to-secondary" />
-          @wizeworks/silicaui <span className="text-base-content/45 font-medium">builder</span>
-        </div>
-
         <ToggleGroup
           className="toggle-group-sm toggle-group-primary"
           aria-label="Editor mode"
@@ -233,10 +205,22 @@ function Chrome({
         </Button>
       </header>
 
-      {/* body */}
-      <div className="grid flex-1 min-h-0 grid-cols-[264px_1fr_320px]">
+      {/* body — a resizable 3-pane layout (deep trees need the room); widths
+          persist locally per-browser via `autoSaveId`, independent of the
+          document itself. */}
+      <ResizablePanelGroup
+        direction="horizontal"
+        autoSaveId="silicaui-builder-site-rails"
+        className="flex-1 min-h-0"
+        style={{ border: "none", borderRadius: 0, backgroundColor: "transparent" }}
+      >
         {/* left */}
-        <aside className="flex flex-col min-h-0 bg-base-100 border-r border-base-300">
+        <ResizablePanel
+          defaultSize={18}
+          minSize={12}
+          maxSize={32}
+          className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-r border-base-300"
+        >
           {mode === "theme" ? (
             <>
               <PanelHead theme>
@@ -256,13 +240,13 @@ function Chrome({
                 <>
                   <PanelHead>
                     <ToggleGroup
-                      className="toggle-group-xs"
+                      className="toggle-group-xs w-full"
                       aria-label="Left panel"
                       value={[leftTab]}
                       onValueChange={(v: string[]) => v.length && setLeftTab(last(v, leftTab) as "layers" | "insert")}
                     >
-                      <IconItem value="layers" icon="list">Layers</IconItem>
-                      <IconItem value="insert" icon="plus">Insert</IconItem>
+                      <IconItem value="layers" icon="list" className="flex-1">Layers</IconItem>
+                      <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
                     </ToggleGroup>
                   </PanelHead>
                   <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
@@ -277,13 +261,13 @@ function Chrome({
               <PagesPanel />
               <PanelHead>
                 <ToggleGroup
-                  className="toggle-group-xs"
+                  className="toggle-group-xs w-full"
                   aria-label="Left panel"
                   value={[leftTab]}
                   onValueChange={(v: string[]) => v.length && setLeftTab(last(v, leftTab) as "layers" | "insert")}
                 >
-                  <IconItem value="layers" icon="list">Layers</IconItem>
-                  <IconItem value="insert" icon="plus">Insert</IconItem>
+                  <IconItem value="layers" icon="list" className="flex-1">Layers</IconItem>
+                  <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
                 </ToggleGroup>
               </PanelHead>
               <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
@@ -293,10 +277,11 @@ function Chrome({
               </div>
             </>
           )}
-        </aside>
+        </ResizablePanel>
+        <ResizeHandle />
 
         {/* center */}
-        <section className="flex flex-col min-w-0 min-h-0">
+        <ResizablePanel defaultSize={62} minSize={30} className="flex flex-col min-w-0 min-h-0 overflow-hidden">
           {mode === "theme" ? (
             <ComponentBoard />
           ) : mode === "component" && !editingSymbol ? (
@@ -321,10 +306,16 @@ function Chrome({
               <Canvas device={device} />
             </ErrorBoundary>
           )}
-        </section>
+        </ResizablePanel>
+        <ResizeHandle />
 
         {/* right */}
-        <aside className="flex flex-col min-h-0 bg-base-100 border-l border-base-300">
+        <ResizablePanel
+          defaultSize={20}
+          minSize={16}
+          maxSize={34}
+          className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-l border-base-300"
+        >
           {mode === "theme" ? (
             <>
               <PanelHead theme>Themes</PanelHead>
@@ -342,14 +333,23 @@ function Chrome({
               </div>
             </>
           )}
-        </aside>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       {/* footer */}
       <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content/55">
         <span className="text-primary font-semibold capitalize">{mode}</span>
         <span className="flex-1" />
         <span className="capitalize">{device}</span>
+        <a
+          href="https://silicaui.com"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 font-semibold tracking-tight text-base-content/55 hover:text-base-content"
+        >
+          <span className="size-3 rounded-sm bg-linear-to-br from-primary to-secondary" />
+          silicaui
+        </a>
       </footer>
     </>
   );
@@ -378,9 +378,9 @@ export interface BuilderProps {
   host?: BuilderHost;
   /**
    * Fires after every edit that changes stored state (theme, structure, text,
-   * pages…), with the whole `Site` to persist. View-only changes — selection,
-   * page/mode switches, the local theme library — don't fire. The host debounces
-   * + stores; the builder owns no backend.
+   * pages, the site's saved-theme library…), with the whole `Site` to persist.
+   * View-only changes — selection, page/mode switches — don't fire. The host
+   * debounces + stores; the builder owns no backend.
    */
   onChange?: (site: Site) => void;
   /**
@@ -463,8 +463,9 @@ export function Builder({
   }, [store]);
 
   // Autosave (local durable store) + relay stored-state edits to the host. Selection
-  // / active page-or-tree switches and the saved-theme library are view concerns
-  // that don't alter the extracted Site, so they're filtered out. A final flush runs
+  // and active page-or-tree switches are view concerns that don't alter the
+  // extracted Site, so they're filtered out — the saved-theme library ("library")
+  // DOES relay, since `site.savedThemes` is real site data now. A final flush runs
   // on tab-hide / pagehide / unmount so the very last edit always lands.
   React.useEffect(() => {
     if (!editor) return;
@@ -474,7 +475,7 @@ export function Builder({
       onChange?.(site);
     };
     const unsub = editor.subscribe((e) => {
-      if (e.kind !== "selection" && e.kind !== "active" && e.kind !== "library") relay();
+      if (e.kind !== "selection" && e.kind !== "active") relay();
     });
     const flush = () => store?.flush();
     window.addEventListener("visibilitychange", flush);

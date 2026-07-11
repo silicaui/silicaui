@@ -11,23 +11,32 @@ import type { Node } from "@wizeworks/silicaui-html";
 import { walk } from "@wizeworks/silicaui-html";
 import { TreeView } from "@wizeworks/silicaui-react";
 import type { TreeDropEdge, TreeNode } from "@wizeworks/silicaui-react";
-import { useActiveRoot, useEditor, useSelection } from "./editor-context";
+import { useActiveRoot, useActiveTree, useEditor, useSelection } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, textHint } from "../node-display";
 
-function toTreeNode(node: Node): TreeNode {
+/** The tree's own root row has no useful ancestor context, so an unlabeled
+ *  frame root (just a plain wrapper `div`) reads as "Site root" instead of
+ *  its bare tag. Pages already carry an explicit `label: "Page"` (`pageBody`
+ *  in silicaui-html), so this only ever kicks in for Layout mode. */
+function rootFallbackLabel(which: "page" | "frame" | "symbol"): string | undefined {
+  return which === "frame" ? "Site root" : undefined;
+}
+
+function toTreeNode(node: Node, rootLabel?: string): TreeNode {
   const childNodes = node.kind === "outlet" ? [] : (node.children ?? []).filter((c): c is Node => typeof c !== "string");
   const hint = textHint(node);
+  const label = (node.kind !== "outlet" && !node.label && rootLabel) || nodeName(node);
   return {
     id: (node.kind !== "outlet" && node.id) || nodeName(node),
     icon: <Icon name={nodeIconName(node)} className="text-base-content/55" />,
     label: (
       <span className="inline-flex items-baseline gap-1.5">
-        <span>{nodeName(node)}</span>
+        <span>{label}</span>
         {hint && <span className="text-xs text-base-content/40 truncate">{hint}</span>}
       </span>
     ),
-    children: childNodes.length ? childNodes.map(toTreeNode) : undefined,
+    children: childNodes.length ? childNodes.map((c) => toTreeNode(c)) : undefined,
   };
 }
 
@@ -76,10 +85,11 @@ function placement(root: Node, targetId: string, edge: TreeDropEdge): { parentId
 
 export function Navigator() {
   const root = useActiveRoot();
+  const which = useActiveTree();
   const editor = useEditor();
   const selectedId = useSelection();
 
-  const items = React.useMemo(() => [toTreeNode(root)], [root]);
+  const items = React.useMemo(() => [toTreeNode(root, rootFallbackLabel(which))], [root, which]);
   // Expansion is controlled so a node inserted under a collapsed parent still
   // reveals itself; seed it open across the whole tree. (Builder remounts the
   // Navigator on a Page/Layout switch, so this reseeds for the new tree.)

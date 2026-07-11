@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@wizeworks/silicaui-html": ["../silicaui-html/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

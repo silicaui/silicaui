@@ -48,7 +48,8 @@
   },
   "dependencies": {
     "@wizeworks/silicaui": "workspace:*",
-    "@wizeworks/silicaui-html": "workspace:*"
+    "@wizeworks/silicaui-html": "workspace:*",
+    "@wizeworks/silicaui-panels": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18",

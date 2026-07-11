@@ -14,7 +14,8 @@
       "@wizeworks/silicaui-editor",
       "@wizeworks/silicaui-panels",
       "@wizeworks/silicaui-table",
-      "@wizeworks/silicaui-builder"
+      "@wizeworks/silicaui-builder",
+      "@wizeworks/silicaui-fonts"
     ]
   ],
   "linked": [],

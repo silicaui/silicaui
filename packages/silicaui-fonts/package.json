@@ -1,14 +1,14 @@
 {
-  "name": "@wizeworks/silicaui-html",
-  "version": "0.15.0",
-  "description": "silicaui's framework-neutral node-tree source + HTML projection — the canonical Block/Document shape, the authoring kit, and toHtml.",
+  "name": "@wizeworks/silicaui-fonts",
+  "version": "0.1.0",
+  "description": "Silica UI fonts — publish-time Google Fonts self-hosting for sites built with @wizeworks/silicaui-builder.",
   "type": "module",
   "license": "MIT",
   "author": "WizeWorks",
   "repository": {
     "type": "git",
     "url": "https://github.com/silicaui/silicaui.git",
-    "directory": "packages/silicaui-html"
+    "directory": "packages/silicaui-fonts"
   },
   "homepage": "https://silicaui.com",
   "bugs": "https://github.com/silicaui/silicaui/issues",
@@ -17,12 +17,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./blocks": {
-      "types": "./dist/blocks/index.d.ts",
-      "import": "./dist/blocks/index.js"
-    },
-    "./package.json": "./package.json"
+    }
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,10 +26,6 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
-      },
-      "./blocks": {
-        "types": "./dist/blocks/index.d.ts",
-        "import": "./dist/blocks/index.js"
       }
     }
   },
@@ -45,18 +36,21 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-theme-fonts.mjs",
-    "golden": "node golden.mjs"
+    "verify": "node verify.mjs"
+  },
+  "peerDependencies": {
+    "@wizeworks/silicaui-html": ">=0.0.0"
   },
   "devDependencies": {
+    "@wizeworks/silicaui-html": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   },
   "keywords": [
+    "fonts",
+    "google-fonts",
+    "self-hosting",
     "design-system",
-    "html",
-    "node-tree",
-    "blocks",
     "silica"
   ]
 }

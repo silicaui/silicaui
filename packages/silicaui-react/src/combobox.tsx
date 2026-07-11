@@ -95,6 +95,16 @@ export interface ComboboxProps {
   className?: string;
   /** Class for the popup surface. */
   popupClassName?: string;
+  /**
+   * Extra props spread onto the popup surface — a portaled popup renders at
+   * document.body, OUTSIDE any `[data-theme]` island it was opened from, so a
+   * host with a scoped theme (e.g. a builder chrome) should
+   * pass `popupProps={{ "data-theme": "…" }}` to re-establish the theme tokens
+   * on the popup's own root (mirrors `Select`'s `popupProps`).
+   */
+  popupProps?: React.ComponentProps<typeof BaseCombobox.Popup> & {
+    "data-theme"?: string;
+  };
   /** For object items, map an item to its display string (default: `.label`). */
   itemToStringLabel?: (item: unknown) => string;
   /** Override how each filtered item renders. */
@@ -139,6 +149,7 @@ export function Combobox({
   sideOffset = 6,
   className,
   popupClassName,
+  popupProps,
   itemToStringLabel,
   renderItem,
   id,
@@ -187,7 +198,7 @@ export function Combobox({
 
       <BaseCombobox.Portal>
         <BaseCombobox.Positioner side={side} align={align} sideOffset={sideOffset}>
-          <BaseCombobox.Popup className={cx(sc("select-popup"), popupClassName)}>
+          <BaseCombobox.Popup {...popupProps} className={cx(sc("select-popup"), popupClassName)}>
             <BaseCombobox.Empty className={cx(sc("combobox-empty"))}>
               {emptyMessage}
             </BaseCombobox.Empty>
