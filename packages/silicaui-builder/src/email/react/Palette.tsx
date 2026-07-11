@@ -12,8 +12,9 @@
  */
 import * as React from "react";
 import { useEmailEditor, useEmailSelectedNode } from "./editor-context";
+import { useEmailHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
-import { EMAIL_PALETTE } from "../palette";
+import { EMAIL_PALETTE, mergeEmailCatalog } from "../palette";
 import type { EmailPaletteItem } from "../palette";
 import { nodeName } from "../node-display";
 import { DRAG_MIME, encodeDrag } from "../../shared/dnd";
@@ -113,12 +114,16 @@ function TargetHint() {
 }
 
 export function EmailPalette() {
+  const host = useEmailHost();
+  // Host-merged catalog — recomputed only when the host's catalog() identity
+  // changes, not on every render (mirrors the site palette's mergeCatalog use).
+  const items = React.useMemo(() => mergeEmailCatalog(EMAIL_PALETTE, host?.catalog?.()), [host]);
   return (
     <div className="flex flex-col gap-3 px-1.5 py-2">
       <TargetHint />
       <SavedBlocksSection />
       <section className="flex flex-col gap-0.5">
-        {EMAIL_PALETTE.map((item) => (
+        {items.map((item) => (
           <ItemRow key={item.key} item={item} />
         ))}
       </section>

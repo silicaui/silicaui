@@ -13,12 +13,24 @@
  * `ColumnNode` can't hold a `SectionNode`, etc. `engine.ts`'s `canHold` is the
  * single runtime mirror of these rules — keep the two in sync.
  */
+import type { DataBinding } from "@wizeworks/silicaui-html";
+export type { DataBinding, DataScope, DataSource, Resolved } from "@wizeworks/silicaui-html";
 
 export type Align = "left" | "center" | "right";
 export type FontWeight = "normal" | "medium" | "semibold" | "bold";
 
 interface BaseNode {
   id: string;
+  /**
+   * The SAME dynamic-content marker the site engine's `Node` carries (reused
+   * type, not reinvented) — an opaque `{ kind, ref, attr? }` the engine never
+   * parses. `value`/`action` are meaningful on any node; `collection` (repeat
+   * children once per item) is only meaningful on a node that actually HAS
+   * `children` (body/section/columns/column) — email's schema can't express a
+   * repeat on a leaf content node the way the site's uniform `Node` shape can,
+   * since a leaf kind has no `children` slot to repeat. See `resolve.ts`.
+   */
+  data?: DataBinding;
 }
 
 export interface TextNode extends BaseNode {

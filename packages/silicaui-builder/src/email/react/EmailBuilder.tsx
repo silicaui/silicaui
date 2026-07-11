@@ -27,6 +27,8 @@ import { EmailEditor } from "../engine";
 import type { EmailDocument, EmailProject } from "../schema";
 import { toEmailHtml } from "../projector";
 import { EmailEditorProvider, useEmailDocument, useEmailEditor, useEmailHistory } from "./editor-context";
+import { EmailHostProvider, useEmailHost } from "./host-context";
+import type { EmailBuilderHost } from "./host";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
 import { RecoveryBanner } from "../../shared/react/RecoveryBanner";
 import { DraftStore } from "../../shared/persistence";
@@ -79,9 +81,13 @@ function ChromeErrorFallback({ error, reset }: { error: Error; reset: () => void
 }
 
 /** Client-side download of the exported HTML — works standalone with no host
- *  wiring; `onExport` (if given) additionally hands the host the same string. */
-function downloadHtml(doc: EmailDocument): void {
-  const html = toEmailHtml(doc);
+ *  wiring; `onExport` (if given) additionally hands the host the same string.
+ *  With a `resolver` (the host's `resolveBinding`/`resolveCollection`), the
+ *  downloaded file carries real data too, same as the host's own copy — the
+ *  Q25 "one projector" guarantee applies to every export path, not just the
+ *  callback. */
+function downloadHtml(doc: EmailDocument, resolver?: EmailBuilderHost): void {
+  const html = toEmailHtml(doc, resolver);
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -110,6 +116,7 @@ function SendTestButton({
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
 }) {
   const doc = useEmailDocument();
+  const host = useEmailHost();
   const [open, setOpen] = React.useState(false);
   const [to, setTo] = React.useState("");
   const [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -118,7 +125,9 @@ function SendTestButton({
     if (!onSendTest || !EMAIL_RE.test(to)) return;
     setStatus("sending");
     try {
-      await onSendTest({ to, html: toEmailHtml(doc), subject: doc.subject });
+      // Resolved through the SAME projector + host as Export HTML (Q25) — a
+      // test send shows exactly what a real recipient with real data would get.
+      await onSendTest({ to, html: toEmailHtml(doc, host), subject: doc.subject });
       setStatus("sent");
       setTimeout(() => setOpen(false), 900);
     } catch {
@@ -182,6 +191,7 @@ function Chrome({
 }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
+  const host = useEmailHost();
   const { canUndo, canRedo } = useEmailHistory();
   const [device, setDevice] = React.useState("desktop");
   const [mode, setMode] = React.useState<"edit" | "preview">("edit");
@@ -190,8 +200,8 @@ function Chrome({
   useEmailEditorShortcuts();
 
   const exportHtml = () => {
-    downloadHtml(doc);
-    onExport?.(toEmailHtml(doc));
+    downloadHtml(doc, host);
+    onExport?.(toEmailHtml(doc, host));
   };
 
   return (
@@ -350,6 +360,16 @@ export interface EmailBuilderProps {
    * over `document` when both are given.
    */
   project?: EmailProject;
+  /**
+   * The domain-specific seam (builder-contract.md §5) — the email twin of the
+   * site `<Builder host={...}>` prop. Every field optional; a static/
+   * marketing-only host omits it entirely and nothing here changes. See
+   * `email/react/host.ts` for the full interface (`resolveBinding`/
+   * `resolveCollection` for bound content, `catalog()` for host-added blocks,
+   * `dataSources()` for a real binding picker, `inspectorPanels()` for
+   * host-contributed panels like a merge-tag picker).
+   */
+  host?: EmailBuilderHost;
   studioTheme?: string;
   /**
    * A @wizeworks/silicaui brand `Theme` (the same shape the site builder edits) —
@@ -399,6 +419,7 @@ const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder-email";
 export function EmailBuilder({
   document,
   project,
+  host,
   studioTheme = "studio",
   theme,
   onChange,
@@ -491,15 +512,17 @@ export function EmailBuilder({
   }
 
   return (
-    <EmailEditorProvider key={current.gen} editor={editor}>
-      <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
-        <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
-          {current.recoveredAt !== null && (
-            <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
-          )}
-          <Chrome studioTheme={studioTheme} onExport={onExport} onSendTest={onSendTest} />
-        </ErrorBoundary>
-      </div>
-    </EmailEditorProvider>
+    <EmailHostProvider host={host}>
+      <EmailEditorProvider key={current.gen} editor={editor}>
+        <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
+          <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
+            {current.recoveredAt !== null && (
+              <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
+            )}
+            <Chrome studioTheme={studioTheme} onExport={onExport} onSendTest={onSendTest} />
+          </ErrorBoundary>
+        </div>
+      </EmailEditorProvider>
+    </EmailHostProvider>
   );
 }

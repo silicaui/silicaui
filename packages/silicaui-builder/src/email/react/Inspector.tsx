@@ -31,15 +31,20 @@ import {
   ToggleGroupItem,
 } from "@wizeworks/silicaui-react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
+import { useEmailHost } from "./host-context";
+import type { EmailInspectorPanelCtx } from "./host";
 import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
 import { useSavedBlocks } from "./saved-blocks";
+import { emailScopeAt } from "../resolve";
 import type {
   Align,
   ButtonNode,
   ColumnNode,
   ColumnsNode,
+  DataBinding,
+  DataSource,
   DividerNode,
   EmailBody,
   EmailColorDefaults,
@@ -962,6 +967,183 @@ function settingsFieldsFor(node: EmailNode, update: (patch: Record<string, unkno
   }
 }
 
+// ── data binding (Q1/Q2/Q19 ported from the site Inspector's DataSection/
+// DataPreview — same kind vocab, same "Reference" picker-or-raw-input split,
+// same live-preview row) ────────────────────────────────────────────────────
+const EMAIL_DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "None" },
+  { value: "value", label: "Value (fill this node)" },
+  { value: "collection", label: "Collection (repeat children)" },
+  { value: "action", label: "Action (host handler)" },
+];
+
+/** Flatten a `DataSource` tree into pickable options, deepest-first label
+ *  path ("Products > Price") — presentation-only, local to the picker. */
+function flattenEmailSources(sources: readonly DataSource[], pathLabel = ""): Array<{ value: string; label: string }> {
+  return sources.flatMap((s) => {
+    const label = pathLabel ? `${pathLabel} > ${s.label}` : s.label;
+    const own = s.cardinality === "scalar" ? [{ value: s.key, label }] : [];
+    const nested = s.fields ? flattenEmailSources(s.fields, label) : [];
+    return [...own, ...nested];
+  });
+}
+
+/** Dynamic content — the node's single `DataBinding`, ported field-for-field
+ *  from the site Inspector's `DataSection`: a kind selector, an opaque `ref`
+ *  (the engine never parses it — the host interprets it), an optional href
+ *  for the action kind, and (for `value`) an optional target `attr` — see
+ *  `email/resolve.ts`'s `BINDABLE_FIELDS` for which attrs a given node kind
+ *  actually accepts. "Collection" only appears for a node that HAS
+ *  `children` (body/section/columns/column) — repeating a leaf content node
+ *  is structurally impossible in this schema, so the option is hidden rather
+ *  than offered-and-silently-ignored. */
+function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
+  const editor = useEmailEditor();
+  const host = useEmailHost();
+  const data = node.data;
+  const kind = data?.kind ?? "";
+  const ref = data?.ref ?? "";
+  const href = data?.kind === "action" ? data.href ?? "" : "";
+  const attr = data?.kind === "value" ? data.attr ?? "" : "";
+  const canRepeat = "children" in node;
+  const kinds = canRepeat ? EMAIL_DATA_KINDS : EMAIL_DATA_KINDS.filter((k) => k.value !== "collection");
+  const write = (k: string, r: string, h: string, a: string) => {
+    if (!k) return editor.setData(id, undefined);
+    if (k === "action") {
+      const b: DataBinding = { kind: "action", ref: r };
+      if (h) b.href = h;
+      editor.setData(id, b);
+    } else if (k === "value") {
+      const b: DataBinding = { kind: "value", ref: r };
+      if (a) b.attr = a;
+      editor.setData(id, b);
+    } else {
+      editor.setData(id, { kind: "collection", ref: r });
+    }
+  };
+  const options = React.useMemo(() => {
+    if (!host?.dataSources) return undefined;
+    const scoped = emailScopeAt(host.dataSources(), editor.ancestorsOf(id));
+    return kind === "collection"
+      ? scoped.filter((s) => s.cardinality !== "scalar").map((s) => ({ value: s.key, label: s.label }))
+      : flattenEmailSources(scoped);
+  }, [host, editor, id, kind]);
+  return (
+    <Group label="Data binding">
+      <Row label="Bind">
+        <NativeSelect size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href, attr)}>
+          {kinds.map((k) => (
+            <option key={k.value} value={k.value}>
+              {k.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </Row>
+      {kind && (
+        <Row label="Reference">
+          {options ? (
+            <NativeSelect size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(kind, e.target.value, href, attr)}>
+              <option value="">Choose a field…</option>
+              {options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </NativeSelect>
+          ) : (
+            <Input size="sm" className="w-full font-mono text-xs" defaultValue={ref} placeholder="host data reference" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, e.target.value, href, attr)} />
+          )}
+        </Row>
+      )}
+      {kind === "action" && (
+        <Row label="Fallback href">
+          <Input size="sm" className="w-full" defaultValue={href} placeholder="optional link fallback" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, ref, e.target.value, attr)} />
+        </Row>
+      )}
+      {kind === "value" && (
+        <Row label="Target field">
+          <Input size="sm" className="w-full font-mono text-xs" defaultValue={attr} placeholder="auto-detected (leave blank)" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, ref, href, e.target.value)} />
+        </Row>
+      )}
+      {kind && kind !== "action" && ref && <EmailDataPreview id={id} kind={kind} ref_={ref} />}
+    </Group>
+  );
+}
+
+/** A live preview of what this bind/repeat resolves to RIGHT NOW, using the
+ *  host's own `resolveBinding`/`resolveCollection` — so an author sees
+ *  realistic data while editing, without leaving the canvas. Only meaningful
+ *  at top-level scope; a bind nested under a collection ancestor has no
+ *  single representative item to preview. */
+function EmailDataPreview({ id, kind, ref_ }: { id: string; kind: string; ref_: string }) {
+  const editor = useEmailEditor();
+  const host = useEmailHost();
+  const nestedUnderCollection = React.useMemo(
+    () => editor.ancestorsOf(id).some((a) => a.data?.kind === "collection"),
+    [editor, id],
+  );
+  if (nestedUnderCollection) {
+    return (
+      <Row label="Preview">
+        <p className="text-xs text-base-content/45">No preview — this is nested inside a repeat, one per item.</p>
+      </Row>
+    );
+  }
+  if (kind === "value") {
+    if (!host?.resolveBinding) return null;
+    const resolved = host.resolveBinding(ref_, {});
+    return (
+      <Row label="Preview">
+        <p className="truncate text-xs text-base-content/70">
+          {resolved.visible === false ? (
+            <em className="text-base-content/45">hidden (visible: false)</em>
+          ) : (
+            String(resolved.value ?? "")
+          )}
+        </p>
+      </Row>
+    );
+  }
+  if (kind === "collection") {
+    if (!host?.resolveCollection) return null;
+    const items = host.resolveCollection(ref_, {});
+    return (
+      <Row label="Preview">
+        <p className="text-xs text-base-content/70">
+          {items.length === 0 ? "0 items — the template renders once as a placeholder" : `${items.length} item${items.length === 1 ? "" : "s"}`}
+        </p>
+      </Row>
+    );
+  }
+  return null;
+}
+
+/** Host-contributed domain panels (a merge-tag picker, a per-module editor)
+ *  — ADDITIVE only, rendered after the built-in Settings sections, writing
+ *  through the SAME mutation primitives the built-ins use. Absent
+ *  `host.inspectorPanels` → renders nothing (a static host needs none of this). */
+function EmailHostPanels({ id, node }: { id: string; node: EmailNode }) {
+  const editor = useEmailEditor();
+  const host = useEmailHost();
+  const panels = host?.inspectorPanels?.(node) ?? [];
+  if (panels.length === 0) return null;
+  const ctx: EmailInspectorPanelCtx = {
+    update: (patch) => editor.update(id, patch),
+    setData: (binding) => editor.setData(id, binding),
+  };
+  return (
+    <>
+      {[...panels]
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((panel) => (
+          <Group key={panel.id} label={panel.title}>
+            {panel.render(node, ctx)}
+          </Group>
+        ))}
+    </>
+  );
+}
+
 export function EmailInspector() {
   const editor = useEmailEditor();
   const selectedId = useEmailSelection();
@@ -1021,9 +1203,15 @@ export function EmailInspector() {
           own content forces a remount — and fresh `defaultValue`s — whenever
           that happens. */}
       <div key={JSON.stringify(node)} className="flex-1 min-h-0 overflow-auto">
-        {tab === "design"
-          ? (design ?? <EmptyTab text="No design options for this element." />)
-          : (settings ?? <EmptyTab text="No settings for this element." />)}
+        {tab === "design" ? (
+          design ?? <EmptyTab text="No design options for this element." />
+        ) : (
+          <>
+            {settings ?? <EmptyTab text="No settings for this element." />}
+            <EmailDataSection id={selectedId} node={node} />
+            <EmailHostPanels id={selectedId} node={node} />
+          </>
+        )}
       </div>
     </div>
   );

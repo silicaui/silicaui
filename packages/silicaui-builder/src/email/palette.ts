@@ -150,6 +150,21 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
   },
 ];
 
-export function emailPaletteItemByKey(key: string): EmailPaletteItem | undefined {
-  return EMAIL_PALETTE.find((i) => i.key === key);
+export function emailPaletteItemByKey(key: string, items: readonly EmailPaletteItem[] = EMAIL_PALETTE): EmailPaletteItem | undefined {
+  return items.find((i) => i.key === key);
+}
+
+/**
+ * Merge a host's catalog additions/hides (`EmailBuilderHost.catalog()`) over
+ * the default 8-block index — additive, never a flat replace, mirroring the
+ * site palette's `mergeCatalog`. A host item whose key matches a default
+ * one REPLACES it (the default is dropped, the host's version is appended);
+ * any other host item is simply appended as a new entry.
+ */
+export function mergeEmailCatalog(base: readonly EmailPaletteItem[], host?: { extend?: EmailPaletteItem[]; hide?: string[] }): EmailPaletteItem[] {
+  const hidden = new Set(host?.hide ?? []);
+  const filtered = base.filter((i) => !hidden.has(i.key));
+  if (!host?.extend?.length) return filtered;
+  const merged = filtered.filter((i) => !host.extend!.some((e) => e.key === i.key));
+  return [...merged, ...host.extend];
 }

@@ -29,13 +29,15 @@
  */
 import * as React from "react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
+import { useEmailHost } from "./host-context";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
 import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
 import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
 import type { DropEdge } from "../../shared/dnd";
 import { nodeName, SOCIAL_PLATFORM } from "../node-display";
-import { emailPaletteItemByKey } from "../palette";
+import { EMAIL_PALETTE, emailPaletteItemByKey, mergeEmailCatalog } from "../palette";
+import type { EmailPaletteItem } from "../palette";
 import { getSavedBlockNode } from "./saved-blocks";
 import type { EmailEditor } from "../engine";
 import { FONT_WEIGHT_CSS } from "../projector";
@@ -66,13 +68,15 @@ function isContainer(node: EmailNode): boolean {
 
 /** Resolve a palette drag key to the node to insert, on-brand — a `saved:<id>`
  *  key resolves to a saved block's template (a deep clone; `EmailEditor.insert`
- *  re-stamps fresh ids regardless), any other key is a static catalog item. */
-function nodeForInsertKey(key: string, colors: EmailColorDefaults): EmailNode | undefined {
+ *  re-stamps fresh ids regardless); any other key looks up the HOST-MERGED
+ *  catalog (`items`), so a key from a host-extended block resolves too — not
+ *  just the static default 8. */
+function nodeForInsertKey(key: string, colors: EmailColorDefaults, items: readonly EmailPaletteItem[]): EmailNode | undefined {
   if (key.startsWith("saved:")) {
     const node = getSavedBlockNode(key.slice("saved:".length));
     return node ? structuredClone(node) : undefined;
   }
-  return emailPaletteItemByKey(key)?.make(colors);
+  return emailPaletteItemByKey(key, items)?.make(colors);
 }
 
 interface NodeInfo {
@@ -593,6 +597,8 @@ function RenderBody({ node, ctx, width }: { node: EmailBody; ctx: RenderCtx; wid
 export function EmailCanvas({ device = "desktop" }: { device?: string }) {
   const doc = useEmailDocument();
   const editor = useEmailEditor();
+  const host = useEmailHost();
+  const catalogItems = React.useMemo(() => mergeEmailCatalog(EMAIL_PALETTE, host?.catalog?.()), [host]);
   const selectedId = useEmailSelection();
   const selectedNode = useEmailSelectedNode();
   const boardRef = React.useRef<HTMLDivElement | null>(null);
@@ -645,7 +651,7 @@ export function EmailCanvas({ device = "desktop" }: { device?: string }) {
       if (!payload) return;
       const place = placement(info, edge);
       if (payload.kind === "insert") {
-        const node = nodeForInsertKey(payload.key, editor.colorDefaults);
+        const node = nodeForInsertKey(payload.key, editor.colorDefaults, catalogItems);
         if (node) editor.insert(node, place.parentId, place.index);
       } else {
         if (payload.id === place.parentId) return;
@@ -665,7 +671,7 @@ export function EmailCanvas({ device = "desktop" }: { device?: string }) {
     clearDrag();
     if (!payload) return;
     if (payload.kind === "insert") {
-      const node = nodeForInsertKey(payload.key, editor.colorDefaults);
+      const node = nodeForInsertKey(payload.key, editor.colorDefaults, catalogItems);
       if (node) editor.insertRelative(node);
     } else {
       const node = editor.node(payload.id);
@@ -692,7 +698,7 @@ export function EmailCanvas({ device = "desktop" }: { device?: string }) {
     },
     onEditCommit: (id, html) => {
       const node = editor.node(id);
-      if (node && node.kind === "text" && node.html !== html) editor.update(id, { html });
+      if (node && node.kind === "text" && node.html !== html) editor.update<TextNode>(id, { html });
       setEditingId(undefined);
     },
     onEditCancel: () => setEditingId(undefined),

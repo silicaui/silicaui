@@ -28,6 +28,8 @@ import type {
   VideoNode,
 } from "./schema";
 import { SOCIAL_PLATFORM } from "./node-display";
+import { resolveEmailTree } from "./resolve";
+import type { EmailResolveHost } from "./resolve";
 
 export const FONT_WEIGHT_CSS: Record<TextNode["fontWeight"], number> = {
   normal: 400,
@@ -259,9 +261,17 @@ const MOBILE_CSS = `
 }
 `.trim();
 
-/** Project a document to a full, standalone HTML email. */
-export function toEmailHtml(doc: EmailDocument): string {
-  const { root } = doc;
+/**
+ * Project a document to a full, standalone HTML email. With a `resolver`
+ * (host `resolveBinding`/`resolveCollection`), bound nodes are substituted
+ * with real data FIRST — the same `resolveEmailTree` pass the Inspector's
+ * live preview uses — so this one function serves both a static export and a
+ * host's real send, per the Q25 resolving-projector direction: preview and
+ * send stop being two code paths that can drift. Omit it and this behaves
+ * exactly as before (today's static projection, zero cost).
+ */
+export function toEmailHtml(doc: EmailDocument, resolver?: EmailResolveHost): string {
+  const root = resolver ? resolveEmailTree(doc.root, resolver) : doc.root;
   const sections = root.children.map(renderSection).join("\n");
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">

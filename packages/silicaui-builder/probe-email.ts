@@ -7,7 +7,9 @@
 import { EmailEditor } from "./src/email/engine";
 import { toEmailHtml } from "./src/email/projector";
 import { EMAIL_PALETTE } from "./src/email/palette";
-import type { ButtonNode, ColumnsNode, EmailColorDefaults, TextNode } from "./src/email/schema";
+import { resolveEmailTree } from "./src/email/resolve";
+import type { EmailResolveHost } from "./src/email/resolve";
+import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, Resolved, SectionNode, TextNode } from "./src/email/schema";
 
 let failures = 0;
 function check(name: string, cond: boolean): void {
@@ -278,6 +280,132 @@ console.log("multi-template project");
   );
   ed2.redo();
   check("history: redo re-adds it", ed2.templatesView.templates.length === 2);
+}
+
+// ── 8. data binding: resolveEmailTree + toEmailHtml(doc, resolver) ───────────
+// The Q23/Q24/Q25 keystone — bind/repeat/resolving-projector ported from the
+// site engine's already-shipped resolveTree/BuilderHost seam.
+console.log("data binding");
+{
+  const textNode: TextNode = {
+    id: "txt1",
+    kind: "text",
+    html: "static placeholder",
+    align: "left",
+    color: "#000",
+    fontSize: 16,
+    fontWeight: "normal",
+    lineHeight: 24,
+    data: { kind: "value", ref: "greeting" },
+  };
+  const buttonNode: ButtonNode = {
+    id: "btn1",
+    kind: "button",
+    label: "Click me",
+    href: "#",
+    bg: "#000",
+    color: "#fff",
+    radius: 4,
+    align: "center",
+    paddingX: 16,
+    paddingY: 8,
+    data: { kind: "value", ref: "productUrl", attr: "href" },
+  };
+  const actionButton: ButtonNode = {
+    id: "btn2",
+    kind: "button",
+    label: "Add to cart",
+    href: "",
+    bg: "#000",
+    color: "#fff",
+    radius: 4,
+    align: "center",
+    paddingX: 16,
+    paddingY: 8,
+    data: { kind: "action", ref: "add-to-cart" },
+  };
+  const section: SectionNode = {
+    id: "sec1",
+    kind: "section",
+    bg: "#eee",
+    paddingX: 24,
+    paddingY: 24,
+    data: { kind: "value", ref: "banner", attr: "bg" },
+    children: [textNode, buttonNode, actionButton],
+  };
+  const body: EmailBody = {
+    id: "body1",
+    kind: "body",
+    width: 600,
+    bg: "#fff",
+    contentBg: "#fff",
+    fontFamily: "Arial",
+    children: [section],
+  };
+
+  const host: EmailResolveHost = {
+    resolveBinding: (ref: string, scope: DataScope): Resolved => {
+      if (ref === "greeting") return { value: "Hi <script>alert(1)</script> & welcome" };
+      if (ref === "productUrl") return { value: "https://example.com/p/123" };
+      if (ref === "banner") return { value: "#ff0000" };
+      if (ref === "hidden-field") return { value: "x", visible: false };
+      if (ref === "item.name") return { value: (scope.item as { name: string } | undefined)?.name ?? "" };
+      return { value: "" };
+    },
+  };
+
+  check("absent BOTH hooks: resolveEmailTree returns the SAME reference (zero-cost no-op)", resolveEmailTree(body, {}) === body);
+
+  const resolved = resolveEmailTree(body, host);
+  const rSection = resolved.children[0]!;
+  const rText = rSection.children[0] as TextNode;
+  const rButton = rSection.children[1] as ButtonNode;
+  const rAction = rSection.children[2] as ButtonNode;
+
+  check("value bind fills a TextNode's html with the resolved value", rText.html.includes("Hi") && rText.html.includes("welcome"));
+  check("a bound text value is HTML-escaped (no raw <script> tag survives)", !rText.html.includes("<script>") && rText.html.includes("&lt;script&gt;"));
+  check("a bound text value escapes bare & too", rText.html.includes("&amp;"));
+  check("value+attr bind fills exactly the target field (button href)", rButton.href === "https://example.com/p/123");
+  check("value+attr bind leaves OTHER fields untouched (button label)", rButton.label === "Click me");
+  check(
+    "value+attr bind on a CONTAINER (section.bg) still resolves its children — the Q22 defect the site version has, fixed here",
+    rSection.bg === "#ff0000" && rText.html.includes("welcome") && rButton.href === "https://example.com/p/123",
+  );
+  check("an action bind is NEVER touched — stays an inert marker for the host's own wiring", rAction.data?.kind === "action" && rAction.href === "");
+  check("a resolved node's `data` marker is consumed (not carried into the output)", rText.data === undefined && rButton.data === undefined);
+
+  // Collection repeat + empty-collection placeholder convention.
+  const template: TextNode = { id: "item-tpl", kind: "text", html: "x", align: "left", color: "#000", fontSize: 14, fontWeight: "normal", lineHeight: 20, data: { kind: "value", ref: "item.name" } };
+  const repeatSection: SectionNode = { id: "sec2", kind: "section", bg: "#fff", paddingX: 0, paddingY: 0, data: { kind: "collection", ref: "products" }, children: [template] };
+  const repeatBody: EmailBody = { id: "body2", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [repeatSection] };
+
+  const items = [{ name: "Aurora Lamp" }, { name: "Solstice Mug" }, { name: "Nimbus Rug" }];
+  const withItems = resolveEmailTree(repeatBody, { ...host, resolveCollection: () => items });
+  const repeatedChildren = withItems.children[0]!.children as TextNode[];
+  check("collection bind repeats children once per resolved item", repeatedChildren.length === 3);
+  check("each repeated item resolves its own scoped binding (item.name threaded down)", repeatedChildren.map((c) => c.html).join("|") === "Aurora Lamp|Solstice Mug|Nimbus Rug");
+
+  const withEmpty = resolveEmailTree(repeatBody, { ...host, resolveCollection: () => [] });
+  check("an empty collection renders the authored template ONCE, as the editor's placeholder convention", (withEmpty.children[0]!.children as TextNode[]).length === 1);
+
+  // visible:false drops the node (and its subtree) from the resolved output.
+  const hiddenSection: SectionNode = { id: "sec3", bg: "#fff", kind: "section", paddingX: 0, paddingY: 0, data: { kind: "value", ref: "hidden-field" }, children: [] };
+  const hiddenBody: EmailBody = { id: "body3", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [hiddenSection] };
+  const withHidden = resolveEmailTree(hiddenBody, host);
+  check("visible:false drops the bound node from the resolved tree", withHidden.children.length === 0);
+
+  // End-to-end: a real EmailEditor + toEmailHtml(doc, resolver) — the actual
+  // public path a host calls, not just the resolver internals.
+  const ed = new EmailEditor();
+  const introId = ed.root.children[0]!.children[0]!.id;
+  ed.setData(introId, { kind: "value", ref: "greeting" });
+  const html = toEmailHtml(ed.extract());
+  check(
+    "toEmailHtml with NO resolver leaves an authored bind unresolved (static projection unchanged)",
+    html.includes("Start writing your email") && !html.includes("Hi &lt;script&gt;"),
+  );
+  const resolvedHtml = toEmailHtml(ed.extract(), host);
+  check("toEmailHtml(doc, resolver) bakes the resolved value into the real output", resolvedHtml.includes("Hi") && resolvedHtml.includes("welcome") && !resolvedHtml.includes("Start writing your email"));
 }
 
 console.log(`\n${failures === 0 ? "✅ email engine: all checks passed" : `❌ ${failures} check(s) failed`}`);

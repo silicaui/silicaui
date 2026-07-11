@@ -6,6 +6,7 @@
  * one canvas, not a multi-page site, so those site concepts don't apply here.
  */
 import { defaultMakeId } from "@wizeworks/silicaui-html";
+import type { DataBinding } from "@wizeworks/silicaui-html";
 import type {
   ColumnNode,
   ColumnsNode,
@@ -400,10 +401,42 @@ export class EmailEditor {
     return locate(this.doc.root, id)?.node;
   }
 
+  /** `id`'s ancestors, root-first, NOT including `id` itself — powers the
+   *  binding picker's collection-scope narrowing (`emailScopeAt`) and the
+   *  Inspector's "nested under a repeat" check, mirroring the site engine's
+   *  `ancestorsOf`. */
+  ancestorsOf(id: string): EmailNode[] {
+    const out: EmailNode[] = [];
+    const walk = (node: EmailNode): boolean => {
+      if (node.id === id) return true;
+      for (const child of childrenOf(node) ?? []) {
+        out.push(node);
+        if (walk(child)) return true;
+        out.pop();
+      }
+      return false;
+    };
+    walk(this.doc.root);
+    return out;
+  }
+
   /** True when `node` can accept an inserted/dropped child (of any kind — the
    *  actual kind is checked separately via `canHold`). */
   acceptsChildren(node: EmailNode): boolean {
     return isContainer(node);
+  }
+
+  // ── data binding ───────────────────────────────────────────────────────────
+  /** Set (or clear) a node's dynamic-content marker — the sole editing surface
+   *  for `data`, mirroring the site engine's `setData`. Lowers to nothing in
+   *  `toEmailHtml` by default; a resolver passed to `toEmailHtml`/the canvas
+   *  consumes it (see `email/resolve.ts`). */
+  setData(id: string, binding: DataBinding | undefined): void {
+    const found = locate(this.doc.root, id);
+    if (!found) return;
+    this.commit("props", () => {
+      found.node.data = binding;
+    });
   }
 
   // ── node edits ─────────────────────────────────────────────────────────────

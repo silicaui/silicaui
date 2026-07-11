@@ -5,6 +5,8 @@
 export { EmailEditor } from "./engine";
 export type { ChangeEvent, ChangeKind, TemplateMeta, TemplatesView } from "./engine";
 export { toEmailHtml } from "./projector";
+export { resolveEmailTree, emailScopeAt } from "./resolve";
+export type { EmailResolveHost } from "./resolve";
 export { emptyEmailDocument, isContentKind } from "./schema";
 export type {
   Align,
@@ -13,6 +15,9 @@ export type {
   ColumnsNode,
   ContentKind,
   ContentNode,
+  DataBinding,
+  DataScope,
+  DataSource,
   DividerNode,
   EmailBody,
   EmailColorDefaults,
@@ -24,6 +29,7 @@ export type {
   HtmlNode,
   ImageNode,
   LayoutChild,
+  Resolved,
   SectionNode,
   SocialLink,
   SocialNode,

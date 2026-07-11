@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { Builder } from "@wizeworks/silicaui-builder/react";
 import type { BuilderHost } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
+import type { EmailBuilderHost } from "@wizeworks/silicaui-builder/email/react";
 import { stamp, el } from "@wizeworks/silicaui-html";
 import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
 
@@ -74,6 +75,57 @@ const demoHost: BuilderHost = {
   resolveCollection: (ref) => (ref === "products" ? ["Widget", "Gadget", "Gizmo"] : []),
 };
 
+/**
+ * A demo `EmailBuilderHost` — the email twin of `demoHost` above, mounted
+ * under the SAME `?host=demo` switch, exercising the ported
+ * catalog/dataSources/resolveBinding/resolveCollection seam (Q23–Q25) end to
+ * end without a real backend.
+ */
+const demoEmailHost: EmailBuilderHost = {
+  catalog: () => ({
+    extend: [
+      {
+        key: "host:callout",
+        label: "Host block",
+        hint: "Contributed by the demo host",
+        icon: "box",
+        make: () => ({
+          id: "x",
+          kind: "text",
+          html: "Host-contributed block",
+          align: "left",
+          color: "#111827",
+          fontSize: 16,
+          fontWeight: "normal",
+          lineHeight: 24,
+        }),
+      },
+    ],
+  }),
+  dataSources: () => [
+    { key: "customer.firstName", label: "Customer first name", cardinality: "scalar" },
+    {
+      key: "products",
+      label: "Products",
+      cardinality: "array",
+      fields: [
+        { key: "product.title", label: "Title", cardinality: "scalar" },
+        { key: "product.price", label: "Price", cardinality: "scalar" },
+      ],
+    },
+  ],
+  // Fixed sample data, resolved SYNCHRONOUSLY — a real host would fetch once,
+  // up front, into a closure this reads from.
+  resolveBinding: (ref, scope) => {
+    if (ref === "customer.firstName") return { value: "Jordan" };
+    if (ref === "product.title") return { value: (scope.item as { title: string } | undefined)?.title };
+    if (ref === "product.price") return { value: (scope.item as { price: string } | undefined)?.price };
+    return { value: undefined, visible: false };
+  },
+  resolveCollection: (ref) =>
+    ref === "products" ? [{ title: "Widget", price: "$12" }, { title: "Gadget", price: "$24" }, { title: "Gizmo", price: "$36" }] : [],
+};
+
 // The editable DOCUMENT theme — a complete "lightsilica" palette (every surface +
 // role) so the Theme editor's tile grid and the component board are fully
 // populated. A nested `[data-theme]` island, distinct from the chrome's studio
@@ -137,8 +189,10 @@ const persistKey = persist ? "silicaui-designer" : null;
 const editorMode = params.get("editor");
 // `?host=demo` mounts the site builder with `demoHost` (the host adapter, §5)
 // wired in — exercises catalog/dataSources/validateClass/inspectorPanels/pickAsset
-// end to end without a real backend.
+// end to end without a real backend. Same switch mounts the email builder's
+// `demoEmailHost` twin when `?editor=email` is also set.
 const host = params.get("host") === "demo" ? demoHost : undefined;
+const emailHost = params.get("host") === "demo" ? demoEmailHost : undefined;
 
 const root = createRoot(document.getElementById("app") as HTMLElement);
 if (editorMode === "email") {
@@ -146,9 +200,10 @@ if (editorMode === "email") {
     <React.StrictMode>
       <EmailBuilder
         theme={theme}
+        host={emailHost}
         persistKey={persist ? "silicaui-designer-email" : null}
-        onChange={(doc) => {
-          bus.__lastChange = doc;
+        onChange={(project) => {
+          bus.__lastChange = project;
           bus.__changeCount += 1;
         }}
         onExport={(html) => {
