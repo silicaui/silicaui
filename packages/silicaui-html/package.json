@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-html",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "silicaui's framework-neutral node-tree source + HTML projection — the canonical Block/Document shape, the authoring kit, and toHtml.",
   "type": "module",
   "license": "MIT",
