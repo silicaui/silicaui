@@ -128,3 +128,46 @@ test("Export HTML resolves a bound node through the host, not the static placeho
 
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
+
+test("toolbarSlot renders host UI in the header, next to Send test/Export HTML", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  await expect(page.getByTestId("email-toolbar-slot")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export HTML", exact: true })).toBeVisible();
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("a Collection bind's 'Omit when empty' toggle drops the node from Export HTML when it resolves to zero items", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  // The seeded Section (a container) via the Navigator — same click-target
+  // gotcha as the earlier container test (`.tree-node`, not the `treeitem` <li>).
+  await page.getByRole("treeitem", { name: "Section" }).locator(".tree-node").first().click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+
+  const bindRow = page.locator("label", { hasText: "Bind" }).first();
+  await bindRow.locator("select").selectOption("collection");
+  const refRow = page.locator("label", { hasText: "Reference" }).first();
+  // `empty-collection` always resolves to zero items in the demo host — the
+  // ref this toggle actually changes behavior for (unlike `products`, which
+  // never hits the zero-item case).
+  await refRow.locator("select").selectOption({ label: "Empty collection (demo)" });
+  await expect(page.getByText("0 items — the template renders once as a placeholder", { exact: true })).toBeVisible();
+
+  const omitRow = page.locator("label", { hasText: "Omit when empty" }).first();
+  await omitRow.getByText("Yes", { exact: true }).click();
+  await expect(page.getByText("0 items — the node is omitted entirely", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Export HTML", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported)).toBeTruthy();
+  const exported = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported);
+  // The Section (and its only child, the seeded intro text) is gone entirely
+  // — not just rendered empty — proving `omitWhenEmpty` drops the SUBTREE,
+  // the same way a `visible: false` value bind does.
+  expect(exported).not.toContain("Start writing your email");
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});

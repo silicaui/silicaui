@@ -45,6 +45,10 @@ const demoHost: BuilderHost = {
         { key: "product.price", label: "Price", cardinality: "scalar" },
       ],
     },
+    // Always resolves to zero items — exercises the `repeat.omitWhenEmpty`
+    // toggle end-to-end (as opposed to `products`, which never hits the
+    // zero-item case in this demo host).
+    { key: "empty-collection", label: "Empty collection (demo)", cardinality: "array", fields: [] },
   ],
   validateClass: (cls) =>
     cls.includes("host-banned") ? { ok: false, reason: 'the demo host blocks "host-banned"' } : { ok: true },
@@ -113,6 +117,10 @@ const demoEmailHost: EmailBuilderHost = {
         { key: "product.price", label: "Price", cardinality: "scalar" },
       ],
     },
+    // Always resolves to zero items — exercises the `repeat.omitWhenEmpty`
+    // toggle end-to-end (as opposed to `products`, which never hits the
+    // zero-item case in this demo host).
+    { key: "empty-collection", label: "Empty collection (demo)", cardinality: "array", fields: [] },
   ],
   // Fixed sample data, resolved SYNCHRONOUSLY — a real host would fetch once,
   // up front, into a closure this reads from.
@@ -214,6 +222,13 @@ if (editorMode === "email") {
           await new Promise((r) => setTimeout(r, 150));
           bus.__sentTest = { to, subject };
         }}
+        toolbarSlot={
+          emailHost ? (
+            <span data-testid="email-toolbar-slot" className="text-xs text-base-content/50 px-1">
+              Demo host UI
+            </span>
+          ) : undefined
+        }
       />
     </React.StrictMode>,
   );

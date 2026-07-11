@@ -138,11 +138,13 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
 
   if (node.data?.kind === "collection" && host.resolveCollection && "children" in node) {
     const items = host.resolveCollection(node.data.ref, scope);
+    if (items.length === 0 && node.data.omitWhenEmpty) return undefined;
     const { data: _data, children, ...rest } = node as EmailNode & { children: EmailNode[]; data?: unknown };
     const resolvedChildren =
       items.length === 0
         ? // No items: the authored children render once, as the editor's own
-          // "one placeholder item" convention (builder-contract.md §3).
+          // "one placeholder item" convention (builder-contract.md §3) — unless
+          // `omitWhenEmpty` opted out above, dropping the node entirely instead.
           resolveChildren(children, host, scope)
         : items.flatMap((item, index) => resolveChildren(children, host, { item, index }));
     return { ...rest, children: resolvedChildren } as EmailNode;

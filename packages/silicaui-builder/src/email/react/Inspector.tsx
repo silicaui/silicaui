@@ -1105,9 +1105,10 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
   const ref = data?.ref ?? "";
   const href = data?.kind === "action" ? data.href ?? "" : "";
   const attr = data?.kind === "value" ? data.attr ?? "" : "";
+  const omitWhenEmpty = data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false;
   const canRepeat = "children" in node;
   const kinds = canRepeat ? EMAIL_DATA_KINDS : EMAIL_DATA_KINDS.filter((k) => k.value !== "collection");
-  const write = (k: string, r: string, h: string, a: string) => {
+  const write = (k: string, r: string, h: string, a: string, omit = omitWhenEmpty) => {
     if (!k) return editor.setData(id, undefined);
     if (k === "action") {
       const b: DataBinding = { kind: "action", ref: r };
@@ -1118,7 +1119,9 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
       if (a) b.attr = a;
       editor.setData(id, b);
     } else {
-      editor.setData(id, { kind: "collection", ref: r });
+      const b: DataBinding = { kind: "collection", ref: r };
+      if (omit) b.omitWhenEmpty = true;
+      editor.setData(id, b);
     }
   };
   const options = React.useMemo(() => {
@@ -1165,7 +1168,20 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
           <Input size="sm" className="w-full font-mono text-xs" defaultValue={attr} placeholder="auto-detected (leave blank)" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, ref, href, e.target.value)} />
         </Row>
       )}
-      {kind && kind !== "action" && ref && <EmailDataPreview id={id} kind={kind} ref_={ref} />}
+      {kind === "collection" && (
+        <Row label="Omit when empty">
+          <ToggleGroup
+            className="toggle-group-sm"
+            aria-label="Omit when empty"
+            value={[omitWhenEmpty ? "on" : "off"]}
+            onValueChange={(v: string[]) => v.length && write(kind, ref, href, attr, v[v.length - 1] === "on")}
+          >
+            <ToggleGroupItem value="off">No</ToggleGroupItem>
+            <ToggleGroupItem value="on">Yes</ToggleGroupItem>
+          </ToggleGroup>
+        </Row>
+      )}
+      {kind && kind !== "action" && ref && <EmailDataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} />}
     </Group>
   );
 }
@@ -1175,7 +1191,7 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
  *  realistic data while editing, without leaving the canvas. Only meaningful
  *  at top-level scope; a bind nested under a collection ancestor has no
  *  single representative item to preview. */
-function EmailDataPreview({ id, kind, ref_ }: { id: string; kind: string; ref_: string }) {
+function EmailDataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: string; ref_: string; omitWhenEmpty?: boolean }) {
   const editor = useEmailEditor();
   const host = useEmailHost();
   const nestedUnderCollection = React.useMemo(
@@ -1210,7 +1226,11 @@ function EmailDataPreview({ id, kind, ref_ }: { id: string; kind: string; ref_: 
     return (
       <Row label="Preview">
         <p className="text-xs text-base-content/70">
-          {items.length === 0 ? "0 items — the template renders once as a placeholder" : `${items.length} item${items.length === 1 ? "" : "s"}`}
+          {items.length === 0
+            ? omitWhenEmpty
+              ? "0 items — the node is omitted entirely"
+              : "0 items — the template renders once as a placeholder"
+            : `${items.length} item${items.length === 1 ? "" : "s"}`}
         </p>
       </Row>
     );

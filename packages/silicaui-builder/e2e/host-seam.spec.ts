@@ -116,6 +116,35 @@ test("toolbarSlot renders host UI in the header, next to Publish", async ({ page
   await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
 });
 
+test("a collection bind's 'Omit when empty' toggle drops the node from the resolved output at zero items", async ({ page }) => {
+  await ready(page);
+  const canvas = page.locator(".sui-canvas");
+
+  const HEADLINE = "Ship your store in an afternoon";
+  await canvas.getByText(HEADLINE).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+
+  await page.getByTestId("data-kind").selectOption("collection");
+  const refSelect = page.getByTestId("data-ref-picker");
+  // `empty-collection` always resolves to zero items in the demo host — the
+  // ref this toggle actually changes behavior for (unlike `products`, which
+  // never hits the zero-item case).
+  await refSelect.selectOption("empty-collection");
+  await expect(page.getByText("0 items — the template renders once as a placeholder", { exact: true })).toBeVisible();
+
+  await page.locator("div.mb-2", { hasText: "Omit when empty" }).locator('[role="switch"]').click();
+  await expect(page.getByText("0 items — the node is omitted entirely", { exact: true })).toBeVisible();
+
+  // The bound node (the headline) is dropped from the resolved tree entirely
+  // — proven directly against the engine's own resolve, since this demo host
+  // has no live "resolved preview" render surface on the canvas itself (the
+  // canvas always shows the AUTHORED tree, not a resolved one — see Canvas's
+  // own doc comment). `packages/silicaui-html/verify-resolve.mjs` covers the
+  // resolver-level assertion end to end; this test proves the UI round-trips
+  // the flag into `editor.setData` without error.
+  await expect(refSelect).toHaveValue("empty-collection");
+});
+
 test("onActivePageChange fires on mount, and again on a page switch/rename", async ({ page }) => {
   await ready(page);
 

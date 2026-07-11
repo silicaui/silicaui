@@ -71,6 +71,27 @@ function check(name, cond) {
   check("placeholder item is the authored template, untouched", out.children[0].children[0] === "placeholder");
 }
 
+// ── collection, empty array, omitWhenEmpty: node dropped, not placeholder ──
+{
+  const row = el("li", "item", { text: "placeholder" });
+  const list = el("ul", "list", { children: [row] });
+  list.data = { kind: "collection", ref: "products", omitWhenEmpty: true };
+  const wrap = el("div", "wrap", { children: [list] });
+  const host = { resolveCollection: () => [] };
+  const out = resolveTree(wrap, host);
+  check("omitWhenEmpty + zero items drops the node entirely, like visible:false", out.children.length === 0);
+}
+
+// ── collection, NON-empty array, omitWhenEmpty: no effect, repeats normally ─
+{
+  const row = el("li", "item", { text: "placeholder" });
+  const list = el("ul", "list", { children: [row] });
+  list.data = { kind: "collection", ref: "products", omitWhenEmpty: true };
+  const host = { resolveCollection: () => ["A", "B"] };
+  const out = resolveTree(list, host);
+  check("omitWhenEmpty only changes behavior at ZERO items — non-empty still repeats normally", out.children.length === 2);
+}
+
 // ── collection, no resolver supplied: placeholder renders unchanged ────────
 {
   const row = el("li", "item", { text: "placeholder" });

@@ -924,9 +924,12 @@ function flattenSources(sources: readonly DataSource[], pathLabel = ""): Array<{
  *  optional href for the action kind, and (for `value`) an optional target
  *  `attr` — set it to write the resolved value onto a specific attribute/prop
  *  (e.g. `href` on a card's own anchor) instead of the auto-detected primary
- *  slot. Lowers to `data-sui-*` in `toHtml`. When the host supplies
- *  `dataSources()`, the Reference field becomes a generic picker scoped to the
- *  node's ancestors (`scopeAt`) instead of a raw text input. */
+ *  slot. For `collection`, an "Omit when empty" toggle sets `omitWhenEmpty` —
+ *  drops the node entirely (like `visible: false`) instead of the default
+ *  one-placeholder-item convention when the collection resolves to zero items
+ *  (builder-contract.md §3). Lowers to `data-sui-*` in `toHtml`. When the host
+ *  supplies `dataSources()`, the Reference field becomes a generic picker
+ *  scoped to the node's ancestors (`scopeAt`) instead of a raw text input. */
 function DataSection({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
   const host = useHost();
@@ -935,7 +938,8 @@ function DataSection({ id, node }: { id: string; node: Node }) {
   const ref = data?.ref ?? "";
   const href = data?.kind === "action" ? data.href ?? "" : "";
   const attr = data?.kind === "value" ? data.attr ?? "" : "";
-  const write = (k: string, r: string, h: string, a: string) => {
+  const omitWhenEmpty = data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false;
+  const write = (k: string, r: string, h: string, a: string, omit = omitWhenEmpty) => {
     if (!k) return editor.setData(id, undefined);
     if (k === "action") {
       const b: DataBinding = { kind: "action", ref: r };
@@ -946,7 +950,9 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       if (a) b.attr = a;
       editor.setData(id, b);
     } else {
-      editor.setData(id, { kind: "collection", ref: r });
+      const b: DataBinding = { kind: "collection", ref: r };
+      if (omit) b.omitWhenEmpty = true;
+      editor.setData(id, b);
     }
   };
   const options = React.useMemo(() => {
@@ -983,6 +989,18 @@ function DataSection({ id, node }: { id: string; node: Node }) {
           )}
         </Row>
       )}
+      {kind === "collection" && (
+        <Row label="Omit when empty">
+          <label className="flex items-center gap-2 text-xs text-base-content/60">
+            <Toggle
+              size="sm"
+              checked={omitWhenEmpty}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => write(kind, ref, href, attr, e.target.checked)}
+            />
+            {omitWhenEmpty ? "Node is dropped" : "Renders a placeholder"}
+          </label>
+        </Row>
+      )}
       {kind === "action" && (
         <Row label="Fallback href">
           <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write(kind, ref, v, attr)} />
@@ -999,7 +1017,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
           />
         </Row>
       )}
-      {kind && kind !== "action" && ref && <DataPreview id={id} kind={kind} ref_={ref} />}
+      {kind && kind !== "action" && ref && <DataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} />}
     </Group>
   );
 }
@@ -1011,7 +1029,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
  * top-level scope (`{}`); a bind nested under a `repeat` ancestor has no single
  * representative item to preview, so it says so rather than guessing one.
  */
-function DataPreview({ id, kind, ref_ }: { id: string; kind: string; ref_: string }) {
+function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: string; ref_: string; omitWhenEmpty?: boolean }) {
   const editor = useEditor();
   const host = useHost();
   const nestedUnderRepeat = React.useMemo(
@@ -1046,7 +1064,11 @@ function DataPreview({ id, kind, ref_ }: { id: string; kind: string; ref_: strin
     return (
       <Row label="Preview">
         <p className="text-xs text-base-content/70">
-          {items.length === 0 ? "0 items — the template renders once as a placeholder" : `${items.length} item${items.length === 1 ? "" : "s"}`}
+          {items.length === 0
+            ? omitWhenEmpty
+              ? "0 items — the node is omitted entirely"
+              : "0 items — the template renders once as a placeholder"
+            : `${items.length} item${items.length === 1 ? "" : "s"}`}
         </p>
       </Row>
     );

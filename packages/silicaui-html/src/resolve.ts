@@ -69,11 +69,13 @@ function resolveNode(node: Node, host: ResolveHost, scope: DataScope): Node | un
 
   if (node.data?.kind === "collection" && host.resolveCollection) {
     const items = host.resolveCollection(node.data.ref, scope);
+    if (items.length === 0 && node.data.omitWhenEmpty) return undefined;
     const { data: _data, ...rest } = node;
     const children =
       items.length === 0
         ? // No items: the authored children render once, as the editor's own
-          // "one placeholder item" convention (builder-contract.md §3).
+          // "one placeholder item" convention (builder-contract.md §3) — unless
+          // `omitWhenEmpty` opted out above, dropping the node entirely instead.
           resolveChildren(node.children, host, scope)
         : items.flatMap((item, index) => resolveChildren(node.children, host, { item, index }));
     return { ...rest, children } as Node;

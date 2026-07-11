@@ -184,10 +184,12 @@ function Chrome({
   studioTheme,
   onExport,
   onSendTest,
+  toolbarSlot,
 }: {
   studioTheme: string;
   onExport?: (html: string) => void;
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
+  toolbarSlot?: React.ReactNode;
 }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
@@ -258,6 +260,7 @@ function Chrome({
           defaultValue={doc.preheader}
           onBlur={(e: React.FocusEvent<HTMLInputElement>) => editor.setPreheader(e.target.value)}
         />
+        {toolbarSlot}
         <SendTestButton studioTheme={studioTheme} onSendTest={onSendTest} />
         <Button color="primary" size="sm" onClick={exportHtml}>
           <Icon name="download" /> Export HTML
@@ -411,6 +414,18 @@ export interface EmailBuilderProps {
    * the two never collide in the same host page.
    */
   persistKey?: string | null;
+  /**
+   * Arbitrary host UI rendered in the header, immediately before the Send
+   * test/Export HTML buttons — e.g. a save-status badge, a "last saved"
+   * timestamp, or (per the site `<Builder toolbarSlot>` this mirrors) a
+   * host's own lifecycle strip (template switch/new/fork/publish) that would
+   * otherwise have to render OUTSIDE the builder entirely, stacking a second
+   * header above it. The builder has no opinion on save/publish status: it
+   * only knows about local edits, not whether the host's own `onChange`
+   * persistence succeeded, failed, or is still in flight, so it renders
+   * nothing here by default.
+   */
+  toolbarSlot?: React.ReactNode;
 }
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder-email";
@@ -426,6 +441,7 @@ export function EmailBuilder({
   onExport,
   onSendTest,
   persistKey = DEFAULT_PERSIST_KEY,
+  toolbarSlot,
 }: EmailBuilderProps) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
   // `project` takes precedence over the legacy single-template `document`.
@@ -519,7 +535,7 @@ export function EmailBuilder({
             {current.recoveredAt !== null && (
               <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
             )}
-            <Chrome studioTheme={studioTheme} onExport={onExport} onSendTest={onSendTest} />
+            <Chrome studioTheme={studioTheme} onExport={onExport} onSendTest={onSendTest} toolbarSlot={toolbarSlot} />
           </ErrorBoundary>
         </div>
       </EmailEditorProvider>

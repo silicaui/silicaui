@@ -388,6 +388,15 @@ console.log("data binding");
   const withEmpty = resolveEmailTree(repeatBody, { ...host, resolveCollection: () => [] });
   check("an empty collection renders the authored template ONCE, as the editor's placeholder convention", (withEmpty.children[0]!.children as TextNode[]).length === 1);
 
+  // omitWhenEmpty: opts OUT of the placeholder convention, dropping the node
+  // entirely at zero items — same effect as a value bind's visible:false.
+  const omitSection: SectionNode = { id: "sec2b", kind: "section", bg: "#fff", paddingX: 0, paddingY: 0, data: { kind: "collection", ref: "products", omitWhenEmpty: true }, children: [template] };
+  const omitBody: EmailBody = { id: "body2b", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [omitSection] };
+  const omitEmpty = resolveEmailTree(omitBody, { ...host, resolveCollection: () => [] });
+  check("omitWhenEmpty + zero items drops the node entirely, like visible:false", omitEmpty.children.length === 0);
+  const omitNonEmpty = resolveEmailTree(omitBody, { ...host, resolveCollection: () => items });
+  check("omitWhenEmpty only changes behavior at ZERO items — non-empty still repeats normally", (omitNonEmpty.children[0]!.children as TextNode[]).length === 3);
+
   // visible:false drops the node (and its subtree) from the resolved output.
   const hiddenSection: SectionNode = { id: "sec3", bg: "#fff", kind: "section", paddingX: 0, paddingY: 0, data: { kind: "value", ref: "hidden-field" }, children: [] };
   const hiddenBody: EmailBody = { id: "body3", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [hiddenSection] };
