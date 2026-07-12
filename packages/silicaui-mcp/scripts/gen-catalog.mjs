@@ -80,14 +80,24 @@ console.log("tokens.json");
 const { LIGHT, DARK, SEMANTIC_COLORS } = await import(
   pathToFileURL(path.join(packagesRoot, "silicaui/src/colors.js")).href
 );
+let scalarTokens = [];
+try {
+  const { SCALAR_TOKENS } = await import(
+    pathToFileURL(path.join(packagesRoot, "silicaui-html/dist/index.js")).href
+  );
+  scalarTokens = SCALAR_TOKENS;
+} catch (err) {
+  console.warn(`  ! failed to load @wizeworks/silicaui-html SCALAR_TOKENS (build it first: pnpm --filter @wizeworks/silicaui-html build): ${err.message}`);
+}
 writeJson("tokens.json", {
   semanticColors: SEMANTIC_COLORS,
   light: LIGHT,
   dark: DARK,
+  scalarTokens,
   typography: {
     baseFontSize: "100% (≈16px) — an explicit anchor, not the UA default by accident; the whole rem-based type scale (text-md = 1rem) scales with it.",
     fontFamilyTokens: ["--font-sans", "--font-serif", "--font-mono"],
-    note: "Every non-namespace token (--size-field, --border, --depth, --duration, --ease, --focus-width, --focus-offset, --disabled-opacity, --noise, …) carries its default inline via var(--token, default) in each component, so an app's own :root/@theme override always wins.",
+    note: "Every non-namespace token (see scalarTokens above, plus --duration, --ease, --focus-offset which aren't yet theme-editable) carries its default inline via var(--token, default) in each component, so an app's own :root/@theme override always wins.",
   },
 });
 

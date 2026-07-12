@@ -259,6 +259,31 @@ interface Theme {
 - **Every non-color axis is tokenized too:** radius (`box`/`field`/`selector`),
   shadow scale, fonts (`heading`/`body`), a spacing base unit, container width.
 
+### 5.1 Scalar theme tokens
+
+Non-color knobs are set once at the theme root and every component that reads
+them updates — there is no per-instance override needed for the common case.
+The canonical list is `SCALAR_TOKENS` in `silicaui-html/src/themes.ts` (also the
+source the builder's ThemeEditor and the MCP's `get_tokens` both read); each
+entry carries `key`, `default`, a `min`/`max`/`step` range, and a `doc` string
+describing what it actually touches:
+
+| token | default | affects |
+| --- | --- | --- |
+| `--radius-selector` | `1rem` | Radio, Checkbox, Switch, Toggle corners |
+| `--radius-field` | `0.25rem` | Input, Select, Textarea, Button corners |
+| `--radius-box` | `0.5rem` | Card, Dialog, Popover, Dropdown corners |
+| `--border` | `1px` | hairline width on fields + box surfaces |
+| `--size-field` | `0.25rem` | base unit fields scale height/padding from |
+| `--depth` | `1` | Card's resting + hover-lift shadow, Button's inset highlight/drop shadow on solid fills. `--depth: 0` flattens both **globally** — the way to kill Card's shadow app-wide without a `shadow-none` per instance (no such utility exists; the shadow is computed, not a static class) |
+| `--noise` | `0` | reserved for a grain texture; **not yet wired into any component** — the builder's "Noise" toggle currently has no visible effect |
+| `--focus-width` | `2px` | keyboard focus ring outline width |
+| `--disabled-opacity` | `0.5` | opacity on disabled controls |
+
+Every component consumes these as `var(--token, default)`, never a hardcoded
+literal, so setting one on `:root` (or a theme's `[data-theme]` block) always
+wins over the built-in default — no component-level rebuild required.
+
 ---
 
 ## 6. Blocks — the composed tier

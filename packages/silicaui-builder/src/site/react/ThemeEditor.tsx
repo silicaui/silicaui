@@ -448,7 +448,7 @@ export function ThemeEditor() {
         <Icon name="sliders" /> Effects
       </div>
       {[
-        { key: "--depth", dflt: "1", tt: "Depth", ts: "3D depth on fields & selectors" },
+        { key: "--depth", dflt: "1", tt: "Depth", ts: "Shadow on cards & buttons" },
         { key: "--noise", dflt: "0", tt: "Noise", ts: "Grain on surfaces" },
       ].map((e) => (
         <div key={e.key} className="flex items-center justify-between py-2.5 border-b border-base-200">

@@ -74,15 +74,15 @@ export function colorValue(theme: Theme, name: string, mode: "light" | "dark" = 
  * `var(--token, default)`, so omitting one is safe.
  */
 export const SCALAR_TOKENS = [
-  { key: "--radius-selector", label: "Selector radius", group: "radius", default: "1rem", unit: "rem", min: 0, max: 2, step: 0.05 },
-  { key: "--radius-field", label: "Field radius", group: "radius", default: "0.25rem", unit: "rem", min: 0, max: 2, step: 0.05 },
-  { key: "--radius-box", label: "Box radius", group: "radius", default: "0.5rem", unit: "rem", min: 0, max: 2, step: 0.05 },
-  { key: "--border", label: "Border width", group: "form", default: "1px", unit: "px", min: 0, max: 4, step: 0.5 },
-  { key: "--size-field", label: "Field size", group: "form", default: "0.25rem", unit: "rem", min: 0.15, max: 0.4, step: 0.01 },
-  { key: "--depth", label: "Depth", group: "effects", default: "1", unit: "", min: 0, max: 1, step: 1 },
-  { key: "--noise", label: "Noise", group: "effects", default: "0", unit: "", min: 0, max: 1, step: 1 },
-  { key: "--focus-width", label: "Focus ring width", group: "effects", default: "2px", unit: "px", min: 0, max: 6, step: 0.5 },
-  { key: "--disabled-opacity", label: "Disabled opacity", group: "effects", default: "0.5", unit: "", min: 0.2, max: 1, step: 0.05 },
+  { key: "--radius-selector", label: "Selector radius", group: "radius", default: "1rem", unit: "rem", min: 0, max: 2, step: 0.05, doc: "Corner radius for round selector controls (Radio, Checkbox, Switch, Toggle)." },
+  { key: "--radius-field", label: "Field radius", group: "radius", default: "0.25rem", unit: "rem", min: 0, max: 2, step: 0.05, doc: "Corner radius for form fields — Input, Select, Textarea, Button, etc." },
+  { key: "--radius-box", label: "Box radius", group: "radius", default: "0.5rem", unit: "rem", min: 0, max: 2, step: 0.05, doc: "Corner radius for box-tier surfaces — Card, Dialog, Popover, Dropdown, and similar containers." },
+  { key: "--border", label: "Border width", group: "form", default: "1px", unit: "px", min: 0, max: 4, step: 0.5, doc: "Hairline border width shared by fields and box surfaces (Input, Card, etc.)." },
+  { key: "--size-field", label: "Field size", group: "form", default: "0.25rem", unit: "rem", min: 0.15, max: 0.4, step: 0.01, doc: "Base unit fields scale their height/padding from — raising it enlarges Input/Select/Button uniformly." },
+  { key: "--depth", label: "Depth", group: "effects", default: "1", unit: "", min: 0, max: 1, step: 1, doc: "Shadow intensity on Card (resting + hover-lift box-shadow) and Button (inset highlight + drop shadow on solid fills). Set to 0 for fully flat surfaces — no per-component shadow-none needed." },
+  { key: "--noise", label: "Noise", group: "effects", default: "0", unit: "", min: 0, max: 1, step: 1, doc: "Reserved for a grain/noise surface texture. Not yet wired into any component's CSS — currently has no visible effect." },
+  { key: "--focus-width", label: "Focus ring width", group: "effects", default: "2px", unit: "px", min: 0, max: 6, step: 0.5, doc: "Outline width of the keyboard focus ring across interactive components." },
+  { key: "--disabled-opacity", label: "Disabled opacity", group: "effects", default: "0.5", unit: "", min: 0.2, max: 1, step: 0.05, doc: "Opacity applied to disabled controls." },
 ] as const;
 
 // ── presets ──────────────────────────────────────────────────────────────────

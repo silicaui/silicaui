@@ -2510,6 +2510,12 @@
             "doc": "Class for the popup surface."
           },
           {
+            "name": "popupProps",
+            "optional": true,
+            "type": "React.ComponentProps<typeof BaseCombobox.Popup> & {\r\n    \"data-theme\"?: string;\r\n  }",
+            "doc": "Extra props spread onto the popup surface — a portaled popup renders at document.body, OUTSIDE any `[data-theme]` island it was opened from, so a host with a scoped theme (e.g. a builder chrome) should pass `popupProps={{ \"data-theme\": \"…\" }}` to re-establish the theme tokens on the popup's own root (mirrors `Select`'s `popupProps`)."
+          },
+          {
             "name": "itemToStringLabel",
             "optional": true,
             "type": "(item: unknown) => string",

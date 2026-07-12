@@ -223,7 +223,7 @@ export function createServer(): McpServer {
     {
       title: "Get Silica UI design tokens",
       description:
-        "Get the semantic color list and their light/dark OKLCH values, plus the typography token model.",
+        "Get the semantic color list and their light/dark OKLCH values, the typography token model, and the scalar theme tokens (radius/border/depth/noise/focus/disabled-opacity) with defaults, ranges, and what each one actually affects.",
       inputSchema: {},
     },
     async () => ({ content: [{ type: "text", text: JSON.stringify(tokens, null, 2) }] }),
