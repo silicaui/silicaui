@@ -93,6 +93,44 @@ export function toast(colors, prefix = "") {
       opacity: "0.9",
       lineHeight: "1.4",
     },
+    // Optional trailing action button (`toast.add({ actionProps: {...} })`) —
+    // an outlined pill using `currentColor`, so it inherits `--toast-fg` and
+    // stays legible against every `data-type` background without its own
+    // color vars. Sits between content and close; carries the same
+    // auto-margin end-alignment `-close` does, so it still lands flush right
+    // when no action is present (see the matching note on `-close`).
+    [sel("-action")]: {
+      flexShrink: "0",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "1.75rem",
+      paddingInline: "0.75rem",
+      marginInlineStart: "auto",
+      fontSize: "0.8125rem",
+      fontWeight: "600",
+      lineHeight: "1",
+      whiteSpace: "nowrap",
+      borderWidth: "var(--border, 1px)",
+      borderStyle: "solid",
+      borderColor: "currentColor",
+      borderRadius: "var(--radius-field, 0.375rem)",
+      background: "transparent",
+      color: "inherit",
+      opacity: "0.9",
+      cursor: "pointer",
+      transition: "opacity 0.15s, background-color 0.15s",
+
+      "&:hover": {
+        opacity: "1",
+        backgroundColor: "color-mix(in oklab, currentColor 15%, transparent)",
+      },
+      "&:focus-visible": {
+        outline: "2px solid var(--color-primary)",
+        outlineOffset: "1px",
+      },
+    },
+
     [sel("-close")]: {
       flexShrink: "0",
       display: "inline-flex",
@@ -103,7 +141,9 @@ export function toast(colors, prefix = "") {
       // `.toast-content` always has `flex: 1 1 0%` (unlike Alert, Toast's
       // content is never bare children), so this is belt-and-suspenders
       // rather than load-bearing — see the matching fix in alert.js for why
-      // it matters there.
+      // it matters there. Also a no-op (rather than harmful) when `-action`
+      // precedes it: `-action`'s own auto-margin already claimed the row's
+      // leftover space, so there's none left for this one to consume.
       marginInlineStart: "auto",
       border: "0",
       borderRadius: "9999px",

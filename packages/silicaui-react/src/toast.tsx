@@ -73,6 +73,9 @@ function ToastList() {
                 <BaseToast.Title className={cx(sc("toast-title"))} />
                 <BaseToast.Description className={cx(sc("toast-description"))} />
               </div>
+              {toast.actionProps && (
+                <BaseToast.Action className={cx(sc("toast-action"))} />
+              )}
               <BaseToast.Close className={cx(sc("toast-close"))} aria-label="Close">
                 <CloseIcon />
               </BaseToast.Close>
@@ -93,6 +96,16 @@ function ToastList() {
  *
  *   const toast = useToast();
  *   toast.add({ title: "Saved", description: "Your changes are saved.", type: "success" });
+ *
+ * For a sticky toast with a clickable action, pass `actionProps` (forwarded
+ * to Base UI's `Toast.Action`, which renders a `<button>`) — commonly paired
+ * with `timeout: 0` so it doesn't auto-dismiss before the user can act:
+ *
+ *   toast.add({
+ *     title: "New version available",
+ *     actionProps: { children: "Refresh", onClick: () => location.reload() },
+ *     timeout: 0,
+ *   });
  *
  * For a glass toast, pass a `className` through `data` (there's no direct
  * `className` on the imperative `add()` call):

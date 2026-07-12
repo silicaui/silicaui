@@ -53,6 +53,24 @@ export function ToastDemo() {
                 >
                     Glass toast
                 </Button>
+                <Button
+                    color="info"
+                    variant="outline"
+                    onClick={() =>
+                        toast.add({
+                            title: "New version available",
+                            description: "toast.add({ actionProps: {...} })",
+                            type: "info",
+                            timeout: 0,
+                            actionProps: {
+                                children: "Refresh",
+                                onClick: () => alert("Refresh clicked"),
+                            },
+                        })
+                    }
+                >
+                    Actionable toast
+                </Button>
             </Row>
         </Section>
     );
