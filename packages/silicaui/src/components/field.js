@@ -18,6 +18,7 @@ export function field(prefix = "") {
     [sel()]: {
       "--field-gap": "0.375rem",
       "--field-ring-reach": "calc(var(--focus-offset, 2px) + var(--focus-width, 2px) + 2px)",
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       gap: "var(--field-gap)",
@@ -74,6 +75,25 @@ export function field(prefix = "") {
       lineHeight: "1.4",
       color: "var(--field-status-color, var(--color-base-content))",
       "& svg": { width: "1rem", height: "1rem", flexShrink: "0" },
+    },
+
+    // Floating status (`floating` prop): taken out of flow entirely, so it
+    // never pushes sibling fields up or down when it appears/disappears —
+    // it overlays whatever sits below the field instead. Positioned off the
+    // `.field` root (made `position: relative` above), not the control, so
+    // it settles under the field's whole flow (control + description).
+    [status("-floating")]: {
+      position: "absolute",
+      insetInlineStart: "0",
+      insetInlineEnd: "0",
+      top: "100%",
+      zIndex: "1",
+    },
+    [`${status("-floating")}${status("-detached")}`]: {
+      marginBlockStart: "var(--field-gap, 0.375rem)",
+    },
+    [`${status("-floating")}${status("-attached")}`]: {
+      marginBlockStart: "0",
     },
 
     [status("-attached")]: {

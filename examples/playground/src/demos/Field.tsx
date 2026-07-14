@@ -1,4 +1,6 @@
+import { useState } from "react";
 import {
+    Button,
     Field,
     FieldLabel,
     FieldControl,
@@ -10,6 +12,7 @@ import {
 import { Section, Stack } from "../lib/Section";
 
 export function FieldDemo() {
+    const [floatingError, setFloatingError] = useState(false);
     return (
         <>
             <Section title="Real use · required field with description">
@@ -70,6 +73,28 @@ export function FieldDemo() {
                     <Field loading>
                         <FieldLabel>Loading field</FieldLabel>
                         <FieldControl defaultValue="sarahc" />
+                    </Field>
+                </Stack>
+            </Section>
+
+            <Section title="FieldStatus · floating (overlays instead of pushing sibling fields)">
+                <Stack className="max-w-sm">
+                    <Button size="sm" onClick={() => setFloatingError((v) => !v)}>
+                        Toggle error
+                    </Button>
+                    <Field
+                        floating
+                        status={floatingError ? "error" : undefined}
+                        statusMessage={
+                            floatingError ? "Please enter a valid email address." : undefined
+                        }
+                    >
+                        <FieldLabel>Email</FieldLabel>
+                        <FieldControl defaultValue="sarah@" />
+                    </Field>
+                    <Field>
+                        <FieldLabel>Next field (stays put either way)</FieldLabel>
+                        <FieldControl defaultValue="unaffected" />
                     </Field>
                 </Stack>
             </Section>

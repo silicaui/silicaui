@@ -21,6 +21,8 @@ export interface FieldProps extends Styled<typeof BaseField.Root> {
   loading?: boolean;
   /** Shown next to a disabled control instead of a `Tooltip` (disabled elements don't fire hover events). */
   disabledMessage?: React.ReactNode;
+  /** Floats the auto-rendered status message out of flow so it never pushes sibling fields — see `FieldStatus`'s `floating` prop. */
+  floating?: boolean;
 }
 export interface FieldLabelProps extends Styled<typeof BaseField.Label> {
   /** Appends a required-field asterisk after the label text. */
@@ -88,7 +90,7 @@ const STATUS_ICONS: Record<FieldStatusValue, React.ReactNode> = {
  *   </Field>
  */
 export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field(
-  { className, status, statusMessage, loading, disabled, disabledMessage, children, ...rest },
+  { className, status, statusMessage, loading, disabled, disabledMessage, floating, children, ...rest },
   ref,
 ) {
   const sc = useSilicaClass();
@@ -100,10 +102,16 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field
   // The attached status panel's CSS (negative margin + corner-merge) assumes
   // it's the control's immediate next sibling, so it must be spliced in right
   // after FieldControl — not appended after everything (which would land it
-  // after a FieldDescription and visually detach it from the control).
+  // after a FieldDescription and visually detach it from the control). When
+  // `floating`, that ordering no longer affects the visual result (the panel
+  // is taken out of flow), but the splice is left as-is for simplicity.
   let content: React.ReactNode = children;
   if (statusMessage != null) {
-    const autoStatus = <FieldStatus key="__field-status">{statusMessage}</FieldStatus>;
+    const autoStatus = (
+      <FieldStatus key="__field-status" floating={floating}>
+        {statusMessage}
+      </FieldStatus>
+    );
     const childArray = React.Children.toArray(children);
     const controlIndex = childArray.findIndex(
       (child) => React.isValidElement(child) && child.type === FieldControl,
@@ -128,7 +136,9 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field
       <FieldStatusContext.Provider value={ctx}>
         {content}
         {disabled && disabledMessage != null && (
-          <FieldStatus attached={false}>{disabledMessage}</FieldStatus>
+          <FieldStatus attached={false} floating={floating}>
+            {disabledMessage}
+          </FieldStatus>
         )}
       </FieldStatusContext.Provider>
     </BaseField.Root>
@@ -249,6 +259,13 @@ export interface FieldStatusProps extends React.HTMLAttributes<HTMLParagraphElem
    * ship (`Checkbox`/`Switch`/`Radio` want `attached={false}`).
    */
   attached?: boolean;
+  /**
+   * Takes the panel out of flow (`position: absolute`, anchored under the
+   * `Field`) so it never pushes sibling fields up or down as it appears,
+   * changes, or disappears — it overlays whatever's below instead. Off by
+   * default (the panel occupies normal flow space).
+   */
+  floating?: boolean;
 }
 
 /**
@@ -259,7 +276,10 @@ export interface FieldStatusProps extends React.HTMLAttributes<HTMLParagraphElem
  *   <FieldStatus attached={false}>This field is required</FieldStatus>
  */
 export const FieldStatus = React.forwardRef<HTMLParagraphElement, FieldStatusProps>(
-  function FieldStatus({ status, attached = true, className, children, ...rest }, ref) {
+  function FieldStatus(
+    { status, attached = true, floating = false, className, children, ...rest },
+    ref,
+  ) {
     const sc = useSilicaClass();
     const ctx = React.useContext(FieldStatusContext);
     const resolved = status ?? ctx.status;
@@ -270,6 +290,7 @@ export const FieldStatus = React.forwardRef<HTMLParagraphElement, FieldStatusPro
         className={cx(
           sc("field-status"),
           sc(`field-status-${attached ? "attached" : "detached"}`),
+          floating && sc("field-status-floating"),
           resolved && sc(`field-status-${resolved}`),
           className,
         )}
