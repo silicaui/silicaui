@@ -1,5 +1,11 @@
 # @wizeworks/silicaui
 
+## 0.20.0
+
+### Minor Changes
+
+- d0a6ca6: `Field` and `FieldStatus` now support a `floating` prop that takes the status panel out of flow (`position: absolute`, anchored under the field) so it never pushes sibling fields up or down as it appears, changes, or disappears — it overlays whatever's below instead. Off by default.
+
 ## 0.19.0
 
 ### Minor Changes
