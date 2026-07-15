@@ -18,7 +18,7 @@ import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
 import { useHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
-import { paletteGroups, mergeCatalog } from "../palette";
+import { paletteGroups, catalogForHost } from "../palette";
 import type { PaletteItem, PaletteGroup } from "../palette";
 import { nodeName } from "../node-display";
 import { DRAG_MIME, encodeDrag } from "../../shared/dnd";
@@ -182,9 +182,9 @@ export function Palette() {
   const [query, setQuery] = React.useState("");
   const q = query.trim();
 
-  // Host-merged groups (builder-contract.md §5) — recomputed only when the
-  // host's catalog() identity changes, not on every render.
-  const GROUPS = React.useMemo(() => mergeCatalog(DEFAULT_GROUPS, host?.catalog?.()), [host]);
+  // Host-merged groups (builder-contract.md §5) + the host's declared host
+  // components (spec §A.5) — recomputed only when the host identity changes.
+  const GROUPS = React.useMemo(() => catalogForHost(DEFAULT_GROUPS, host), [host]);
   const FLAT = React.useMemo(() => flatten(GROUPS), [GROUPS]);
 
   // Ranked flat results while searching; recomputed only when the query (or the

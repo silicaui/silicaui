@@ -6,7 +6,7 @@
  * alongside `resolveTree`, not here.
  */
 import type * as React from "react";
-import type { DataBinding, DataScope, DataSource, Node, Resolved } from "@wizeworks/silicaui-html";
+import type { DataBinding, DataScope, DataSource, HostNode, Node, Resolved } from "@wizeworks/silicaui-html";
 import type { ClassValidator } from "@wizeworks/silicaui-html";
 import type { PaletteGroup } from "../palette";
 
@@ -15,6 +15,44 @@ export type { DataScope, Resolved } from "@wizeworks/silicaui-html";
 export interface AssetRef {
   url: string;
   alt?: string;
+}
+
+/** A host component the builder may place as a `HostNode` (spec §A.5). Drives the
+ *  Insert palette (an entry per def) and the Inspector's per-component prop panel. */
+export interface HostComponentDef {
+  /** Allowlist key matched against `HostNode.component`. */
+  name: string;
+  /** Palette + Navigator label, e.g. "Checkout". */
+  label: string;
+  /** Palette grouping + optional icon (a registered icon name). */
+  category?: string;
+  icon?: string;
+  /** Declared props → Inspector controls + host-side validation. */
+  props?: HostPropDef[];
+  /** Values stamped into a freshly-inserted node's `props`. */
+  defaultProps?: Record<string, unknown>;
+  /** Insert host-LOCKED (`locked: "host"`) — the "pinned" region requirement.
+   *  The author sees it locked with no unlock; only the host clears it. */
+  pinned?: boolean;
+  /** Default wrapper classes for a freshly-inserted node (LITERAL safelist strings). */
+  defaultClass?: string;
+}
+
+/** Minimal, extensible prop descriptor for the Inspector's Host panel. */
+export interface HostPropDef {
+  name: string;
+  label?: string;
+  type: "text" | "number" | "boolean" | "select" | "color" | "binding";
+  /** `select` options. */
+  options?: { value: string; label: string }[];
+  default?: unknown;
+}
+
+/** Context handed to `renderHostNode` for the canvas preview. */
+export interface HostRenderCtx {
+  /** True during authoring — a component can render a non-interactive / skeleton
+   *  state (as behavior autoplay is suppressed for authoring). */
+  preview: boolean;
 }
 
 /** The mutation primitives a host inspector panel writes through — the SAME
@@ -58,4 +96,10 @@ export interface BuilderHost {
   inspectorPanels?(node: Node): InspectorPanel[];
   /** The media picker, invoked when an image/video field asks for a source. */
   pickAsset?(kind: "image" | "video"): Promise<AssetRef | null>;
+  /** The host components the Insert palette may place as `HostNode`s (spec §A.5).
+   *  Absent → the builder offers no host nodes (a static-site host needs none). */
+  hostComponents?(): HostComponentDef[];
+  /** Live canvas preview of a host node — the host renders its real component.
+   *  Absent (or returns null) → the engine renders a labeled placeholder (§A.6). */
+  renderHostNode?(node: HostNode, ctx: HostRenderCtx): React.ReactNode;
 }

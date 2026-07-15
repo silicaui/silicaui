@@ -10,7 +10,7 @@
  */
 
 /** A block/document tree is built from these. */
-export type Node = ElementNode | ComponentNode | OutletNode;
+export type Node = ElementNode | ComponentNode | OutletNode | HostNode;
 
 /** A child is another node, or a plain string (a text node). */
 export type Child = Node | string;
@@ -57,6 +57,20 @@ interface NodeBase {
    *  without detaching; an overridden field is NOT overwritten by a later master
    *  edit. Only meaningful on an instance node (`instanceOf` set). */
   overrides?: Record<string, NodeOverride>;
+  /**
+   * Structural immutability + its OWNER. A locked node cannot be removed, moved,
+   * or reparented by the editing spine; its class/props stay editable. Presence
+   * encodes locked; the value encodes WHO owns the lock:
+   *   - "author" — the author locked it (Navigator/Inspector "lock layer"); the
+   *     author can unlock it the same way.
+   *   - "host"   — the host locked it (a pinned host region, or the host's own
+   *     runtime call); the author UI shows it locked but offers NO unlock — only
+   *     the host clears it.
+   * A single field (not a boolean + owner) so there is no invalid state:
+   * presence IS locked, absence IS unlocked, and `if (node.locked)` reads
+   * truthy/falsy like a boolean. Authoring metadata only — no projection reads
+   * it (like `label`/`slot`). */
+  locked?: "host" | "author";
 }
 
 /** What a single instance overrides on one master node. Extensible; text is the
@@ -87,6 +101,27 @@ export interface ComponentNode extends NodeBase {
 /** Reserved structural node — valid ONLY inside a `Frame` (§9.7). */
 export interface OutletNode {
   kind: "outlet";
+}
+
+/**
+ * A live, HOST-OWNED functional region embedded in an authored tree — the
+ * code-component primitive (host-nodes-and-node-locking spec §A). Opaque to the
+ * projection: `toHtml` emits an EMPTY mount point (`<div data-sui-host="…">`),
+ * never live framework code, so the framework-neutral projection promise holds.
+ * A host mounts its real component into that point at render time (client or
+ * SSR), the same trust model as behavior-marker hydration and `rawHtml`. A LEAF
+ * — it never carries `children` (the `NodeBase.children` slot goes unused). Pair
+ * with `NodeBase.locked: "host"` to pin it non-deletable.
+ */
+export interface HostNode extends NodeBase {
+  kind: "host";
+  /** The host component key — an ALLOWLIST key the host resolves, NEVER eval'd
+   *  (e.g. "CheckoutWidget" | "ProductGrid" | "AccountPanel"). Opaque to @wizeworks/silicaui. */
+  component: string;
+  /** Author-set configuration, validated by the HOST against the component's
+   *  declared prop schema. JSON-serializable; static literals in v1 (data-bound
+   *  props are a later revision). */
+  props?: Record<string, unknown>;
 }
 
 /** The three opaque dynamic-content primitives (§8). */

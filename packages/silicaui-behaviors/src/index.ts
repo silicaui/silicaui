@@ -32,6 +32,11 @@ export type { SilicaBreakpoint } from "./breakpoints";
 export { confirm } from "./confirm";
 export type { ConfirmOptions } from "./confirm";
 
+// Host-node mounting — the optional client loop for `<div data-sui-host>` mount
+// points (spec §A.4). NOT a behavior marker; host components are host-owned.
+export { mountHostNodes, HOST_ATTR, HOST_PROPS_ATTR, HOST_MOUNTED_ATTR } from "./host-mounts";
+export type { HostMounter } from "./host-mounts";
+
 /**
  * Hydrates every not-yet-hydrated behavior marker under `root` (default:
  * the whole document). Idempotent — safe to call again after the DOM

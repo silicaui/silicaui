@@ -58,6 +58,9 @@ export function resolveTree(tree: Node, host: ResolveHost, scope: DataScope = EM
 /** Returns `undefined` when the node should be dropped (a `visible: false` bind). */
 function resolveNode(node: Node, host: ResolveHost, scope: DataScope): Node | undefined {
   if (node.kind === "outlet") return node;
+  // A host node is an opaque leaf: its props are static (v1) and it has no
+  // children, so there is nothing to resolve — pass it through untouched.
+  if (node.kind === "host") return node;
 
   if (node.data?.kind === "value" && host.resolveBinding) {
     const resolved = host.resolveBinding(node.data.ref, scope);

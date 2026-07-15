@@ -12,7 +12,7 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { BehaviorMarker, ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
+import type { BehaviorMarker, ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, HostNode, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
 import { applyOverrides, composeValidators, defaultMakeId, el, flattenSymbols, listComponents, makePage, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, walk } from "@wizeworks/silicaui-html";
 import { defaultFrameRoot } from "./frame";
 
@@ -23,8 +23,13 @@ export interface EditorOptions {
   validateClass?: ClassValidator;
 }
 
-/** A node that carries id/class/children — everything except an outlet. */
-type Markable = ElementNode | ComponentNode;
+/** A node that carries an id — selectable/locatable. Everything except an outlet
+ *  (a host node is markable but childless — see `Container`). */
+type Markable = ElementNode | ComponentNode | HostNode;
+
+/** A node that can HOLD children — the drop-into targets. A host node is a LEAF,
+ *  so it's markable but never a container. */
+type Container = ElementNode | ComponentNode;
 
 export type ChangeKind =
   | "theme"
@@ -131,9 +136,9 @@ function contains(root: Node, ancestorId: string, id: string): boolean {
   return hit;
 }
 
-/** A node that can hold children (everything but an outlet). */
-function isContainer(node: Node): node is Markable {
-  return node.kind !== "outlet";
+/** A node that can hold children (everything but an outlet and a host leaf). */
+function isContainer(node: Node): node is Container {
+  return node.kind !== "outlet" && node.kind !== "host";
 }
 
 // Which nodes a new insertion nests INTO vs sits beside. Layout tags + the
@@ -151,6 +156,9 @@ const CONTAINER_COMPONENTS = new Set(listComponents().filter((c) => c.container)
 /** True when a node should receive an insertion as a CHILD (vs a sibling). */
 export function acceptsChildren(node: Node): boolean {
   if (node.kind === "outlet") return false;
+  // A host node is a LEAF — a live host widget, never a drop-into target. An
+  // insertion lands BESIDE it (a sibling), never inside.
+  if (node.kind === "host") return false;
   // A symbol instance is ATOMIC — it renders its master, ignoring its own
   // children, so nothing may be nested inside it (it takes a sibling instead).
   if (node.instanceOf) return false;
@@ -701,10 +709,10 @@ export class Editor {
     return ancestorPath(this.activeRoot(), id);
   }
 
-  /** Set (or clear, with undefined) a component node's typed prop. */
+  /** Set (or clear, with undefined) a component OR host node's typed prop. */
   setProp(id: string, key: string, value: unknown): void {
     const found = locate(this.activeRoot(), id);
-    if (!found || found.node.kind !== "component") return;
+    if (!found || (found.node.kind !== "component" && found.node.kind !== "host")) return;
     const node = found.node;
     this.commit("props", () => {
       const props = { ...(node.props ?? {}) };
@@ -806,6 +814,23 @@ export class Editor {
     });
   }
 
+  /**
+   * Set (or clear, with `undefined`) a node's lock + its owner (host-nodes spec
+   * §B.2). This is the LOW-LEVEL primitive — it always succeeds; the tier policy
+   * (an author may clear only an `"author"` lock, never a `"host"` one) lives in
+   * the UI that calls it, so a host is never boxed out of un-pinning its own
+   * region. Undoable. No-op on a missing node.
+   */
+  setLocked(id: string, owner: "host" | "author" | undefined): void {
+    const found = locate(this.activeRoot(), id);
+    if (!found) return;
+    const node = found.node;
+    this.commit("props", () => {
+      if (owner) node.locked = owner;
+      else delete node.locked;
+    });
+  }
+
   // ── structure ──────────────────────────────────────────────────────────────
   /**
    * Insert a subtree under `parentId` at `index` (default: append). The node is
@@ -851,10 +876,13 @@ export class Editor {
     return undefined; // a leaf root with no parent — nowhere to place it
   }
 
-  /** Remove a node (never the root). Selects its parent if it was selected. */
+  /** Remove a node (never the root, never a locked node). Selects its parent if
+   *  it was selected. A locked node — author- or host-owned — is refused here, so
+   *  every remove path (Navigator, delete key, host) honors the lock at once. */
   remove(id: string): void {
     const found = locate(this.activeRoot(), id);
     if (!found || !found.parent) return; // missing or root
+    if (found.node.locked) return; // locked — non-deletable (host-nodes spec §B.2)
     const parentId = found.parent.id;
     this.commit("structure", () => {
       found.parent!.children!.splice(found.index, 1);
@@ -872,6 +900,7 @@ export class Editor {
     const found = locate(this.activeRoot(), id);
     const parentLoc = locate(this.activeRoot(), parentId);
     if (!found || !found.parent || !parentLoc || !isContainer(parentLoc.node)) return;
+    if (found.node.locked) return; // locked — non-movable (host-nodes spec §B.2)
     if (contains(this.activeRoot(), id, parentId)) return; // cycle guard
     this.commit("structure", () => {
       const from = found.parent!.children!;
@@ -885,11 +914,14 @@ export class Editor {
     });
   }
 
-  /** Duplicate a node in place (fresh ids), inserting the copy right after it. */
+  /** Duplicate a node in place (fresh ids), inserting the copy right after it.
+   *  A locked node CAN be duplicated; the copy is author-owned, so its lock is
+   *  cleared (host-nodes spec §B.2). */
   duplicate(id: string): string | undefined {
     const found = locate(this.activeRoot(), id);
     if (!found || !found.parent) return undefined; // can't duplicate the root
     const copy = stampTree(found.node);
+    if (copy.kind !== "outlet") delete copy.locked;
     const newId = copy.kind === "outlet" ? undefined : copy.id;
     const parent = found.parent;
     const at = found.index + 1;

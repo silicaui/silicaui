@@ -9,6 +9,7 @@ import type {
   Child,
   ComponentNode,
   ElementNode,
+  HostNode,
   Node,
   OutletNode,
   SlotDef,
@@ -52,6 +53,15 @@ export function atom(
 /** The reserved `Outlet` node — valid only inside a `Frame`. */
 export function outlet(): OutletNode {
   return { kind: "outlet" };
+}
+
+/** Build a host-node mount point for a live host component (spec §A). A leaf —
+ *  `component` is the host's opaque allowlist key, `props` its author-set config. */
+export function host(component: string, cls?: string, props?: HostNode["props"]): HostNode {
+  const node: HostNode = { kind: "host", component };
+  if (cls) node.class = cls;
+  if (props) node.props = props;
+  return node;
 }
 
 /** Mark a node as an editable region. Mutates and returns it for inline use. */

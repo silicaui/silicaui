@@ -17,7 +17,7 @@
  * class here is a LITERAL string so the harness's `@source` scan safelists it.
  */
 import * as React from "react";
-import type { Child, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
+import type { Child, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
 import { applyOverrides, expandComponent, iconSvg, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { useHost } from "./host-context";
@@ -26,7 +26,7 @@ import type { Editor } from "../engine";
 import { customColorCss } from "../color-cascade";
 import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
 import type { DropEdge } from "../../shared/dnd";
-import { paletteGroups, paletteItemByKey, mergeCatalog } from "../palette";
+import { paletteGroups, paletteItemByKey, catalogForHost } from "../palette";
 import type { PaletteGroup } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
@@ -257,6 +257,9 @@ interface RenderCtx {
   /** Set while rendering INSIDE an instance's expanded master: selection/edit keys
    *  become composite (`instanceId::masterId`) and edits route to overrides. */
   instance?: { id: string };
+  /** Live host-node preview: the host renders its real component. `preview` is
+   *  whether this sits on an inert (context) layer. Absent → a labeled placeholder. */
+  renderHostNode?: (node: HostNode, preview: boolean) => React.ReactNode;
 }
 
 /** Which edge of the hovered node a pointer at `clientY` targets. */
@@ -330,6 +333,21 @@ function SymbolBadge({ name }: { name: string }) {
       <span aria-hidden>◆</span>
       <span className="max-w-[120px] truncate">{name}</span>
     </span>
+  );
+}
+
+/** The stand-in for a host node when no `renderHostNode` is supplied (or it
+ *  returns null): a dashed panel naming the component + its prop count, so the
+ *  node stays legible + selectable while authoring (spec §A.6, §11.4). */
+function HostPlaceholder({ node }: { node: HostNode }) {
+  const count = node.props ? Object.keys(node.props).length : 0;
+  return (
+    <div className="pointer-events-none flex select-none flex-col items-center gap-1 rounded-field border border-dashed border-base-300 bg-base-content/5 p-4 text-center">
+      <span className="text-sm font-medium text-base-content/70">{node.label ?? node.component}</span>
+      <span className="text-xs text-base-content/40">
+        host component “{node.component}”{count ? ` · ${count} prop${count === 1 ? "" : "s"}` : ""}
+      </span>
+    </div>
   );
 }
 
@@ -523,6 +541,21 @@ function CanvasNode({
     );
   }
 
+  // A host node is a live-widget MOUNT: the host renders its real component
+  // (`renderHostNode`), else a labeled placeholder. It's a selectable/draggable
+  // LEAF — `inter` binds the same select/drag wiring, and `acceptsChildren` keeps
+  // it a drop-BESIDE (never drop-into) target. This is the canvas peer of the
+  // empty `<div data-sui-host>` mount point `toHtml` emits (spec §A.6).
+  if (node.kind === "host") {
+    const rendered = ctx.renderHostNode?.(node, !!ctx.preview);
+    const cls = `relative block ${node.class ?? ""}${deco}`.trim();
+    return React.createElement(
+      "div",
+      { className: cls || undefined, ...inter },
+      rendered ?? <HostPlaceholder node={node} />,
+    );
+  }
+
   // A component is a macro — expand it to its element (sub)tree and render THAT
   // through the SAME element path a hand-authored element takes (the expansion
   // carries the node's class + children). Interaction wiring (`inter`) stays bound
@@ -691,7 +724,7 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
   const doc = useDocument();
   const editor = useEditor();
   const host = useHost();
-  const catalogGroups = React.useMemo(() => mergeCatalog(DEFAULT_GROUPS, host?.catalog?.()), [host]);
+  const catalogGroups = React.useMemo(() => catalogForHost(DEFAULT_GROUPS, host), [host]);
   const selectedId = useSelection();
   const selectedNode = useSelectedNode();
   const activeTree = useActiveTree();
@@ -843,6 +876,11 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     outlet,
     preview: shellPreview,
     symbolRoot: (sid) => editor.symbol(sid)?.root,
+    // A host renders its own live component; without one (or without a host at
+    // all) the CanvasNode host branch falls back to a labeled placeholder.
+    renderHostNode: host?.renderHostNode
+      ? (node, preview) => host!.renderHostNode!(node, { preview })
+      : undefined,
   };
 
   return (
