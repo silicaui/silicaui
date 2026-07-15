@@ -26,6 +26,15 @@ interface NodeBase {
    *  subset. A host gates these. No inline style, ever. */
   class?: string;
   children?: Child[];
+  /**
+   * RENDER-TIME-ONLY trusted inner HTML, emitted UNESCAPED by `toHtml` in place
+   * of `children`. It is NOT part of the authored/persisted schema and must never
+   * be hand-authored: `resolveTree` sets it from an `html` data binding, whose
+   * value the HOST is responsible for sanitizing at its data boundary (same trust
+   * model as React's `dangerouslySetInnerHTML` / Vue's `v-html`). This is the one
+   * sanctioned bypass of the raw-element floor, gated behind an explicit binding a
+   * host opts into per-field — the CMS long-form / rich-text content path. */
+  rawHtml?: string;
 
   // ── system metadata — typed, and NEVER mixed into attrs/props ──────────────
   /** Dynamic content. At most one binding; the union makes "at most one"
@@ -83,6 +92,7 @@ export interface OutletNode {
 /** The three opaque dynamic-content primitives (§8). */
 export type DataBinding =
   | { kind: "value"; ref: string; attr?: string } // fill this node from a resolved value; `attr` targets a specific attribute/prop (e.g. "href") instead of the auto-detected primary slot
+  | { kind: "html"; ref: string } // fill this node's inner content from a resolved TRUSTED HTML string (rich text / CMS long-form) — the host sanitizes the value; emitted unescaped via `rawHtml`. The one raw-HTML content path.
   | { kind: "collection"; ref: string; omitWhenEmpty?: boolean } // render `children` once per item; `omitWhenEmpty` drops the node entirely (like `visible: false`) instead of the default one-placeholder-item convention when the collection resolves to zero items
   | { kind: "action"; ref: string; href?: string }; // triggers a host action
 

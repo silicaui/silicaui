@@ -184,6 +184,19 @@ const CONTENT: PaletteItem[] = [
         icon: "image",
         make: () => atom("Image", "rounded-box w-full", { ratio: "wide", alt: "" }),
     },
+    {
+        key: "video",
+        label: "Video",
+        icon: "video",
+        make: () => atom("Video", "rounded-box w-full", { ratio: "wide", controls: true }),
+    },
+    {
+        key: "embed",
+        label: "Embed",
+        icon: "video",
+        hint: "YouTube / Vimeo / Google Maps (sandboxed iframe)",
+        make: () => atom("Embed", "rounded-box w-full overflow-hidden", { ratio: "wide", title: "" }),
+    },
     { key: "badge", label: "Badge", icon: "label", make: () => atom("Badge", "badge badge-primary", { text: "Badge" }) },
     { key: "link", label: "Link", icon: "link", make: () => el("a", "link link-primary", { text: "Link", attrs: { href: "#" } }) },
     { key: "divider", label: "Divider", icon: "box", make: () => atom("Divider", "divider") },
@@ -212,6 +225,16 @@ const CONTENT: PaletteItem[] = [
                 el("p", undefined, {
                     text: "Prose gives long-form content considered typographic defaults — headings, lists, and quotes just work.",
                 }),
+            ]),
+    },
+    {
+        key: "rich-text",
+        label: "Rich Text",
+        icon: "text",
+        hint: "Bind a trusted HTML / CMS long-form field (Data binding › Rich text)",
+        make: () =>
+            atom("RichText", "prose", undefined, [
+                el("p", undefined, { text: "Bind this to a rich-text field, or edit inline." }),
             ]),
     },
     {
