@@ -10,9 +10,10 @@
  * as the Inspector and Canvas. A class assembled at runtime would never generate.
  */
 import type { Node } from "@wizeworks/silicaui-html";
-import { atom, el } from "@wizeworks/silicaui-html";
+import { atom, el, host } from "@wizeworks/silicaui-html";
 import { listBlocks } from "@wizeworks/silicaui-html/blocks";
 import type { IconName } from "../shared/icons";
+import type { HostComponentDef } from "./react/host";
 
 export interface PaletteItem {
     /** Stable identity for the row (and the drag payload). */
@@ -1245,6 +1246,53 @@ function interactiveItems(): PaletteItem[] {
     return listBlocks()
         .filter((b) => INTERACTIVE_CATEGORIES.has(b.category))
         .map(blockItem);
+}
+
+/**
+ * Host-declared components → palette items (spec §A.5). Each `make()` returns a
+ * `HostNode` carrying the def's default class/props, HOST-LOCKED (`locked:
+ * "host"`) when the def is `pinned` — so a pinned region inserts non-deletable.
+ * Grouped under the def's `category` (default "Host").
+ */
+export function hostComponentGroups(defs: readonly HostComponentDef[]): PaletteGroup[] {
+    const byCategory = new Map<string, PaletteItem[]>();
+    for (const def of defs) {
+        const item: PaletteItem = {
+            key: `host:${def.name}`,
+            label: def.label,
+            icon: "plug",
+            make: () => {
+                const node = host(def.name, def.defaultClass, def.defaultProps ? { ...def.defaultProps } : undefined);
+                if (def.pinned) node.locked = "host";
+                return node;
+            },
+        };
+        const cat = def.category ?? "Host";
+        const list = byCategory.get(cat);
+        if (list) list.push(item);
+        else byCategory.set(cat, [item]);
+    }
+    return [...byCategory].map(([label, items]) => ({
+        key: `hostcat:${label.toLowerCase().replace(/\s+/g, "-")}`,
+        label,
+        items,
+    }));
+}
+
+/**
+ * The full Insert catalog for a host adapter: the built-in groups, the host's
+ * `catalog()` extend/hide, and its declared host components (spec §A.5) — the
+ * single source both the Palette (rendering) and the Canvas (drop resolution)
+ * build from, so a host node resolves identically whichever surface placed it.
+ */
+export function catalogForHost(
+    base: readonly PaletteGroup[],
+    adapter?: { catalog?(): { extend?: PaletteGroup[]; hide?: string[] }; hostComponents?(): HostComponentDef[] },
+): PaletteGroup[] {
+    let groups = mergeCatalog(base, adapter?.catalog?.());
+    const defs = adapter?.hostComponents?.() ?? [];
+    if (defs.length) groups = mergeCatalog(groups, { extend: hostComponentGroups(defs) });
+    return groups;
 }
 
 /** The full grouped catalog for the Insert panel. */

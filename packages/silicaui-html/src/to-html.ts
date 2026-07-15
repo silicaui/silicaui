@@ -15,6 +15,7 @@ import type {
   ComponentNode,
   Document,
   ElementNode,
+  HostNode,
   Node,
   Template,
 } from "./schema";
@@ -49,7 +50,7 @@ export function toHtml(
 }
 
 /** Lower system metadata (ids, data bindings, behavior markers) to attributes. */
-function metaAttrs(node: ElementNode | ComponentNode, opts: ToHtmlOptions): string {
+function metaAttrs(node: ElementNode | ComponentNode | HostNode, opts: ToHtmlOptions): string {
   let out = "";
   if (opts.ids && node.id != null) out += attr("data-sui-id", node.id);
   const d = node.data;
@@ -76,6 +77,23 @@ function renderNode(node: Node, opts: ToHtmlOptions): string {
   if (node.kind === "outlet") {
     // Composed by a Frame (a builder concern). In a bare tree it's an inert marker.
     return "<!--@wizeworks/silicaui:outlet-->";
+  }
+
+  // A host node is a live-widget MOUNT POINT: emit an empty `<div data-sui-host>`
+  // carrying the component key + author props (JSON). Never live framework code —
+  // a host mounts its real component into this hook (client or SSR), the same
+  // posture as `rawHtml`/behavior markers, so the projection stays framework-free.
+  if (node.kind === "host") {
+    const cls = node.class ? applyPrefix(node.class, opts.prefix ?? "") : "";
+    const classAttr = cls ? ` class="${cls}"` : "";
+    const hostAttr = attr("data-sui-host", node.component);
+    const propsAttr =
+      node.props && Object.keys(node.props).length
+        ? attr("data-sui-host-props", JSON.stringify(node.props))
+        : "";
+    // `metaAttrs` last so a host node still maps to a canvas id / can carry its
+    // own data/behavior marker if ever needed.
+    return `<div${classAttr}${hostAttr}${propsAttr}${metaAttrs(node, opts)}></div>`;
   }
 
   // A component is a macro: expand it to its element (sub)tree and render THAT

@@ -72,6 +72,40 @@ const demoHost: BuilderHost = {
     },
   ],
   pickAsset: async () => ({ url: "https://picsum.photos/seed/host/400/300", alt: "Host-picked asset" }),
+  // Host NODES (spec §A) — live host-owned widgets the builder places as
+  // `HostNode`s. `PriceTag` renders from its props; `CheckoutWidget` is `pinned`
+  // (inserts host-locked, non-deletable). A stand-in for sparx's checkout/cart/
+  // PLP regions, so the host-node seam has e2e coverage without a real app.
+  hostComponents: () => [
+    {
+      name: "PriceTag",
+      label: "Price Tag",
+      category: "Commerce",
+      defaultClass: "inline-block",
+      defaultProps: { amount: 9.99, currency: "USD" },
+      props: [
+        { name: "amount", label: "Amount", type: "number" },
+        { name: "currency", label: "Currency", type: "select", options: [{ value: "USD", label: "USD" }, { value: "EUR", label: "EUR" }] },
+      ],
+    },
+    { name: "CheckoutWidget", label: "Checkout", category: "Commerce", pinned: true, defaultClass: "block" },
+  ],
+  renderHostNode: (node, ctx) => {
+    if (node.component === "PriceTag") {
+      const amount = typeof node.props?.amount === "number" ? node.props.amount : 0;
+      const currency = String(node.props?.currency ?? "USD");
+      return (
+        <span data-testid="host-pricetag" className="badge badge-primary">
+          {currency} {amount.toFixed(2)}
+        </span>
+      );
+    }
+    return (
+      <div data-testid="host-checkout" className="rounded-box border border-base-300 p-4 text-center text-sm">
+        Live checkout widget{ctx.preview ? " (preview)" : ""}
+      </div>
+    );
+  },
   // Fixed sample data, resolved SYNCHRONOUSLY (§3 of builder-contract.md) — a
   // real host would fetch once, up front, into a closure this reads from.
   resolveBinding: (ref) =>

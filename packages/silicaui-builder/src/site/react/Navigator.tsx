@@ -27,6 +27,10 @@ function toTreeNode(node: Node, rootLabel?: string): TreeNode {
   const childNodes = node.kind === "outlet" ? [] : (node.children ?? []).filter((c): c is Node => typeof c !== "string");
   const hint = textHint(node);
   const label = (node.kind !== "outlet" && !node.label && rootLabel) || nodeName(node);
+  // A locked node carries a trailing glyph: a padlock for an author lock, a
+  // shield for a host lock (host-owned, author can't clear it) — see the
+  // host-nodes spec §B.3.
+  const locked = node.kind !== "outlet" ? node.locked : undefined;
   return {
     id: (node.kind !== "outlet" && node.id) || nodeName(node),
     icon: <Icon name={nodeIconName(node)} className="text-base-content/55" />,
@@ -34,6 +38,12 @@ function toTreeNode(node: Node, rootLabel?: string): TreeNode {
       <span className="inline-flex items-baseline gap-1.5">
         <span>{label}</span>
         {hint && <span className="text-xs text-base-content/40 truncate">{hint}</span>}
+        {locked && (
+          <Icon
+            name={locked === "host" ? "shield" : "lock"}
+            className="self-center text-base-content/40"
+          />
+        )}
       </span>
     ),
     children: childNodes.length ? childNodes.map((c) => toTreeNode(c)) : undefined,

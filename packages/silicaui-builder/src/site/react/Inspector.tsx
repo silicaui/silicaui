@@ -12,12 +12,12 @@
  * utility a node can WEAR is a LITERAL string here so the harness safelists it.
  */
 import * as React from "react";
-import type { ComponentNode, DataBinding, DataSource, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
+import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
 import { rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
 import { useHost } from "./host-context";
-import type { InspectorPanelCtx } from "./host";
+import type { HostPropDef, InspectorPanelCtx } from "./host";
 import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 
@@ -788,6 +788,7 @@ function SettingsTab({ id, node }: { id: string; node: Node }) {
     <>
       <ElementSection id={id} node={node} />
       {editableText(node) !== undefined && <ContentField id={id} node={node} />}
+      {node.kind === "host" && <HostSection id={id} node={node} />}
       {node.kind === "component" && node.component in COMPONENT_PROPS && <PropsGroup id={id} node={node} />}
       {node.kind === "element" && node.tag === "a" && <LinkSection id={id} node={node} />}
       <DataSection id={id} node={node} />
@@ -842,6 +843,9 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
     else t.delete("hidden");
     editor.setClass(id, [...t].join(" "));
   };
+  // Structural lock (host-nodes spec §B). A host lock is host-owned — shown, but
+  // the author gets NO unlock; an author lock is theirs to toggle.
+  const locked = node.kind !== "outlet" ? node.locked : undefined;
   return (
     <Group label="Element">
       <Row label="Name">
@@ -881,6 +885,27 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
           <Toggle size="sm" checked={hidden} onChange={(e: React.ChangeEvent<HTMLInputElement>) => toggleHidden(e.target.checked)} />
           <Icon name={hidden ? "eyeOff" : "eye"} /> {hidden ? "Hidden" : "Visible"}
         </label>
+      </Row>
+      <Row label="Lock">
+        {locked === "host" ? (
+          <span
+            className="flex items-center gap-2 text-xs text-base-content/60"
+            title="Locked by the host — only the host can unlock this region"
+            data-testid="settings-lock-host"
+          >
+            <Icon name="shield" /> Locked by host
+          </span>
+        ) : (
+          <label className="flex items-center gap-2 text-xs text-base-content/60">
+            <Toggle
+              size="sm"
+              data-testid="settings-lock"
+              checked={locked === "author"}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => editor.setLocked(id, e.target.checked ? "author" : undefined)}
+            />
+            <Icon name={locked === "author" ? "lock" : "lockOpen"} /> {locked === "author" ? "Locked" : "Unlocked"}
+          </label>
+        )}
       </Row>
     </Group>
   );
@@ -1489,6 +1514,108 @@ function PropsGroup({ id, node }: { id: string; node: ComponentNode }) {
       {node.component === "Select" && <OptionsProp id={id} node={node} />}
       {node.component === "SelectionList" && <SelectionListItemsProp id={id} node={node} />}
     </Group>
+  );
+}
+
+/**
+ * The Host panel (spec §A.5) — prop controls declared by the selected host
+ * node's `HostComponentDef`. Absent def (the host doesn't declare this
+ * component) or no declared props → a short note. Writes through `setProp`, the
+ * SAME mutation path component props use.
+ */
+function HostSection({ id, node }: { id: string; node: HostNode }) {
+  const host = useHost();
+  const def = host?.hostComponents?.().find((d) => d.name === node.component);
+  const fields = def?.props ?? [];
+  return (
+    <Group label={`Host · ${def?.label ?? node.component}`}>
+      {fields.length === 0 ? (
+        <p className="text-xs text-base-content/45" data-testid="host-no-props">
+          No editable props declared for “{node.component}”.
+        </p>
+      ) : (
+        fields.map((f) => <HostPropRow key={f.name} id={id} node={node} field={f} />)
+      )}
+    </Group>
+  );
+}
+
+/** One host-prop editor — a toggle, a fixed dropdown, or a committed text/number
+ *  input, mapped from `HostPropDef.type`. `color`/`binding` fall back to a text
+ *  field in v1 (data-bound props are a later revision). */
+function HostPropRow({ id, node, field }: { id: string; node: HostNode; field: HostPropDef }) {
+  const editor = useEditor();
+  const raw = node.props?.[field.name];
+  const label = field.label ?? field.name;
+
+  if (field.type === "boolean") {
+    return (
+      <Row label={label}>
+        <Toggle
+          size="sm"
+          data-testid={`host-prop:${field.name}`}
+          checked={raw === true}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => editor.setProp(id, field.name, e.target.checked || undefined)}
+        />
+      </Row>
+    );
+  }
+  if (field.type === "select") {
+    const value = raw != null ? String(raw) : field.options?.[0]?.value ?? "";
+    return (
+      <Row label={label}>
+        <NativeSelect
+          size="sm"
+          data-testid={`host-prop:${field.name}`}
+          value={value}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => editor.setProp(id, field.name, e.target.value)}
+        >
+          {field.options?.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </NativeSelect>
+      </Row>
+    );
+  }
+  return <HostTextProp id={id} field={field} value={raw != null ? String(raw) : ""} />;
+}
+
+/** A committed text/number/color input for a host prop — number coerces, empty
+ *  clears the prop. Debounced to blur/Enter so a keystroke isn't a history entry. */
+function HostTextProp({ id, field, value }: { id: string; field: HostPropDef; value: string }) {
+  const editor = useEditor();
+  const [draft, setDraft] = React.useState(value);
+  React.useEffect(() => setDraft(value), [value, id]);
+  const commit = () => {
+    if (draft === value) return;
+    if (field.type === "number") {
+      const trimmed = draft.trim();
+      const n = trimmed === "" ? undefined : Number(trimmed);
+      editor.setProp(id, field.name, n != null && !Number.isNaN(n) ? n : undefined);
+    } else {
+      editor.setProp(id, field.name, draft || undefined);
+    }
+  };
+  return (
+    <Row label={field.label ?? field.name}>
+      <Input
+        className="w-full"
+        size="sm"
+        type={field.type === "number" ? "number" : "text"}
+        data-testid={`host-prop:${field.name}`}
+        value={draft}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+    </Row>
   );
 }
 

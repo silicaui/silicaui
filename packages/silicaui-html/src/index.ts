@@ -13,6 +13,7 @@ export {
   el,
   atom,
   outlet,
+  host,
   slot,
   behave,
   part,

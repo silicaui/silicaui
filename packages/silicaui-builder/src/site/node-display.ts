@@ -37,20 +37,24 @@ const TAG_ICON: Record<string, IconName> = {
 /** The glyph representing a node's type. */
 export function nodeIconName(node: Node): IconName {
   if (node.kind === "outlet") return "outlet";
+  if (node.kind === "host") return "plug";
   if (node.kind === "component") return typeIcon(node.component);
   return TAG_ICON[node.tag] ?? "box";
 }
 
-/** The row/header label: an explicit layer name, else the tag/component. */
+/** The row/header label: an explicit layer name, else the tag/component/host key. */
 export function nodeName(node: Node): string {
   if (node.kind === "outlet") return "Outlet";
   if (node.label) return node.label;
+  if (node.kind === "host") return node.component;
   return node.kind === "component" ? node.component : node.tag;
 }
 
 /** The node's editable text, if any: an element's string child or a component's label/text. */
 export function editableText(node: Node): string | undefined {
   if (node.kind === "outlet") return undefined;
+  // A host node's content IS its live component — never inline-editable text.
+  if (node.kind === "host") return undefined;
   if (node.kind === "element") {
     const child = node.children?.find((c): c is string => typeof c === "string");
     return child;

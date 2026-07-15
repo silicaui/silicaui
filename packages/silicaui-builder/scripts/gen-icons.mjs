@@ -33,7 +33,7 @@ const USED = {
   // interactive-composite glyphs
   tabs: "app-window", dropdown: "square-chevron-down",
   // chrome / ui
-  lock: "lock", shared: "link-2", undo: "undo-2", redo: "redo-2", command: "command",
+  lock: "lock", lockOpen: "lock-open", shield: "shield", plug: "plug", shared: "link-2", undo: "undo-2", redo: "redo-2", command: "command",
   plus: "plus", chevron: "chevron-right", close: "x", sun: "sun", moon: "moon",
   search: "search",
   monitor: "monitor", tablet: "tablet", smartphone: "smartphone",
