@@ -10,6 +10,7 @@
 import * as React from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, Input } from "@wizeworks/silicaui-react";
 import { useEditor, useStudioTheme } from "./editor-context";
+import { useHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
 import { componentStarterGroups } from "../component-starters";
 import type { PaletteItem } from "../palette";
@@ -19,10 +20,18 @@ import type { PaletteItem } from "../palette";
  *  wires up to open the gallery. */
 export function NewComponentButton({ trigger }: { trigger: React.ReactElement }) {
   const editor = useEditor();
+  const host = useHost();
   const studioTheme = useStudioTheme();
   const [open, setOpen] = React.useState(false);
   const [q, setQ] = React.useState("");
-  const groups = React.useMemo(() => componentStarterGroups(), []);
+  const groups = React.useMemo(
+    () =>
+      componentStarterGroups({
+        catalogExtend: host?.catalog?.().extend,
+        starters: host?.componentStarters?.(),
+      }),
+    [host],
+  );
 
   const query = q.trim().toLowerCase();
   const matches = (i: PaletteItem) =>

@@ -23,3 +23,5 @@ export { Palette } from "./Palette";
 export { Inspector } from "./Inspector";
 export { paletteGroups, paletteItemByKey, mergeCatalog } from "../palette";
 export type { PaletteGroup, PaletteItem } from "../palette";
+export { componentStarterGroups } from "../component-starters";
+export type { StarterGroup, StarterContribution, StarterOptions } from "../component-starters";
