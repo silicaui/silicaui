@@ -9,6 +9,7 @@ import type * as React from "react";
 import type { DataBinding, DataScope, DataSource, HostNode, Node, Resolved } from "@wizeworks/silicaui-html";
 import type { ClassValidator } from "@wizeworks/silicaui-html";
 import type { PaletteGroup } from "../palette";
+import type { StarterContribution } from "../component-starters";
 
 export type { DataScope, Resolved } from "@wizeworks/silicaui-html";
 
@@ -83,8 +84,16 @@ export interface BuilderHost {
   resolveBinding?(ref: string, scope: DataScope): Resolved;
   resolveCollection?(ref: string, scope: DataScope): readonly unknown[];
   /** What the Insert palette offers, ON TOP of the default @wizeworks/silicaui-blocks
-   *  index — merge semantics, not a flat replace (builder-engine-roadmap.md §5). */
+   *  index — merge semantics, not a flat replace (builder-engine-roadmap.md §5).
+   *  Its `extend` groups also AUTO-SURFACE in the New-component starter picker
+   *  (editable node-trees — a host's product card becomes a starter for free). */
   catalog?(): { extend?: PaletteGroup[]; hide?: string[] };
+  /** Curate the New-component starter picker: `extend` adds starter-only groups,
+   *  `hide` prunes item OR group keys (defaults included). This is additive to the
+   *  auto-surfaced `catalog().extend` groups — use it only to add a curated set or
+   *  trim what auto-surfacing brought in. `hostComponents()` never appears here
+   *  (locked HostNodes aren't editable trees). */
+  componentStarters?(): StarterContribution;
   /** The flat, host-computed-ONCE catalog that powers the binding picker (§3, §6).
    *  The engine derives per-node availability itself via `scopeAt`. */
   dataSources?(): readonly DataSource[];

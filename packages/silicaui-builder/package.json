@@ -45,6 +45,7 @@
     "verify:symbols": "esbuild probe-symbols.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-symbols.mjs && node node_modules/.cache/probe-symbols.mjs",
     "verify:lock": "esbuild probe-lock.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-lock.mjs && node node_modules/.cache/probe-lock.mjs",
     "verify:host": "esbuild probe-host.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-host.mjs && node node_modules/.cache/probe-host.mjs",
+    "verify:starters": "esbuild probe-starters.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-starters.mjs && node node_modules/.cache/probe-starters.mjs",
     "verify:email": "esbuild probe-email.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-email.mjs && node node_modules/.cache/probe-email.mjs",
     "e2e": "playwright test"
   },
