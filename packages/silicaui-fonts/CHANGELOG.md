@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-fonts
 
+## 0.21.0
+
 ## 0.20.0
 
 ## 0.19.0
