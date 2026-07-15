@@ -281,6 +281,26 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
     { key: "src", label: "Image URL", control: "asset" },
     { key: "alt", label: "Alt text", control: "text" },
   ],
+  // Video — src/poster are asset URLs; playback flags are booleans (see the
+  // ComponentDef's `=== true` convention). Nested <source> sets are an authoring
+  // concern (children), not surfaced here — the single `src` covers the common case.
+  Video: [
+    { key: "src", label: "Video URL", control: "asset" },
+    { key: "poster", label: "Poster image", control: "asset" },
+    { key: "ratio", label: "Aspect ratio", control: "select", options: ["wide", "square", "portrait"] },
+    { key: "controls", label: "Show controls", control: "toggle" },
+    { key: "autoplay", label: "Autoplay", control: "toggle" },
+    { key: "loop", label: "Loop", control: "toggle" },
+    { key: "muted", label: "Muted", control: "toggle" },
+    { key: "playsinline", label: "Plays inline", control: "toggle" },
+  ],
+  // Embed — a curated third-party embed. Only YouTube/Vimeo/Google Maps URLs
+  // produce a (sandboxed) iframe; anything else falls back to a link.
+  Embed: [
+    { key: "url", label: "Embed URL", control: "text", placeholder: "YouTube / Vimeo / Google Maps URL" },
+    { key: "ratio", label: "Aspect ratio", control: "select", options: ["wide", "square", "portrait"] },
+    { key: "title", label: "Title (a11y)", control: "text" },
+  ],
   Collapse: [
     { key: "title", label: "Title", control: "text" },
     { key: "content", label: "Content", control: "text" },
@@ -904,6 +924,7 @@ function LinkSection({ id, node }: { id: string; node: ElementNode }) {
 const DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "", label: "None" },
   { value: "value", label: "Value (fill this node)" },
+  { value: "html", label: "Rich text / HTML (trusted)" },
   { value: "collection", label: "Collection (repeat children)" },
   { value: "action", label: "Action (host handler)" },
 ];
@@ -949,6 +970,8 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       const b: DataBinding = { kind: "value", ref: r };
       if (a) b.attr = a;
       editor.setData(id, b);
+    } else if (k === "html") {
+      editor.setData(id, { kind: "html", ref: r });
     } else {
       const b: DataBinding = { kind: "collection", ref: r };
       if (omit) b.omitWhenEmpty = true;
@@ -1053,6 +1076,24 @@ function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: stri
             <em className="text-base-content/45">hidden (visible: false)</em>
           ) : (
             String(resolved.value ?? "")
+          )}
+        </p>
+      </Row>
+    );
+  }
+  if (kind === "html") {
+    if (!host?.resolveBinding) return null;
+    const resolved = host.resolveBinding(ref_, {});
+    const raw = resolved.visible === false ? "" : String(resolved.value ?? "");
+    return (
+      <Row label="Preview">
+        <p className="truncate text-xs text-base-content/70" title="Trusted HTML — the host must sanitize this value at its data boundary">
+          {resolved.visible === false ? (
+            <em className="text-base-content/45">hidden (visible: false)</em>
+          ) : raw ? (
+            `${raw.length} chars of trusted HTML`
+          ) : (
+            <em className="text-base-content/45">empty</em>
           )}
         </p>
       </Row>

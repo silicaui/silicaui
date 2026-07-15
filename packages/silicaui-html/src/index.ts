@@ -28,6 +28,12 @@ export type { BlockInput } from "./kit";
 // Projections (§4).
 export { toHtml } from "./to-html";
 export type { ToHtmlOptions } from "./to-html";
+
+// The default icon set + resolver `toHtml` inlines for `data-icon` spans, so a
+// published page is self-contained. Exported so a host can reuse the same map
+// (e.g. the builder canvas) or supply its own.
+export { LUCIDE_ICONS, iconSvg } from "./icons";
+export type { IconResolver } from "./icons";
 export { toJson } from "./to-json";
 
 // The template → document transform (§1, §9.6).

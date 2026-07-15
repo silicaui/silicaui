@@ -15,6 +15,43 @@
  * `lower()` does this correctly, so defs should always build through it.
  */
 import type { Child, ComponentNode, ElementNode, Node } from "./schema";
+import { esc } from "./class-utils";
+
+/**
+ * Known embed providers for the curated `Embed` component: how a shareable URL
+ * maps to a provider EMBED URL, plus the closed host allowlist an emitted
+ * `<iframe>` may point at. `iframe` is deliberately NOT in the raw-element floor
+ * (an arbitrary authored `<iframe>` still downgrades to `<div>`); ONLY this
+ * component emits one, and only to an allowlisted third-party host, sandboxed —
+ * so maps/video embeds work without opening arbitrary-origin embedding to every
+ * authored page. Anything unrecognized falls back to a plain link, never an iframe.
+ */
+const EMBED_PROVIDERS: ReadonlyArray<{ test: RegExp; embed: (m: RegExpMatchArray) => string }> = [
+  // YouTube (watch / youtu.be / embed) → privacy-friendly nocookie embed.
+  {
+    test: /(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/,
+    embed: (m) => `https://www.youtube-nocookie.com/embed/${m[1]}`,
+  },
+  // Vimeo.
+  { test: /vimeo\.com\/(?:video\/)?(\d+)/, embed: (m) => `https://player.vimeo.com/video/${m[1]}` },
+  // Google Maps — must already be an /maps/embed URL (the shareable "embed a map" form).
+  { test: /^https:\/\/www\.google\.com\/maps\/embed\?[^\s"'<>]+$/, embed: (m) => m[0] },
+];
+/** The ONLY hosts an emitted embed `<iframe>` src may resolve to (post-normalization). */
+const EMBED_HOSTS = /^https:\/\/(?:www\.youtube-nocookie\.com|player\.vimeo\.com|www\.google\.com)\//;
+
+/** Map a user URL to a safe, allowlisted embed URL — or `undefined` if it isn't a
+ *  recognized provider (caller falls back to a link, never a raw iframe). */
+function resolveEmbed(url: string): string | undefined {
+  for (const p of EMBED_PROVIDERS) {
+    const m = url.match(p.test);
+    if (m) {
+      const embed = p.embed(m);
+      if (EMBED_HOSTS.test(embed)) return embed;
+    }
+  }
+  return EMBED_HOSTS.test(url) ? url : undefined; // already a bare allowlisted embed URL
+}
 
 export interface ComponentDef {
   /** The key as it appears in `ComponentNode.component` (e.g. 'Button'). */
@@ -71,6 +108,9 @@ function lower(node: ComponentNode, tag: string, opts: LowerOpts = {}): ElementN
   if (opts.children && opts.children.length) out.children = opts.children;
   // Carry identity + system metadata verbatim (HTML lowering reads these).
   if (node.id != null) out.id = node.id;
+  // A resolved trusted-HTML bind sits on the component node; carry it to the
+  // expansion element so `toHtml` emits it (rich text on e.g. a RichText/Prose).
+  if (node.rawHtml != null) out.rawHtml = node.rawHtml;
   if (node.label != null) out.label = node.label;
   if (node.slot) out.slot = node.slot;
   if (node.data) out.data = node.data;
@@ -560,6 +600,87 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       return lower(n, "img", { class: full, attrs });
     },
   },
+  // Video — a native <video>; `ratio` maps to an aspect utility like Image. A
+  // single `src` renders on the element; `props.sources` (`{src,type}[]`) OR
+  // authored children (hand-authored <source>/<track>) render nested instead,
+  // so the browser can pick a format. Boolean playback props follow the `=== true`
+  // convention every other boolean prop uses (the inspector toggle writes
+  // `undefined` when off), so a freshly-dropped Video seeds `controls: true`.
+  {
+    name: "Video",
+    category: "media",
+    label: "Video",
+    icon: "video",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const ratio = p.ratio;
+      const ratioClass = typeof ratio === "string" ? RATIO_CLASS[ratio] ?? "" : "";
+      const full = [n.class, ratioClass].filter(Boolean).join(" ");
+      const sources = Array.isArray(p.sources) ? p.sources : [];
+      const sourceEls = sources
+        .map((s): { src?: unknown; type?: unknown } =>
+          s != null && typeof s === "object" ? (s as { src?: unknown; type?: unknown }) : { src: s },
+        )
+        .filter((s) => s.src != null)
+        .map((s) => {
+          const attrs: NonNullable<ElementNode["attrs"]> = { src: String(s.src) };
+          if (s.type != null) attrs.type = String(s.type);
+          return elc("source", undefined, undefined, attrs);
+        });
+      const children: Child[] | undefined =
+        n.children && n.children.length ? n.children : sourceEls.length ? sourceEls : undefined;
+      const attrs: NonNullable<ElementNode["attrs"]> = {};
+      // A direct `src` only when there's no nested <source> set (they'd conflict).
+      if (!children && p.src != null) attrs.src = String(p.src);
+      if (p.poster != null) attrs.poster = String(p.poster);
+      if (p.controls === true) attrs.controls = true;
+      if (p.autoplay === true) attrs.autoplay = true;
+      if (p.loop === true) attrs.loop = true;
+      if (p.muted === true) attrs.muted = true;
+      if (p.playsinline === true) attrs.playsinline = true;
+      if (p.preload != null) attrs.preload = String(p.preload);
+      return lower(n, "video", { class: full, attrs, children });
+    },
+  },
+  // Embed — a curated third-party embed (YouTube / Vimeo / Google Maps). The
+  // ONLY component that emits an <iframe>, and only to an allowlisted host, in a
+  // sandbox, via `rawHtml` (so it bypasses the floor that downgrades arbitrary
+  // authored iframes to <div>). `props.url` is normalized to the provider's embed
+  // URL; anything unrecognized falls back to a plain link — never a raw iframe.
+  // `ratio` sizes the responsive frame (default 16:9).
+  {
+    name: "Embed",
+    category: "media",
+    label: "Embed",
+    icon: "video",
+    expand: (n) => {
+      const p = n.props ?? {};
+      const url = String(p.url ?? p.src ?? "").trim();
+      const ratioClass = typeof p.ratio === "string" ? RATIO_CLASS[p.ratio] ?? "aspect-video" : "aspect-video";
+      const full = [n.class, ratioClass].filter(Boolean).join(" ");
+      const title = p.title != null ? String(p.title) : "Embedded content";
+      const embed = resolveEmbed(url);
+      if (embed) {
+        // Trusted, macro-built iframe: fixed sandbox + permissions, allowlisted
+        // src. Inline sizing keeps it self-contained (no dependence on the
+        // consumer's utility CSS) — deliberate, unlike authored class-only nodes.
+        const iframe =
+          `<iframe src="${esc(embed)}" title="${esc(title)}" loading="lazy" ` +
+          `referrerpolicy="strict-origin-when-cross-origin" ` +
+          `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" ` +
+          `allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms" ` +
+          `style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
+        const out = lower(n, "div", { class: `${full} relative`.trim() });
+        out.rawHtml = iframe;
+        return out;
+      }
+      // Not a recognized provider → a plain link (or a hint when empty). Never an iframe.
+      const fallback: Child = url
+        ? elc("a", "link link-primary", [title], { href: url, target: "_blank", rel: "noopener noreferrer" })
+        : elc("span", "text-base-content/50 text-sm", ["Add a YouTube, Vimeo, or Google Maps URL"]);
+      return lower(n, "div", { class: full, children: [fallback] });
+    },
+  },
   // Heading — <h1>…<h6> from props.level (default 2, clamped).
   {
     name: "Heading",
@@ -959,6 +1080,18 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   elementDef("Label", "form", "label", "label"),
   elementDef("AvatarGroup", "data", "avatar", "span", true),
   elementDef("Prose", "content", "text", "div", true),
+  // RichText — a `.prose` container for TRUSTED rich-text / CMS long-form HTML.
+  // Authored children render as-is; pair it with an `html` data binding and
+  // `resolveTree` fills its inner HTML from the host-sanitized resolved value
+  // (see NodeBase.rawHtml). This is the data-bound content-page primitive.
+  {
+    name: "RichText",
+    category: "content",
+    label: "Rich text",
+    icon: "text",
+    container: true,
+    expand: (n) => lower(n, "div", { children: n.children }),
+  },
   elementDef("Hero", "layout", "box", "div", true),
   elementDef("Footer", "layout", "box", "footer", true),
   elementDef("FooterTitle", "layout", "heading", "h6"),

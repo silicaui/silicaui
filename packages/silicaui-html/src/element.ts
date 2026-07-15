@@ -26,11 +26,26 @@ export interface RawElementMeta {
  *  product feature works (the Inspector's "custom data-*" escape hatch). */
 export const GLOBAL_ATTRS: readonly string[] = ["id", "title", "role", "tabindex", "hidden"];
 
+/** Presentation attributes safe on any SVG shape/group — inert styling that
+ *  never carries a script or a script-executing URL, so a pasted logo keeps its
+ *  fills, opacities, dashes, clips, and transforms. `style` is deliberately
+ *  EXCLUDED (matches the no-inline-style rule + dodges CSS `url()` injection);
+ *  `clip-path`/`mask` here only ever reference an internal `url(#id)`. */
+const SVG_PRESENTATION: readonly string[] = [
+  "fill", "stroke", "stroke-width", "opacity", "fill-opacity", "stroke-opacity",
+  "fill-rule", "clip-rule", "stroke-linecap", "stroke-linejoin", "stroke-dasharray",
+  "stroke-dashoffset", "stroke-miterlimit", "transform", "clip-path", "mask", "color",
+];
+
 /** Deliberately excludes `script style object embed link meta base noscript
- *  template iframe`. Also deliberately excludes `action`/`formaction`/`method`
- *  on `form`/`button` — real submission is a behavior marker (`data-sui-action`)
- *  the host wires, never a raw attribute, so a raw form can't be pointed at an
- *  arbitrary exfiltration endpoint. */
+ *  template iframe`. `iframe` in particular stays out on purpose — it embeds an
+ *  arbitrary origin (script execution, clickjacking, framebusting), a different
+ *  threat class from `img`/`video`/`audio`, which only play media from a
+ *  scheme-checked URL and so ride the same floor as the already-allowed `img`.
+ *  Also deliberately excludes `action`/`formaction`/`method` on `form`/`button`
+ *  — real submission is a behavior marker (`data-sui-action`) the host wires,
+ *  never a raw attribute, so a raw form can't be pointed at an arbitrary
+ *  exfiltration endpoint. */
 export const RAW_ELEMENTS: ReadonlyMap<string, RawElementMeta> = new Map(
   Object.entries({
     // structure
@@ -91,16 +106,50 @@ export const RAW_ELEMENTS: ReadonlyMap<string, RawElementMeta> = new Map(
     img: { group: "media", attrs: ["src", "alt", "width", "height", "loading", "decoding", "srcset", "sizes"] },
     picture: { group: "media" },
     source: { group: "media", attrs: ["src", "srcset", "media", "type", "sizes"] },
+    video: {
+      group: "media",
+      attrs: [
+        "src", "poster", "controls", "autoplay", "loop", "muted", "playsinline",
+        "preload", "width", "height", "crossorigin",
+      ],
+    },
+    audio: { group: "media", attrs: ["src", "controls", "autoplay", "loop", "muted", "preload", "crossorigin"] },
     figure: { group: "media" },
     figcaption: { group: "media" },
-    svg: { group: "media", attrs: ["viewBox", "width", "height", "fill", "stroke"] },
-    path: { group: "media", attrs: ["d", "fill", "stroke", "stroke-width"] },
-    circle: { group: "media", attrs: ["cx", "cy", "r", "fill", "stroke"] },
-    rect: { group: "media", attrs: ["x", "y", "width", "height", "rx", "ry", "fill", "stroke"] },
-    line: { group: "media", attrs: ["x1", "y1", "x2", "y2", "stroke"] },
-    polygon: { group: "media", attrs: ["points", "fill", "stroke"] },
-    polyline: { group: "media", attrs: ["points", "fill", "stroke"] },
-    g: { group: "media", attrs: ["fill", "stroke", "transform"] },
+    // ── inline SVG — a broad, safe subset so a pasted brand logo/illustration
+    // survives (structure + gradients + clips/masks + text), while the genuine
+    // vectors stay closed: `script`/`style`/`foreignObject`/`animate*` are NOT
+    // listed (downgrade to div), `on*` fails closed, and external `<use>` /
+    // gradient / pattern refs are blocked in `sanitizeElement` (fragment-only).
+    svg: { group: "media", attrs: [...SVG_PRESENTATION, "viewBox", "width", "height", "xmlns", "preserveAspectRatio"] },
+    g: { group: "media", attrs: [...SVG_PRESENTATION] },
+    defs: { group: "media", attrs: [...SVG_PRESENTATION] },
+    symbol: { group: "media", attrs: ["viewBox", "preserveAspectRatio"] },
+    use: { group: "media", attrs: [...SVG_PRESENTATION, "href", "x", "y", "width", "height"] },
+    title: { group: "media" },
+    desc: { group: "media" },
+    path: { group: "media", attrs: [...SVG_PRESENTATION, "d", "pathLength"] },
+    circle: { group: "media", attrs: [...SVG_PRESENTATION, "cx", "cy", "r"] },
+    ellipse: { group: "media", attrs: [...SVG_PRESENTATION, "cx", "cy", "rx", "ry"] },
+    rect: { group: "media", attrs: [...SVG_PRESENTATION, "x", "y", "width", "height", "rx", "ry"] },
+    line: { group: "media", attrs: [...SVG_PRESENTATION, "x1", "y1", "x2", "y2"] },
+    polygon: { group: "media", attrs: [...SVG_PRESENTATION, "points"] },
+    polyline: { group: "media", attrs: [...SVG_PRESENTATION, "points"] },
+    text: {
+      group: "media",
+      attrs: [...SVG_PRESENTATION, "x", "y", "dx", "dy", "text-anchor", "dominant-baseline", "font-size", "font-family", "font-weight", "letter-spacing"],
+    },
+    tspan: { group: "media", attrs: [...SVG_PRESENTATION, "x", "y", "dx", "dy", "text-anchor"] },
+    clipPath: { group: "media", attrs: ["clipPathUnits"] },
+    mask: { group: "media", attrs: ["maskUnits", "maskContentUnits", "x", "y", "width", "height"] },
+    pattern: {
+      group: "media",
+      attrs: ["x", "y", "width", "height", "patternUnits", "patternContentUnits", "patternTransform", "viewBox", "preserveAspectRatio", "href"],
+    },
+    linearGradient: { group: "media", attrs: ["x1", "y1", "x2", "y2", "gradientUnits", "gradientTransform", "spreadMethod", "href"] },
+    radialGradient: { group: "media", attrs: ["cx", "cy", "r", "fx", "fy", "fr", "gradientUnits", "gradientTransform", "spreadMethod", "href"] },
+    stop: { group: "media", attrs: ["offset", "stop-color", "stop-opacity"] },
+    image: { group: "media", attrs: ["href", "x", "y", "width", "height", "preserveAspectRatio"] },
 
     // table
     table: { group: "table" },
@@ -143,7 +192,12 @@ export const RAW_ELEMENTS: ReadonlyMap<string, RawElementMeta> = new Map(
 );
 
 /** Attributes that carry a URL get a scheme check independent of the tag whitelist. */
-const URL_ATTRS: ReadonlySet<string> = new Set(["href", "src", "srcset", "cite"]);
+const URL_ATTRS: ReadonlySet<string> = new Set(["href", "src", "srcset", "cite", "poster"]);
+/** SVG tags whose `href` may ONLY be an internal fragment (`#id`). An external
+ *  `<use>` / gradient / pattern reference can pull in a cross-document resource
+ *  (data-exfil, and historically a script vector via external SVG) — so these
+ *  inherit-from-another-node refs are fragment-only, stricter than `isSafeUrl`. */
+const INTERNAL_REF_TAGS: ReadonlySet<string> = new Set(["use", "pattern", "linearGradient", "radialGradient"]);
 const SAFE_SCHEME = /^(?:https?:|mailto:|tel:)/i;
 /** A schemeless (relative/anchor/query) URL is always safe — it can't leave the origin. */
 function isSafeUrl(value: string): boolean {
@@ -179,6 +233,8 @@ export function sanitizeElement(
     const isSafeNamespace = key.startsWith("aria-") || key.startsWith("data-");
     if (!allowed.has(key) && !isSafeNamespace) continue;
     if (URL_ATTRS.has(key) && typeof value === "string" && !isSafeUrl(value)) continue;
+    // `<use>`/gradient/pattern href: internal fragment refs only (never external).
+    if (key === "href" && INTERNAL_REF_TAGS.has(safeTag) && !(typeof value === "string" && value.startsWith("#"))) continue;
     out[key] = value;
   }
   if (out.target === "_blank") out.rel = "noopener noreferrer";

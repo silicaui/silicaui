@@ -21,12 +21,22 @@ import type {
 import { applyPrefix, attr, esc, VOID_ELEMENTS } from "./class-utils";
 import { expandComponent } from "./component";
 import { sanitizeElement } from "./element";
+import { type IconResolver, iconSvg } from "./icons";
 
 export interface ToHtmlOptions {
   /** Applied to @wizeworks/silicaui component classes only (`btn` → `st-btn`). */
   prefix?: string;
   /** Emit `data-sui-id` for nodes that carry an id (builder canvas mapping). */
   ids?: boolean;
+  /**
+   * How `Icon` (`data-icon`) spans resolve to inline SVG on the published page.
+   * Omitted → the bundled Lucide set (self-contained, no runtime/font needed).
+   * A `Record<name, innerMarkup>` / resolver fn overrides it; `false` disables
+   * inlining entirely, leaving the bare `<span data-icon>` for a host that
+   * resolves icons its own way. Keeps the core icon-agnostic while defaulting
+   * to preview == production.
+   */
+  icons?: IconResolver | false;
 }
 
 /** Render a node, template, or document to an HTML string. */
@@ -45,6 +55,7 @@ function metaAttrs(node: ElementNode | ComponentNode, opts: ToHtmlOptions): stri
   const d = node.data;
   if (d) {
     if (d.kind === "value") out += attr("data-sui-bind", d.ref);
+    else if (d.kind === "html") out += attr("data-sui-html", d.ref);
     else if (d.kind === "collection") out += attr("data-sui-repeat", d.ref);
     else {
       out += attr("data-sui-action", d.ref);
@@ -85,7 +96,21 @@ function renderNode(node: Node, opts: ToHtmlOptions): string {
   if (VOID_ELEMENTS.has(tag)) {
     return `<${tag}${classAttr}${attrsHtml}${meta}/>`;
   }
-  const childrenHtml = renderChildren(node.children, opts);
+  // Trusted rich-text bind (`resolveTree` filled `rawHtml` from an `html` data
+  // binding): emit it UNESCAPED as the inner content, replacing any children.
+  // The host sanitized this at its data boundary — see NodeBase.rawHtml.
+  if (node.rawHtml != null) {
+    return `<${tag}${classAttr}${attrsHtml}${meta}>${node.rawHtml}</${tag}>`;
+  }
+  // Icon inlining: an empty `data-icon` span gets its glyph inlined from the
+  // resolver, so a static page needs no icon runtime/font (`icons: false` opts
+  // out). The SVG is trusted markup from our own/host-supplied map — emitted raw.
+  const iconName =
+    opts.icons !== false && !(node.children && node.children.length) && typeof safeAttrs?.["data-icon"] === "string"
+      ? (safeAttrs["data-icon"] as string)
+      : undefined;
+  const iconMarkup = iconName != null ? iconSvg(iconName, opts.icons || undefined) : undefined;
+  const childrenHtml = iconMarkup ?? renderChildren(node.children, opts);
   return `<${tag}${classAttr}${attrsHtml}${meta}>${childrenHtml}</${tag}>`;
 }
 

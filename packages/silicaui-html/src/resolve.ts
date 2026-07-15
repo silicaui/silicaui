@@ -67,6 +67,18 @@ function resolveNode(node: Node, host: ResolveHost, scope: DataScope): Node | un
     return { ...rest } as Node;
   }
 
+  // A TRUSTED-HTML bind (rich text / CMS long-form). The resolved value — which
+  // the HOST sanitizes at its data boundary — becomes `rawHtml`, emitted unescaped
+  // by `toHtml` in place of any authored children. (Outlets already returned
+  // above.) A component node keeps the marker on itself and `lower()` carries
+  // `rawHtml` to its expansion element.
+  if (node.data?.kind === "html" && host.resolveBinding) {
+    const resolved = host.resolveBinding(node.data.ref, scope);
+    if (resolved.visible === false) return undefined;
+    const { data: _data, children: _children, ...rest } = node;
+    return { ...rest, rawHtml: String(resolved.value ?? "") } as Node;
+  }
+
   if (node.data?.kind === "collection" && host.resolveCollection) {
     const items = host.resolveCollection(node.data.ref, scope);
     if (items.length === 0 && node.data.omitWhenEmpty) return undefined;

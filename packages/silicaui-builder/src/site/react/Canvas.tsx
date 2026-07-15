@@ -18,7 +18,7 @@
  */
 import * as React from "react";
 import type { Child, ElementNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { applyOverrides, expandComponent, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
+import { applyOverrides, expandComponent, iconSvg, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { useHost } from "./host-context";
 import { acceptsChildren } from "../engine";
@@ -532,8 +532,13 @@ function CanvasNode({
   // An empty Icon expands to a bare <span> with no size — fall back to a visible
   // placeholder when the assembled class is empty (canvas-only; production has none).
   const isIcon = node.kind === "component" && node.component === "Icon";
+  // Resolve the glyph so the canvas shows the SAME inline SVG production (`toHtml`)
+  // does — preview == production. Only when the name DOESN'T resolve does the
+  // empty-icon placeholder box stand in.
+  const iconName = isIcon && typeof el.attrs?.["data-icon"] === "string" ? String(el.attrs["data-icon"]) : undefined;
+  const iconMarkup = iconName ? iconSvg(iconName) : undefined;
   const cls =
-    ((el.class ?? "") + deco + (empty ? EMPTY_DECOR : "")) || (isIcon ? ICON_PLACEHOLDER : "");
+    ((el.class ?? "") + deco + (empty ? EMPTY_DECOR : "")) || (isIcon && !iconMarkup ? ICON_PLACEHOLDER : "");
   // Sanitized FIRST — the live canvas is its own render target (real DOM in the
   // builder's own browser session), so it needs the SAME raw-element/attribute
   // floor `toHtml` enforces (element.ts), not just the design-surface UX tweaks
@@ -558,6 +563,27 @@ function CanvasNode({
     const text = textOf(el.children);
     if (text) attrs.defaultValue = text;
     return React.createElement(tag, { className: cls || undefined, ...attrs, ...inter });
+  }
+  // Trusted inner HTML (a curated Embed's sandboxed iframe, or a resolved
+  // rich-text bind) — render it raw, same as production `toHtml`. No React
+  // children alongside `dangerouslySetInnerHTML`.
+  if (el.rawHtml != null) {
+    return React.createElement(tag, {
+      className: cls || undefined,
+      ...attrs,
+      ...inter,
+      dangerouslySetInnerHTML: { __html: el.rawHtml },
+    });
+  }
+  // A resolved Icon: inline the SVG glyph (no React children alongside it). The
+  // Icon expansion has no children, so this never collides with authored content.
+  if (iconMarkup) {
+    return React.createElement(tag, {
+      className: cls || undefined,
+      ...attrs,
+      ...inter,
+      dangerouslySetInnerHTML: { __html: iconMarkup },
+    });
   }
   return React.createElement(
     tag,
