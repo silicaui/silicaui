@@ -1,6 +1,7 @@
 // Runnable proof of the spine: author → validate → project → stamp. Run against
 // the built output: `pnpm --filter @wizeworks/silicaui-html build && node verify.mjs`.
 import {
+  atom,
   block,
   el,
   iconSvg,
@@ -235,6 +236,69 @@ check(
   "slots derived from tree in order (hero)",
   heroSplitCta.slots.map((s) => s.name).join(",") === "headline,subhead,cta,image",
 );
+
+// ── Wordmark: the brand lockup (golden markup) ────────────────────────────
+{
+  const wm = (props, children) => {
+    const n = atom("Wordmark", "wordmark", props);
+    if (children) n.children = children;
+    return toHtml(n);
+  };
+  // THE regression guard: text-only markup must be byte-identical to the
+  // pre-container `elementDef(…, "span")` output. Everything else is additive.
+  check(
+    "Wordmark text-only markup is UNCHANGED (byte-identical to the element atom)",
+    wm({ text: "SilicaUI" }) === '<span class="wordmark">SilicaUI</span>',
+  );
+  check(
+    "Wordmark src renders a mark before the name",
+    wm({ text: "SilicaUI", src: "/logo.svg" }) ===
+      '<span class="wordmark"><img class="wordmark-mark" src="/logo.svg" alt="" loading="lazy"/>SilicaUI</span>',
+  );
+  check(
+    "Wordmark href lowers to an <a> (same sugar as Button)",
+    wm({ text: "Acme", src: "/l.svg", alt: "Acme logo", href: "/" }) ===
+      '<a class="wordmark" href="/"><img class="wordmark-mark" src="/l.svg" alt="Acme logo" loading="lazy"/>Acme</a>',
+  );
+  check(
+    "Wordmark authored children win over props (the documented composition)",
+    wm({ text: "ignored" }, [el("svg", "")]) === '<span class="wordmark"><svg></svg></span>',
+  );
+  check("Wordmark mark-only (no text) emits just the mark", wm({ src: "/l.svg" }).includes("</span>"));
+}
+
+// ── ComponentDef.primary: a component declares its own bind target ─────────
+{
+  // The trap `primary` exists to prevent: a Wordmark HAS a `src` prop, so the
+  // old `"src" in props` sniff would have written the bound NAME into the logo URL.
+  const n = atom("Wordmark", "wordmark", { text: "Placeholder", src: "/logo.svg" });
+  n.data = { kind: "value", ref: "site.identity.name" };
+  const out = toHtml(resolveTree(n, { resolveBinding: () => ({ value: "Acme Storefront" }) }));
+  check("primary:'text' — a bare bind on Wordmark fills the NAME", out.includes("Acme Storefront"));
+  check("primary:'text' — the bound name does NOT hijack the logo src", out.includes('src="/logo.svg"'));
+
+  const img = atom("Image", "", { src: "/placeholder.png" });
+  img.data = { kind: "value", ref: "hero" };
+  check(
+    "primary:'src' — a bare bind on Image still fills the source (name-list removed, behavior kept)",
+    toHtml(resolveTree(img, { resolveBinding: () => ({ value: "/real.jpg" }) })).includes('src="/real.jpg"'),
+  );
+
+  const av = atom("Avatar", "avatar", { src: "/p.png" });
+  av.data = { kind: "value", ref: "user.photo" };
+  check(
+    "primary:'src' — Avatar unchanged too",
+    toHtml(resolveTree(av, { resolveBinding: () => ({ value: "/me.jpg" }) })).includes('src="/me.jpg"'),
+  );
+
+  // An undeclared text component still falls back to text — no regression.
+  const t = atom("Text", "", { text: "placeholder" });
+  t.data = { kind: "value", ref: "copy" };
+  check(
+    "no `primary` declared — falls back to text as before",
+    toHtml(resolveTree(t, { resolveBinding: () => ({ value: "resolved copy" }) })).includes("resolved copy"),
+  );
+}
 
 console.log(
   failures === 0 ? "\n✅ all checks passed\n" : `\n❌ ${failures} check(s) failed\n`,

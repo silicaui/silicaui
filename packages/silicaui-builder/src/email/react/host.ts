@@ -10,6 +10,7 @@ import type * as React from "react";
 import type { DataBinding, DataScope, DataSource, Resolved } from "../schema";
 import type { EmailNode } from "../schema";
 import type { EmailPaletteItem } from "../palette";
+import type { EmailResolveHost } from "../resolve";
 
 export type { DataScope, Resolved } from "../schema";
 
@@ -27,15 +28,13 @@ export interface EmailInspectorPanel {
   render(node: EmailNode, ctx: EmailInspectorPanelCtx): React.ReactNode;
 }
 
-export interface EmailBuilderHost {
-  /**
-   * Resolve the two data primitives (§3) — SYNCHRONOUS by design, same
-   * contract as the site host's. Feeds `email/resolve.ts`'s `resolveEmailTree`
-   * at export/send time (a host calls `toEmailHtml(doc, host)` directly) AND
-   * powers the Inspector's live "Preview" row on a bound node.
-   */
-  resolveBinding?(ref: string, scope: DataScope): Resolved;
-  resolveCollection?(ref: string, scope: DataScope): readonly unknown[];
+/**
+ * The data-resolution hooks come from `EmailResolveHost` by EXTENSION, never by
+ * re-declaration — same rule (and same past drift) as the site host's. Feeds
+ * `resolveEmailTree` at export/send time (a host calls `toEmailHtml(doc, host)`
+ * directly) AND the Inspector's live Preview row. SYNCHRONOUS by design.
+ */
+export interface EmailBuilderHost extends EmailResolveHost {
   /** What the Insert palette offers, ON TOP of the default 8-block email
    *  catalog — merge semantics, not a flat replace, mirroring the site host's
    *  `catalog()`. */

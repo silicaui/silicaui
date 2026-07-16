@@ -26,7 +26,13 @@ export function wordmark(colors, prefix = "") {
       whiteSpace: "nowrap",
       textDecoration: "none",
 
-      "& svg": { width: "1.15em", height: "1.15em", flexShrink: "0" },
+      // The brand MARK beside the name — an inline `<svg>`, an `<img>` logo, or
+      // whatever the `src` prop lowered to. Height-locked to the type, width
+      // AUTO: a logo is rarely square, and the old `width: 1.15em` squashed any
+      // non-square mark to a square. Square marks are unaffected (an svg with a
+      // 1:1 viewBox still computes to 1.15em wide), so this generalizes rather
+      // than changes them.
+      "& :is(svg, img)": { width: "auto", height: "1.15em", flexShrink: "0" },
     },
 
     // The accented portion of the mark (e.g. "UI" in "Silica UI").

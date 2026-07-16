@@ -12,6 +12,15 @@ export interface WordmarkProps extends React.HTMLAttributes<HTMLElement> {
   as?: React.ElementType;
   /** Link target, when `as="a"`. */
   href?: string;
+  /** A logo image rendered before the name. The one-prop path, for when the mark
+   *  is a URL rather than a slotted component; `children` composition is the
+   *  richer path and both lower to the same DOM. Ignored when `children` is
+   *  given a mark of its own — pick one. */
+  src?: string;
+  /** Alt text for `src`. Defaults to `""` (decorative): the brand NAME renders
+   *  beside the logo, so announcing both just repeats it. Set it explicitly for
+   *  a mark-only wordmark, where the logo carries the name. */
+  alt?: string;
 }
 
 /**
@@ -21,9 +30,10 @@ export interface WordmarkProps extends React.HTMLAttributes<HTMLElement> {
  *
  *   <Wordmark>Silica<WordmarkAccent>UI</WordmarkAccent></Wordmark>
  *   <Wordmark as="a" href="/" color="primary"><LogoMark />Acme</Wordmark>
+ *   <Wordmark src="/logo.svg">Acme</Wordmark>
  */
 export const Wordmark = React.forwardRef<HTMLElement, WordmarkProps>(
-  function Wordmark({ color, size = "md", as, className, ...rest }, ref) {
+  function Wordmark({ color, size = "md", as, src, alt = "", className, children, ...rest }, ref) {
     const sc = useSilicaClass();
     const Tag = (as ?? "span") as React.ElementType;
     return (
@@ -36,7 +46,10 @@ export const Wordmark = React.forwardRef<HTMLElement, WordmarkProps>(
           className,
         )}
         {...rest}
-      />
+      >
+        {src ? <img className={cx(sc("wordmark-mark"))} src={src} alt={alt} loading="lazy" /> : null}
+        {children}
+      </Tag>
     );
   },
 );

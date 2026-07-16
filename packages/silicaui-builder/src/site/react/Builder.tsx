@@ -18,7 +18,7 @@ import { Editor } from "../engine";
 import type { PageMeta } from "../engine";
 import { DraftStore } from "../../shared/persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
-import { HostProvider } from "./host-context";
+import { HostProvider, useHost } from "./host-context";
 import type { BuilderHost } from "./host";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
 import { RecoveryBanner } from "../../shared/react/RecoveryBanner";
@@ -97,6 +97,12 @@ function Chrome({
   const [mode, setMode] = React.useState<Mode>("page");
   const [device, setDevice] = React.useState("desktop");
   const [appearance, setAppearance] = React.useState<Appearance>("light");
+  // Canvas shows the host's REAL data, not authored placeholders. Default on —
+  // "preview your real brand" is the whole point of a binding; off is the
+  // escape hatch back to the placeholder that ships when data is absent.
+  const [dataPreview, setDataPreview] = React.useState(true);
+  const host = useHost();
+  const resolvesData = Boolean(host?.resolveBinding || host?.resolveCollection);
   const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
   const [publishing, setPublishing] = React.useState(false);
 
@@ -176,6 +182,25 @@ function Chrome({
             <IconItem value="tablet" icon="tablet">Tablet</IconItem>
             <IconItem value="mobile" icon="smartphone">Mobile</IconItem>
           </ToggleGroup>
+        )}
+
+        {/* Data on/off — only when the host actually resolves something, else
+            it's a dead control. ON by default: seeing real content is the point
+            of binding. OFF is the escape hatch — the authored PLACEHOLDER is
+            what ships when data is absent, so an author has to be able to see
+            and edit it (and to work when a host's resolver is wrong or slow). */}
+        {mode !== "theme" && resolvesData && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Preview data"
+            aria-pressed={dataPreview}
+            data-testid="data-preview-toggle"
+            className={dataPreview ? "btn-active" : undefined}
+            onClick={() => setDataPreview((v) => !v)}
+          >
+            <Icon name={dataPreview ? "database" : "eyeOff"} />
+          </Button>
         )}
 
         <div className="flex-1" />
@@ -303,7 +328,7 @@ function Chrome({
             </div>
           ) : (
             <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
-              <Canvas device={device} />
+              <Canvas device={device} dataPreview={dataPreview} />
             </ErrorBoundary>
           )}
         </ResizablePanel>

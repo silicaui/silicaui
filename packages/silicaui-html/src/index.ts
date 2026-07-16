@@ -68,7 +68,13 @@ export type { DataSource } from "./data-sources";
 // synchronous walker owning bind + repeat, shared by the canvas and a host's
 // live-render path so preview == production is structural.
 export { resolveTree } from "./resolve";
-export type { DataScope, Resolved, ResolveHost } from "./resolve";
+export type {
+  DataScope,
+  Resolved,
+  ResolveDiagnostic,
+  ResolveHost,
+  ResolveOptions,
+} from "./resolve";
 
 // The component registry (§4) — the single definition each @wizeworks/silicaui component
 // derives from. A component is a macro that EXPANDS to an element subtree, so a

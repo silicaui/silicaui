@@ -17,11 +17,17 @@
  * site version does (there's no `attrs`/`children` uniformity); it works off
  * an explicit per-kind field table instead.
  */
-import type { DataScope, DataSource, EmailNode, Resolved } from "./schema";
+import type { DataScope, DataSource, EmailNode, ResolveDiagnostic, Resolved } from "./schema";
 
+/** Twin of `@wizeworks/silicaui-html`'s `ResolveHost`, including its
+ *  unknown-vs-empty distinction: `undefined` means "I've never heard of this
+ *  ref" (authored content stays, diagnostic fires), `{ value: undefined }`
+ *  means "I know it and it's empty" (renders empty). Same rule as the site
+ *  resolver — see data-resolution-and-brand-mark.md §A. */
 export interface EmailResolveHost {
-  resolveBinding?(ref: string, scope: DataScope): Resolved;
-  resolveCollection?(ref: string, scope: DataScope): readonly unknown[];
+  resolveBinding?(ref: string, scope: DataScope): Resolved | undefined;
+  resolveCollection?(ref: string, scope: DataScope): readonly unknown[] | undefined;
+  onDiagnostic?(d: ResolveDiagnostic): void;
 }
 
 const EMPTY_SCOPE: DataScope = {};
@@ -85,17 +91,25 @@ const TOKEN_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
  * no single field to bind wholesale, so each token resolves independently
  * against the SAME `resolveBinding` hook a whole-field bind uses. Absent the
  * hook, `text` passes through untouched (an author who's typed `{{` before a
- * host is wired doesn't see it silently vanish). A `visible:false` or missing
+ * host is wired doesn't see it silently vanish). An UNKNOWN ref likewise keeps
+ * its own literal source (`{{logo}}`) and reports — the same "keep what was
+ * authored" rule as everywhere else, and a visible artifact in a test send
+ * beats a silently mangled sentence. A KNOWN-but-empty (or `visible:false`)
  * resolution elides to empty string — there's no way to hide part of a
- * sentence. `escapeHtml` is true only for a field the projector embeds
+ * sentence, and an author who bound an empty field meant the sentence to close
+ * over it. `escapeHtml` is true only for a field the projector embeds
  * VERBATIM as markup (`TextNode.html`); fields the projector escapes itself
  * at render time (button label, subject, preheader) pass the raw resolved
  * value through so it isn't double-escaped.
  */
 export function resolveTokens(text: string, host: EmailResolveHost, scope: DataScope, escapeHtml: boolean): string {
   if (!host.resolveBinding || !text.includes("{{")) return text;
-  return text.replace(TOKEN_RE, (_match, ref: string) => {
+  return text.replace(TOKEN_RE, (match, ref: string) => {
     const resolved = host.resolveBinding!(ref, scope);
+    if (!resolved) {
+      host.onDiagnostic?.({ code: "unknown-ref", ref, kind: "value" });
+      return match; // the literal `{{ref}}` — TOKEN_RE admits no HTML-special chars
+    }
     if (resolved.visible === false || resolved.value == null) return "";
     const s = String(resolved.value);
     return escapeHtml ? escapeInline(s) : s;
@@ -125,6 +139,13 @@ function resolveChildren(children: EmailNode[] | undefined, host: EmailResolveHo
 function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope): EmailNode | undefined {
   if (node.data?.kind === "value" && host.resolveBinding) {
     const resolved = host.resolveBinding(node.data.ref, scope);
+    // Unknown ref: keep the node exactly as authored (marker included) and
+    // report. Tokens still apply — an unknown WHOLE-FIELD bind says nothing
+    // about the node's inline tokens, which resolve independently.
+    if (!resolved) {
+      host.onDiagnostic?.({ code: "unknown-ref", ref: node.data.ref, nodeId: node.id, kind: "value" });
+      return applyTokens(node, host, scope);
+    }
     if (resolved.visible === false) return undefined;
     const filled = fillEmailValue(node, resolved.value, node.data.attr);
     const { data: _data, ...rest } = filled as EmailNode & { data?: unknown };
@@ -138,6 +159,13 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
 
   if (node.data?.kind === "collection" && host.resolveCollection && "children" in node) {
     const items = host.resolveCollection(node.data.ref, scope);
+    if (!items) {
+      host.onDiagnostic?.({ code: "unknown-ref", ref: node.data.ref, nodeId: node.id, kind: "collection" });
+      return node;
+    }
+    // `omitWhenEmpty` deliberately does NOT apply to an unknown ref (above): it
+    // means "legitimately empty, render nothing" — a claim only a host that
+    // KNOWS the ref can make.
     if (items.length === 0 && node.data.omitWhenEmpty) return undefined;
     const { data: _data, children, ...rest } = node as EmailNode & { children: EmailNode[]; data?: unknown };
     const resolvedChildren =

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 20" role="img" aria-label="Acme">
+  <title>Acme demo brand mark</title>
+  <!-- Deliberately 3:1, not square: the harness's stand-in for a real logo, and
+       the fixture that proves `.wordmark`'s mark sizing keeps a non-square mark's
+       aspect ratio instead of squashing it to a square. -->
+  <rect width="60" height="20" rx="3" fill="#0f766e" />
+  <circle cx="10" cy="10" r="5" fill="#5eead4" />
+  <rect x="20" y="7" width="32" height="2.5" rx="1.25" fill="#5eead4" />
+  <rect x="20" y="12" width="22" height="2.5" rx="1.25" fill="#99f6e4" />
+</svg>

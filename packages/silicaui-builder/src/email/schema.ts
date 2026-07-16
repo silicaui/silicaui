@@ -14,7 +14,7 @@
  * single runtime mirror of these rules — keep the two in sync.
  */
 import type { DataBinding } from "@wizeworks/silicaui-html";
-export type { DataBinding, DataScope, DataSource, Resolved } from "@wizeworks/silicaui-html";
+export type { DataBinding, DataScope, DataSource, ResolveDiagnostic, Resolved } from "@wizeworks/silicaui-html";
 
 export type Align = "left" | "center" | "right";
 export type FontWeight = "normal" | "medium" | "semibold" | "bold";

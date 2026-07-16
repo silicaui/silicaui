@@ -4,7 +4,9 @@
  */
 export { Builder } from "./Builder";
 export type { BuilderProps, PublishPayload } from "./Builder";
-export type { PageMeta } from "../engine";
+// `Editor` is what `useEditor()` returns — a host that holds the handle (or
+// types a variable around it) needs to be able to name it.
+export type { Editor, PageMeta } from "../engine";
 export type { BuilderHost, InspectorPanel, InspectorPanelCtx, AssetRef } from "./host";
 export { useHost } from "./host-context";
 export {

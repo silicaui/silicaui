@@ -281,6 +281,16 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
     { key: "src", label: "Image URL", control: "asset" },
     { key: "alt", label: "Alt text", control: "text" },
   ],
+  // Wordmark — the brand lockup. `src` is the one-control path to "put the logo
+  // in the wordmark" (the richer path is nesting an Image/Icon child, which the
+  // ComponentDef honors first). `alt` defaults to "" — decorative, since the
+  // name renders beside it. `href` lowers the whole mark to an <a>.
+  Wordmark: [
+    { key: "text", label: "Name", control: "text" },
+    { key: "src", label: "Logo", control: "asset" },
+    { key: "alt", label: "Logo alt text", control: "text", placeholder: "Decorative — leave empty if the name shows" },
+    { key: "href", label: "Link", control: "text", placeholder: "/" },
+  ],
   // Video — src/poster are asset URLs; playback flags are booleans (see the
   // ComponentDef's `=== true` convention). Nested <source> sets are an authoring
   // concern (children), not surfaced here — the single `src` covers the common case.
@@ -1071,6 +1081,24 @@ function DataSection({ id, node }: { id: string; node: Node }) {
 }
 
 /**
+ * The host returned `undefined` — it doesn't know this ref at all (§A of
+ * data-resolution-and-brand-mark.md). Say so in as many words: this exact
+ * silence is what made a consumer spend an afternoon misdiagnosing an empty
+ * span as a ref-path bug. The node keeps its authored content, so name that
+ * too — otherwise "unknown" reads as "your page is broken".
+ */
+function UnknownRef({ ref_ }: { ref_: string }) {
+  return (
+    <Row label="Preview">
+      <p className="text-xs text-error" data-testid="data-unknown-ref">
+        Unknown ref <code className="kbd kbd-xs">{ref_}</code> — this host doesn&rsquo;t resolve it. The authored content
+        renders instead.
+      </p>
+    </Row>
+  );
+}
+
+/**
  * A live preview of what this bind/repeat resolves to RIGHT NOW, using the
  * host's own `resolveBinding`/`resolveCollection` (§3) — so an author sees
  * realistic data while editing, without leaving the canvas. Only meaningful at
@@ -1094,9 +1122,10 @@ function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: stri
   if (kind === "value") {
     if (!host?.resolveBinding) return null;
     const resolved = host.resolveBinding(ref_, {});
+    if (!resolved) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
-        <p className="truncate text-xs text-base-content/70">
+        <p className="truncate text-xs text-base-content/70" data-testid="data-preview">
           {resolved.visible === false ? (
             <em className="text-base-content/45">hidden (visible: false)</em>
           ) : (
@@ -1109,6 +1138,7 @@ function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: stri
   if (kind === "html") {
     if (!host?.resolveBinding) return null;
     const resolved = host.resolveBinding(ref_, {});
+    if (!resolved) return <UnknownRef ref_={ref_} />;
     const raw = resolved.visible === false ? "" : String(resolved.value ?? "");
     return (
       <Row label="Preview">
@@ -1127,6 +1157,7 @@ function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: stri
   if (kind === "collection") {
     if (!host?.resolveCollection) return null;
     const items = host.resolveCollection(ref_, {});
+    if (!items) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
         <p className="text-xs text-base-content/70">
