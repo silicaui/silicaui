@@ -1186,6 +1186,21 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
   );
 }
 
+/** The host returned `undefined` — it doesn't know this ref at all. The email
+ *  twin of the site Inspector's `UnknownRef` (data-resolution-and-brand-mark.md
+ *  §A.5): name the ref, and say the authored content still renders, so
+ *  "unknown" doesn't read as "your email is broken". */
+function UnknownRef({ ref_ }: { ref_: string }) {
+  return (
+    <Row label="Preview">
+      <p className="text-xs text-error" data-testid="email-data-unknown-ref">
+        Unknown ref <code className="kbd kbd-xs">{ref_}</code> — this host doesn&rsquo;t resolve it. The authored content
+        renders instead.
+      </p>
+    </Row>
+  );
+}
+
 /** A live preview of what this bind/repeat resolves to RIGHT NOW, using the
  *  host's own `resolveBinding`/`resolveCollection` — so an author sees
  *  realistic data while editing, without leaving the canvas. Only meaningful
@@ -1208,6 +1223,7 @@ function EmailDataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind:
   if (kind === "value") {
     if (!host?.resolveBinding) return null;
     const resolved = host.resolveBinding(ref_, {});
+    if (!resolved) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
         <p className="truncate text-xs text-base-content/70">
@@ -1223,6 +1239,7 @@ function EmailDataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind:
   if (kind === "collection") {
     if (!host?.resolveCollection) return null;
     const items = host.resolveCollection(ref_, {});
+    if (!items) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
         <p className="text-xs text-base-content/70">

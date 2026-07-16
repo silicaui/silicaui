@@ -6,12 +6,12 @@
  * alongside `resolveTree`, not here.
  */
 import type * as React from "react";
-import type { DataBinding, DataScope, DataSource, HostNode, Node, Resolved } from "@wizeworks/silicaui-html";
+import type { DataBinding, DataScope, DataSource, HostNode, Node, Resolved, ResolveHost } from "@wizeworks/silicaui-html";
 import type { ClassValidator } from "@wizeworks/silicaui-html";
 import type { PaletteGroup } from "../palette";
 import type { StarterContribution } from "../component-starters";
 
-export type { DataScope, Resolved } from "@wizeworks/silicaui-html";
+export type { DataScope, ResolveDiagnostic, Resolved } from "@wizeworks/silicaui-html";
 
 export interface AssetRef {
   url: string;
@@ -72,17 +72,19 @@ export interface InspectorPanel {
   render(node: Node, ctx: InspectorPanelCtx): React.ReactNode;
 }
 
-export interface BuilderHost {
-  /**
-   * Resolve the two data primitives (§3) — SYNCHRONOUS by design (a host with
-   * an async source fetches once, up front, into whatever the resolver reads
-   * from; see `@wizeworks/silicaui-html`'s `resolveTree`, which these two feed at
-   * publish/render time — a host calls it directly, the builder package doesn't
-   * wrap it). Also powers the Inspector's live "Preview" row on a bound node,
-   * so an author sees realistic data while editing without leaving the canvas.
-   */
-  resolveBinding?(ref: string, scope: DataScope): Resolved;
-  resolveCollection?(ref: string, scope: DataScope): readonly unknown[];
+/**
+ * The data-resolution hooks come from `ResolveHost` by EXTENSION, never by
+ * re-declaration. They were duplicated here once and drifted: `silicaui-html`
+ * widened `resolveBinding` to `Resolved | undefined` (the unknown-ref signal)
+ * while this copy still said `Resolved`, so the Inspector read `.value` off an
+ * `undefined` with the compiler none the wiser. One declaration, one contract —
+ * see data-resolution-and-brand-mark.md §A.
+ *
+ * SYNCHRONOUS by design (a host with an async source fetches once, up front,
+ * into whatever the resolver reads from). The same hooks feed `resolveTree` at
+ * publish/render time, the canvas walk, and the Inspector's live Preview row.
+ */
+export interface BuilderHost extends ResolveHost {
   /** What the Insert palette offers, ON TOP of the default @wizeworks/silicaui-blocks
    *  index — merge semantics, not a flat replace (builder-engine-roadmap.md §5).
    *  Its `extend` groups also AUTO-SURFACE in the New-component starter picker

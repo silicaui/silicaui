@@ -184,16 +184,51 @@ test("the Data binding Preview row calls host.resolveBinding/resolveCollection l
   await page.getByTestId("data-kind").selectOption("value");
   await page.getByTestId("data-ref-picker").selectOption("site.title");
 
-  // resolveBinding("site.title") is fixed sample data in the demo host.
-  await expect(page.getByText("Acme Storefront")).toBeVisible();
+  // resolveBinding("site.title") is fixed sample data in the demo host. Scoped
+  // to the Preview ROW — the canvas resolves the same ref now too, so a bare
+  // text match is ambiguous (and that ambiguity is the feature working).
+  await expect(page.getByTestId("data-preview")).toHaveText("Acme Storefront");
+  await expect(canvas.getByRole("heading", { name: "Acme Storefront" })).toBeVisible();
 
-  // A ref the demo host doesn't recognize resolves visible:false — the preview
-  // says so instead of a blank/misleading value.
+  // `product.title` is declared as a FIELD of the `products` collection, so at
+  // top-level scope there's no item to resolve it against — the host returns
+  // `{ value: undefined }` ("known, but empty here"), which previews as blank
+  // rather than as an error. Being declared-and-handled, it is NOT an unknown ref.
   await page.getByTestId("data-ref-picker").selectOption("product.title");
-  await expect(page.getByText("hidden (visible: false)")).toBeVisible();
+  await expect(page.getByTestId("data-unknown-ref")).toHaveCount(0);
 
   // Switch to a collection bind — the preview shows the resolved item count.
   await page.getByTestId("data-kind").selectOption("collection");
   await page.getByTestId("data-ref-picker").selectOption("products");
   await expect(page.getByText("3 items")).toBeVisible();
+});
+
+test("a ref the host cannot resolve fails LOUDLY — it never blanks the node silently", async ({ page }) => {
+  await ready(page);
+  const canvas = page.locator(".sui-canvas");
+
+  const HEADLINE = "Ship your store in an afternoon";
+  await canvas.getByText(HEADLINE).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByTestId("data-kind").selectOption("value");
+
+  // The picker only offers refs the host DECLARED, so an unknown ref can't be
+  // reached through it — it's what a stale document or a host whose catalog and
+  // resolver disagree produces. Write one straight into the engine, which is
+  // exactly the state a consumer hit in the wild.
+  await page.evaluate(() => {
+    const ed = (window as unknown as { __editor: { selection?: string; setData(id: string, b: unknown): void } })
+      .__editor;
+    ed.setData(ed.selection!, { kind: "value", ref: "logo" });
+  });
+
+  // LOUD: the Inspector names the bad ref instead of previewing an empty string.
+  const err = page.getByTestId("data-unknown-ref");
+  await expect(err).toBeVisible();
+  await expect(err).toContainText("logo");
+
+  // NOT DESTRUCTIVE: the authored headline still renders. Before this, an
+  // unresolvable ref blanked the node and the author was left with an empty
+  // span and no explanation.
+  await expect(canvas.getByText(HEADLINE)).toBeVisible();
 });

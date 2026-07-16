@@ -18,9 +18,10 @@
  */
 import * as React from "react";
 import type { Child, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { applyOverrides, expandComponent, iconSvg, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
+import { applyOverrides, expandComponent, iconSvg, resolveTree, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
 import { useHost } from "./host-context";
+import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
 import { customColorCss } from "../color-cascade";
@@ -254,6 +255,13 @@ interface RenderCtx {
   /** The chain of symbol ids currently being expanded — breaks a self-referential
    *  instance (a symbol dropped into its own master) instead of recursing forever. */
   symbolPath?: readonly string[];
+  /** Nodes whose `ref` the host couldn't resolve. They render their AUTHORED
+   *  content (never blank) wearing a warning marker — the loud half of failing
+   *  loudly, and the thing that turns "why is this empty?" into "unknown ref". */
+  unresolvedIds?: ReadonlySet<string>;
+  /** Nodes production would DROP (`visible:false`, or `omitWhenEmpty` at zero
+   *  items) but the canvas keeps selectable. Rendered ghosted. */
+  hiddenIds?: ReadonlySet<string>;
   /** Set while rendering INSIDE an instance's expanded master: selection/edit keys
    *  become composite (`instanceId::masterId`) and edits route to overrides. */
   instance?: { id: string };
@@ -290,6 +298,14 @@ function ring(id: string | undefined, ctx: RenderCtx): string {
 function decorations(id: string | undefined, ctx: RenderCtx): string {
   let s = "";
   if (id && id === ctx.dnd.draggingId) s += " opacity-40";
+  // Production would drop this node (visible:false / omitWhenEmpty at zero
+  // items). The canvas keeps it — you can't select what isn't rendered — but
+  // shows it ghosted so "won't ship" is legible at a glance.
+  if (id && ctx.hiddenIds?.has(id)) s += " opacity-40 outline outline-1 outline-dashed outline-base-content/30";
+  // The host doesn't know this ref. The authored content renders (never blank);
+  // the warning outline is what makes the failure impossible to mistake for a
+  // styling bug — the exact confusion the silent version caused.
+  if (id && ctx.unresolvedIds?.has(id)) s += " outline outline-2 outline-dashed outline-warning -outline-offset-2";
   if (id && id === ctx.insideId) return s + " outline outline-2 outline-dashed outline-accent -outline-offset-2";
   return s + ring(id, ctx);
 }
@@ -307,7 +323,13 @@ function DropLine() {
  */
 function isEmptyContainer(node: Node): boolean {
   if (!acceptsChildren(node)) return false;
-  const kids = node.kind === "outlet" ? [] : node.children ?? [];
+  // A COMPONENT container can render content its authored `children` don't show:
+  // a Wordmark holds its brand name (and logo) in `props`, and expands to them
+  // only when nothing is nested. Ask the EXPANSION — the same single source of
+  // truth the canvas draws through — or a prop-populated container reads as
+  // "empty" and gets a drop-zone placeholder slapped over its real content.
+  const kids: Child[] =
+    node.kind === "outlet" ? [] : node.kind === "component" ? asElement(node).children ?? [] : node.children ?? [];
   return !kids.some((c) => (typeof c === "string" ? c.trim().length > 0 : true));
 }
 
@@ -471,6 +493,9 @@ function CanvasNode({
       const info: NodeInfo = { id, parentId, index, node };
       const draggable = parentId !== undefined; // the root can't be moved
       inter["data-sui-id"] = id;
+      // A stable hook for the unresolved state — chrome styling, e2e, and a
+      // host's own tooling shouldn't have to pattern-match utility classes.
+      if (ctx.unresolvedIds?.has(id)) inter["data-sui-unresolved"] = node.data?.ref ?? "";
       inter.draggable = draggable;
       inter.onClick = (e: React.MouseEvent) => ctx.onSelect(id, e);
       inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(id, e);
@@ -720,7 +745,49 @@ function rename(
 const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ede9fe'/%3E%3Cstop offset='1' stop-color='%23c7d2fe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='240' fill='url(%23g)'/%3E%3C/svg%3E";
 
-export function Canvas({ device = "desktop" }: { device?: string }) {
+/**
+ * Resolve a tree for the CANVAS: same `resolveTree` primitive `toHtml` uses, in
+ * `editing` mode (never drops a node — an author can't select what isn't there).
+ * Returns the resolved tree plus the two id sets the chrome needs.
+ *
+ * `bound` is derived from the AUTHORED tree, because a successful bind consumes
+ * its own marker — so "did this node's content come from data?" is only
+ * answerable before resolution. That's what gates inline editing: committing
+ * `textContent` on a resolved node would overwrite the authored placeholder with
+ * the host's data, and the author would get the placeholder back the moment the
+ * data changed.
+ */
+function useResolved(tree: Node, host: BuilderHost | undefined, on: boolean) {
+  return React.useMemo(() => {
+    const bound = new Set<string>();
+    const unresolved = new Set<string>();
+    const hidden = new Set<string>();
+    if (!on || !host || (!host.resolveBinding && !host.resolveCollection)) {
+      return { tree, bound, unresolved, hidden };
+    }
+    walk(tree, (n) => {
+      if (n.kind === "outlet" || n.id == null) return;
+      if (n.data?.kind === "value" || n.data?.kind === "html") bound.add(n.id);
+    });
+    const resolved = resolveTree(
+      tree,
+      {
+        resolveBinding: host.resolveBinding?.bind(host),
+        resolveCollection: host.resolveCollection?.bind(host),
+        onDiagnostic: (d) => {
+          if (!d.nodeId) return;
+          if (d.code === "unknown-ref") unresolved.add(d.nodeId);
+          if (d.code === "hidden") hidden.add(d.nodeId);
+        },
+      },
+      undefined,
+      { editing: true },
+    );
+    return { tree: resolved, bound, unresolved, hidden };
+  }, [tree, host, on]);
+}
+
+export function Canvas({ device = "desktop", dataPreview = true }: { device?: string; dataPreview?: boolean }) {
   const doc = useDocument();
   const editor = useEditor();
   const host = useHost();
@@ -747,10 +814,18 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
   // master (via useActiveRoot). Otherwise render the composed site as before.
   const symbolEditing = activeTree === "symbol";
   const frameRoot = symbolEditing ? undefined : doc.frame?.root;
-  const shellNode = symbolEditing ? root : frameRoot ?? doc.root;
+  const authoredShell = symbolEditing ? root : frameRoot ?? doc.root;
   const editingPage = activeTree === "page";
   const shellPreview = frameRoot ? editingPage : false;
-  const outlet = frameRoot ? { tree: doc.root, preview: !editingPage } : undefined;
+  // Resolve the shell and the outlet's page independently — they're two trees on
+  // one canvas, and the frame (navbar/footer) carries binds of its own.
+  const shellR = useResolved(authoredShell, host, dataPreview);
+  const pageR = useResolved(doc.root, host, dataPreview);
+  const shellNode = shellR.tree;
+  const outlet = frameRoot ? { tree: pageR.tree, preview: !editingPage } : undefined;
+  const boundIds = React.useMemo(() => new Set([...shellR.bound, ...pageR.bound]), [shellR, pageR]);
+  const unresolvedIds = React.useMemo(() => new Set([...shellR.unresolved, ...pageR.unresolved]), [shellR, pageR]);
+  const hiddenIds = React.useMemo(() => new Set([...shellR.hidden, ...pageR.hidden]), [shellR, pageR]);
   const customCss = React.useMemo(() => customColorCss(theme, ".sui-canvas"), [theme]);
   // Every named role reaches the canvas the same way it reaches the board.
   void rolesOf(theme);
@@ -832,7 +907,18 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
       ? masterNodeOf(editor, editingRaw)
       : editor.node(editingRaw)
     : undefined;
-  const editingId = editingNode && inlineEditable(editingNode) ? editingRaw : undefined;
+  // A node showing RESOLVED data is not editable in place: its text isn't
+  // authored, so there's nothing to commit — `setText` would overwrite the
+  // authored placeholder with the host's data, and the author would get the
+  // placeholder back the moment that data changed. Its Content field in the
+  // Inspector still edits the placeholder, and the Data toggle reveals it on the
+  // canvas. A node whose ref did NOT resolve is still showing authored text, so
+  // it stays editable — the rule is exactly "is this text authored right now?".
+  const showsData = (id: string | undefined) => id != null && boundIds.has(id) && !unresolvedIds.has(id);
+  const editingId =
+    editingNode && inlineEditable(editingNode) && !showsData(editingNode.kind === "outlet" ? undefined : editingNode.id)
+      ? editingRaw
+      : undefined;
 
   const ctx: RenderCtx = {
     selectedId,
@@ -881,6 +967,8 @@ export function Canvas({ device = "desktop" }: { device?: string }) {
     renderHostNode: host?.renderHostNode
       ? (node, preview) => host!.renderHostNode!(node, { preview })
       : undefined,
+    unresolvedIds,
+    hiddenIds,
   };
 
   return (

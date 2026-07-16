@@ -181,5 +181,135 @@ function check(name, cond) {
   );
 }
 
+// ── HONESTY: unknown ref vs. known-but-empty ──────────────────────────────
+// The distinction the whole feature rests on. Both were `{ value: undefined }`
+// before, so the walk could not tell them apart and blanked the node either way.
+{
+  const node = el("h1", "text-4xl", { text: "SilicaUI" });
+  node.data = { kind: "value", ref: "logo" };
+  const diags = [];
+  const host = { resolveBinding: () => undefined, onDiagnostic: (d) => diags.push(d) };
+  const out = resolveTree(node, host);
+  check("unknown ref KEEPS the authored content (never blanks)", out.children?.[0] === "SilicaUI");
+  check("unknown ref keeps the marker for a re-resolve / downstream runtime", out.data?.kind === "value");
+  check("unknown ref never drops the node", out !== undefined);
+  check("unknown ref fires exactly one diagnostic", diags.length === 1);
+  check("diagnostic carries code + ref + kind", diags[0].code === "unknown-ref" && diags[0].ref === "logo" && diags[0].kind === "value");
+  check("diagnostic carries the node id so an editor can badge it", diags[0].nodeId === node.id);
+}
+{
+  const node = el("h1", "text-4xl", { text: "SilicaUI" });
+  node.data = { kind: "value", ref: "site.title" };
+  const out = resolveTree(node, { resolveBinding: () => ({ value: undefined }) });
+  check("KNOWN-but-empty still renders empty (a legitimate result, not a failure)", out.children?.[0] === "");
+}
+{
+  // A host with no onDiagnostic must stay silent and pure — never throw.
+  const node = el("h1", "x", { text: "kept" });
+  node.data = { kind: "value", ref: "nope" };
+  const out = resolveTree(node, { resolveBinding: () => undefined });
+  check("unknown ref with no onDiagnostic: silent, still keeps content", out.children?.[0] === "kept");
+}
+
+// ── HONESTY: unknown html bind never emits rawHtml:"" ─────────────────────
+{
+  const node = el("div", "prose", { text: "Authored body copy" });
+  node.data = { kind: "html", ref: "cms.body" };
+  const out = resolveTree(node, { resolveBinding: () => undefined });
+  check("unknown html ref keeps authored children", out.children?.[0] === "Authored body copy");
+  check("unknown html ref emits NO rawHtml (would have blanked + consumed the marker)", out.rawHtml === undefined);
+}
+
+// ── HONESTY: unknown collection ref ignores omitWhenEmpty ─────────────────
+// `omitWhenEmpty` means "legitimately empty, render nothing" — a claim only a
+// host that KNOWS the ref can make. An unknown ref must not borrow it to drop.
+{
+  const list = el("ul", "list", { children: [el("li", "row", { text: "Placeholder item" })] });
+  list.data = { kind: "collection", ref: "typo-products", omitWhenEmpty: true };
+  const diags = [];
+  const out = resolveTree(list, { resolveCollection: () => undefined, onDiagnostic: (d) => diags.push(d) });
+  check("unknown collection ref does NOT drop despite omitWhenEmpty", out !== undefined && out.children.length === 1);
+  check("unknown collection ref keeps the authored placeholder child", out.children[0].children[0] === "Placeholder item");
+  check("unknown collection ref reports kind:'collection'", diags.length === 1 && diags[0].kind === "collection");
+}
+{
+  // The contrast: a KNOWN, legitimately-empty collection still drops.
+  const list = el("ul", "list", { children: [el("li", "row", { text: "x" })] });
+  list.data = { kind: "collection", ref: "products", omitWhenEmpty: true };
+  const out = resolveTree(list, { resolveCollection: () => [] });
+  check("KNOWN empty collection + omitWhenEmpty still drops (unchanged)", out.data?.kind === "collection");
+}
+
+// ── editing mode: never destroys authorability ────────────────────────────
+{
+  const parent = el("div", "wrap", { children: [el("span", "note", { text: "conditional" })] });
+  parent.children[0].data = { kind: "value", ref: "maybe.absent" };
+  const host = { resolveBinding: () => ({ value: undefined, visible: false }) };
+  const prod = resolveTree(parent, host);
+  const diags = [];
+  const edit = resolveTree(parent, { ...host, onDiagnostic: (d) => diags.push(d) }, undefined, { editing: true });
+  check("production: visible:false drops the node (unchanged)", prod.children.length === 0);
+  check("editing: visible:false KEEPS the node (a dropped node is unselectable)", edit.children.length === 1);
+  check("editing: the kept node still shows its authored content", edit.children[0].children[0] === "conditional");
+  check("editing: reports code:'hidden' so the canvas can ghost it", diags.length === 1 && diags[0].code === "hidden");
+}
+{
+  // editing:false must be byte-identical to a pre-`editing` walk.
+  const node = el("h1", "t");
+  node.data = { kind: "value", ref: "site.title" };
+  const host = { resolveBinding: () => ({ value: "Acme" }) };
+  check(
+    "editing:false is byte-identical to omitting opts entirely",
+    JSON.stringify(resolveTree(node, host)) === JSON.stringify(resolveTree(node, host, undefined, { editing: false })),
+  );
+}
+{
+  // A resolvable bind resolves the SAME in both modes — `editing` selects a
+  // destruction policy, not a different resolution.
+  const node = el("h1", "t", { text: "Placeholder" });
+  node.data = { kind: "value", ref: "site.title" };
+  const host = { resolveBinding: () => ({ value: "Acme Storefront" }) };
+  const edit = resolveTree(node, host, undefined, { editing: true });
+  check("editing: a resolvable value bind resolves identically (preview == production)", edit.children[0] === "Acme Storefront");
+}
+
+// ── editing mode: collections stay AUTHORED templates (v1) ────────────────
+{
+  const row = el("li", "row", { text: "Placeholder product" });
+  row.data = { kind: "value", ref: "product.title" };
+  const list = el("ul", "list", { children: [row] });
+  list.data = { kind: "collection", ref: "products" };
+  const host = {
+    resolveCollection: (ref) => (ref === "products" ? [{ title: "Widget" }, { title: "Gadget" }] : undefined),
+    // Mirrors a real host: a per-item field with no item is KNOWN-but-empty.
+    resolveBinding: (ref, scope) => (ref === "product.title" ? { value: scope.item?.title } : undefined),
+  };
+
+  const prod = resolveTree(list, host);
+  check("production: a collection still expands, one child-set per item", prod.children.length === 2);
+  check("production: each expanded row resolves against its own item", prod.children[0].children[0] === "Widget");
+
+  const edit = resolveTree(list, host, undefined, { editing: true });
+  check("editing: a collection does NOT expand (cloned ids would collide)", edit.children.length === 1);
+  check("editing: the collection keeps its marker (still a repeat, unresolved)", edit.data?.kind === "collection");
+  check(
+    "editing: a bind INSIDE the template keeps its authored placeholder — resolving it against no item would blank it",
+    edit.children[0].children[0] === "Placeholder product",
+  );
+  check("editing: the template's inner bind marker survives too", edit.children[0].data?.kind === "value");
+}
+{
+  // omitWhenEmpty + zero items: production drops, editing keeps it selectable
+  // and reports `hidden` so the canvas can ghost it.
+  const list = el("ul", "list", { children: [el("li", "row", { text: "x" })] });
+  list.data = { kind: "collection", ref: "empty", omitWhenEmpty: true };
+  const diags = [];
+  const host = { resolveCollection: () => [], onDiagnostic: (d) => diags.push(d) };
+  check("production: omitWhenEmpty at zero items drops the node", resolveTree(list, host) === list || resolveTree(list, host).data != null);
+  const edit = resolveTree(list, host, undefined, { editing: true });
+  check("editing: omitWhenEmpty at zero items keeps the node selectable", edit !== undefined && edit.children.length === 1);
+  check("editing: and reports code:'hidden' for it", diags.some((d) => d.code === "hidden" && d.kind === "collection"));
+}
+
 console.log(failures === 0 ? "\nAll resolveTree checks passed.\n" : `\n${failures} check(s) FAILED.\n`);
 process.exit(failures === 0 ? 0 : 1);

@@ -21,6 +21,34 @@ async function ready(page: Page): Promise<void> {
   await page.waitForSelector(".sui-email-canvas");
 }
 
+/**
+ * Open the template roster and wait until it is REALLY open.
+ *
+ * The wait is the point. Asserting "option X is absent" against a popup that
+ * may still be animating open is vacuous — it passes just as happily when the
+ * popup never opened at all, so it proves nothing AND synchronizes nothing.
+ * Escape then races the open animation; when it loses, Base UI's inert backdrop
+ * stays up and silently swallows every later click in the test. Anchor on
+ * something that can only be true once the listbox is genuinely open.
+ */
+async function openRoster(page: Page) {
+  const listbox = page.getByRole("listbox");
+  await page.getByRole("combobox", { name: "Current template" }).click();
+  await expect(listbox).toBeVisible();
+  // The active template is always in the roster — proof the options rendered,
+  // not just the popup element.
+  await expect(page.getByRole("option").first()).toBeVisible();
+  return listbox;
+}
+
+/** Close the roster and wait for its backdrop to actually go away, so the next
+ *  click can't be intercepted by a popup that's still tearing down. */
+async function closeRoster(page: Page, listbox: ReturnType<Page["getByRole"]>) {
+  await page.keyboard.press("Escape");
+  await expect(listbox).toBeHidden();
+  await expect(page.locator("[data-base-ui-inert]")).toHaveCount(0);
+}
+
 test("a fresh email starts with exactly one template, and Add creates a second, independent one", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
@@ -116,15 +144,17 @@ test("undo/redo spans template add/remove, not just node edits", async ({ page }
   // snapshotted, only clamped back when it would otherwise dangle. With just
   // one template left, "Email 2" is gone from the roster entirely.
   await expect(trigger).toHaveText(/Email 1/);
-  await trigger.click();
+  let roster = await openRoster(page);
+  // Meaningful only because the roster is provably open and populated above.
+  await expect(page.getByRole("option", { name: "Email 1" })).toBeVisible();
   await expect(page.getByRole("option", { name: "Email 2" })).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  await closeRoster(page, roster);
 
   await page.getByRole("button", { name: "Redo" }).click();
   // Redo brings "Email 2" back into the roster — reachable again.
-  await trigger.click();
+  roster = await openRoster(page);
   await expect(page.getByRole("option", { name: "Email 2" })).toBeVisible();
-  await page.keyboard.press("Escape");
+  await closeRoster(page, roster);
 
   expect(errors, errors.join("\n")).toHaveLength(0);
 });

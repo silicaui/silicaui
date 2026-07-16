@@ -71,6 +71,20 @@ export interface ComponentDef {
    */
   container?: boolean;
   /**
+   * The prop a bare `data:'value'` bind fills when no explicit `attr` is given —
+   * this component's PRIMARY content. A component DECLARES its own bind target
+   * instead of the resolver guessing at one: `resolve.ts` used to hardcode
+   * `node.component === "Image" || node.component === "Avatar"` plus a
+   * `"src" in props` sniff, which meant (a) every new bindable component needed
+   * a resolver edit, and (b) any component that merely HAS a `src` prop would
+   * silently take a bound name into its image URL. Same coupling `container`
+   * was introduced to kill.
+   *
+   * Absent → the auto-detection default applies (`label` if present, else
+   * `text`). Render-neutral: `expand()` never reads it.
+   */
+  primary?: string;
+  /**
    * Lower this component node to an element (sub)tree. Pure. The returned root
    * carries the source node's class + system metadata so projections emit
    * identical markup — build it with `lower()`.
@@ -589,6 +603,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     category: "media",
     label: "Image",
     icon: "image",
+    primary: "src", // an image IS its source — a bare bind fills the URL, not alt text
     expand: (n) => {
       const ratio = n.props?.ratio;
       const ratioClass = typeof ratio === "string" ? RATIO_CLASS[ratio] ?? "" : "";
@@ -777,7 +792,46 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   // Simple element atoms.
   elementDef("Text", "content", "text", "p"),
   elementDef("Badge", "content", "label", "span"),
-  elementDef("Wordmark", "content", "wordmark", "span"),
+  // Wordmark — the brand lockup: an optional MARK (logo image or a slotted
+  // svg/Icon child) beside the brand name. It was `elementDef(…, "span")` —
+  // text-only, container:false — while its CSS (`& :is(svg,img)` sizing) and its
+  // React wrapper (`<Wordmark as="a"><LogoMark/>Acme</Wordmark>`) both already
+  // assumed a mark. The schema is the layer the builder reads, so the builder
+  // won and "put the logo in the wordmark" was impossible by construction. Two
+  // paths, one DOM: nest a child (the power path), or set `src` (the one-control
+  // Inspector path). `primary: "text"` keeps a bare bind on the NAME — without
+  // it, adding `src` would make a bound site name fill the image URL instead.
+  {
+    name: "Wordmark",
+    category: "content",
+    label: "Wordmark",
+    icon: "wordmark",
+    container: true,
+    primary: "text",
+    expand: (n) => {
+      const href = n.props?.href;
+      const tag = href != null ? "a" : "span";
+      const attrs = href != null ? { href: href as string } : undefined;
+      // Authored children win outright — the documented composition.
+      if (n.children && n.children.length) return lower(n, tag, { attrs, children: n.children });
+      const src = n.props?.src;
+      const children: Child[] = [];
+      if (typeof src === "string" && src) {
+        children.push(
+          elc("img", "wordmark-mark", undefined, {
+            src,
+            // Decorative by default: the name renders beside it, so announcing
+            // the logo too would just repeat it. An author shipping mark-only
+            // sets `alt` explicitly. Matches Image's `alt: (props.alt ?? "")`.
+            alt: (n.props?.alt ?? "") as string,
+            loading: "lazy",
+          }),
+        );
+      }
+      if (n.props?.text != null) children.push(String(n.props.text));
+      return lower(n, tag, { attrs, children });
+    },
+  },
   elementDef("Card", "layout", "box", "div", true),
   elementDef("Section", "layout", "section", "section", true),
   elementDef("Container", "layout", "box", "div", true),
@@ -1022,6 +1076,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     category: "data",
     label: "Avatar",
     icon: "avatar",
+    primary: "src",
     expand: (n) => {
       const attrs: NonNullable<ElementNode["attrs"]> = {
         alt: (n.props?.alt ?? "") as string,

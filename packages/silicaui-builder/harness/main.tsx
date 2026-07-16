@@ -1,8 +1,8 @@
 import "./styles.css";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { Builder } from "@wizeworks/silicaui-builder/react";
-import type { BuilderHost } from "@wizeworks/silicaui-builder/react";
+import { Builder, useEditor } from "@wizeworks/silicaui-builder/react";
+import type { BuilderHost, Editor } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
 import type { EmailBuilderHost } from "@wizeworks/silicaui-builder/email/react";
 import { stamp, el } from "@wizeworks/silicaui-html";
@@ -36,6 +36,9 @@ const demoHost: BuilderHost = {
   }),
   dataSources: () => [
     { key: "site.title", label: "Site title", cardinality: "scalar" },
+    // The brand logo — bind it to a Wordmark's `src` (via the Data group's
+    // `attr` field) to preview a real brand mark on the canvas.
+    { key: "site.identity.logo", label: "Brand logo", cardinality: "scalar" },
     {
       key: "products",
       label: "Products",
@@ -108,9 +111,38 @@ const demoHost: BuilderHost = {
   },
   // Fixed sample data, resolved SYNCHRONOUSLY (§3 of builder-contract.md) — a
   // real host would fetch once, up front, into a closure this reads from.
-  resolveBinding: (ref) =>
-    ref === "site.title" ? { value: "Acme Storefront", label: "Site title" } : { value: undefined, visible: false },
-  resolveCollection: (ref) => (ref === "products" ? ["Widget", "Gadget", "Gizmo"] : []),
+  // Every ref this host DECLARES in `dataSources` above, it also resolves here.
+  // That symmetry is the contract: the picker only offers declared keys, so a
+  // key the catalog advertises but the resolver drops on the floor is a HOST
+  // bug — and it was ours, too. `product.title` / `product.price` /
+  // `empty-collection` were all declared but unhandled, "working" only via a
+  // fallthrough that claimed `visible: false` for everything unrecognized.
+  //
+  // An unrecognized ref now returns `undefined` — "I've never heard of this" —
+  // NOT `{ value: undefined }` (which claims "I know it, it's empty" and blanks
+  // the node) and NOT `visible: false` (which claims "hide this" and drops it).
+  // A demo host must model the contract, not the footgun. See §A.2 of
+  // data-resolution-and-brand-mark.md.
+  resolveBinding: (ref, scope) => {
+    if (ref === "site.title") return { value: "Acme Storefront", label: "Site title" };
+    if (ref === "site.identity.logo") return { value: "/brand-wide.svg", label: "Brand logo" };
+    const item = scope.item as { title: string; price: string } | undefined;
+    if (ref === "product.title") return { value: item?.title };
+    if (ref === "product.price") return { value: item?.price };
+    return undefined;
+  },
+  resolveCollection: (ref) => {
+    if (ref === "products")
+      return [
+        { title: "Widget", price: "$12" },
+        { title: "Gadget", price: "$24" },
+        { title: "Gizmo", price: "$36" },
+      ];
+    // A KNOWN collection that legitimately has no items — the `omitWhenEmpty`
+    // path. Unknown refs deliberately never reach it.
+    if (ref === "empty-collection") return [];
+    return undefined;
+  },
 };
 
 /**
@@ -162,10 +194,16 @@ const demoEmailHost: EmailBuilderHost = {
     if (ref === "customer.firstName") return { value: "Jordan" };
     if (ref === "product.title") return { value: (scope.item as { title: string } | undefined)?.title };
     if (ref === "product.price") return { value: (scope.item as { price: string } | undefined)?.price };
-    return { value: undefined, visible: false };
+    return undefined; // unknown ref — see the note on `demoHost.resolveBinding`
   },
-  resolveCollection: (ref) =>
-    ref === "products" ? [{ title: "Widget", price: "$12" }, { title: "Gadget", price: "$24" }, { title: "Gizmo", price: "$36" }] : [],
+  resolveCollection: (ref) => {
+    if (ref === "products")
+      return [{ title: "Widget", price: "$12" }, { title: "Gadget", price: "$24" }, { title: "Gizmo", price: "$36" }];
+    // A KNOWN collection that legitimately has no items — exercises the
+    // `omitWhenEmpty` path, which unknown refs deliberately never reach.
+    if (ref === "empty-collection") return [];
+    return undefined;
+  },
 };
 
 // The editable DOCUMENT theme — a complete "lightsilica" palette (every surface +
@@ -214,8 +252,30 @@ const bus = window as unknown as {
   __exported?: string;
   __sentTest?: { to: string; subject: string };
   __activePage?: unknown;
+  __editor?: Editor;
 };
 bus.__changeCount = 0;
+
+/**
+ * The host's toolbar UI — and the harness's handle on the editor. `toolbarSlot`
+ * renders INSIDE the Builder, so it can read the same `useEditor()` context the
+ * built-in panels use: a real host gets the imperative spine through the public
+ * seam it already has, no bespoke test API. Playwright drives `__editor` to
+ * reach states the Inspector's own controls can't author — e.g. a ref no host
+ * declares, which is what a stale document (or a host whose catalog and
+ * resolver disagree) actually produces in the wild.
+ */
+function ToolbarSlot() {
+  const editor = useEditor();
+  React.useEffect(() => {
+    bus.__editor = editor;
+  }, [editor]);
+  return (
+    <span data-testid="toolbar-slot" className="text-xs text-base-content/50 px-1">
+      Demo host UI
+    </span>
+  );
+}
 
 // Local crash-recovery: ON for the real designer, OFF under test automation (so
 // e2e specs start clean and don't restore a prior test's edits) — unless a spec
@@ -283,11 +343,7 @@ if (editorMode === "email") {
         onPublish={(payload) => {
           bus.__published = payload;
         }}
-        toolbarSlot={
-          <span data-testid="toolbar-slot" className="text-xs text-base-content/50 px-1">
-            Demo host UI
-          </span>
-        }
+        toolbarSlot={<ToolbarSlot />}
       />
     </React.StrictMode>,
   );
