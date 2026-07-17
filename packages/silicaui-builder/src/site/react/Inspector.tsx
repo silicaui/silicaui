@@ -96,12 +96,42 @@ const ALIGN: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "text-center", label: "Center" },
   { cls: "text-right", label: "Right" },
 ];
+// Padding: a uniform shorthand plus a per-axis pair. The three arrays MUST stay
+// index-aligned on the same scale — `setPadAxis` expands `p-4` into the opposite
+// axis by INDEX (`PADDING[i]` → `PAD_Y[i]`), which is what keeps every class a
+// literal string (the safelist can't see a composed `py-${n}`).
 const PADDING: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "p-0", label: "0" },
   { cls: "p-2", label: "2" },
+  { cls: "p-3", label: "3" },
   { cls: "p-4", label: "4" },
   { cls: "p-6", label: "6" },
   { cls: "p-8", label: "8" },
+  { cls: "p-10", label: "10" },
+  { cls: "p-12", label: "12" },
+  { cls: "p-16", label: "16" },
+];
+const PAD_X: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "px-0", label: "0" },
+  { cls: "px-2", label: "2" },
+  { cls: "px-3", label: "3" },
+  { cls: "px-4", label: "4" },
+  { cls: "px-6", label: "6" },
+  { cls: "px-8", label: "8" },
+  { cls: "px-10", label: "10" },
+  { cls: "px-12", label: "12" },
+  { cls: "px-16", label: "16" },
+];
+const PAD_Y: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "py-0", label: "0" },
+  { cls: "py-2", label: "2" },
+  { cls: "py-3", label: "3" },
+  { cls: "py-4", label: "4" },
+  { cls: "py-6", label: "6" },
+  { cls: "py-8", label: "8" },
+  { cls: "py-10", label: "10" },
+  { cls: "py-12", label: "12" },
+  { cls: "py-16", label: "16" },
 ];
 const RADIUS: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "rounded-none", label: "None" },
@@ -144,6 +174,66 @@ const SELF_ALIGN: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "self-center", label: "Center" },
   { cls: "self-end", label: "End" },
   { cls: "self-stretch", label: "Stretch" },
+];
+// Main-axis sizing for a flex CHILD — the counterpart to SELF_ALIGN's cross axis,
+// and (like it) offered unconditionally since the governing parent isn't visible
+// from here. `flex-auto` is omitted: its natural label would be "Auto", which
+// already means "clear this group" on every ChipGroup.
+const FLEX_CHILD: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "flex-1", label: "Fill" },
+  { cls: "grow", label: "Grow" },
+  { cls: "flex-none", label: "Fixed" },
+];
+// Container layout — the PARENT side of flex/grid (SELF_ALIGN above is the child
+// side). `Display` gates the rest: `justify-*` / `items-*` / `gap-*` / `flex-*`
+// are inert on a plain block, so those rows only appear once the node is a flex
+// or grid container. That's the one place this vocab differs from `self-*`, which
+// is offered unconditionally because its governing parent isn't visible here.
+const DISPLAY: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "block", label: "Block" },
+  { cls: "flex", label: "Flex" },
+  { cls: "grid", label: "Grid" },
+];
+const DIRECTION: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "flex-row", label: "Row" },
+  { cls: "flex-col", label: "Column" },
+];
+// Main-axis distribution. `justify-stretch` is deliberately absent: it's a
+// grid-track rule and a no-op on flex items with an intrinsic size, so offering
+// it would be a chip that does nothing.
+const JUSTIFY: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "justify-start", label: "Start" },
+  { cls: "justify-center", label: "Center" },
+  { cls: "justify-end", label: "End" },
+  { cls: "justify-between", label: "Between" },
+  { cls: "justify-around", label: "Around" },
+  { cls: "justify-evenly", label: "Evenly" },
+];
+const ITEMS: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "items-start", label: "Start" },
+  { cls: "items-center", label: "Center" },
+  { cls: "items-end", label: "End" },
+  { cls: "items-stretch", label: "Stretch" },
+  { cls: "items-baseline", label: "Baseline" },
+];
+const GAP: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "gap-0", label: "0" },
+  { cls: "gap-1", label: "1" },
+  { cls: "gap-2", label: "2" },
+  { cls: "gap-3", label: "3" },
+  { cls: "gap-4", label: "4" },
+  { cls: "gap-6", label: "6" },
+  { cls: "gap-8", label: "8" },
+];
+const WRAP: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "flex-wrap", label: "Wrap" },
+  { cls: "flex-nowrap", label: "No wrap" },
+];
+const GRID_COLS: ReadonlyArray<{ cls: string; label: string }> = [
+  { cls: "grid-cols-1", label: "1" },
+  { cls: "grid-cols-2", label: "2" },
+  { cls: "grid-cols-3", label: "3" },
+  { cls: "grid-cols-4", label: "4" },
 ];
 const BTN_VARIANT: ReadonlyArray<{ cls: string; label: string }> = [
   { cls: "btn-outline", label: "Outline" },
@@ -332,9 +422,11 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+/** One labeled control row. `testid` scopes it for tests — several rows share
+ *  chip labels ("Start", "3"), so a bare label lookup is ambiguous. */
+function Row({ label, testid, children }: { label: string; testid?: string; children: React.ReactNode }) {
   return (
-    <div className="mb-2 last:mb-0">
+    <div className="mb-2 last:mb-0" data-testid={testid}>
       <div className="mb-1 text-xs text-base-content/55">{label}</div>
       {children}
     </div>
@@ -550,6 +642,52 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
     editor.setClass(id, [...t].join(" "));
   };
 
+  // Padding: `p-4` is a shorthand for both axes, so editing ONE axis must expand
+  // it rather than drop it — picking a new X on a `p-4` node has to leave the
+  // vertical padding standing at 4 (as `py-4`), not silently zero it. The opposite
+  // axis is looked up BY INDEX across the aligned scales, keeping it a literal.
+  const padAll = activeIn(cls, PADDING.map((o) => o.cls));
+  const padX = activeIn(cls, PAD_X.map((o) => o.cls));
+  const padY = activeIn(cls, PAD_Y.map((o) => o.cls));
+  const setPadAll = (value: string) => {
+    const t = tokensOf(cls);
+    for (const c of [...PADDING, ...PAD_X, ...PAD_Y].map((o) => o.cls)) t.delete(c);
+    if (value) t.add(value);
+    editor.setClass(id, [...t].join(" "));
+  };
+  const setPadAxis = (axis: "x" | "y", value: string) => {
+    const t = tokensOf(cls);
+    const own = axis === "x" ? PAD_X : PAD_Y;
+    const other = axis === "x" ? PAD_Y : PAD_X;
+    const otherWorn = axis === "x" ? padY : padX;
+    // Expand the shorthand onto the axis we're NOT editing before dropping it.
+    const i = PADDING.findIndex((o) => o.cls === padAll);
+    if (i !== -1) {
+      t.delete(padAll);
+      if (!otherWorn) t.add(other[i]!.cls);
+    }
+    for (const c of own.map((o) => o.cls)) t.delete(c);
+    if (value) t.add(value);
+    editor.setClass(id, [...t].join(" "));
+  };
+
+  // Container layout: which display the node wears drives which child-arrangement
+  // rows are meaningful. Switching display drops the classes the new display can't
+  // honor (a `flex-col` left on a grid, a `grid-cols-3` left on a flex row) so the
+  // class set never carries inert leftovers — same hygiene as setAnimateTrigger.
+  const display = activeIn(cls, DISPLAY.map((o) => o.cls));
+  const FLEX_ONLY = [...DIRECTION, ...WRAP].map((o) => o.cls);
+  const GRID_ONLY = GRID_COLS.map((o) => o.cls);
+  const SHARED_AXIS = [...JUSTIFY, ...ITEMS, ...GAP].map((o) => o.cls);
+  const setDisplay = (next: string) => {
+    const t = tokensOf(cls);
+    for (const c of DISPLAY.map((o) => o.cls)) t.delete(c);
+    const drop = next === "flex" ? GRID_ONLY : next === "grid" ? FLEX_ONLY : [...FLEX_ONLY, ...GRID_ONLY, ...SHARED_AXIS];
+    for (const c of drop) t.delete(c);
+    if (next) t.add(next);
+    editor.setClass(id, [...t].join(" "));
+  };
+
   // Animate: which trigger (if any) is active, derived from which preset
   // family's class is currently worn — same "read state back out of the class
   // string" approach as every other group here.
@@ -608,7 +746,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         <Row label="Weight">
           <ChipGroup options={WEIGHT} active={activeIn(cls, WEIGHT.map((o) => o.cls))} onPick={(v) => setToken(WEIGHT.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Align">
+        <Row label="Align" testid="row-text-align">
           <ChipGroup options={ALIGN} active={activeIn(cls, ALIGN.map((o) => o.cls))} onPick={(v) => setToken(ALIGN.map((o) => o.cls), v)} />
         </Row>
       </Group>
@@ -617,8 +755,14 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         <Row label="Background">
           <SwatchGroup options={bgColors} active={activeIn(cls, bgColors.map((o) => o.cls))} onPick={(v) => setToken(bgColors.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Padding">
-          <ChipGroup options={PADDING} active={activeIn(cls, PADDING.map((o) => o.cls))} onPick={(v) => setToken(PADDING.map((o) => o.cls), v)} />
+        <Row label="Padding" testid="row-padding">
+          <ChipGroup options={PADDING} active={padAll} onPick={setPadAll} />
+        </Row>
+        <Row label="Padding X" testid="row-padding-x">
+          <ChipGroup options={PAD_X} active={padX} onPick={(v) => setPadAxis("x", v)} />
+        </Row>
+        <Row label="Padding Y" testid="row-padding-y">
+          <ChipGroup options={PAD_Y} active={padY} onPick={(v) => setPadAxis("y", v)} />
         </Row>
         <Row label="Corners">
           <RadiusSwatchGroup options={radiusOpts} active={activeIn(cls, RADIUS.map((o) => o.cls))} onPick={(v) => setToken(RADIUS.map((o) => o.cls), v)} />
@@ -626,6 +770,59 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
       </Group>
 
       <Group label="Layout">
+        <Row label="Display">
+          <div className="flex flex-wrap gap-1" data-testid="display-group">
+            <button
+              type="button"
+              data-testid="display-auto"
+              className={`btn btn-xs ${display === "" ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setDisplay("")}
+            >
+              Auto
+            </button>
+            {DISPLAY.map((o) => (
+              <button
+                key={o.cls}
+                type="button"
+                data-testid={`display-${o.cls}`}
+                className={`btn btn-xs ${display === o.cls ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => setDisplay(o.cls)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </Row>
+
+        {display === "flex" && (
+          <Row label="Direction" testid="row-direction">
+            <ChipGroup options={DIRECTION} active={activeIn(cls, DIRECTION.map((o) => o.cls))} onPick={(v) => setToken(DIRECTION.map((o) => o.cls), v)} />
+          </Row>
+        )}
+        {display === "grid" && (
+          <Row label="Columns" testid="row-columns">
+            <ChipGroup options={GRID_COLS} active={activeIn(cls, GRID_COLS.map((o) => o.cls))} onPick={(v) => setToken(GRID_COLS.map((o) => o.cls), v)} />
+          </Row>
+        )}
+        {(display === "flex" || display === "grid") && (
+          <>
+            <Row label="Justify" testid="row-justify">
+              <ChipGroup options={JUSTIFY} active={activeIn(cls, JUSTIFY.map((o) => o.cls))} onPick={(v) => setToken(JUSTIFY.map((o) => o.cls), v)} />
+            </Row>
+            <Row label="Align" testid="row-align">
+              <ChipGroup options={ITEMS} active={activeIn(cls, ITEMS.map((o) => o.cls))} onPick={(v) => setToken(ITEMS.map((o) => o.cls), v)} />
+            </Row>
+            <Row label="Gap" testid="row-gap">
+              <ChipGroup options={GAP} active={activeIn(cls, GAP.map((o) => o.cls))} onPick={(v) => setToken(GAP.map((o) => o.cls), v)} />
+            </Row>
+          </>
+        )}
+        {display === "flex" && (
+          <Row label="Wrap" testid="row-wrap">
+            <ChipGroup options={WRAP} active={activeIn(cls, WRAP.map((o) => o.cls))} onPick={(v) => setToken(WRAP.map((o) => o.cls), v)} />
+          </Row>
+        )}
+
         <Row label="Width">
           <ChipGroup options={WIDTH} active={activeIn(cls, WIDTH.map((o) => o.cls))} onPick={(v) => setToken(WIDTH.map((o) => o.cls), v)} />
         </Row>
@@ -635,8 +832,11 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         <Row label="Position">
           <ChipGroup options={POSITION} active={activeIn(cls, POSITION.map((o) => o.cls))} onPick={(v) => setToken(POSITION.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Self align">
+        <Row label="Self align" testid="row-self-align">
           <ChipGroup options={SELF_ALIGN} active={activeIn(cls, SELF_ALIGN.map((o) => o.cls))} onPick={(v) => setToken(SELF_ALIGN.map((o) => o.cls), v)} />
+        </Row>
+        <Row label="Self size" testid="row-self-size">
+          <ChipGroup options={FLEX_CHILD} active={activeIn(cls, FLEX_CHILD.map((o) => o.cls))} onPick={(v) => setToken(FLEX_CHILD.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
