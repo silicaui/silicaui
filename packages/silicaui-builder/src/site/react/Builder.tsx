@@ -86,9 +86,11 @@ const last = (vals: string[], fallback: string): string => vals[vals.length - 1]
 function Chrome({
   onPublish,
   toolbarSlot,
+  dataToggle,
 }: {
   onPublish?: (payload: PublishPayload) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
+  dataToggle: boolean;
 }) {
   const editor = useEditor();
   const { canUndo, canRedo } = useHistory();
@@ -189,7 +191,7 @@ function Chrome({
             of binding. OFF is the escape hatch — the authored PLACEHOLDER is
             what ships when data is absent, so an author has to be able to see
             and edit it (and to work when a host's resolver is wrong or slow). */}
-        {mode !== "theme" && resolvesData && (
+        {mode !== "theme" && resolvesData && dataToggle && (
           <Button
             variant="ghost"
             size="sm"
@@ -441,6 +443,13 @@ export interface BuilderProps {
    * failed, or is still in flight, so it renders nothing here by default.
    */
   toolbarSlot?: React.ReactNode;
+  /**
+   * Whether to show the canvas data on/off toggle. Defaults to true. A host whose
+   * authors are non-technical can hide it: the control's effect is invisible on a
+   * tree with no bindings, so it reads as a dead button to everyone who isn't
+   * debugging a resolver.
+   */
+  dataToggle?: boolean;
 }
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
@@ -455,6 +464,7 @@ export function Builder({
   onPublish,
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
+  dataToggle = true,
 }: BuilderProps) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
   const docRef = React.useRef(document);
@@ -571,7 +581,7 @@ export function Builder({
               {current.recoveredAt !== null && (
                 <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
               )}
-              <Chrome onPublish={onPublish} toolbarSlot={toolbarSlot} />
+              <Chrome onPublish={onPublish} toolbarSlot={toolbarSlot} dataToggle={dataToggle} />
             </ErrorBoundary>
           </div>
         </StudioThemeProvider>
