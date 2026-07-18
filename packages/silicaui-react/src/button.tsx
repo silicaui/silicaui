@@ -1,5 +1,5 @@
 import * as React from "react";
-import { mergeProps } from "./lib/merge-props";
+import { composeRender } from "./lib/render-slot";
 import { useSilicaConfig } from "./lib/config";
 import {
   buttonClasses,
@@ -37,6 +37,15 @@ export interface ButtonProps
    * Silica's classes and behavior. Mirrors Base UI's `render` composition model.
    *
    *   <Button render={<a href="/docs" />}>Docs</Button>
+   *
+   * CLIENT COMPONENTS ONLY. This package is a `"use client"` module, so an
+   * element passed from a React Server Component is serialized across the
+   * boundary and arrives without its props — the link renders styled but
+   * without its `href`, or throws outright. From a Server Component, style the
+   * element directly instead of composing it:
+   *
+   *   import { buttonClasses } from "@wizeworks/silicaui-react/server";
+   *   <a href="/docs" className={buttonClasses({ color: "brand" })}>Docs</a>
    */
   render?: React.ReactElement;
 }
@@ -85,8 +94,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
 
     // Polymorphic path: render the user's element with our props merged in.
-    if (render) {
-      const ownProps: Record<string, unknown> = {
+    // `composed` is null when `render` is absent or unusable — either way we
+    // fall through to the native <button> rather than crashing the page.
+    const composed = composeRender(
+      render,
+      {
         ...rest,
         className: classes,
         children: content,
@@ -94,12 +106,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "aria-busy": loading || undefined,
         "aria-disabled": isDisabled || undefined,
         "data-disabled": isDisabled ? "" : undefined,
-      };
-      return React.cloneElement(
-        render,
-        mergeProps(ownProps, render.props as Record<string, unknown>),
-      );
-    }
+      },
+      "Button",
+    );
+    if (composed) return composed;
 
     return (
       <button

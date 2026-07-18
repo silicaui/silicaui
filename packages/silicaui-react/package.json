@@ -43,7 +43,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "node verify.mjs"
   },
   "peerDependencies": {
     "react": ">=18",

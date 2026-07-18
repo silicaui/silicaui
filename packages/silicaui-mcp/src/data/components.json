@@ -74,7 +74,7 @@
             "name": "render",
             "optional": true,
             "type": "React.ReactElement",
-            "doc": "Render as a different element (e.g. an anchor or router link) while keeping Silica's classes and behavior. Mirrors Base UI's `render` composition model. <Button render={<a href=\"/docs\" />}>Docs</Button>"
+            "doc": "Render as a different element (e.g. an anchor or router link) while keeping Silica's classes and behavior. Mirrors Base UI's `render` composition model. <Button render={<a href=\"/docs\" />}>Docs</Button> CLIENT COMPONENTS ONLY. This package is a `\"use client\"` module, so an element passed from a React Server Component is serialized across the boundary and arrives without its props — the link renders styled but without its `href`, or throws outright. From a Server Component, style the element directly instead of composing it: import { buttonClasses } from \"@wizeworks/silicaui-react/server\"; <a href=\"/docs\" className={buttonClasses({ color: \"brand\" })}>Docs</a>"
           }
         ]
       }
@@ -296,7 +296,7 @@
             "name": "render",
             "optional": true,
             "type": "React.ReactElement",
-            "doc": "Render as a different element while keeping Silica's classes."
+            "doc": "Render as a different element while keeping Silica's classes. CLIENT COMPONENTS ONLY — from a React Server Component the element loses its props crossing the `\"use client\"` boundary. Style the element directly instead: `badgeClasses()` from `@wizeworks/silicaui-react/server`."
           }
         ]
       }
@@ -322,7 +322,7 @@
             "name": "render",
             "optional": true,
             "type": "React.ReactElement",
-            "doc": "Render as a different element (e.g. an anchor) while keeping Card's classes and interaction styles. Mirrors Base UI's `render` composition. <ClickableCard render={<a href=\"/projects/silica\" />}>…</ClickableCard>"
+            "doc": "Render as a different element (e.g. an anchor) while keeping Card's classes and interaction styles. Mirrors Base UI's `render` composition. <ClickableCard render={<a href=\"/projects/silica\" />}>…</ClickableCard> CLIENT COMPONENTS ONLY — from a React Server Component the element loses its props crossing the `\"use client\"` boundary. Style the element directly instead: `clickableCardClasses()` from `@wizeworks/silicaui-react/server`."
           }
         ]
       },

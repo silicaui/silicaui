@@ -1,5 +1,5 @@
 import * as React from "react";
-import { mergeProps } from "./lib/merge-props";
+import { composeRender } from "./lib/render-slot";
 import { useSilicaConfig } from "./lib/config";
 import {
   badgeClasses,
@@ -19,7 +19,13 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
   /** Default `md`. */
   size?: BadgeSize;
-  /** Render as a different element while keeping Silica's classes. */
+  /**
+   * Render as a different element while keeping Silica's classes.
+   *
+   * CLIENT COMPONENTS ONLY — from a React Server Component the element loses
+   * its props crossing the `"use client"` boundary. Style the element directly
+   * instead: `badgeClasses()` from `@wizeworks/silicaui-react/server`.
+   */
   render?: React.ReactElement;
 }
 
@@ -35,18 +41,13 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
     const { prefix } = useSilicaConfig();
     const classes = badgeClasses({ color, variant, size, className }, { prefix });
 
-    if (render) {
-      const ownProps: Record<string, unknown> = {
-        ...rest,
-        className: classes,
-        children,
-        ref,
-      };
-      return React.cloneElement(
-        render,
-        mergeProps(ownProps, render.props as Record<string, unknown>),
-      );
-    }
+    // Null when `render` is absent or unusable — both fall through to <span>.
+    const composed = composeRender(
+      render,
+      { ...rest, className: classes, children, ref },
+      "Badge",
+    );
+    if (composed) return composed;
 
     return (
       <span ref={ref} className={classes} {...rest}>
