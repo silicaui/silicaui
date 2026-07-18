@@ -33,6 +33,56 @@ import { Button } from "@wizeworks/silicaui-react";
 <Button color="primary" shape="circle" aria-label="Add"><PlusIcon /></Button>
 ```
 
+> The `render={<a … />}` line above works in a **Client Component**. In a
+> Server Component, style the anchor directly instead — see
+> [Server Components](#server-components).
+
+## Server Components
+
+**Every component in this package is a Client Component.** The main entry point
+is published as a single `"use client"` module — components rely on state,
+context, or Base UI under the hood, so there's no server-renderable subset.
+
+You can still *use* them from a Server Component; React inserts the boundary
+for you. The one thing that does **not** cross that boundary is the `render`
+prop:
+
+```tsx
+// ❌ In a Server Component — the <a> is serialized across the "use client"
+//    boundary and arrives without its props. Renders with no href, or throws
+//    "Element type is invalid… got: undefined".
+<Button color="brand" render={<a href="/docs" />}>Docs</Button>
+```
+
+`render` composes an element by cloning it, which needs the real element —
+not the serialized reference a Server Component sends. For a link that merely
+*looks* like a button, don't compose at all: apply the classes directly.
+
+```tsx
+// ✅ Works anywhere, including Server Components. No client boundary at all.
+import { buttonClasses } from "@wizeworks/silicaui-react/server";
+
+<a href="/docs" className={buttonClasses({ color: "brand" })}>Docs</a>
+```
+
+The `/server` entry point is dependency-free and has no `"use client"` marker:
+
+| Export | Replaces |
+| --- | --- |
+| `buttonClasses(opts)` | `<Button render={…}>` |
+| `badgeClasses(opts)` | `<Badge render={…}>` |
+| `clickableCardClasses(opts)` | `<ClickableCard render={…}>` |
+| `cx(...)` | class-name joining |
+
+Reach for `render` only when the component is already `"use client"` — for a
+router `<Link>` inside an interactive component, say. If you need Silica's
+interactive components (`Dialog`, `Select`, …), mark your own component
+`"use client"`; that's expected, not a workaround.
+
+> **Importing from `"@wizeworks/silicaui-react"` in a Server Component hands you
+> a client reference, not a function.** Always import the class builders from
+> `"@wizeworks/silicaui-react/server"`.
+
 ## Components
 
 **125 components**, covering everything from primitives to composite

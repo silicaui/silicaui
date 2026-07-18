@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass, useSilicaConfig } from "./lib/config";
-import { mergeProps } from "./lib/merge-props";
+import { composeRender } from "./lib/render-slot";
 import {
   clickableCardClasses,
   type ClickableCardClassOptions,
@@ -68,6 +68,10 @@ export interface ClickableCardProps
    * classes and interaction styles. Mirrors Base UI's `render` composition.
    *
    *   <ClickableCard render={<a href="/projects/silica" />}>…</ClickableCard>
+   *
+   * CLIENT COMPONENTS ONLY — from a React Server Component the element loses
+   * its props crossing the `"use client"` boundary. Style the element directly
+   * instead: `clickableCardClasses()` from `@wizeworks/silicaui-react/server`.
    */
   render?: React.ReactElement;
 }
@@ -78,13 +82,13 @@ export const ClickableCard = React.forwardRef<HTMLButtonElement, ClickableCardPr
     const { prefix } = useSilicaConfig();
     const classes = clickableCardClasses({ className }, { prefix });
 
-    if (render) {
-      const ownProps: Record<string, unknown> = { ...rest, className: classes, children, ref };
-      return React.cloneElement(
-        render,
-        mergeProps(ownProps, render.props as Record<string, unknown>),
-      );
-    }
+    // Null when `render` is absent or unusable — both fall through to <button>.
+    const composed = composeRender(
+      render,
+      { ...rest, className: classes, children, ref },
+      "ClickableCard",
+    );
+    if (composed) return composed;
 
     return (
       <button ref={ref} type="button" className={classes} {...rest}>
