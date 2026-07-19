@@ -324,7 +324,15 @@ interface LiteralCfg {
  *  Intl-derived segment order — same "compute via Intl, don't hardcode
  *  MM/DD/YYYY" rule `Timestamp` already established). */
 function segmentEl(cfg: SegmentCfg, value: number | null): ElementNode {
-  const attrs: NonNullable<ElementNode["attrs"]> = { role: "spinbutton", tabindex: 0, "data-role": cfg.role };
+  // Each spinbutton needs a name — without one a SR announces three anonymous
+  // spinners. The segment role ("month"/"day"/"year"…) IS the name.
+  const label = cfg.role.charAt(0).toUpperCase() + cfg.role.slice(1);
+  const attrs: NonNullable<ElementNode["attrs"]> = {
+    role: "spinbutton",
+    tabindex: 0,
+    "aria-label": label,
+    "data-role": cfg.role,
+  };
   if (cfg.cycle) attrs["data-cycle"] = JSON.stringify(cfg.cycle);
   else {
     attrs["data-min"] = cfg.min ?? 0;
@@ -408,7 +416,11 @@ function buildTimeSegments(locale: string | undefined, hourCycle: 12 | 24 | unde
  *  `DatePicker`/`DateRangePicker` popover content, which nest this same
  *  shell as an inner `calendar`-behavior root inside their own `panel`. */
 function calendarParts(): { header: ElementNode; grid: ElementNode; hidden: ElementNode } {
-  const grid = elc("div", "calendar-grid", undefined, { role: "grid" });
+  // NOT role=grid: the behavior renders 42 flat buttons (CSS grid does the
+  // layout), and a `grid` without row/gridcell descendants is an ARIA
+  // structure violation. A labeled group of fully-named day buttons (see
+  // calendar.ts) is the honest shape.
+  const grid = elc("div", "calendar-grid", undefined, { role: "group", "aria-label": "Calendar" });
   grid.part = "grid";
   const title = elc("div", "calendar-title", undefined, { "aria-live": "polite" });
   title.part = "title";
@@ -443,10 +455,16 @@ function sliderExpand(kind: "range" | "slider") {
     const raw = p.value ?? p.defaultValue;
     const values = (Array.isArray(raw) ? raw : [typeof raw === "number" ? raw : min]).map(Number);
 
-    const thumbs = values.map((v) => {
+    const thumbs = values.map((v, i) => {
+      // An unnamed role=slider is announced as a bare number; two of them in
+      // a range are indistinguishable. Default names, author-overridable via
+      // a wrapping label.
+      const thumbLabel =
+        values.length === 1 ? "Value" : values.length === 2 ? (i === 0 ? "Minimum value" : "Maximum value") : `Value ${i + 1}`;
       const t = elc("div", `${kind}-thumb`, undefined, {
         role: "slider",
         tabindex: 0,
+        "aria-label": thumbLabel,
         "aria-valuemin": min,
         "aria-valuemax": max,
         "aria-valuenow": v,
@@ -677,14 +695,15 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       const embed = resolveEmbed(url);
       if (embed) {
         // Trusted, macro-built iframe: fixed sandbox + permissions, allowlisted
-        // src. Inline sizing keeps it self-contained (no dependence on the
-        // consumer's utility CSS) — deliberate, unlike authored class-only nodes.
+        // src. Sized via utility classes, not a style attribute — a style
+        // attribute needs CSP `style-src 'unsafe-inline'`, and these classes ride
+        // the same scan as the wrapper's macro-added `relative`/ratio utilities.
         const iframe =
           `<iframe src="${esc(embed)}" title="${esc(title)}" loading="lazy" ` +
+          `class="absolute inset-0 h-full w-full border-0" ` +
           `referrerpolicy="strict-origin-when-cross-origin" ` +
           `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" ` +
-          `allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms" ` +
-          `style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
+          `allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms"></iframe>`;
         const out = lower(n, "div", { class: `${full} relative`.trim() });
         out.rawHtml = iframe;
         return out;
@@ -1610,7 +1629,9 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     icon: "nav",
     container: true,
     expand: (n) => {
-      const out = lower(n, "div", { attrs: { hidden: true }, children: n.children });
+      // role=menu: its items are role=menuitem, which REQUIRE a menu ancestor
+      // (ContextMenuContent/MenubarContent already do this).
+      const out = lower(n, "div", { attrs: { hidden: true, role: "menu" }, children: n.children });
       if (!out.part) out.part = "panel";
       return out;
     },
@@ -1642,7 +1663,18 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       return out;
     },
   },
-  elementDef("TabsList", "data", "box", "div", true),
+  // TabsList carries the tablist role its role=tab children require; the tabs
+  // behavior fills in aria-selected/tabindex at hydrate. Panels stay visible
+  // pre-hydration on purpose (progressive enhancement — no-JS readers get all
+  // content), the runtime hides the inactive ones.
+  {
+    name: "TabsList",
+    category: "data",
+    label: "Tabs list",
+    icon: "box",
+    container: true,
+    expand: (n) => lower(n, "div", { attrs: { role: "tablist" }, children: n.children }),
+  },
   {
     name: "TabsTab",
     category: "data",
@@ -2960,7 +2992,10 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
         "aria-haspopup": "true",
       });
       trigger.part = "trigger";
-      const panel = elc("div", "overflow-list-panel", undefined, { role: "menu", hidden: true });
+      // No role=menu: the panel receives arbitrary reparented items (chips,
+      // links, anything) — menu REQUIRES menuitem children. This is a
+      // disclosure, and the behavior wires aria-expanded/Escape accordingly.
+      const panel = elc("div", "overflow-list-panel", undefined, { hidden: true });
       panel.part = "panel";
       const out = lower(n, "div", { children: [...(n.children ?? []), trigger, panel] });
       if (!out.behavior) {

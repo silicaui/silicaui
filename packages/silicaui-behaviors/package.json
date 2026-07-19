@@ -37,7 +37,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-interactive.mjs"
+    "verify": "node verify.mjs && node verify-interactive.mjs && node verify-a11y.mjs"
   },
   "devDependencies": {
     "jsdom": "^25.0.0",

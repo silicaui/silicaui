@@ -2,6 +2,7 @@ import * as React from "react";
 import { Dialog as BaseDialog } from "@base-ui-components/react/dialog";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 // Props of a styled Base UI part: its own props but with a plain-string className.
 type Styled<T extends React.ElementType> = Omit<
@@ -59,8 +60,9 @@ export function DialogContent({
   ...rest
 }: DialogContentProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BaseDialog.Portal>
+    <BaseDialog.Portal container={portalContainer}>
       <BaseDialog.Backdrop
         className={cx(sc("dialog-backdrop"), backdropClassName)}
       />

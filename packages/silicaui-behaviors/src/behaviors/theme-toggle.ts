@@ -13,15 +13,27 @@ export const themeToggle: BehaviorHandler = (root, _opts) => {
   const themes = Array.isArray(params.themes) && params.themes.length ? params.themes.map(String) : ["light", "dark"];
   const bag = new DisposeBag();
 
+  // An icon-only toggle has no accessible name and its state lives only in
+  // `data-theme-value`. If the author didn't name it, we own the label and
+  // fold the current value in so each activation announces the change.
+  const ownLabel =
+    !root.hasAttribute("aria-label") &&
+    !root.hasAttribute("aria-labelledby") &&
+    !(root.textContent ?? "").trim();
+  const reflect = (value: string) => {
+    root.setAttribute("data-theme-value", value);
+    if (ownLabel) root.setAttribute("aria-label", `Switch theme (current: ${value})`);
+  };
+
   bag.listen(root, "click", () => {
     const current = getTheme() ?? themes[0]!;
     const idx = themes.indexOf(current);
     const next = themes[(idx + 1 + themes.length) % themes.length]!;
     setTheme(next);
-    root.setAttribute("data-theme-value", next);
+    reflect(next);
   });
 
-  root.setAttribute("data-theme-value", getTheme() ?? themes[0]!);
+  reflect(getTheme() ?? themes[0]!);
 
   return () => bag.dispose();
 };

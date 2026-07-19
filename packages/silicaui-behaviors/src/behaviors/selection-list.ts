@@ -33,13 +33,17 @@ export const selectionList: BehaviorHandler = (root, opts) => {
     }
   };
 
-  const focusable = () => items.find((i) => (i as HTMLElement).tabIndex === 0) ?? items[0]!;
-  const focusItem = (item: Element) => {
+  // Seed the roving tabindex at the first selected item (else the first item)
+  // WITHOUT focusing — hydrate must never move the user's focus; `.focus()`
+  // only ever happens in response to their own interaction.
+  const seedTabindex = (item: Element) => {
     for (const i of items) (i as HTMLElement).tabIndex = i === item ? 0 : -1;
+  };
+  const focusItem = (item: Element) => {
+    seedTabindex(item);
     (item as HTMLElement).focus();
   };
-  // Seed roving tabindex at the first selected item, else the first item.
-  focusItem(items.find((i) => i.getAttribute("aria-selected") === "true") ?? items[0]!);
+  seedTabindex(items.find((i) => i.getAttribute("aria-selected") === "true") ?? items[0]!);
 
   for (const item of items) {
     bag.listen(item, "click", () => {

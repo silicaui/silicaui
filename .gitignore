@@ -7,3 +7,5 @@ dist/
 .playwright-mcp/
 test-results/
 playwright-report/
+.next/
+apps/site/out/

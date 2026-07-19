@@ -3,6 +3,7 @@ import { Menubar as BaseMenubar } from "@base-ui-components/react/menubar";
 import { Menu as BaseMenu } from "@base-ui-components/react/menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -77,8 +78,9 @@ export function MenubarContent({
   ...rest
 }: MenubarContentProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BaseMenu.Portal>
+    <BaseMenu.Portal container={portalContainer}>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset}>
         <BaseMenu.Popup className={cx(sc("dropdown"), className)} {...rest}>
           {children}

@@ -148,6 +148,13 @@ export function button(colors, prefix = "") {
     // small labels); but once an icon is present, the icon sits on the x-height
     // midline while a trimmed text box would put capital-bearing labels on a
     // different line — so the two disagree. Flex centers them together instead.
+    //
+    // GOTCHA for responsive visibility (`hidden md:...`): never reveal a `.btn`
+    // with a bare `inline-flex`/`flex` utility — it sets `display` without the
+    // `align-items: center` this rule pairs it with, so a text-only button's
+    // label floats to the top. Use `inline-block` as the revealed value
+    // instead; `:has(svg)` above still wins on specificity when an icon is
+    // present, so it's the safe choice either way.
     [`${sel()}:has(svg)`]: {
       display: "inline-flex",
       alignItems: "center",

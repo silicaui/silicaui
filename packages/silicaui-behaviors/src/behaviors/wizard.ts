@@ -31,6 +31,9 @@ export const wizard: BehaviorHandler = (root, _opts) => {
     pairs.forEach(({ step, panel }, i) => {
       panel.toggleAttribute("hidden", i !== current);
       step.toggleAttribute("data-active", i === current);
+      // APG step navigator: the active step is conveyed to AT, not just styled.
+      if (i === current) step.setAttribute("aria-current", "step");
+      else step.removeAttribute("aria-current");
       step.toggleAttribute("data-complete", i < current);
       const disabled = step.getAttribute("data-disabled") === "true";
       const clickable = !disabled && i !== current && (!linear || i < current);
