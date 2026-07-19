@@ -31,12 +31,16 @@ export const toggleGroup: BehaviorHandler = (root, _opts) => {
     }
   };
 
-  const focusable = () => items.find((i) => (i as HTMLElement).tabIndex === 0) ?? items[0]!;
-  const focusItem = (item: Element) => {
+  // Seed the roving tabindex WITHOUT focusing — hydrate must never move the
+  // user's focus; `.focus()` only ever happens in response to their own keys.
+  const seedTabindex = (item: Element) => {
     for (const i of items) (i as HTMLElement).tabIndex = i === item ? 0 : -1;
+  };
+  const focusItem = (item: Element) => {
+    seedTabindex(item);
     (item as HTMLElement).focus();
   };
-  focusItem(items.find(isPressed) ?? items[0]!);
+  seedTabindex(items.find(isPressed) ?? items[0]!);
 
   const nextKey = vertical ? "ArrowDown" : "ArrowRight";
   const prevKey = vertical ? "ArrowUp" : "ArrowLeft";
@@ -70,7 +74,6 @@ export const toggleGroup: BehaviorHandler = (root, _opts) => {
       }
     });
   }
-  void focusable;
 
   return () => bag.dispose();
 };

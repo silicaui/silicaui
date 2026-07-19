@@ -1084,11 +1084,16 @@
   "toggle-group": [
     "toggle-group",
     "toggle-group-accent",
+    "toggle-group-error",
+    "toggle-group-info",
     "toggle-group-item",
     "toggle-group-lg",
+    "toggle-group-neutral",
     "toggle-group-primary",
     "toggle-group-secondary",
     "toggle-group-sm",
+    "toggle-group-success",
+    "toggle-group-warning",
     "toggle-group-xs"
   ],
   "toggle": [

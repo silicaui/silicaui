@@ -2,6 +2,7 @@ import * as React from "react";
 import { Dialog as BaseDialog } from "@base-ui-components/react/dialog";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 export interface LightboxItem {
   src: string;
@@ -59,6 +60,7 @@ export function Lightbox({
   className,
 }: LightboxProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   const isControlled = index !== undefined;
   const [internal, setInternal] = React.useState<number | null>(defaultIndex);
   const current = isControlled ? index : internal;
@@ -88,7 +90,7 @@ export function Lightbox({
         if (!next) setIndex(null);
       }}
     >
-      <BaseDialog.Portal>
+      <BaseDialog.Portal container={portalContainer}>
         <BaseDialog.Backdrop className={cx(sc("lightbox-backdrop"))} />
         <BaseDialog.Popup
           aria-label="Image viewer"

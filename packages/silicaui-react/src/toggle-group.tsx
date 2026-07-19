@@ -3,13 +3,23 @@ import { ToggleGroup as BaseToggleGroup } from "@base-ui-components/react/toggle
 import { Toggle as BaseToggle } from "@base-ui-components/react/toggle";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { SilicaColor } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
   "className"
 > & { className?: string };
 
-export type ToggleGroupProps = Styled<typeof BaseToggleGroup>;
+/** The track re-scales its items; `md` is the default and emits no class. */
+export type ToggleGroupSize = "xs" | "sm" | "md" | "lg";
+
+// `color` shadows the native HTML attribute of the same name, so drop that one.
+export type ToggleGroupProps = Omit<Styled<typeof BaseToggleGroup>, "color"> & {
+  /** Tints the SELECTED item; default is a colorless base-100 pill. */
+  color?: SilicaColor;
+  /** Default `md`. */
+  size?: ToggleGroupSize;
+};
 export type ToggleGroupItemProps = Styled<typeof BaseToggle>;
 
 /**
@@ -23,12 +33,17 @@ export type ToggleGroupItemProps = Styled<typeof BaseToggle>;
  *   </ToggleGroup>
  */
 export const ToggleGroup = React.forwardRef<HTMLDivElement, ToggleGroupProps>(
-  function ToggleGroup({ className, ...rest }, ref) {
+  function ToggleGroup({ color, size = "md", className, ...rest }, ref) {
     const sc = useSilicaClass();
     return (
       <BaseToggleGroup
         ref={ref}
-        className={cx(sc("toggle-group"), className)}
+        className={cx(
+          sc("toggle-group"),
+          color && sc(`toggle-group-${color}`),
+          size !== "md" && sc(`toggle-group-${size}`),
+          className,
+        )}
         {...rest}
       />
     );

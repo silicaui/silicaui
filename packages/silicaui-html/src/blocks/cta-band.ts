@@ -36,7 +36,11 @@ export const ctaBand = block({
                 type: "link",
                 label: "Primary action",
               }),
-              atom("Button", "btn btn-lg btn-ghost", { label: "Talk to sales" }),
+              slot(atom("Button", "btn btn-lg btn-ghost", { label: "Talk to sales" }), {
+                name: "secondary",
+                type: "link",
+                label: "Secondary action",
+              }),
             ],
           }),
         ],

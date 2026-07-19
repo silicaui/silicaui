@@ -2,6 +2,7 @@ import * as React from "react";
 import { PreviewCard as BasePreviewCard } from "@base-ui-components/react/preview-card";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 // Derive side/align straight from Base UI so they never drift.
 type PositionerProps = React.ComponentProps<typeof BasePreviewCard.Positioner>;
@@ -57,6 +58,7 @@ export function PreviewCard({
   className,
 }: PreviewCardProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
     <BasePreviewCard.Root
       open={open}
@@ -70,7 +72,7 @@ export function PreviewCard({
         delay={delay}
         closeDelay={closeDelay}
       />
-      <BasePreviewCard.Portal>
+      <BasePreviewCard.Portal container={portalContainer}>
         <BasePreviewCard.Positioner
           side={side}
           align={align}

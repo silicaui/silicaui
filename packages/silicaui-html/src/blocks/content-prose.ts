@@ -31,12 +31,18 @@ export const contentProse = block({
           ),
           el("div", "grid grid-cols-1 gap-6 text-base-content/70 @2xl:grid-cols-2", {
             children: [
-              el("p", undefined, {
-                text: "We started with a simple belief: building for the web should feel as direct as sketching on paper. Every decision since has followed from that — fewer layers, faster feedback, no lock-in.",
-              }),
-              el("p", undefined, {
-                text: "Today thousands of teams use our tools to launch stores, sites, and docs in an afternoon. We're still small, still obsessed with the details, and still shipping every week.",
-              }),
+              slot(
+                el("p", undefined, {
+                  text: "We started with a simple belief: building for the web should feel as direct as sketching on paper. Every decision since has followed from that — fewer layers, faster feedback, no lock-in.",
+                }),
+                { name: "body1", type: "text", label: "Body — first column" },
+              ),
+              slot(
+                el("p", undefined, {
+                  text: "Today thousands of teams use our tools to launch stores, sites, and docs in an afternoon. We're still small, still obsessed with the details, and still shipping every week.",
+                }),
+                { name: "body2", type: "text", label: "Body — second column" },
+              ),
             ],
           }),
         ],

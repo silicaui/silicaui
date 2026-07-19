@@ -23,7 +23,9 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "playground"
+    "playground",
+    "@wizeworks/silicaui-site",
+    "@wizeworks/silicaui-demos"
   ],
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true

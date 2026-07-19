@@ -2,6 +2,7 @@ import * as React from "react";
 import { Dialog as BaseDialog } from "@base-ui-components/react/dialog";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -54,8 +55,9 @@ export function DrawerContent({
   ...rest
 }: DrawerContentProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BaseDialog.Portal>
+    <BaseDialog.Portal container={portalContainer}>
       <BaseDialog.Backdrop className={cx(sc("drawer-backdrop"), backdropClassName)} />
       <BaseDialog.Popup
         data-side={side}

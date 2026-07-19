@@ -2,6 +2,7 @@ import * as React from "react";
 import { Tooltip as BaseTooltip } from "@base-ui-components/react/tooltip";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 // Derive the side/align unions straight from Base UI so they never drift.
 type PositionerProps = React.ComponentProps<typeof BaseTooltip.Positioner>;
@@ -62,6 +63,7 @@ export function Tooltip({
   className,
 }: TooltipProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
     <BaseTooltip.Root
       open={open}
@@ -76,7 +78,7 @@ export function Tooltip({
         delay={delay}
         closeDelay={closeDelay}
       />
-      <BaseTooltip.Portal>
+      <BaseTooltip.Portal container={portalContainer}>
         <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset}>
           <BaseTooltip.Popup className={cx(sc("tooltip"), className)}>
             {arrow && <BaseTooltip.Arrow className={cx(sc("tooltip-arrow"))} />}

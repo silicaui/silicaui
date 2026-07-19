@@ -2,6 +2,7 @@ import * as React from "react";
 import { AlertDialog as BaseAlertDialog } from "@base-ui-components/react/alert-dialog";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 import { Button, type ButtonProps } from "./button";
 
 export { DialogHeader as AlertDialogHeader, DialogFooter as AlertDialogFooter } from "./dialog";
@@ -92,8 +93,9 @@ export function AlertDialogContent({
   ...rest
 }: AlertDialogContentProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BaseAlertDialog.Portal>
+    <BaseAlertDialog.Portal container={portalContainer}>
       <BaseAlertDialog.Backdrop
         className={cx(sc("dialog-backdrop"), backdropClassName)}
       />

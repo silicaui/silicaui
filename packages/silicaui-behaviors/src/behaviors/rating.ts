@@ -21,6 +21,13 @@ export const rating: BehaviorHandler = (root, _opts) => {
 
   const setValue = (value: number) => {
     paint(value);
+    // `data-filled` is the (hover-previewable) visual; `aria-checked` is the
+    // committed radio state and must track the real value, not the preview.
+    items.forEach((item, i) => {
+      if (item.getAttribute("role") === "radio") {
+        item.setAttribute("aria-checked", String(i === value - 1));
+      }
+    });
     if (hidden) {
       hidden.value = String(value);
       hidden.dispatchEvent(new Event("change", { bubbles: true }));

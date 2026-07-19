@@ -74,6 +74,12 @@ export const menu: BehaviorHandler = (root, opts) => {
       close(true);
       return;
     }
+    // APG menu: Tab closes the menu. Refocus the trigger and let the default
+    // Tab proceed, so focus lands on the element after (or before) it.
+    if (e.key === "Tab" && isOpen()) {
+      close(true);
+      return;
+    }
     if (!isOpen()) return;
     const items = getItems();
     if (items.length === 0) return;

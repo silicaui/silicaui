@@ -85,7 +85,9 @@ export function confirm(options: ConfirmOptions = {}): Promise<boolean> {
     document.body.style.overflow = "hidden";
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    confirmBtn.focus();
+    // APG alert dialog: initial focus goes to the LEAST destructive action —
+    // an accidental Enter must cancel, never confirm.
+    cancelBtn.focus();
 
     function focusables(): HTMLElement[] {
       return Array.from(popup.querySelectorAll<HTMLElement>("button"));

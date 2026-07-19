@@ -27,7 +27,13 @@ export function useTheme(
     return typeof document !== "undefined" ? document.documentElement : null;
   }, [target]);
 
-  const [theme, setThemeState] = React.useState<string | undefined>(() => getTarget()?.dataset.theme);
+  // Always start `undefined` (never read `getTarget()` here) so the first
+  // client render matches SSR output — the effect below re-syncs to the real
+  // value immediately after mount, same as useMediaQuery's SSR-safe pattern.
+  // Reading the DOM in the initializer would make the client's pre-hydration
+  // render disagree with the server's (which has no `document`), causing a
+  // hydration mismatch the moment this hook renders under SSR/static export.
+  const [theme, setThemeState] = React.useState<string | undefined>(undefined);
 
   React.useEffect(() => {
     const el = getTarget();

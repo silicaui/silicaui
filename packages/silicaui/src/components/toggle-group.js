@@ -1,19 +1,22 @@
+import { contentVar } from "../lib/auto-content.js";
+
 /**
  * The ToggleGroup component — a segmented control (single- or multi-select set
  * of toggle buttons). Behavior is Base UI's ToggleGroup + Toggle (roving focus,
  * pressed state, single/multiple selection); Silica styles the track and the
  * items. The active item reads as a raised base-100 pill on the base-200 track.
  *
- * Colorless. NOTE: this is the button-based segmented control — distinct from
+ * NOTE: this is the button-based segmented control — distinct from
  * `.toggle` (the on/off switch). `[data-pressed]` marks the selected item(s);
  * `[data-orientation="vertical"]` stacks it.
  *
+ * @param {string[]} colors - registered color names to emit `-<color>` classes for
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
  */
-export function toggleGroup(prefix = "") {
+export function toggleGroup(colors, prefix = "") {
   const sel = (suffix = "") => `.${prefix}toggle-group${suffix}`;
 
-  return {
+  const base = {
     [sel()]: {
       display: "inline-flex",
       alignItems: "stretch",
@@ -54,7 +57,8 @@ export function toggleGroup(prefix = "") {
       },
       // Selected: a raised pill lifts off the track.
       "&[data-pressed]": {
-        backgroundColor: "var(--color-base-100)",
+        backgroundColor: "var(--toggle-group-pill-bg, var(--color-base-100))",
+        color: "var(--toggle-group-pill-fg, var(--color-base-content))",
         boxShadow: "0 1px 2px color-mix(in oklab, black 12%, transparent)",
       },
       "&:focus-visible": {
@@ -65,23 +69,6 @@ export function toggleGroup(prefix = "") {
         opacity: "var(--disabled-opacity, 0.5)",
         cursor: "not-allowed",
       },
-    },
-
-    // ---- Color: a colored active pill (default is a colorless base-100 pill) --
-    // `.toggle-group-primary` (etc.) tints the SELECTED item in a semantic color,
-    // so a segmented control can signal its active choice more strongly. Sits on
-    // the track and cascades to the pressed item.
-    [`${sel("-primary")} ${sel("-item")}[data-pressed]`]: {
-      backgroundColor: "var(--color-primary)",
-      color: "var(--color-primary-content)",
-    },
-    [`${sel("-secondary")} ${sel("-item")}[data-pressed]`]: {
-      backgroundColor: "var(--color-secondary)",
-      color: "var(--color-secondary-content)",
-    },
-    [`${sel("-accent")} ${sel("-item")}[data-pressed]`]: {
-      backgroundColor: "var(--color-accent)",
-      color: "var(--color-accent-content)",
     },
 
     // ---- Sizes (re-scale the track padding + items) ------------------------
@@ -108,4 +95,17 @@ export function toggleGroup(prefix = "") {
       "& svg": { width: "1.2rem", height: "1.2rem" },
     },
   };
+
+  // ---- Color: a colored active pill (default is a colorless base-100 pill) --
+  // `.toggle-group-<color>` tints the SELECTED item, so a segmented control can
+  // signal its active choice more strongly. Orthogonal: the color class only
+  // sets the pill vars on the track; `[data-pressed]` above reads them.
+  for (const name of colors) {
+    base[sel(`-${name}`)] = {
+      "--toggle-group-pill-bg": `var(--color-${name})`,
+      "--toggle-group-pill-fg": contentVar(name),
+    };
+  }
+
+  return base;
 }

@@ -228,7 +228,7 @@ export default plugin.withOptions(
       addBase(toolbar(prefix));
       addBase(navigationMenu(prefix));
       addBase(menubar(prefix));
-      addBase(toggleGroup(prefix));
+      addBase(toggleGroup(colors, prefix));
       addBase(field(prefix));
       addBase(radioGroup(prefix));
       addBase(checkboxGroup(prefix));

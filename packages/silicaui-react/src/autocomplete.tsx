@@ -2,6 +2,7 @@ import * as React from "react";
 import { Autocomplete as BaseAutocomplete } from "@base-ui-components/react/autocomplete";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -117,6 +118,7 @@ export function Autocomplete({
   ...aria
 }: AutocompleteProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
     <BaseAutocomplete.Root
       items={items as never}
@@ -151,7 +153,7 @@ export function Autocomplete({
         )}
       </div>
 
-      <BaseAutocomplete.Portal>
+      <BaseAutocomplete.Portal container={portalContainer}>
         <BaseAutocomplete.Positioner
           side={side}
           align={align}

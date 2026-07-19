@@ -14,6 +14,9 @@ import type { BehaviorHandler } from "../types";
  * the real differences (trigger event, anchor point, single-open grouping)
  * are all genuine parameters, not papered-over mismatches.
  */
+// Monotonic id source for runtime-generated tooltip ids (aria-describedby).
+let tooltipSeq = 0;
+
 export const popover: BehaviorHandler = (root, opts) => {
   const params = parseParams(root);
   const mode = params.trigger === "hover" || params.trigger === "context" ? params.trigger : "click";
@@ -75,11 +78,57 @@ export const popover: BehaviorHandler = (root, opts) => {
         open(trigger, panel, { x: e.clientX, y: e.clientY });
       });
     } else if (mode === "hover") {
-      bag.listen(trigger, "mouseenter", () => open(trigger, panel));
-      bag.listen(trigger, "focus", () => open(trigger, panel));
-      bag.listen(trigger, "mouseleave", () => close(panel, trigger));
-      bag.listen(trigger, "blur", () => close(panel, trigger));
-      bag.listen(panel, "mouseleave", () => close(panel, trigger));
+      // Tooltip pattern (APG + WCAG 1.4.13 hover persistence): open on hover or
+      // keyboard focus, stay open while the pointer is over trigger OR panel
+      // (close on a short delay so the pointer can cross the gap), close when
+      // focus leaves both. `focusin`/`focusout` — not `focus`/`blur` — so a
+      // focusable CHILD of the trigger counts; those events bubble.
+      let closeTimer: ReturnType<typeof setTimeout> | undefined;
+      const cancelClose = () => {
+        if (closeTimer !== undefined) clearTimeout(closeTimer);
+        closeTimer = undefined;
+      };
+      const scheduleClose = () => {
+        cancelClose();
+        closeTimer = setTimeout(() => close(panel, trigger), 150);
+      };
+      bag.add(cancelClose);
+
+      // A hover trigger must be keyboard-reachable: if neither it nor anything
+      // inside it is focusable, make the trigger itself a tab stop.
+      const t = trigger as HTMLElement;
+      if (
+        t.tabIndex < 0 &&
+        !trigger.querySelector("a[href], button, input, select, textarea, [tabindex]")
+      ) {
+        t.tabIndex = 0;
+      }
+      // Name the relationship for AT: a `role=tooltip` panel describes its
+      // trigger. Ids are generated here (runtime DOM), never authored — the
+      // schema's correlate-by-nesting rule stays intact.
+      if (panel.getAttribute("role") === "tooltip") {
+        if (!panel.id) panel.id = `sui-tooltip-${++tooltipSeq}`;
+        if (!trigger.hasAttribute("aria-describedby")) {
+          trigger.setAttribute("aria-describedby", panel.id);
+        }
+      }
+
+      bag.listen(trigger, "mouseenter", () => {
+        cancelClose();
+        open(trigger, panel);
+      });
+      bag.listen(trigger, "focusin", () => {
+        cancelClose();
+        open(trigger, panel);
+      });
+      bag.listen(trigger, "mouseleave", scheduleClose);
+      bag.listen(trigger, "focusout", (ev) => {
+        const to = (ev as FocusEvent).relatedTarget as Node | null;
+        if (to && (trigger.contains(to) || panel.contains(to))) return;
+        close(panel, trigger);
+      });
+      bag.listen(panel, "mouseenter", cancelClose);
+      bag.listen(panel, "mouseleave", scheduleClose);
     } else {
       bag.listen(trigger, "click", () => (isOpen(panel) ? close(panel, trigger) : open(trigger, panel)));
     }

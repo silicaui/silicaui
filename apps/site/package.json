@@ -1,0 +1,34 @@
+{
+    "name": "@wizeworks/silicaui-site",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "next dev --port 4011",
+        "build": "next build",
+        "start": "next start",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@mdx-js/loader": "^3.1.0",
+        "@mdx-js/react": "^3.1.0",
+        "@next/mdx": "^15.4.0",
+        "@wizeworks/silicaui-behaviors": "workspace:*",
+        "@wizeworks/silicaui-demos": "workspace:*",
+        "@wizeworks/silicaui-html": "workspace:*",
+        "@wizeworks/silicaui-react": "workspace:*",
+        "next": "^15.4.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.3.0",
+        "@types/mdx": "^2.0.13",
+        "@types/node": "^22.0.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@wizeworks/silicaui": "workspace:*",
+        "tailwindcss": "^4.3.0",
+        "typescript": "^5.6.0"
+    }
+}

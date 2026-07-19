@@ -2,6 +2,7 @@ import * as React from "react";
 import { Toast as BaseToast } from "@base-ui-components/react/toast";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 export type ToastProviderProps = React.ComponentProps<typeof BaseToast.Provider>;
 
@@ -55,8 +56,9 @@ const TYPE_ICONS: Record<string, React.FC> = {
 function ToastList() {
   const { toasts } = BaseToast.useToastManager();
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BaseToast.Portal>
+    <BaseToast.Portal container={portalContainer}>
       <BaseToast.Viewport className={cx(sc("toast-viewport"))}>
         {toasts.map((toast) => {
           const Icon = toast.type ? TYPE_ICONS[toast.type] : undefined;

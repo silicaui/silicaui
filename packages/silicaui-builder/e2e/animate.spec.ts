@@ -33,6 +33,14 @@ async function publishedHtml(page: Page): Promise<string> {
   });
 }
 
+/** The animated hero heading's opening tag in the published HTML — behavior-
+ *  marker assertions must scope HERE, not to the whole page: other starter
+ *  blocks (e.g. the navbar's mobile-menu disclosure) legitimately carry
+ *  `data-sui-behavior` markers of their own. */
+function headingTag(html: string): string {
+  return html.match(/<h1[^>]*>/)?.[0] ?? "";
+}
+
 test("Animate section: Load/Scroll/Hover triggers write the right classes + behavior marker", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
@@ -54,8 +62,8 @@ test("Animate section: Load/Scroll/Hover triggers write the right classes + beha
   await expect(heading).not.toHaveClass(/sui-animate-fade-in/);
 
   let html = await publishedHtml(page);
-  expect(html).toContain("sui-animate-slide-up");
-  expect(html).not.toContain("data-sui-behavior");
+  expect(headingTag(html)).toContain("sui-animate-slide-up");
+  expect(headingTag(html)).not.toContain("data-sui-behavior");
 
   // Scroll — resets to the family's first preset, attaches the `reveal`
   // behavior marker, AND the canvas stamps data-sui-inview so the element
@@ -66,16 +74,16 @@ test("Animate section: Load/Scroll/Hover triggers write the right classes + beha
   await expect(heading).toHaveCSS("opacity", "1");
 
   html = await publishedHtml(page);
-  expect(html).toContain("sui-reveal-fade-in");
-  expect(html).toContain('data-sui-behavior="reveal"');
+  expect(headingTag(html)).toContain("sui-reveal-fade-in");
+  expect(headingTag(html)).toContain('data-sui-behavior="reveal"');
 
   // Hover — clears the `reveal` marker (never leaves a stale behavior root).
   await page.getByTestId("animate-trigger-hover").click();
   await expect(heading).toHaveClass(/\bsui-hover-lift\b/);
 
   html = await publishedHtml(page);
-  expect(html).toContain("sui-hover-lift");
-  expect(html).not.toContain("data-sui-behavior");
+  expect(headingTag(html)).toContain("sui-hover-lift");
+  expect(headingTag(html)).not.toContain("data-sui-behavior");
 
   // None — clears every animate/reveal/hover class.
   await page.getByTestId("animate-trigger-none").click();

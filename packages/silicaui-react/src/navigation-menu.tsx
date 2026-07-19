@@ -2,6 +2,7 @@ import * as React from "react";
 import { NavigationMenu as BaseNav } from "@base-ui-components/react/navigation-menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -57,12 +58,13 @@ export function NavigationMenu({
   ...rest
 }: NavigationMenuProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
     <BaseNav.Root className={cx(sc("navigation-menu"), className)} {...rest}>
       <BaseNav.List className={cx(sc("navigation-menu-list"))}>
         {children}
       </BaseNav.List>
-      <BaseNav.Portal>
+      <BaseNav.Portal container={portalContainer}>
         <BaseNav.Positioner
           className={cx(sc("navigation-menu-positioner"))}
           side={side}
