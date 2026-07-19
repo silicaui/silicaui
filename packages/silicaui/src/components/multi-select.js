@@ -1,3 +1,5 @@
+import { affordanceButton, textClearance, BOX } from "../lib/field-affordance.js";
+
 /**
  * MultiSelect — a searchable, multi-value listbox (Base UI Combobox in
  * `multiple` mode, using its dedicated `Chip`/`Chips`/`ChipRemove` parts).
@@ -20,29 +22,6 @@ export function multiSelect(colors, prefix = "") {
   const sel = (suffix = "") => `.${prefix}multi-select${suffix}`;
   const accent = "var(--multi-select-accent, var(--color-primary))";
 
-  const iconBtn = {
-    position: "absolute",
-    top: "0",
-    bottom: "0",
-    marginBlock: "auto",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "1.5rem",
-    height: "1.5rem",
-    padding: "0",
-    border: "0",
-    background: "none",
-    borderRadius: "9999px",
-    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
-    cursor: "pointer",
-    "& svg": { width: "1rem", height: "1rem" },
-    "&:hover": { color: "var(--color-base-content)" },
-    "&:focus-visible": {
-      outline: "2px solid var(--color-primary)",
-      outlineOffset: "1px",
-    },
-  };
 
   const base = {
     [sel()]: {
@@ -51,7 +30,7 @@ export function multiSelect(colors, prefix = "") {
       width: "100%",
       minHeight: "calc(var(--size-field, 0.25rem) * 10)",
       paddingInlineStart: "0.5rem",
-      paddingInlineEnd: "3.25rem",
+      paddingInlineEnd: textClearance(2),
       paddingBlock: "0.3rem",
       borderRadius: "var(--radius-field, 0.25rem)",
       border: "var(--border, 1px) solid var(--color-base-300)",
@@ -138,16 +117,18 @@ export function multiSelect(colors, prefix = "") {
 
     // Clear (×) — sits left of the chevron; Base UI disables it when empty.
     [sel("-clear")]: {
-      ...iconBtn,
-      insetInlineEnd: "1.9rem",
+      ...affordanceButton(1),
       "&:disabled": { display: "none" },
     },
 
     // Open/close chevron.
     [sel("-trigger")]: {
-      ...iconBtn,
-      insetInlineEnd: "0.4rem",
-      "& svg": { width: "1rem", height: "1rem", transition: "transform 0.2s ease" },
+      ...affordanceButton(0),
+      "& svg": {
+        width: BOX,
+        height: BOX,
+        transition: "transform var(--duration, 150ms) var(--ease, cubic-bezier(0.4, 0, 0.2, 1))",
+      },
       "&[data-popup-open] svg": { transform: "rotate(180deg)" },
     },
 

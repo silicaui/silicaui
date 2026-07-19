@@ -33,6 +33,28 @@ export function buildBase() {
       //       --focus-width: 2px     --focus-offset: 2px
       //       --duration: 150ms      --ease: cubic-bezier(.4,0,.2,1)
       //       --disabled-opacity: .5
+      //
+      // ---- The z-scale ------------------------------------------------------
+      // Every globally-stacked surface reads one of these, so the ordering is a
+      // property of the SYSTEM rather than of whichever component was written
+      // last. The rule that drives it: a transient surface must outrank anything
+      // it can be opened from. A picker opened inside a modal is the common case
+      // — it has to win, and no component prop can make it win, because a child
+      // can't out-stack its own parent's level.
+      //
+      //       --z-drawer:   40   edge panel
+      //       --z-dialog:   50   modal + its backdrop (popup sits at +1)
+      //       --z-lightbox: 60   fullscreen media overlay (popup at +1)
+      //       --z-popover:  70   dropdown / popover / listbox / combobox /
+      //                          nav-menu / preview-card / calendar popup —
+      //                          ABOVE every overlay they can open inside
+      //       --z-tooltip:  80   describes a popover, so it sits above one
+      //       --z-toast:    90   system-level, outranks everything
+      //
+      // Purely LOCAL stacking (z-index 0–3 inside a component's own stacking
+      // context — table headers, indicator dots, step connectors) is deliberately
+      // NOT tokenized: it never competes with these, and tokenizing it would
+      // invite apps to "fix" a global order by nudging a local one.
       colorScheme: "light",
       // Base font size: 16px. `100%` (not a fixed `16px`) DECLARES the anchor
       // while honoring a user who raised their browser's default — the whole rem

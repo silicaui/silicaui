@@ -76,7 +76,7 @@ export function navigationMenu(prefix = "") {
 
     // ---- Floating popup -----------------------------------------------------
     [sel("-positioner")]: {
-      zIndex: "50",
+      zIndex: "var(--z-popover, 70)",
       // Base UI drives the box size from the active content; we animate it.
       boxSizing: "border-box",
     },

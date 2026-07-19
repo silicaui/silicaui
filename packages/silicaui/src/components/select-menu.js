@@ -1,3 +1,5 @@
+import { affordanceIcon, INSET } from "../lib/field-affordance.js";
+
 /**
  * The Select (listbox) surface — the visual half of the Base-UI-backed `Select`,
  * a fully-styled, keyboard-driven, optionally-multi listbox. Distinct from the
@@ -25,9 +27,10 @@ export function selectMenu(prefix = "") {
       gap: "0.5rem",
       textAlign: "start",
       backgroundImage: "none", // drop the native CSS caret; the Icon draws it
-      // The native field reserves trailing room for its caret; the Icon is a flex
-      // item, so restore a normal trailing pad.
-      paddingInlineEnd: "calc(var(--size-field, 0.25rem) * 3)",
+      // The native field reserves overlap room for its caret; this Icon is a flex
+      // item, so the pad IS the affordance inset — which lands the chevron at the
+      // same distance from the trailing edge as the native caret it replaces.
+      paddingInlineEnd: INSET,
 
       "&[data-popup-open]": {
         borderColor: "var(--select-accent, var(--color-primary))",
@@ -57,23 +60,14 @@ export function selectMenu(prefix = "") {
     },
 
     // Trailing chevron; flips while the popup is open.
-    [sel("-icon")]: {
-      display: "inline-flex",
-      flexShrink: "0",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
-      "& svg": {
-        width: "1rem",
-        height: "1rem",
-        transition: "transform 0.2s ease",
-      },
-    },
+    [sel("-icon")]: affordanceIcon(),
     [`${sel("-trigger")}[data-popup-open] ${sel("-icon")} svg`]: {
       transform: "rotate(180deg)",
     },
 
     // Portalled popup surface — width matches the trigger, height is capped.
     [sel("-popup")]: {
-      zIndex: "50",
+      zIndex: "var(--z-popover, 70)",
       minWidth: "var(--anchor-width)",
       maxHeight: "min(var(--available-height), 18rem)",
       overflowY: "auto",

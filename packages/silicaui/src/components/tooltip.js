@@ -19,7 +19,7 @@ export function tooltip(prefix = "") {
   return {
     // The popup surface.
     [sel()]: {
-      zIndex: "50",
+      zIndex: "var(--z-tooltip, 80)",
       maxWidth: "18rem",
       paddingInline: "0.625rem",
       paddingBlock: "0.375rem",

@@ -15,7 +15,7 @@ export function previewCard(prefix = "") {
 
   return {
     [sel()]: {
-      zIndex: "50",
+      zIndex: "var(--z-popover, 70)",
       width: "max-content",
       maxWidth: "min(20rem, calc(100vw - 2rem))",
       padding: "1rem",
