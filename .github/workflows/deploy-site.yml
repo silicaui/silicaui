@@ -37,6 +37,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The site imports built entry points (`@wizeworks/silicaui-demos/meta`),
+      # and every package `dist/` is gitignored — so a clean checkout has to
+      # build the workspace before Next can resolve them.
+      - name: Build packages
+        run: pnpm build
+
       - name: Build site
         run: pnpm site:build
 
