@@ -17,7 +17,7 @@ export function dialog(prefix = "") {
     [sel("-backdrop")]: {
       position: "fixed",
       inset: "0",
-      zIndex: "50",
+      zIndex: "var(--z-dialog, 50)",
       backgroundColor: "rgb(0 0 0 / 0.4)",
       transitionProperty: "opacity",
       transitionDuration: "var(--duration, 150ms)",
@@ -30,7 +30,7 @@ export function dialog(prefix = "") {
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      zIndex: "51",
+      zIndex: "calc(var(--z-dialog, 50) + 1)",
       width: "calc(100% - 2rem)",
       maxWidth: "28rem",
       maxHeight: "calc(100dvh - 2rem)",

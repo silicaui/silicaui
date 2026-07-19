@@ -15,7 +15,7 @@ export function drawer(prefix = "") {
     [sel("-backdrop")]: {
       position: "fixed",
       inset: "0",
-      zIndex: "50",
+      zIndex: "var(--z-drawer, 40)",
       backgroundColor: "color-mix(in oklab, black 45%, transparent)",
       transition: "opacity 0.3s ease",
 
@@ -24,7 +24,7 @@ export function drawer(prefix = "") {
 
     [sel("-popup")]: {
       position: "fixed",
-      zIndex: "50",
+      zIndex: "var(--z-drawer, 40)",
       display: "flex",
       flexDirection: "column",
       gap: "1rem",
