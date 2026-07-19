@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-mcp",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "A local MCP server that lets AI coding assistants query the Silica UI design system — real class names, component props, blocks, and behaviors — instead of guessing.",
   "type": "module",
   "license": "MIT",
