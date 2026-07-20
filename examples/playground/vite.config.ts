@@ -31,6 +31,9 @@ export default defineConfig({
       "@wizeworks/silicaui-react": fileURLToPath(
         new URL("../../packages/silicaui-react/src/index.ts", import.meta.url),
       ),
+      "@wizeworks/silicaui-demos": fileURLToPath(
+        new URL("../../packages/silicaui-demos/src/index.ts", import.meta.url),
+      ),
     },
   },
 });

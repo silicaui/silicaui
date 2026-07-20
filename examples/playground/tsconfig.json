@@ -25,6 +25,9 @@
       ],
       "@wizeworks/silicaui-panels": [
         "../../packages/silicaui-panels/src/index.ts"
+      ],
+      "@wizeworks/silicaui-demos": [
+        "../../packages/silicaui-demos/src/index.ts"
       ]
     }
   },

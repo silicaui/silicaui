@@ -14,6 +14,12 @@ export const scrollArea: BehaviorHandler = (root, _opts) => {
   const bag = new DisposeBag();
   if (!thumb) return () => bag.dispose();
 
+  // A scrollable region must be keyboard-reachable — once the viewport is a
+  // tab stop, arrow/Page scrolling comes free from the browser. The custom
+  // thumb is purely decorative (the track is the real scroller).
+  if (!track.hasAttribute("tabindex")) track.tabIndex = 0;
+  thumb.setAttribute("aria-hidden", "true");
+
   const sync = () => {
     const { scrollHeight, clientHeight, scrollTop } = track;
     if (scrollHeight <= clientHeight) {

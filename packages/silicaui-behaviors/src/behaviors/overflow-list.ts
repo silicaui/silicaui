@@ -36,19 +36,37 @@ export const overflowList: BehaviorHandler = (root, opts) => {
     const visibleCount = Math.max(0, Math.min(items.length, measure()));
     const overflowCount = items.length - visibleCount;
     trigger.toggleAttribute("hidden", overflowCount === 0);
-    if (trigger instanceof HTMLElement) trigger.textContent = `+${overflowCount}`;
+    if (trigger instanceof HTMLElement) {
+      trigger.textContent = `+${overflowCount}`;
+      // "+3" is a poor accessible name; say what the button does.
+      trigger.setAttribute("aria-label", `Show ${overflowCount} more item${overflowCount === 1 ? "" : "s"}`);
+    }
     for (let i = visibleCount; i < items.length; i++) panel.appendChild(items[i]!);
   };
   recompute();
 
+  // Disclosure pattern: expanded state on the trigger, Escape closes and
+  // returns focus, outside click closes. (The panel holds arbitrary
+  // reparented items, so it is NOT a menu — see the OverflowList macro.)
   panel.setAttribute("hidden", "");
-  bag.listen(trigger, "click", () => panel.toggleAttribute("hidden"));
+  const setOpen = (openNow: boolean) => {
+    panel.toggleAttribute("hidden", !openNow);
+    trigger.setAttribute("aria-expanded", String(openNow));
+  };
+  trigger.setAttribute("aria-expanded", "false");
+  bag.listen(trigger, "click", () => setOpen(panel.hasAttribute("hidden")));
+  bag.listen(root, "keydown", (ev) => {
+    if ((ev as KeyboardEvent).key !== "Escape" || panel.hasAttribute("hidden")) return;
+    ev.preventDefault();
+    setOpen(false);
+    (trigger as HTMLElement).focus?.();
+  });
   bag.listen(
     document,
     "click",
     (ev) => {
       if (!panel.hasAttribute("hidden") && !panel.contains(ev.target as Node) && !trigger.contains(ev.target as Node)) {
-        panel.setAttribute("hidden", "");
+        setOpen(false);
       }
     },
     { capture: true },

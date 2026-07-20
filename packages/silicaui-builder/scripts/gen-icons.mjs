@@ -17,7 +17,7 @@ const USED = {
   heading: "heading", text: "type", button: "square-mouse-pointer", image: "image",
   link: "link", section: "layout-template", grid: "layout-grid", stack: "rows-3",
   box: "box", list: "list", item: "dot", form: "text-cursor-input", input: "text-cursor-input",
-  label: "tag", nav: "menu", header: "panel-top", footer: "panel-bottom", main: "square",
+  label: "tag", nav: "menu", menu: "menu", header: "panel-top", footer: "panel-bottom", main: "square",
   article: "file-text", aside: "panel-right", outlet: "square-dashed",
   // form controls
   textarea: "wrap-text", select: "chevrons-up-down", checkbox: "square-check",

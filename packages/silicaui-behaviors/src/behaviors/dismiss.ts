@@ -13,7 +13,23 @@ export const dismiss: BehaviorHandler = (root, _opts) => {
   if (!trigger) return () => bag.dispose();
 
   const remove = params.remove !== false;
+  // Removing/hiding the widget while focus is inside it drops focus to
+  // <body>; park it on the nearest focusable outside the root first.
+  const FOCUSABLE =
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  const parkFocus = () => {
+    const active = document.activeElement;
+    if (!active || !root.contains(active)) return;
+    const rest = Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+      (el) => !root.contains(el),
+    );
+    const after = rest.find(
+      (el) => root.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    (after ?? rest[rest.length - 1])?.focus?.();
+  };
   bag.listen(trigger, "click", () => {
+    parkFocus();
     if (remove) root.remove();
     else root.setAttribute("hidden", "");
   });

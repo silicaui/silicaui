@@ -14,7 +14,7 @@ export function dropdown(prefix = "") {
 
   return {
     [sel()]: {
-      zIndex: "50",
+      zIndex: "var(--z-popover, 70)",
       minWidth: "12rem",
       padding: "0.375rem",
       borderRadius: "var(--radius-box, 0.5rem)",

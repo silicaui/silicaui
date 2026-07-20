@@ -10,6 +10,9 @@ import type { BehaviorHandler } from "../types";
  * input pops the last commit). One handler, mode branches, mirroring how
  * `selection-list` handles `params.multiple` in one file rather than three.
  */
+// Monotonic id source for runtime-generated option/panel ids (activedescendant).
+let comboboxSeq = 0;
+
 export const combobox: BehaviorHandler = (root, opts) => {
   const params = parseParams(root);
   const mode = typeof params.mode === "string" ? params.mode : "select";
@@ -21,6 +24,18 @@ export const combobox: BehaviorHandler = (root, opts) => {
   const items = ownParts(root, "item");
   const bag = new DisposeBag();
   if (!input || !panel || !items.length) return () => bag.dispose();
+
+  // APG combobox wiring the static markup can't provide (its correlate-by-
+  // nesting rule means no authored ids): generate ids at hydrate so
+  // `aria-activedescendant` (set in `setActive`) points at a real id, and
+  // declare the list relationship on the input.
+  const cbId = ++comboboxSeq;
+  if (!panel.id) panel.id = `sui-combobox-${cbId}-panel`;
+  items.forEach((item, i) => {
+    if (!item.id) item.id = `sui-combobox-${cbId}-opt-${i}`;
+  });
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", panel.id);
 
   let active = -1;
   const isOpen = () => !panel.hasAttribute("hidden");

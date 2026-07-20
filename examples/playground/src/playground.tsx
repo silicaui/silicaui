@@ -5,7 +5,7 @@ import {
     ToastProvider,
     ImperativeAlertDialogProvider,
 } from "@wizeworks/silicaui-react";
-import { DEMOS } from "./demos/registry";
+import { DEMOS } from "@wizeworks/silicaui-demos";
 
 /**
  * The playground shell. It owns only the chrome — theme toggle, header, and the

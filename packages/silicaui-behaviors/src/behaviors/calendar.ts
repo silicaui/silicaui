@@ -119,6 +119,14 @@ export const calendar: BehaviorHandler = (root, _opts) => {
     render();
   };
 
+  // A `role=grid` needs row/gridcell descendants this flat CSS-grid render
+  // can't honestly provide — downgrade to a labeled group; the day buttons
+  // carry full-date names + pressed/current state instead (a valid, simpler
+  // accessible shape than a half-lied table).
+  if (grid.getAttribute("role") === "grid") grid.setAttribute("role", "group");
+  if (!grid.hasAttribute("aria-label")) grid.setAttribute("aria-label", "Calendar");
+  const dayName = new Intl.DateTimeFormat(undefined, { dateStyle: "full" });
+
   function render(): void {
     grid!.innerHTML = "";
     const today = startOfDay(new Date());
@@ -129,15 +137,24 @@ export const calendar: BehaviorHandler = (root, _opts) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.setAttribute("data-date", toISO(d));
+      // "15" is meaningless out of context — every cell announces its full date.
+      btn.setAttribute("aria-label", dayName.format(d));
       const inMonth = d.getMonth() === view.getMonth();
       btn.toggleAttribute("data-outside", !inMonth);
-      btn.toggleAttribute("data-today", sameDay(d, today));
+      const isToday = sameDay(d, today);
+      btn.toggleAttribute("data-today", isToday);
+      if (isToday) btn.setAttribute("aria-current", "date");
       if (mode === "single") {
-        btn.toggleAttribute("data-selected", !!selected && sameDay(d, selected));
+        const isSelected = !!selected && sameDay(d, selected);
+        btn.toggleAttribute("data-selected", isSelected);
+        btn.setAttribute("aria-pressed", String(isSelected));
       } else {
-        btn.toggleAttribute("data-range-start", !!rangeStart && sameDay(d, rangeStart));
-        btn.toggleAttribute("data-range-end", !!paintB && sameDay(d, paintB));
+        const isStart = !!rangeStart && sameDay(d, rangeStart);
+        const isEnd = !!paintB && sameDay(d, paintB);
+        btn.toggleAttribute("data-range-start", isStart);
+        btn.toggleAttribute("data-range-end", isEnd);
         btn.toggleAttribute("data-in-range", inRange(d, paintA, paintB));
+        btn.setAttribute("aria-pressed", String(isStart || isEnd));
       }
       btn.tabIndex = inMonth && sameDay(d, focused) ? 0 : -1;
       btn.textContent = String(d.getDate());

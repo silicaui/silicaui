@@ -165,7 +165,7 @@ export const SidebarGroupLabel = React.forwardRef<HTMLDivElement, SidebarGroupLa
   },
 );
 
-export interface SidebarItemProps extends Omit<React.HTMLAttributes<HTMLElement>, "color"> {
+export interface SidebarItemProps extends Omit<React.AllHTMLAttributes<HTMLElement>, "color" | "as"> {
   /** Leading icon. */
   icon?: React.ReactNode;
   /** Trailing content (badge, chevron); hidden when collapsed. */
@@ -173,7 +173,12 @@ export interface SidebarItemProps extends Omit<React.HTMLAttributes<HTMLElement>
   /** Highlights the row with the sidebar's accent color. */
   active?: boolean;
   disabled?: boolean;
-  /** Render as a different element, typically `"a"` for real navigation. */
+  /**
+   * Render as a different element, typically `"a"` (or a router's `Link`)
+   * for real navigation — `AllHTMLAttributes` (not the plain `HTMLAttributes`
+   * most components here use) is deliberate so `href`/`target`/etc. type-check
+   * when doing so.
+   */
   as?: React.ElementType;
 }
 

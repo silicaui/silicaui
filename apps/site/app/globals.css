@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/* Dogfood the shipped default — Quartz (packages/silicaui-html/src/themes.ts,
+   packages/silicaui/src/colors.js). No `silicaui/theme` override block here on
+   purpose: this is the real product default, not a re-derived site palette. */
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+/* The other shipped presets from packages/silicaui-html/src/themes.ts,
+   declared here so the landing page's live theme switcher has real themes to
+   switch BETWEEN. This is the product's actual extensibility story executed on
+   its own site: every one of these is a pure token set — no component CSS is
+   duplicated per theme, because every color class is a var-setter. Keep the
+   values in sync with themes.ts (the source of truth). */
+@plugin "@wizeworks/silicaui/theme" {
+  name: ocean;
+  --color-base-100: oklch(99% 0.006 230);
+  --color-base-200: oklch(96% 0.012 230);
+  --color-base-300: oklch(91% 0.02 230);
+  --color-base-content: oklch(28% 0.03 245);
+  --color-primary: oklch(58% 0.15 235);
+  --color-secondary: oklch(66% 0.13 200);
+  --color-accent: oklch(72% 0.14 190);
+  --color-neutral: oklch(38% 0.03 240);
+  --color-info: oklch(70% 0.16 232);
+  --color-success: oklch(72% 0.19 150);
+  --color-warning: oklch(80% 0.17 80);
+  --color-error: oklch(63% 0.24 25);
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: grape;
+  --color-base-100: oklch(99% 0.004 300);
+  --color-base-200: oklch(97% 0.008 300);
+  --color-base-300: oklch(92% 0.014 300);
+  --color-base-content: oklch(26% 0.03 300);
+  --color-primary: oklch(56% 0.24 300);
+  --color-secondary: oklch(64% 0.2 340);
+  --color-accent: oklch(70% 0.17 200);
+  --color-neutral: oklch(34% 0.03 300);
+  --color-info: oklch(70% 0.16 232);
+  --color-success: oklch(72% 0.19 150);
+  --color-warning: oklch(80% 0.17 80);
+  --color-error: oklch(63% 0.24 25);
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: sunset;
+  --color-base-100: oklch(99% 0.01 70);
+  --color-base-200: oklch(97% 0.016 70);
+  --color-base-300: oklch(92% 0.026 60);
+  --color-base-content: oklch(28% 0.04 40);
+  --color-primary: oklch(64% 0.2 45);
+  --color-secondary: oklch(60% 0.22 15);
+  --color-accent: oklch(75% 0.16 90);
+  --color-neutral: oklch(36% 0.03 45);
+  --color-info: oklch(70% 0.16 232);
+  --color-success: oklch(72% 0.19 150);
+  --color-warning: oklch(80% 0.17 80);
+  --color-error: oklch(63% 0.24 25);
+}
+
+/* Block/component utility-class strings live in these sibling packages'
+   source, not in apps/site itself, and Tailwind's auto content-detection
+   doesn't reach into pnpm-symlinked workspace packages — so without this
+   the scanner sees zero real utility classes (only the theme's CSS vars
+   compile). Same fix as packages/silicaui-builder/harness/styles.css. */
+@source "../**/*.{ts,tsx}";
+@source "../../../packages/silicaui-html/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-react/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-demos/src/**/*.{ts,tsx}";
+
+body {
+  min-height: 100dvh;
+}
+
+/* ---------------------------------------------------------------------------
+   The one custom rule on this site.
+
+   `.mono` only sets a font-family — Tailwind's `font-mono` isn't configured
+   with a stack here, and the install command genuinely needs monospace so the
+   shell command doesn't reflow. Everything else on the landing page is
+   silicaui components + Tailwind utilities per CLAUDE.md RULE #1.
+   --------------------------------------------------------------------------- */
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* ---------------------------------------------------------------------------
+   The hero's component wall — three columns of real components scrolling
+   vertically. Tailwind has no infinite-marquee utility, so the keyframe lives
+   here; it's motion plumbing, not styling (it paints nothing, sets no color,
+   and every component inside is a real silicaui component).
+
+   Each track renders its children twice and travels exactly -50%, so the loop
+   is seamless. Columns run at different speeds so the three don't read as one
+   moving block.
+   --------------------------------------------------------------------------- */
+
+@keyframes wall-scroll-up {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.wall-track {
+  animation: wall-scroll-up linear infinite;
+  will-change: transform;
+}
+.wall-slow {
+  animation-duration: 90s;
+}
+.wall-mid {
+  animation-duration: 70s;
+}
+.wall-fast {
+  animation-duration: 55s;
+}
+
+/* The columns are decorative motion, not content — a visitor who asks for less
+   motion gets the same components, just still. */
+@media (prefers-reduced-motion: reduce) {
+  .wall-track {
+    animation: none;
+  }
+}
+
+/* Fade the top and bottom edges so the columns dissolve instead of being
+   guillotined by the section boundary. */
+.wall-mask {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+}

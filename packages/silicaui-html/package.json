@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-html",
-  "version": "0.26.0",
+  "version": "0.28.0",
   "description": "silicaui's framework-neutral node-tree source + HTML projection — the canonical Block/Document shape, the authoring kit, and toHtml.",
   "type": "module",
   "license": "MIT",
@@ -45,7 +45,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-theme-fonts.mjs",
+    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-theme-fonts.mjs && node verify-csp.mjs",
     "golden": "node golden.mjs"
   },
   "devDependencies": {

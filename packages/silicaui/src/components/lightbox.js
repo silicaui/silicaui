@@ -39,7 +39,7 @@ export function lightbox(prefix = "") {
     [sel("-backdrop")]: {
       position: "fixed",
       inset: "0",
-      zIndex: "60",
+      zIndex: "var(--z-lightbox, 60)",
       backgroundColor: "rgb(0 0 0 / 0.92)",
       transitionProperty: "opacity",
       transitionDuration: "var(--duration, 150ms)",
@@ -50,7 +50,7 @@ export function lightbox(prefix = "") {
     [sel("-popup")]: {
       position: "fixed",
       inset: "0",
-      zIndex: "61",
+      zIndex: "calc(var(--z-lightbox, 60) + 1)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",

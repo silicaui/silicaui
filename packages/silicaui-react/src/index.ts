@@ -421,7 +421,11 @@ export type {
 } from "./context-menu";
 
 export { ToggleGroup, ToggleGroupItem } from "./toggle-group";
-export type { ToggleGroupProps, ToggleGroupItemProps } from "./toggle-group";
+export type {
+  ToggleGroupProps,
+  ToggleGroupItemProps,
+  ToggleGroupSize,
+} from "./toggle-group";
 
 export {
   Field,
@@ -797,6 +801,12 @@ export type {
   SidebarItemProps,
   SidebarTriggerProps,
 } from "./sidebar";
+
+export {
+  PortalContainerProvider,
+  usePortalContainer,
+} from "./portal-container";
+export type { PortalContainerProviderProps } from "./portal-container";
 
 export {
   SilicaProvider,

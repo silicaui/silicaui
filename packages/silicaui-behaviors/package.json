@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-behaviors",
-  "version": "0.26.0",
+  "version": "0.28.0",
   "description": "Silica UI's framework-agnostic runtime for the behavior marker contract — scans data-sui-* markers and wires interactivity for any host that renders plain markup.",
   "type": "module",
   "license": "MIT",
@@ -37,7 +37,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-interactive.mjs"
+    "verify": "node verify.mjs && node verify-interactive.mjs && node verify-a11y.mjs"
   },
   "devDependencies": {
     "jsdom": "^25.0.0",

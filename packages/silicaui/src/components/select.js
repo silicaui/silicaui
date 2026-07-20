@@ -1,3 +1,5 @@
+import { caretBackground, TEXT_CLEARANCE } from "../lib/field-affordance.js";
+
 /**
  * The Select component — a native `<select>` restyled to the field tier.
  *
@@ -6,22 +8,20 @@
  * (`.select-primary`, …) sets `--select-accent`, coloring the border + focus
  * ring; the default shows a neutral border and a primary focus ring.
  *
- * The dropdown chevron is drawn with two `linear-gradient`s (a "v" caret) in
- * `currentColor`, so it follows the text color and adapts to the theme — no SVG
- * data-URI (which can't read a CSS var) and no pseudo-element (unreliable on a
- * native `<select>`). `appearance: none` removes the platform arrow.
+ * The dropdown chevron comes from the shared field-affordance contract
+ * (`lib/field-affordance.js`), so this caret is the same mark, ink, and trailing
+ * inset as the listbox trigger's chevron and the Combobox open button. It's
+ * drawn with `linear-gradient`s rather than an SVG because a native `<select>`
+ * can carry neither a child nor a reliable pseudo-element, and an SVG data-URI
+ * is a separate document that can't resolve a CSS var — gradients take a live
+ * color, so the mark still follows the theme. `appearance: none` removes the
+ * platform arrow.
  *
  * @param {string[]} colors - color names to generate `.select-<name>` variants for
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
  */
 export function select(colors, prefix = "") {
   const sel = (suffix = "") => `.${prefix}select${suffix}`;
-
-  // Two triangles offset by one tile width meet to form a downward caret.
-  const CARET = [
-    "linear-gradient(45deg, transparent 50%, currentColor 50%)",
-    "linear-gradient(135deg, currentColor 50%, transparent 50%)",
-  ].join(", ");
 
   const base = {
     [sel()]: {
@@ -32,8 +32,9 @@ export function select(colors, prefix = "") {
       width: "100%",
       height: "var(--select-size)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 3)",
-      // Extra room on the trailing edge so text never runs under the caret.
-      paddingInlineEnd: "calc(var(--size-field, 0.25rem) * 8)",
+      // Room on the trailing edge so text never runs under the caret. Derived
+      // from the affordance geometry, not guessed per size.
+      paddingInlineEnd: TEXT_CLEARANCE,
       fontSize: "0.875rem",
       lineHeight: "1",
       color: "var(--color-base-content)",
@@ -48,13 +49,9 @@ export function select(colors, prefix = "") {
       WebkitAppearance: "none",
       MozAppearance: "none",
 
-      // The caret. Positioned from the trailing edge, so it holds across sizes;
-      // the two tiles sit one tile-width apart to close the "v".
-      backgroundImage: CARET,
-      backgroundSize: "0.36rem 0.36rem, 0.36rem 0.36rem",
-      backgroundPosition:
-        "calc(100% - 1.25rem) calc(50% + 1px), calc(100% - 0.89rem) calc(50% + 1px)",
-      backgroundRepeat: "no-repeat, no-repeat",
+      // The caret — shared geometry, so it lands where every other field's
+      // chevron lands. Edge-anchored, so it holds across sizes.
+      ...caretBackground(),
 
       transitionProperty: "color, background-color, border-color, box-shadow",
       transitionDuration: "var(--duration, 150ms)",
@@ -72,17 +69,17 @@ export function select(colors, prefix = "") {
       },
     },
 
-    // ---- Sizes (mirror Input, minus the caret which is edge-anchored) -------
+    // ---- Sizes (mirror Input) ----------------------------------------------
+    // Only the leading pad scales. The caret is edge-anchored at a fixed size,
+    // so the trailing clearance is the same at every size — set once on `.select`.
     [sel("-xs")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 6)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 2)",
-      paddingInlineEnd: "calc(var(--size-field, 0.25rem) * 7)",
       fontSize: "0.6875rem",
     },
     [sel("-sm")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 8)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 2.5)",
-      paddingInlineEnd: "calc(var(--size-field, 0.25rem) * 7.5)",
       fontSize: "0.75rem",
     },
     [sel("-md")]: {
@@ -92,13 +89,11 @@ export function select(colors, prefix = "") {
     [sel("-lg")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 12)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 4)",
-      paddingInlineEnd: "calc(var(--size-field, 0.25rem) * 9)",
       fontSize: "1rem",
     },
     [sel("-xl")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 14)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 4.5)",
-      paddingInlineEnd: "calc(var(--size-field, 0.25rem) * 9.5)",
       fontSize: "1.125rem",
     },
   };

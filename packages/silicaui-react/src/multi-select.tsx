@@ -2,6 +2,7 @@ import * as React from "react";
 import { Combobox as BaseCombobox } from "@base-ui-components/react/combobox";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -140,6 +141,7 @@ export function MultiSelect({
   ...aria
 }: MultiSelectProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   const chipLabel = renderChipLabel ?? defaultLabel;
 
   return (
@@ -197,7 +199,7 @@ export function MultiSelect({
         </BaseCombobox.Trigger>
       </div>
 
-      <BaseCombobox.Portal>
+      <BaseCombobox.Portal container={portalContainer}>
         <BaseCombobox.Positioner side={side} align={align} sideOffset={sideOffset}>
           <BaseCombobox.Popup className={cx(sc("select-popup"), popupClassName)}>
             <BaseCombobox.Empty className={cx(sc("combobox-empty"))}>

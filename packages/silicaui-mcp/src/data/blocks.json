@@ -16,7 +16,9 @@
       "base-content",
       "primary"
     ],
-    "behaviors": [],
+    "behaviors": [
+      "disclosure"
+    ],
     "emailEligible": false,
     "root": {
       "kind": "element",
@@ -58,7 +60,12 @@
                   },
                   "children": [
                     "Product"
-                  ]
+                  ],
+                  "slot": {
+                    "name": "link1",
+                    "type": "link",
+                    "label": "Product"
+                  }
                 },
                 {
                   "kind": "element",
@@ -69,7 +76,12 @@
                   },
                   "children": [
                     "Pricing"
-                  ]
+                  ],
+                  "slot": {
+                    "name": "link2",
+                    "type": "link",
+                    "label": "Pricing"
+                  }
                 },
                 {
                   "kind": "element",
@@ -80,7 +92,12 @@
                   },
                   "children": [
                     "Docs"
-                  ]
+                  ],
+                  "slot": {
+                    "name": "link3",
+                    "type": "link",
+                    "label": "Docs"
+                  }
                 },
                 {
                   "kind": "element",
@@ -91,7 +108,12 @@
                   },
                   "children": [
                     "Company"
-                  ]
+                  ],
+                  "slot": {
+                    "name": "link4",
+                    "type": "link",
+                    "label": "Company"
+                  }
                 }
               ]
             },
@@ -109,12 +131,17 @@
                   },
                   "children": [
                     "Sign in"
-                  ]
+                  ],
+                  "slot": {
+                    "name": "secondary",
+                    "type": "link",
+                    "label": "Secondary link"
+                  }
                 },
                 {
                   "kind": "component",
                   "component": "Button",
-                  "class": "btn btn-primary btn-sm",
+                  "class": "btn btn-primary btn-sm hidden @md:inline-block",
                   "props": {
                     "label": "Get started"
                   },
@@ -123,12 +150,109 @@
                     "type": "link",
                     "label": "Primary action"
                   }
+                },
+                {
+                  "kind": "element",
+                  "tag": "button",
+                  "class": "btn btn-ghost btn-square btn-sm @md:hidden",
+                  "attrs": {
+                    "type": "button",
+                    "aria-label": "Toggle navigation menu"
+                  },
+                  "children": [
+                    {
+                      "kind": "component",
+                      "component": "Icon",
+                      "props": {
+                        "name": "menu"
+                      }
+                    }
+                  ],
+                  "part": "trigger"
                 }
               ]
             }
           ]
+        },
+        {
+          "kind": "element",
+          "tag": "nav",
+          "class": "flex flex-col gap-1 border-t border-base-200 px-6 py-3 @md:hidden",
+          "attrs": {
+            "hidden": true
+          },
+          "children": [
+            {
+              "kind": "element",
+              "tag": "a",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "attrs": {
+                "href": "#"
+              },
+              "children": [
+                "Product"
+              ],
+              "slot": {
+                "name": "link1",
+                "type": "link",
+                "label": "Product"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "a",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "attrs": {
+                "href": "#"
+              },
+              "children": [
+                "Pricing"
+              ],
+              "slot": {
+                "name": "link2",
+                "type": "link",
+                "label": "Pricing"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "a",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "attrs": {
+                "href": "#"
+              },
+              "children": [
+                "Docs"
+              ],
+              "slot": {
+                "name": "link3",
+                "type": "link",
+                "label": "Docs"
+              }
+            },
+            {
+              "kind": "element",
+              "tag": "a",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "attrs": {
+                "href": "#"
+              },
+              "children": [
+                "Company"
+              ],
+              "slot": {
+                "name": "link4",
+                "type": "link",
+                "label": "Company"
+              }
+            }
+          ],
+          "part": "panel"
         }
-      ]
+      ],
+      "behavior": {
+        "type": "disclosure"
+      }
     },
     "slots": [
       {
@@ -137,9 +261,54 @@
         "label": "SilicaUI"
       },
       {
+        "name": "link1",
+        "type": "link",
+        "label": "Product"
+      },
+      {
+        "name": "link2",
+        "type": "link",
+        "label": "Pricing"
+      },
+      {
+        "name": "link3",
+        "type": "link",
+        "label": "Docs"
+      },
+      {
+        "name": "link4",
+        "type": "link",
+        "label": "Company"
+      },
+      {
+        "name": "secondary",
+        "type": "link",
+        "label": "Secondary link"
+      },
+      {
         "name": "cta",
         "type": "link",
         "label": "Primary action"
+      },
+      {
+        "name": "link1",
+        "type": "link",
+        "label": "Product"
+      },
+      {
+        "name": "link2",
+        "type": "link",
+        "label": "Pricing"
+      },
+      {
+        "name": "link3",
+        "type": "link",
+        "label": "Docs"
+      },
+      {
+        "name": "link4",
+        "type": "link",
+        "label": "Company"
       }
     ]
   },
@@ -1771,14 +1940,24 @@
                   "tag": "p",
                   "children": [
                     "We started with a simple belief: building for the web should feel as direct as sketching on paper. Every decision since has followed from that — fewer layers, faster feedback, no lock-in."
-                  ]
+                  ],
+                  "slot": {
+                    "name": "body1",
+                    "type": "text",
+                    "label": "Body — first column"
+                  }
                 },
                 {
                   "kind": "element",
                   "tag": "p",
                   "children": [
                     "Today thousands of teams use our tools to launch stores, sites, and docs in an afternoon. We're still small, still obsessed with the details, and still shipping every week."
-                  ]
+                  ],
+                  "slot": {
+                    "name": "body2",
+                    "type": "text",
+                    "label": "Body — second column"
+                  }
                 }
               ]
             }
@@ -1797,6 +1976,16 @@
         "type": "text",
         "label": "Heading",
         "required": true
+      },
+      {
+        "name": "body1",
+        "type": "text",
+        "label": "Body — first column"
+      },
+      {
+        "name": "body2",
+        "type": "text",
+        "label": "Body — second column"
       }
     ]
   },
@@ -2283,6 +2472,11 @@
                   "class": "btn btn-lg btn-ghost",
                   "props": {
                     "label": "Talk to sales"
+                  },
+                  "slot": {
+                    "name": "secondary",
+                    "type": "link",
+                    "label": "Secondary action"
                   }
                 }
               ]
@@ -2307,6 +2501,11 @@
         "name": "primary",
         "type": "link",
         "label": "Primary action"
+      },
+      {
+        "name": "secondary",
+        "type": "link",
+        "label": "Secondary action"
       }
     ]
   },

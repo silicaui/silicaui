@@ -1,3 +1,5 @@
+import { affordanceButton, textClearance, BOX } from "../lib/field-affordance.js";
+
 /**
  * MultiSelect — a searchable, multi-value listbox (Base UI Combobox in
  * `multiple` mode, using its dedicated `Chip`/`Chips`/`ChipRemove` parts).
@@ -10,8 +12,9 @@
  * `.select-item`, `.select-item-indicator`, `.combobox-empty`) so every listbox
  * in the system reads identically — this module only adds the chip field.
  *
- * Colored: `.multi-select-<name>` sets `--multi-select-accent`, read by the
- * focus ring and chip fill/text.
+ * Colored: `.multi-select-<name>` sets `--multi-select-accent` (focus ring, chip
+ * fill/text, focused border) and `--multi-select-border` (a softened tint of the
+ * same color for the resting border), matching the other field-tier controls.
  *
  * @param {string[]} colors - color names to generate `.multi-select-<name>` for
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
@@ -20,29 +23,6 @@ export function multiSelect(colors, prefix = "") {
   const sel = (suffix = "") => `.${prefix}multi-select${suffix}`;
   const accent = "var(--multi-select-accent, var(--color-primary))";
 
-  const iconBtn = {
-    position: "absolute",
-    top: "0",
-    bottom: "0",
-    marginBlock: "auto",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "1.5rem",
-    height: "1.5rem",
-    padding: "0",
-    border: "0",
-    background: "none",
-    borderRadius: "9999px",
-    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
-    cursor: "pointer",
-    "& svg": { width: "1rem", height: "1rem" },
-    "&:hover": { color: "var(--color-base-content)" },
-    "&:focus-visible": {
-      outline: "2px solid var(--color-primary)",
-      outlineOffset: "1px",
-    },
-  };
 
   const base = {
     [sel()]: {
@@ -51,10 +31,15 @@ export function multiSelect(colors, prefix = "") {
       width: "100%",
       minHeight: "calc(var(--size-field, 0.25rem) * 10)",
       paddingInlineStart: "0.5rem",
-      paddingInlineEnd: "3.25rem",
+      paddingInlineEnd: textClearance(2),
       paddingBlock: "0.3rem",
       borderRadius: "var(--radius-field, 0.25rem)",
-      border: "var(--border, 1px) solid var(--color-base-300)",
+      // Same two-lever border as the other field-tier controls: the softened
+      // resting tint if a color class set one, else the accent, else neutral.
+      borderWidth: "var(--border, 1px)",
+      borderStyle: "solid",
+      borderColor:
+        "var(--multi-select-border, var(--multi-select-accent, var(--color-base-300)))",
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",
       fontSize: "0.875rem",
@@ -138,16 +123,18 @@ export function multiSelect(colors, prefix = "") {
 
     // Clear (×) — sits left of the chevron; Base UI disables it when empty.
     [sel("-clear")]: {
-      ...iconBtn,
-      insetInlineEnd: "1.9rem",
+      ...affordanceButton(1),
       "&:disabled": { display: "none" },
     },
 
     // Open/close chevron.
     [sel("-trigger")]: {
-      ...iconBtn,
-      insetInlineEnd: "0.4rem",
-      "& svg": { width: "1rem", height: "1rem", transition: "transform 0.2s ease" },
+      ...affordanceButton(0),
+      "& svg": {
+        width: BOX,
+        height: BOX,
+        transition: "transform var(--duration, 150ms) var(--ease, cubic-bezier(0.4, 0, 0.2, 1))",
+      },
       "&[data-popup-open] svg": { transform: "rotate(180deg)" },
     },
 
@@ -162,8 +149,13 @@ export function multiSelect(colors, prefix = "") {
     },
   };
 
+  // Accent drives the focus ring + chip fill; the border lever softens the
+  // resting border so rest -> focus-within is a visible change.
   for (const name of colors) {
-    base[sel(`-${name}`)] = { "--multi-select-accent": `var(--color-${name})` };
+    base[sel(`-${name}`)] = {
+      "--multi-select-accent": `var(--color-${name})`,
+      "--multi-select-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
+    };
   }
 
   return base;

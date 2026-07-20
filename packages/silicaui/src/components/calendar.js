@@ -185,7 +185,7 @@ export function calendar(colors, prefix = "") {
 
     // Portalled popup surface for the DatePicker (mirrors the dropdown surface).
     [sel("-popup")]: {
-      zIndex: "50",
+      zIndex: "var(--z-popover, 70)",
       borderRadius: "var(--radius-box, 0.5rem)",
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",

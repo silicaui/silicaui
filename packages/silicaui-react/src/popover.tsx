@@ -2,6 +2,7 @@ import * as React from "react";
 import { Popover as BasePopover } from "@base-ui-components/react/popover";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -69,8 +70,9 @@ export function PopoverContent({
   ...rest
 }: PopoverContentProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BasePopover.Portal>
+    <BasePopover.Portal container={portalContainer}>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset}>
         <BasePopover.Popup className={cx(sc("popover"), className)} {...rest}>
           {arrow && <BasePopover.Arrow className={cx(sc("popover-arrow"))} />}

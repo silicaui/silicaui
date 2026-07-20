@@ -23,6 +23,28 @@ export function ToggleGroupDemo() {
                     <ToggleGroupItem value="underline">U</ToggleGroupItem>
                 </ToggleGroup>
             </Section>
+
+            <Section title="Sizes">
+                <div className="flex flex-wrap items-center gap-4">
+                    {(["xs", "sm", "md", "lg"] as const).map((size) => (
+                        <ToggleGroup key={size} size={size} defaultValue={["grid"]}>
+                            <ToggleGroupItem value="list">List</ToggleGroupItem>
+                            <ToggleGroupItem value="grid">Grid</ToggleGroupItem>
+                        </ToggleGroup>
+                    ))}
+                </div>
+            </Section>
+
+            <Section title="Colored active pill">
+                <div className="flex flex-wrap items-center gap-4">
+                    {(["primary", "secondary", "accent", "success"] as const).map((color) => (
+                        <ToggleGroup key={color} color={color} defaultValue={["grid"]}>
+                            <ToggleGroupItem value="list">List</ToggleGroupItem>
+                            <ToggleGroupItem value="grid">Grid</ToggleGroupItem>
+                        </ToggleGroup>
+                    ))}
+                </div>
+            </Section>
         </>
     );
 }

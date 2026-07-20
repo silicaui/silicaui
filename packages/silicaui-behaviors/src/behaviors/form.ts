@@ -1,4 +1,4 @@
-import { DisposeBag } from "../dom";
+import { DisposeBag, ownParts } from "../dom";
 import type { BehaviorHandler, FormValue } from "../types";
 
 /**
@@ -44,6 +44,33 @@ export const form: BehaviorHandler = (root, opts) => {
   if (!form) return () => bag.dispose();
 
   setState(form, "idle");
+
+  // Async outcomes must be heard, not just styled: `reportValidity()` speaks
+  // for itself, but a host-dispatched submit settles via `data-sui-state`
+  // only — silent to AT. An authored `status` part becomes the live region;
+  // otherwise we create a visually-hidden one (CSSOM writes — CSP-safe).
+  let live = ownParts(root, "status")[0] as HTMLElement | undefined;
+  if (!live) {
+    live = document.createElement("div");
+    live.style.position = "absolute";
+    live.style.width = "1px";
+    live.style.height = "1px";
+    live.style.overflow = "hidden";
+    live.style.clipPath = "inset(50%)";
+    live.style.whiteSpace = "nowrap";
+    form.appendChild(live);
+    const el = live;
+    bag.add(() => el.remove());
+  }
+  if (!live.getAttribute("role") && !live.hasAttribute("aria-live")) {
+    live.setAttribute("role", "status");
+  }
+  const announce = (state: "success" | "error") => {
+    live!.textContent =
+      state === "success"
+        ? (form.getAttribute("data-success-message") ?? "Submitted.")
+        : (form.getAttribute("data-error-message") ?? "Something went wrong. Please try again.");
+  };
 
   // ── prefill bound controls from host data ────────────────────────────────
   if (opts.resolve) {
@@ -93,6 +120,7 @@ export const form: BehaviorHandler = (root, opts) => {
       form.removeAttribute("aria-busy");
       if (submit) submit.disabled = false;
       setState(form, state);
+      announce(state);
     };
 
     let result: void | Promise<void>;

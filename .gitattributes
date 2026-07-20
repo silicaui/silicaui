@@ -1,0 +1,4 @@
+# The golden fixture is a byte-exact snapshot compared with ===; line-ending
+# normalization on checkout (Windows autocrlf) corrupts the comparison. Store
+# and check out verbatim.
+packages/silicaui-html/golden.fixture.txt -text

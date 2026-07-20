@@ -14,7 +14,7 @@ export function popover(prefix = "") {
 
   return {
     [sel()]: {
-      zIndex: "50",
+      zIndex: "var(--z-popover, 70)",
       minWidth: "12rem",
       maxWidth: "20rem",
       padding: "1rem",

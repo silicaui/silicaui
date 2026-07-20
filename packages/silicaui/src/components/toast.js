@@ -23,7 +23,7 @@ export function toast(colors, prefix = "") {
       position: "fixed",
       insetBlockEnd: "1rem",
       insetInlineEnd: "1rem",
-      zIndex: "9999",
+      zIndex: "var(--z-toast, 90)",
       display: "flex",
       flexDirection: "column-reverse",
       gap: "0.5rem",

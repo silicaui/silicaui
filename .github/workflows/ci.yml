@@ -35,3 +35,31 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+  site:
+    name: Build site (smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The site imports built entry points (`@wizeworks/silicaui-demos/meta`),
+      # and every package `dist/` is gitignored — so a clean checkout has to
+      # build the workspace before Next can resolve them.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build site
+        run: pnpm site:build

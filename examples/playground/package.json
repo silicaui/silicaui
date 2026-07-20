@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@wizeworks/silicaui-demos": "workspace:*",
     "@wizeworks/silicaui-react": "workspace:*",
     "@wizeworks/silicaui-charts": "workspace:*",
     "@wizeworks/silicaui-table": "workspace:*",

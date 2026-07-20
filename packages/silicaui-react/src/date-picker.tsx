@@ -2,6 +2,7 @@ import * as React from "react";
 import { Popover as BasePopover } from "@base-ui-components/react/popover";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 import { Calendar } from "./calendar";
 import type {
   CalendarColor,
@@ -85,8 +86,9 @@ function DatePopup({
   children,
 }: PopupShellProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
   return (
-    <BasePopover.Portal>
+    <BasePopover.Portal container={portalContainer}>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset}>
         <BasePopover.Popup className={cx(sc("calendar-popup"), popupClassName)}>
           {children}

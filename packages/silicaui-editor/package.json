@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-editor",
-  "version": "0.26.0",
+  "version": "0.28.0",
   "description": "Silica UI rich-text editor — TipTap wrapped with a Silica-styled toolbar and content surface.",
   "type": "module",
   "license": "MIT",

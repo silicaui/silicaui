@@ -2,6 +2,7 @@ import * as React from "react";
 import { Select as BaseSelect } from "@base-ui-components/react/select";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { usePortalContainer } from "./portal-container";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -197,6 +198,7 @@ export function Select({
   ...aria
 }: SelectProps) {
   const sc = useSilicaClass();
+  const portalContainer = usePortalContainer();
 
   const autoItems =
     !children && items
@@ -245,7 +247,7 @@ export function Select({
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
 
-      <BaseSelect.Portal>
+      <BaseSelect.Portal container={portalContainer}>
         <BaseSelect.Positioner
           side={side}
           align={align}

@@ -22,7 +22,7 @@ export function commandPalette(prefix = "") {
     [sel("-backdrop")]: {
       position: "fixed",
       inset: "0",
-      zIndex: "50",
+      zIndex: "var(--z-dialog, 50)",
       backgroundColor: "rgb(0 0 0 / 0.4)",
       backdropFilter: "blur(2px)",
       transitionProperty: "opacity",
@@ -37,7 +37,7 @@ export function commandPalette(prefix = "") {
       top: "12vh",
       left: "50%",
       transform: "translateX(-50%)",
-      zIndex: "51",
+      zIndex: "calc(var(--z-dialog, 50) + 1)",
       display: "flex",
       flexDirection: "column",
       width: "calc(100% - 2rem)",

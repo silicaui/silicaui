@@ -12,15 +12,18 @@
  * leave an invalid field wearing a primary border. Regressing that is silent
  * and easy — nothing throws, the red just quietly stops being red.
  *
- * Run: node verify-field-border.mjs
+ * Run: node scripts/verify-field-border.mjs
  */
-import { input } from "./src/components/input.js";
-import { select } from "./src/components/select.js";
-import { textarea } from "./src/components/textarea.js";
-import { pinInput } from "./src/components/pin-input.js";
-import { checkbox } from "./src/components/checkbox.js";
-import { radio } from "./src/components/radio.js";
-import { field } from "./src/components/field.js";
+import { input } from "../src/components/input.js";
+import { select } from "../src/components/select.js";
+import { textarea } from "../src/components/textarea.js";
+import { pinInput } from "../src/components/pin-input.js";
+import { checkbox } from "../src/components/checkbox.js";
+import { radio } from "../src/components/radio.js";
+import { multiSelect } from "../src/components/multi-select.js";
+import { tagInput } from "../src/components/tag-input.js";
+import { segmentField } from "../src/components/segment-field.js";
+import { field } from "../src/components/field.js";
 
 const COLORS = ["primary", "secondary", "error"];
 let failed = 0;
@@ -35,19 +38,25 @@ function check(label, cond, detail = "") {
 }
 
 // ---- Each field-tier control wires both levers -----------------------------
+// `stem` is the custom-property stem, which does NOT always track the class
+// name — `.tag-input` drives `--tag-*`, `.pin-input-cell` drives `--pin-input-*`
+// — so it is stated per control rather than derived.
 const CONTROLS = [
-  ["input", input(COLORS), ".input", (c) => `.input-${c}`],
-  ["select", select(COLORS), ".select", (c) => `.select-${c}`],
-  ["textarea", textarea(COLORS), ".textarea", (c) => `.textarea-${c}`],
-  ["pin-input", pinInput(COLORS), ".pin-input-cell", (c) => `.pin-input-cell-${c}`],
-  ["checkbox", checkbox(COLORS), ".checkbox", (c) => `.checkbox-${c}`],
-  ["radio", radio(COLORS), ".radio", (c) => `.radio-${c}`],
+  { name: "input", stem: "input", css: input(COLORS), base: ".input", color: (c) => `.input-${c}` },
+  { name: "select", stem: "select", css: select(COLORS), base: ".select", color: (c) => `.select-${c}` },
+  { name: "textarea", stem: "textarea", css: textarea(COLORS), base: ".textarea", color: (c) => `.textarea-${c}` },
+  { name: "pin-input", stem: "pin-input", css: pinInput(COLORS), base: ".pin-input-cell", color: (c) => `.pin-input-cell-${c}` },
+  { name: "checkbox", stem: "checkbox", css: checkbox(COLORS), base: ".checkbox", color: (c) => `.checkbox-${c}` },
+  { name: "radio", stem: "radio", css: radio(COLORS), base: ".radio", color: (c) => `.radio-${c}` },
+  { name: "multi-select", stem: "multi-select", css: multiSelect(COLORS), base: ".multi-select", color: (c) => `.multi-select-${c}` },
+  { name: "tag-input", stem: "tag", css: tagInput(COLORS), base: ".tag-input", color: (c) => `.tag-input-${c}` },
+  { name: "segment-field", stem: "segment-field", css: segmentField(COLORS), base: ".segment-field", color: (c) => `.segment-field-${c}` },
 ];
 
-for (const [name, css, baseSel, colorSel] of CONTROLS) {
+for (const { name, stem, css, base: baseSel, color: colorSel } of CONTROLS) {
   console.log(`\n${name}`);
-  const lever = `--${name === "pin-input" ? "pin-input" : name}-border`;
-  const accent = `--${name === "pin-input" ? "pin-input" : name}-accent`;
+  const lever = `--${stem}-border`;
+  const accent = `--${stem}-accent`;
 
   // The base rule must read the border lever FIRST, falling back to the accent
   // and only then to the neutral border.
