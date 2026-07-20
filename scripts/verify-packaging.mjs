@@ -15,9 +15,14 @@
  *      "optional peer" warning never fires and a consumer who skipped the CSS
  *      package just gets an unstyled app.
  *
+ *   3. A package with `verify:*` scripts but no aggregate `verify` is skipped
+ *      by `pnpm -r verify` without comment, so its probes never run while the
+ *      root command still reports success. Unrun probes are worse than none:
+ *      they read as coverage.
+ *
  * Run after `pnpm build`.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -75,6 +80,37 @@ for (const pkg of [...CLIENT_BUNDLES, "silicaui", "silicaui-html", "silicaui-beh
           `has no matching entry — the optional-peer declaration is a silent no-op.`,
       );
     }
+  }
+}
+
+// A package whose probes never run is worse than a package with no probes: it
+// reads as covered. The root `verify` is `pnpm -r verify`, which SILENTLY SKIPS
+// any package without a `verify` script — so a package can accumulate
+// `verify:*` scripts that nothing ever invokes. That already happened twice:
+// six packages shipped unrun suites, and later silicaui-builder reached TEN
+// `verify:*` scripts with no aggregate at all. Both were invisible because the
+// root run still reported success.
+for (const dir of readdirSync(join(root, "packages"))) {
+  const manifest = join(root, "packages", dir, "package.json");
+  if (!existsSync(manifest)) continue;
+  const scripts = JSON.parse(readFileSync(manifest, "utf8")).scripts ?? {};
+  const suites = Object.keys(scripts).filter((k) => k.startsWith("verify:"));
+  if (!suites.length) continue;
+
+  checks++;
+  if (!scripts.verify) {
+    failures.push(
+      `${dir}: has ${suites.length} verify:* script(s) but no aggregate \`verify\`, ` +
+        `so \`pnpm -r verify\` skips the package entirely: ${suites.join(", ")}`,
+    );
+    continue;
+  }
+  const missed = suites.filter((s) => !scripts.verify.includes(s));
+  if (missed.length) {
+    failures.push(
+      `${dir}: \`verify\` does not run ${missed.join(", ")} — ` +
+        `the suite exists but nothing invokes it.`,
+    );
   }
 }
 
