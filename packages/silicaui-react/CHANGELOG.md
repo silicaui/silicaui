@@ -1,5 +1,329 @@
 # @wizeworks/silicaui-react
 
+## 0.30.0
+
+### Minor Changes
+
+- a90b819: First-five-minutes hardening pass — four defects that shipped to npm and one
+  latent projection bug, all in the surface a new adopter hits before anything
+  else.
+
+  **`<Checkbox>Run tests</Checkbox>` no longer crashes the page.** `Checkbox`,
+  `Radio`, and `Toggle` now accept `children` as a caption, wrapping the control
+  in a `<label>` so the text is a real click target. Previously the types
+  permitted `children` (inherited from `React.InputHTMLAttributes`) while React
+  threw _"input is a void element tag and must neither have `children`"_ at
+  runtime — a type-checks-clean white screen. Passing no children is unchanged,
+  so pairing with your own `<label htmlFor>` still works exactly as before.
+
+  **The four components where a caption is meaningless now reject `children` at
+  the type level** — `Input`, `FileInput`, `PasswordInput`, `SearchInput`. The
+  last two were the sneakiest: their root JSX is a `<div>`, so the mistake looked
+  safe while `{...rest}` landed the `children` on the inner `<input>` anyway.
+
+  **Five packages were missing their `'use client'` directive.**
+  `@wizeworks/silicaui-charts`, `-table`, `-editor`, `-dnd`, and `-panels` all use
+  hooks but shipped without the directive, so importing any of them from a
+  Next.js App Router page threw. The prepend logic is now one shared build helper
+  instead of being re-derived per package, and a new `verify:packaging` CI step
+  asserts the directive is present in every client bundle — and absent from
+  `silicaui-react/server`, whose entire purpose is being server-safe.
+
+  **`peerDependenciesMeta` no longer dangles.** `@wizeworks/silicaui-react`
+  declared `@wizeworks/silicaui` as an optional peer with no matching
+  `peerDependencies` entry, which npm and pnpm both accept silently — so the
+  intended "you're missing the CSS package" warning never fired. The same CI step
+  now catches this class of no-op.
+
+  **`CheckboxOption` / `RadioOption` rendered an unstyled native control in
+  static output.** The expansion routed the node's class to the wrapping
+  `<label>`, leaving the actual `<input>` with no `.checkbox` / `.radio` class at
+  all. The control class now stays on the input, and `Checkbox` / `Radio` /
+  `Toggle` in `silicaui-html` gained the same optional caption as their React
+  counterparts — so both layers now emit byte-identical markup for identical
+  authoring. `Toggle` also picked up the `role="switch"` that React already had.
+
+  **New `.label-control` class** for a label that wraps its own control: the whole
+  row is the click target, and the caption gets real ink rather than the muted
+  field-caption color `.label` uses, since it's text meant to be read.
+
+  ### Documentation
+
+  The `@source` directive is now documented in both READMEs. Tailwind v4 never
+  scans `node_modules`, so without it the plain utilities used inside
+  `silicaui-react` never compile — producing a _partial_ break (buttons and cards
+  look right; dialog footers don't align, `Lightbox` has no size, `soft`/`glass`
+  sit inert) that reads like a library bug rather than a one-line config gap.
+  This affected every consumer, not just monorepos.
+
+- a90b819: Convergence pass on the sources of API drift, rather than on its symptoms.
+
+  **One name for a component's own value callback: `onValueChange`.** The library
+  already used it 22 times against 4 uses of `onChange`, but the authoring guide
+  mandated `onChange` — so every new component was being written to the 15%
+  pattern and the split was widening on its own. The guide is corrected, and the
+  four outliers (`Rating`, `Pagination`, `Carousel`, `ThemeController`) now expose
+  `onValueChange`. **`onChange` still works everywhere it did before**, marked
+  `@deprecated`, so nothing breaks. The rule it encodes: `onChange` belongs to the
+  native DOM handler on components that wrap a real form element — declaring your
+  own shadows it, which is why each of those four carried an
+  `Omit<…, "onChange">` in its props type paying for the collision.
+
+  **`ThemeController` no longer causes a hydration mismatch.** Its `useState`
+  initializer read `localStorage` and the DOM, so the server resolved one theme
+  and the client another — and because that value picks the Sun vs Moon icon, the
+  mismatch was guaranteed and visible. It now initializes to a value the server
+  can also compute and adopts the stored theme in an effect after mount, matching
+  `useTheme` and `useMediaQuery`.
+
+  **`Carousel` no longer notifies spuriously.** The change callback fired once on
+  mount (reporting a change that never happened) and re-fired on every render
+  when given an inline arrow — which turns a `setState` in the handler into a
+  render loop. It now fires only on real index changes.
+
+  **`TreeView` re-flattened its entire tree on every render** in controlled mode:
+  the expanded `Set` was rebuilt inline each render, so the `useMemo` depending on
+  it never hit.
+
+  **`useControllableState` is real now.** It documented itself as "the pattern
+  every Silica component uses internally" while having zero component imports.
+  `Rating` now uses it as the reference implementation, and the doc says plainly
+  that adoption is partial and ongoing instead of claiming otherwise.
+
+  ### Tooling
+
+  The repo had **no ESLint config at all**. There is now a correctness-only flat
+  config — no stylistic rules, and none are wanted.
+
+  Notably, `eslint-plugin-ssr-friendly` turned out **not** to catch the SSR bug
+  class it was added for: it skips nested function expressions, which is exactly
+  the shape of a lazy `useState` initializer, so both hydration bugs this repo
+  actually shipped were invisible to it. A local
+  `silica/no-dom-in-state-initializer` rule covers the real shapes — lazy
+  initializers, and helpers referenced by name — and reports the read even when
+  it's `typeof`-guarded, since a guard prevents the crash but not the mismatch.
+  Its RuleTester cases are the two shipped bugs verbatim, and run as part of
+  `pnpm lint`.
+
+- a90b819: **Breaking (pre-1.0): two props renamed so `size` means one thing.**
+
+  A design system's leverage is that one prop name means one concept everywhere.
+  `size` had drifted into three, and two of them were renamed:
+
+  | Component        | Before                         | After                            |
+  | ---------------- | ------------------------------ | -------------------------------- |
+  | `RadialProgress` | `size?: string` (a CSS length) | `diameter?: string`              |
+  | `Heading`        | `size?: 1–6 \| "display"`      | `visualLevel?: 1–6 \| "display"` |
+
+  `RadialProgress` was the harmful one. `size` accepted any CSS length and wrote
+  it straight to `--size`, so `<RadialProgress size="lg" />` — the spelling that
+  works on every other component in the library — type-checked, compiled, and
+  emitted the invalid `--size: lg`, silently collapsing the ring. `diameter`
+  pairs with the existing `thickness`, which is also a CSS length.
+
+  `Heading` keeps `level` for semantics; the visual scale is now `visualLevel`,
+  which says what it is and no longer collides with the token scale.
+
+  `packages/silicaui-react/verify-prop-vocabulary.mjs` now reads the source and
+  asserts every `size` prop resolves to the `xs`–`xl` scale (or a subset the CSS
+  actually emits). Typecheck cannot catch this class of drift — `size?: string`
+  is perfectly valid TypeScript — so it needed a probe rather than a type.
+
+  ### `render` vs `as`: documented, deliberately not unified
+
+  An earlier audit proposed standardizing all polymorphism on `render`. That was
+  investigated and **rejected**, because the two props are not two spellings of
+  one idea:
+
+  - `render` takes an **element** and clones it (composition). It needs the real
+    element, so it does not survive a `"use client"` boundary — already
+    documented in this package's Server Components section.
+  - `as` takes a **tag name or component type**. A string like `"span"` crosses
+    that boundary fine.
+
+  Unifying on `render` would have regressed Server Component usage for exactly
+  the presentational components (`Text`, `Wordmark`, `BlockquoteCite`) most
+  likely to be used server-side. The existing split was already correct; what was
+  missing was any statement of the rule. It's now in the README as a table, and
+  in the component-authoring skill so new components don't pick arbitrarily.
+
+- a90b819: **Every sized component now ships the full `xs`–`xl` scale.**
+
+  Ten of twenty-nine sized components shipped a partial scale, so the same prop
+  worked on one component and did nothing on the next:
+
+  | Component      | Shipped             | Added               |
+  | -------------- | ------------------- | ------------------- |
+  | `EmptyState`   | `sm`                | `xs` `md` `lg` `xl` |
+  | `FileInput`    | `sm` `lg`           | `xs` `md` `xl`      |
+  | `MultiSelect`  | `sm` `lg`           | `xs` `md` `xl`      |
+  | `TagInput`     | `sm` `lg`           | `xs` `md` `xl`      |
+  | `Slider`       | `sm` `lg`           | `xs` `md` `xl`      |
+  | `SegmentField` | `sm` `lg`           | `xs` `md` `xl`      |
+  | `Toolbar`      | `sm` `lg`           | `xs` `md` `xl`      |
+  | `ToggleGroup`  | `xs` `sm` `lg`      | `md` `xl`           |
+  | `Prose`        | `sm` `lg` `xl`      | `xs` `md`           |
+  | `Pagination`   | `xs` `sm` `md` `lg` | `xl`                |
+  | `Meter`        | `xs` `sm` `lg` `xl` | `md`                |
+
+  Nothing errored when a size was missing — `size="xs"` just rendered at the
+  default, which reads as "the prop was ignored". The only way to learn which
+  sizes a component actually supported was to read its CSS, per component. For a
+  developer that's a papercut; for an agent generating code it's a silent
+  correctness failure.
+
+  The TypeScript unions were _honest_ about this (`ToolbarSize = "sm" | "md" |
+"lg"`), which is why typecheck never flagged it — the types faithfully
+  described an inconsistent system. They're now all `SilicaSize`, because the CSS
+  backs it. `EmptyState`'s wrapper also hard-coded `size === "sm"`, so it would
+  have ignored the new classes even once they existed.
+
+  Each component was extended along its **own** ladder rather than a generic one:
+  field-height components follow the `×6/8/10/12/14` `--size-field` ramp that
+  `Input` establishes, while `Meter` (track height), `Slider` (rail/thumb),
+  `Prose` (font/line-height), `Pagination` (cell size) and `ToggleGroup` (item
+  height, which is offset because the item sits inside track padding) keep their
+  existing proportions.
+
+  `-md` is now declared explicitly everywhere rather than left implicit in the
+  base rule. React wrappers may still omit it, but the class-first layers —
+  vanilla markup and `silicaui-html` — author `class="foo foo-md"` by hand, and
+  that has to resolve.
+
+  Guarded by `packages/silicaui/scripts/verify-size-scale.mjs`, which fails the
+  build if any component ships a partial scale, and verified against real
+  compiled CSS from the playground rather than only the plugin's JS output.
+
+### Patch Changes
+
+- 26b341e: **The Chat family and `Filter` are now authorable outside React.**
+
+  Thirteen Chat components landed as one unit — `Chat`, `ChatImage`, `ChatHeader`,
+  `ChatFooter`, `ChatBubble`, `ChatLayout`, `ChatLayoutMessages`,
+  `ChatMessageMetadata`, `ChatMessage`, `ChatSystemMessage`,
+  `ChatTypingIndicator`, `ChatToolCalls`, `ChatComposer`. Shipping half a family
+  is worse than shipping none: a consumer who finds `Chat` but no `ChatComposer`
+  hand-rolls the missing half in markup that then drifts from the React layer,
+  which is the exact failure the component registry exists to prevent.
+
+  Two of those reuse existing behavior rather than inventing new vocabulary:
+
+  - `ChatToolCalls` is structurally a collapsible, so it emits the existing
+    `disclosure` behavior and the Collapsible part classes the CSS already
+    targets.
+  - `ChatComposer` lowers to a real `<form>` with the existing `form` behavior,
+    so a static page can actually send. React adds autoresize and Enter-to-send
+    on top; without them it degrades to a normal textarea and submit button
+    rather than to something broken.
+
+  **`Filter` turned out not to need a new behavior at all.** It was on the "needs
+  a behavior handler" list, but checking it against the existing vocabulary first
+  showed it _is_ `toggle-group`: same single-select press semantics, same roving
+  focus, same `aria-pressed` buttons. The only delta was the reset control, which
+  is now an optional `close` part on that handler — the "one type, optional parts"
+  pattern, not a fork. Part names are scoped per behavior root, so `close` here
+  can't collide with a modal's. A plain toggle group with no reset is unaffected,
+  which is checked explicitly.
+
+  Every new interactive path is verified by driving it in jsdom — clicking the
+  tool-call disclosure open and shut, pressing chips, clearing them with the
+  reset, and confirming the reset hides itself when nothing is selected — not by
+  asserting a marker is present. All of it is locked in the byte-identical HTML
+  golden.
+
+  Also removes three `opacity-60` instances from the React layer (one live, two
+  in doc examples that were teaching the pattern) — the same RULE #3 defect the
+  CSS pass fixed, in a place a stylesheet sweep couldn't see.
+
+  Still deliberately absent from `-html`, each because it needs a genuinely new
+  `BehaviorType` rather than because it was overlooked: `Countdown` (a live clock;
+  the existing `counter` is a one-shot 0→target tween on scroll-in), `TagInput`
+  (text entry that emits removable tokens), and `PowerSearch` (faceted multi-term
+  query building, which `combobox` doesn't model).
+
+- 6e1edd6: **`Countdown` works outside React**, via a new `countdown` behavior.
+
+  Reuse was checked first and rejected on the merits. The existing `counter`
+  behavior tweens text from 0 to a target once, when it scrolls into view. A
+  countdown is a recurring clock that stops at a deadline and formats time —
+  different trigger, different cadence, different stopping condition. Reusing
+  `counter` would have meant a handler that ignores most of its own parameters,
+  so `countdown` is a real addition to the vocabulary rather than a stretched
+  existing one.
+
+  Two details worth naming:
+
+  - **The macro never reads the clock.** `expand` must be pure, or two builds of
+    the same tree differ and the golden fixture can't be pinned. The starting
+    values come from an explicit `props.from`; without it the units render as
+    placeholders the handler fills on hydrate.
+  - **The authored markup carries real values**, so a page that never hydrates
+    shows a sensible (if frozen) countdown rather than empty boxes.
+
+  The handler writes only the units the markup actually authored — it never
+  invents or removes DOM — and skips its timer in preview, where a ticking clock
+  in an editing canvas is a distraction that also keeps a render loop alive per
+  countdown on the canvas.
+
+  Also fixes an SSR hydration mismatch in the React `Countdown`: its value is
+  computed from `Date.now()`, so the server and client legitimately disagree.
+  That's what `suppressHydrationWarning` exists for — the value is time-dependent
+  by definition, not a mismatch to reconcile. Without it every server-rendered
+  countdown logged a hydration error. Note this is a class the local
+  `no-dom-in-state-initializer` ESLint rule cannot catch, since `Date.now` is not
+  a DOM global.
+
+- a90b819: Coverage and catalog honesty — what the library says about itself.
+
+  **The MCP catalog described a component that does not exist.** `Typography`
+  had a row in silicaui-react's README component table but is not exported from
+  anywhere. The generator resolved the name through its kebab-case fallback to a
+  real file (`typography.tsx`), parsed it, and published a fully-formed entry —
+  with `HeadingProps` attached. An assistant querying the catalog was told to
+  write `<Typography level={2}>`, complete with prop documentation, for a
+  component that cannot be imported. The row is gone, and the generator now
+  treats a README name with no matching export as an **error**: it drops the
+  entry from the emitted data and exits non-zero, because a phantom entry is
+  worse than a missing one — a consumer acts on it.
+
+  **Six real components were missing from the catalog.** The generator's
+  existing check ran one direction only and at file granularity: a file with at
+  least one documented export was exempted wholesale, on the assumption that its
+  other exports were Base-UI-style sub-parts. That assumption holds for ~150
+  genuine sub-parts, but it also silently swallowed `DateRangePicker` (in
+  `date-picker.tsx` beside documented `DatePicker`), `ClickableCard`,
+  `SelectableCard`, `FloatingLabel`, `CheckboxOption`, and `RadioOption`. The
+  check is now per-export, and a sub-part is identified by being name-prefixed
+  by a documented sibling in either direction (`DialogTrigger` ⊃ `Dialog`;
+  `Steps` ⊃ `Step`) rather than by sharing a file.
+
+  **Five components became authorable outside React.** `Link`, `FileInput`,
+  `FloatingLabel`, `SelectableCard`, and `MockupCodeLine` existed only in
+  silicaui-react, so a static or Sparx-rendered page could not author them at
+  all — `Link` most glaringly, since a projection with no link component made
+  every link a hand-written raw element node.
+
+  **`<input accept>` was silently dropped from all static output.** The raw
+  element sanitizer's allowlist for `input` included `multiple` but not
+  `accept`, so every static file input lost its file-type filter. Nothing
+  errored; the picker just opened unfiltered. This predates the `FileInput`
+  macro and affected hand-authored element nodes too — adding the macro is only
+  what surfaced it. `accept` is an inert hint string with no URL or script
+  surface.
+
+  **React↔HTML parity is now enforced rather than assumed.** A component that
+  exists only in silicaui-react is invisible to every non-React consumer. That's
+  legitimate for some, but it has to be a decision. The generator now warns on
+  any React component with no `-html` macro unless it appears in an explicit
+  `HTML_EXEMPT` map with a stated reason — imperative APIs (`ToastProvider`),
+  pure class-applicators (`Validator`), names already covered under a different
+  one (`NativeSelect` → `-html`'s `Select`), and interactive components still
+  owed a behavior handler. It also warns when an exemption goes stale, so the
+  list can't rot into fiction once a macro lands.
+
+  The five new macros and the `accept` fix are locked in the byte-identical HTML
+  golden fixture.
+
 ## 0.29.0
 
 ## 0.28.0

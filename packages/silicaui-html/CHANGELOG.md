@@ -1,5 +1,323 @@
 # @wizeworks/silicaui-html
 
+## 0.30.0
+
+### Minor Changes
+
+- 26b341e: **The Chat family and `Filter` are now authorable outside React.**
+
+  Thirteen Chat components landed as one unit — `Chat`, `ChatImage`, `ChatHeader`,
+  `ChatFooter`, `ChatBubble`, `ChatLayout`, `ChatLayoutMessages`,
+  `ChatMessageMetadata`, `ChatMessage`, `ChatSystemMessage`,
+  `ChatTypingIndicator`, `ChatToolCalls`, `ChatComposer`. Shipping half a family
+  is worse than shipping none: a consumer who finds `Chat` but no `ChatComposer`
+  hand-rolls the missing half in markup that then drifts from the React layer,
+  which is the exact failure the component registry exists to prevent.
+
+  Two of those reuse existing behavior rather than inventing new vocabulary:
+
+  - `ChatToolCalls` is structurally a collapsible, so it emits the existing
+    `disclosure` behavior and the Collapsible part classes the CSS already
+    targets.
+  - `ChatComposer` lowers to a real `<form>` with the existing `form` behavior,
+    so a static page can actually send. React adds autoresize and Enter-to-send
+    on top; without them it degrades to a normal textarea and submit button
+    rather than to something broken.
+
+  **`Filter` turned out not to need a new behavior at all.** It was on the "needs
+  a behavior handler" list, but checking it against the existing vocabulary first
+  showed it _is_ `toggle-group`: same single-select press semantics, same roving
+  focus, same `aria-pressed` buttons. The only delta was the reset control, which
+  is now an optional `close` part on that handler — the "one type, optional parts"
+  pattern, not a fork. Part names are scoped per behavior root, so `close` here
+  can't collide with a modal's. A plain toggle group with no reset is unaffected,
+  which is checked explicitly.
+
+  Every new interactive path is verified by driving it in jsdom — clicking the
+  tool-call disclosure open and shut, pressing chips, clearing them with the
+  reset, and confirming the reset hides itself when nothing is selected — not by
+  asserting a marker is present. All of it is locked in the byte-identical HTML
+  golden.
+
+  Also removes three `opacity-60` instances from the React layer (one live, two
+  in doc examples that were teaching the pattern) — the same RULE #3 defect the
+  CSS pass fixed, in a place a stylesheet sweep couldn't see.
+
+  Still deliberately absent from `-html`, each because it needs a genuinely new
+  `BehaviorType` rather than because it was overlooked: `Countdown` (a live clock;
+  the existing `counter` is a one-shot 0→target tween on scroll-in), `TagInput`
+  (text entry that emits removable tokens), and `PowerSearch` (faceted multi-term
+  query building, which `combobox` doesn't model).
+
+- 90de1e2: **The OKLCH ColorPicker now works outside React** — the real editor, not a
+  stand-in.
+
+  The obvious shortcut was to lower to `<input type="color">`: it works without
+  JS, posts a value, and is fully accessible. It was rejected because it is a
+  **different control** — a native sRGB swatch dialog, not an OKLCH L/C/H editor.
+  Silica's entire token system is OKLCH, and a picker that can't express chroma
+  past the sRGB gamut isn't the same tool. Shipping it under this component's name
+  would have misdescribed what a consumer gets.
+
+  So the picker is real: three `role="slider"` tracks with live OKLCH ramps,
+  pointer drag with capture, full keyboard support (arrows / PageUp+Down / Home /
+  End) at **exactly** React's step sizes, a hex field that round-trips, and a
+  hidden input carrying the value for an ordinary form post.
+
+  ### Two constraints shaped it
+
+  **No inline styles in static output.** `verify-csp` forbids `style` attributes,
+  but the track gradients are dynamic OKLCH ramps that depend on the current
+  color. So the macro emits structure only and the handler paints on hydrate —
+  following the precedent already set by `carousel` and `form`. An unhydrated page
+  renders the picker unpainted, which is correct degradation for an editor that
+  cannot function without JS, and the hidden input still carries the value.
+
+  **The math is duplicated, deliberately.** `silicaui-behaviors` is a
+  zero-dependency runtime; importing the React package to share `oklch.ts` would
+  pull React into every vanilla page that hydrates a picker. The same reasoning
+  already keeps `BehaviorType` duplicated across the two packages.
+
+  Duplicated _math_ is a sharper risk than a duplicated string union, though: a
+  drifted union fails loudly the first time a marker doesn't match, while drifted
+  math keeps running and just returns slightly different colors — React and a
+  static page would report different hex for the same OKLCH input. So
+  `verify-oklch-parity.mjs` runs both implementations over ~1,070 cases and fails
+  on any difference.
+
+  That probe caught a hole in itself during negative testing: it originally
+  compared only functions, so a deliberately corrupted `MAX_CHROMA` still reported
+  "agree exactly" — the sweep bounded itself by the _other_ copy's constant and
+  never exercised the drift. Exported constants are now compared too, and both
+  drift kinds are verified to fail.
+
+  Verified in a real browser as well as jsdom: dragging the hue track updates the
+  swatch, the hex readout, the form value, **and re-renders the L and C ramps for
+  the new hue** — the behavior that keeps the picker legible while editing, and
+  the one thing jsdom cannot check, since it has no layout for
+  `getBoundingClientRect`.
+
+- 6e1edd6: **`Countdown` works outside React**, via a new `countdown` behavior.
+
+  Reuse was checked first and rejected on the merits. The existing `counter`
+  behavior tweens text from 0 to a target once, when it scrolls into view. A
+  countdown is a recurring clock that stops at a deadline and formats time —
+  different trigger, different cadence, different stopping condition. Reusing
+  `counter` would have meant a handler that ignores most of its own parameters,
+  so `countdown` is a real addition to the vocabulary rather than a stretched
+  existing one.
+
+  Two details worth naming:
+
+  - **The macro never reads the clock.** `expand` must be pure, or two builds of
+    the same tree differ and the golden fixture can't be pinned. The starting
+    values come from an explicit `props.from`; without it the units render as
+    placeholders the handler fills on hydrate.
+  - **The authored markup carries real values**, so a page that never hydrates
+    shows a sensible (if frozen) countdown rather than empty boxes.
+
+  The handler writes only the units the markup actually authored — it never
+  invents or removes DOM — and skips its timer in preview, where a ticking clock
+  in an editing canvas is a distraction that also keeps a render loop alive per
+  countdown on the canvas.
+
+  Also fixes an SSR hydration mismatch in the React `Countdown`: its value is
+  computed from `Date.now()`, so the server and client legitimately disagree.
+  That's what `suppressHydrationWarning` exists for — the value is time-dependent
+  by definition, not a mismatch to reconcile. Without it every server-rendered
+  countdown logged a hydration error. Note this is a class the local
+  `no-dom-in-state-initializer` ESLint rule cannot catch, since `Date.now` is not
+  a DOM global.
+
+- f9fd0a6: **`TagInput` works outside React**, via a new `tag-input` behavior.
+
+  Reuse was checked first, as with `Countdown`. `selection-list` and
+  `toggle-group` both choose among items that already exist in the markup; this
+  one _creates_ them from typed text. That's a different contract, not a
+  parameter, so it warranted a new type.
+
+  **New chips are cloned from a `template` part, not constructed in JS.** This is
+  the load-bearing detail. A handler that built `<span class="tag-input-chip">`
+  itself would emit unprefixed class names and render unstyled in exactly the apps
+  that opted into a `SilicaProvider` prefix — a failure that only appears in
+  prefixed builds, which is the hardest kind to notice. Cloning keeps every class
+  name in the authored markup. The golden fixture and a jsdom check both pin it
+  (the cloned chip must match the authored chip's `className`).
+
+  The value travels on a real `input[type=hidden]`, so the field submits with a
+  normal form post and the `form` behavior needs no special case. Chips are
+  comma-joined, matching what the React component posts.
+
+  ### `<template>` moved onto the raw-element allowlist
+
+  Emitting a `<template>` revealed the sanitizer was downgrading it to a `<div>`,
+  which rendered the blueprint as a visible empty chip. `template` had been sitting
+  in the exclusion list beside `script`, `iframe`, and `object` — a different
+  category entirely: those execute or embed, while `template` is inert by
+  construction (its content parses into a detached fragment that never renders and
+  never executes), and its children still pass through `sanitizeElement`.
+
+  Because that widens the security floor, it is now asserted rather than assumed:
+  `verify.mjs` checks that a `<script>`, an `<iframe>`, and an `on*` handler placed
+  _inside_ a template are still downgraded and stripped.
+
+  A `hidden` chip was considered as an alternative and rejected — an author
+  `display:inline-flex` on `.tag-input-chip` beats the UA `[hidden]{display:none}`
+  rule, so the blueprint would become visible under exactly the CSS this library
+  ships.
+
+  Also fixes a React-parity bug found while writing the probe: React's `addTag`
+  clears the field _before_ its dedupe/max checks, so a rejected duplicate still
+  empties the input. The handler cleared only on success, which made the two
+  layers behave differently for identical input.
+
+- a90b819: First-five-minutes hardening pass — four defects that shipped to npm and one
+  latent projection bug, all in the surface a new adopter hits before anything
+  else.
+
+  **`<Checkbox>Run tests</Checkbox>` no longer crashes the page.** `Checkbox`,
+  `Radio`, and `Toggle` now accept `children` as a caption, wrapping the control
+  in a `<label>` so the text is a real click target. Previously the types
+  permitted `children` (inherited from `React.InputHTMLAttributes`) while React
+  threw _"input is a void element tag and must neither have `children`"_ at
+  runtime — a type-checks-clean white screen. Passing no children is unchanged,
+  so pairing with your own `<label htmlFor>` still works exactly as before.
+
+  **The four components where a caption is meaningless now reject `children` at
+  the type level** — `Input`, `FileInput`, `PasswordInput`, `SearchInput`. The
+  last two were the sneakiest: their root JSX is a `<div>`, so the mistake looked
+  safe while `{...rest}` landed the `children` on the inner `<input>` anyway.
+
+  **Five packages were missing their `'use client'` directive.**
+  `@wizeworks/silicaui-charts`, `-table`, `-editor`, `-dnd`, and `-panels` all use
+  hooks but shipped without the directive, so importing any of them from a
+  Next.js App Router page threw. The prepend logic is now one shared build helper
+  instead of being re-derived per package, and a new `verify:packaging` CI step
+  asserts the directive is present in every client bundle — and absent from
+  `silicaui-react/server`, whose entire purpose is being server-safe.
+
+  **`peerDependenciesMeta` no longer dangles.** `@wizeworks/silicaui-react`
+  declared `@wizeworks/silicaui` as an optional peer with no matching
+  `peerDependencies` entry, which npm and pnpm both accept silently — so the
+  intended "you're missing the CSS package" warning never fired. The same CI step
+  now catches this class of no-op.
+
+  **`CheckboxOption` / `RadioOption` rendered an unstyled native control in
+  static output.** The expansion routed the node's class to the wrapping
+  `<label>`, leaving the actual `<input>` with no `.checkbox` / `.radio` class at
+  all. The control class now stays on the input, and `Checkbox` / `Radio` /
+  `Toggle` in `silicaui-html` gained the same optional caption as their React
+  counterparts — so both layers now emit byte-identical markup for identical
+  authoring. `Toggle` also picked up the `role="switch"` that React already had.
+
+  **New `.label-control` class** for a label that wraps its own control: the whole
+  row is the click target, and the caption gets real ink rather than the muted
+  field-caption color `.label` uses, since it's text meant to be read.
+
+  ### Documentation
+
+  The `@source` directive is now documented in both READMEs. Tailwind v4 never
+  scans `node_modules`, so without it the plain utilities used inside
+  `silicaui-react` never compile — producing a _partial_ break (buttons and cards
+  look right; dialog footers don't align, `Lightbox` has no size, `soft`/`glass`
+  sit inert) that reads like a library bug rather than a one-line config gap.
+  This affected every consumer, not just monorepos.
+
+- a90b819: Three defects that produced no error — the page rendered, and was wrong.
+
+  **`Alert` with `dismissible` now works outside React.** The React layer had
+  `dismissible`/`onDismiss`, `silicaui-behaviors` shipped a working `dismiss`
+  handler, and the `.alert-close` CSS existed — but the `silicaui-html` macro
+  emitted a bare `<div role="alert">`, so a static or Sparx-rendered page got no
+  close button at all. The macro now emits the button, the inlined close icon,
+  and the `data-sui-behavior="dismiss"` marker. Verified across the whole chain
+  (schema → `toHtml` → `hydrate` → click → removed) rather than by asserting the
+  markup, since a structural check alone would have passed before the fix too.
+
+  **`Swap` and `Stat` sized their icons.** Neither declared `width`/`height` for
+  its `svg`, violating the project's own rule. This is the worst failure mode
+  available: an unsized inline `<svg>` has no intrinsic size, so it can render
+  correctly in Playwright's Chromium and collapse or balloon in a real browser —
+  invisible to CI, including screenshots. `Swap` is entirely an icon component,
+  and `stat-figure` defines an implicit grid column, so its glyph shifts the whole
+  component's layout rather than just itself. A new `verify:icon-sizing` probe
+  asserts every icon slot declares both dimensions.
+
+  **A theme color that isn't registered with the plugin now says so.** Adding a
+  color takes two steps, and doing only the first produces the most confusing
+  possible result: `bg-brand` and `text-brand` work (Tailwind emits those), while
+  `btn-brand`, `badge-brand`, and `alert-brand` silently render in the default
+  color. Every instinct says the color is broken; it isn't, only the registration
+  is missing. The plugin now detects this at build time and prints the exact
+  fix line, ready to paste:
+
+  ```
+  [silicaui] Theme color brand is declared in @theme but not registered with the plugin.
+    Fix: @plugin "@wizeworks/silicaui" { colors: primary, …, brand; }
+  ```
+
+  Best-effort by design: the plugin runs at its own position in the stylesheet, so
+  this only sees `@theme` blocks declared _before_ the `@plugin` line. Colors
+  registered through Silica's own `@plugin "@wizeworks/silicaui/theme"` block
+  correctly stay silent — that path registers them by construction.
+
+  ### CI
+
+  Six packages shipped verify suites that **CI never ran**, so a regression any of
+  them was written to catch could still reach `main`. A root `pnpm verify` now
+  runs all of them plus the byte-identical HTML golden, and CI runs it.
+
+- a90b819: Coverage and catalog honesty — what the library says about itself.
+
+  **The MCP catalog described a component that does not exist.** `Typography`
+  had a row in silicaui-react's README component table but is not exported from
+  anywhere. The generator resolved the name through its kebab-case fallback to a
+  real file (`typography.tsx`), parsed it, and published a fully-formed entry —
+  with `HeadingProps` attached. An assistant querying the catalog was told to
+  write `<Typography level={2}>`, complete with prop documentation, for a
+  component that cannot be imported. The row is gone, and the generator now
+  treats a README name with no matching export as an **error**: it drops the
+  entry from the emitted data and exits non-zero, because a phantom entry is
+  worse than a missing one — a consumer acts on it.
+
+  **Six real components were missing from the catalog.** The generator's
+  existing check ran one direction only and at file granularity: a file with at
+  least one documented export was exempted wholesale, on the assumption that its
+  other exports were Base-UI-style sub-parts. That assumption holds for ~150
+  genuine sub-parts, but it also silently swallowed `DateRangePicker` (in
+  `date-picker.tsx` beside documented `DatePicker`), `ClickableCard`,
+  `SelectableCard`, `FloatingLabel`, `CheckboxOption`, and `RadioOption`. The
+  check is now per-export, and a sub-part is identified by being name-prefixed
+  by a documented sibling in either direction (`DialogTrigger` ⊃ `Dialog`;
+  `Steps` ⊃ `Step`) rather than by sharing a file.
+
+  **Five components became authorable outside React.** `Link`, `FileInput`,
+  `FloatingLabel`, `SelectableCard`, and `MockupCodeLine` existed only in
+  silicaui-react, so a static or Sparx-rendered page could not author them at
+  all — `Link` most glaringly, since a projection with no link component made
+  every link a hand-written raw element node.
+
+  **`<input accept>` was silently dropped from all static output.** The raw
+  element sanitizer's allowlist for `input` included `multiple` but not
+  `accept`, so every static file input lost its file-type filter. Nothing
+  errored; the picker just opened unfiltered. This predates the `FileInput`
+  macro and affected hand-authored element nodes too — adding the macro is only
+  what surfaced it. `accept` is an inert hint string with no URL or script
+  surface.
+
+  **React↔HTML parity is now enforced rather than assumed.** A component that
+  exists only in silicaui-react is invisible to every non-React consumer. That's
+  legitimate for some, but it has to be a decision. The generator now warns on
+  any React component with no `-html` macro unless it appears in an explicit
+  `HTML_EXEMPT` map with a stated reason — imperative APIs (`ToastProvider`),
+  pure class-applicators (`Validator`), names already covered under a different
+  one (`NativeSelect` → `-html`'s `Select`), and interactive components still
+  owed a behavior handler. It also warns when an exemption goes stale, so the
+  list can't rot into fiction once a macro lands.
+
+  The five new macros and the `accept` fix are locked in the byte-identical HTML
+  golden fixture.
+
 ## 0.29.0
 
 ## 0.28.0

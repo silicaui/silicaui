@@ -1,5 +1,83 @@
 # @wizeworks/silicaui-mcp
 
+## 0.30.0
+
+### Patch Changes
+
+- a03f3b0: Report the live version, and restore the usage examples
+
+  `list_packages` advertised whatever version was current the last time someone
+  ran `pnpm gen` by hand — it had frozen at 0.26.0 while npm served 0.29.0 — and
+  the MCP server introduced itself as `0.1.0`, a literal unchanged since the
+  package was created. Neither number is baked into the catalog now: both are read
+  from the package's own `package.json` at startup. Every package in the family is
+  released in lockstep (they share one `fixed` group in the changesets config), so
+  that value is correct for all of them, and the drift is no longer possible
+  rather than merely fixed.
+
+  `get_component` also returned no `usageExample` for any of the 344 components.
+  The generator reads demos from disk, and they had moved to the new
+  `silicaui-demos` package; the per-component read tolerates a missing demo (most
+  components legitimately have none), so a stale directory degraded silently into
+  "nobody has an example" instead of failing. The path is corrected — 106
+  components carry an example again — and the directory is now asserted once up
+  front, where a future move fails loudly instead of quietly emptying the catalog.
+
+  Finally, `verify.mjs` asserted a hardcoded count of 30 behaviors, which broke
+  when a 31st was registered. It now compares against the `BehaviorType` union
+  itself and names any type that is genuinely missing.
+
+- a90b819: Coverage and catalog honesty — what the library says about itself.
+
+  **The MCP catalog described a component that does not exist.** `Typography`
+  had a row in silicaui-react's README component table but is not exported from
+  anywhere. The generator resolved the name through its kebab-case fallback to a
+  real file (`typography.tsx`), parsed it, and published a fully-formed entry —
+  with `HeadingProps` attached. An assistant querying the catalog was told to
+  write `<Typography level={2}>`, complete with prop documentation, for a
+  component that cannot be imported. The row is gone, and the generator now
+  treats a README name with no matching export as an **error**: it drops the
+  entry from the emitted data and exits non-zero, because a phantom entry is
+  worse than a missing one — a consumer acts on it.
+
+  **Six real components were missing from the catalog.** The generator's
+  existing check ran one direction only and at file granularity: a file with at
+  least one documented export was exempted wholesale, on the assumption that its
+  other exports were Base-UI-style sub-parts. That assumption holds for ~150
+  genuine sub-parts, but it also silently swallowed `DateRangePicker` (in
+  `date-picker.tsx` beside documented `DatePicker`), `ClickableCard`,
+  `SelectableCard`, `FloatingLabel`, `CheckboxOption`, and `RadioOption`. The
+  check is now per-export, and a sub-part is identified by being name-prefixed
+  by a documented sibling in either direction (`DialogTrigger` ⊃ `Dialog`;
+  `Steps` ⊃ `Step`) rather than by sharing a file.
+
+  **Five components became authorable outside React.** `Link`, `FileInput`,
+  `FloatingLabel`, `SelectableCard`, and `MockupCodeLine` existed only in
+  silicaui-react, so a static or Sparx-rendered page could not author them at
+  all — `Link` most glaringly, since a projection with no link component made
+  every link a hand-written raw element node.
+
+  **`<input accept>` was silently dropped from all static output.** The raw
+  element sanitizer's allowlist for `input` included `multiple` but not
+  `accept`, so every static file input lost its file-type filter. Nothing
+  errored; the picker just opened unfiltered. This predates the `FileInput`
+  macro and affected hand-authored element nodes too — adding the macro is only
+  what surfaced it. `accept` is an inert hint string with no URL or script
+  surface.
+
+  **React↔HTML parity is now enforced rather than assumed.** A component that
+  exists only in silicaui-react is invisible to every non-React consumer. That's
+  legitimate for some, but it has to be a decision. The generator now warns on
+  any React component with no `-html` macro unless it appears in an explicit
+  `HTML_EXEMPT` map with a stated reason — imperative APIs (`ToastProvider`),
+  pure class-applicators (`Validator`), names already covered under a different
+  one (`NativeSelect` → `-html`'s `Select`), and interactive components still
+  owed a behavior handler. It also warns when an exemption goes stale, so the
+  list can't rot into fiction once a macro lands.
+
+  The five new macros and the `accept` fix are locked in the byte-identical HTML
+  golden fixture.
+
 ## 0.29.0
 
 ## 0.28.0
