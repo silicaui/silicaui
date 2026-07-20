@@ -485,15 +485,12 @@ const HTML_EXEMPT = {
   ColorPicker: "deferred — needs the OKLCH picker ported to vanilla",
   // Interactive, and each needs a genuinely NEW BehaviorType — checked against
   // the existing vocabulary first, per the reuse-before-forking rule:
-  //   Countdown  — `counter` is a one-shot 0→target tween on scroll-in, not a
-  //                live recurring clock with time formatting. Not the same.
   //   TagInput   — text entry that emits removable tokens; nothing existing
   //                models "type to create a child element".
   //   PowerSearch— faceted multi-term query building; `combobox` covers a
   //                single value, not a term list with per-field value pickers.
-  // (`Filter` was on this list and came off it: it turned out to BE
-  //  `toggle-group` plus an optional `close` part.)
-  Countdown: "needs a new BehaviorType (live clock; `counter` is a one-shot tween)",
+  // (`Filter` and `Countdown` both came off this list — Filter turned out to BE
+  //  `toggle-group` plus an optional `close` part; Countdown got a real one.)
   TagInput: "needs a new BehaviorType (token entry/removal)",
   PowerSearch: "needs a new BehaviorType (faceted multi-term search)",
 };

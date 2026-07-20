@@ -237,5 +237,51 @@ console.log("filter — chips reuse toggle-group, reset is an optional part");
   d2();
 }
 
+// ── Countdown: the one case where reuse was REJECTED. `counter` is a one-shot
+// scroll-triggered tween; this is a recurring clock that stops at zero. These
+// checks pin the behaviors that made them different, so a future "just reuse
+// counter" refactor fails loudly rather than silently degrading.
+console.log("countdown — live clock, distinct from `counter`");
+{
+  const mk = (props) => ({ kind: "component", component: "Countdown", props });
+
+  // Far future: real formatting, days unpadded, others zero-padded.
+  const doc = mount(toHtml(mk({ to: Date.now() + (2 * 86400 + 3 * 3600 + 4 * 60 + 5) * 1000 })));
+  const dispose = hydrate(doc, {});
+  const val = (u) => doc.querySelector(`[data-unit="${u}"]`).textContent;
+  check("days render unpadded", val("days") === "2");
+  check("hours zero-pad to two digits", val("hours") === "03");
+  check("minutes zero-pad", val("minutes") === "04");
+  check("seconds render", /^0[45]$/.test(val("seconds")));
+  check("not marked complete while time remains", !doc.querySelector("[data-complete]"));
+  dispose();
+
+  // Already elapsed: zeros, complete flag, and the event fires exactly once.
+  const past = mount(toHtml(mk({ to: Date.now() - 5000 })));
+  let completions = 0;
+  past.addEventListener("sui:complete", () => completions++);
+  const d2 = hydrate(past, {});
+  check("elapsed countdown renders all zeros", [...past.querySelectorAll("[data-unit]")].every((e) => /^0+$/.test(e.textContent)));
+  check("elapsed countdown marks itself complete", !!past.querySelector("[data-complete]"));
+  check("sui:complete fires exactly once", completions === 1);
+  d2();
+
+  // Only the authored units are written — the handler never invents DOM.
+  const two = mount(toHtml(mk({ to: Date.now() + 90_000, units: ["minutes", "seconds"] })));
+  const d3 = hydrate(two, {});
+  check("only authored units are present", two.querySelectorAll("[data-unit]").length === 2);
+  check("no days unit invented", !two.querySelector('[data-unit="days"]'));
+  d3();
+
+  // Preview paints values but must NOT leave a timer running. Asserted on
+  // HOURS, deliberately: an exact-minute offset lands on a rollover boundary,
+  // where sub-millisecond drift flips 01:00 to 00:59 and the check flakes.
+  // 1h30m keeps drift confined to the units we don't assert on.
+  const prev = mount(toHtml(mk({ to: Date.now() + (3600 + 1800) * 1000 })));
+  const d4 = hydrate(prev, { preview: true });
+  check("preview still paints correct values", prev.querySelector('[data-unit="hours"]').textContent === "01");
+  d4();
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

@@ -122,5 +122,9 @@
   {
     "type": "reveal",
     "description": "`reveal` — the ON SCROLL trigger for @wizeworks/silicaui's assignable entrance animations. Sets `data-sui-inview` on the root once it enters the viewport, which a `.sui-reveal-*` preset class (packages/silicaui/src/components/ animations.js) reads to transition from its hidden to visible state. `params.once` (default `true`) stops observing after the first reveal; `params.threshold` is passed straight to `IntersectionObserver`. Suppressed (reveals immediately, no observer) in preview, under reduced motion, or without `IntersectionObserver` — same guard shape as `counter`."
+  },
+  {
+    "type": "countdown",
+    "description": "`countdown` — a live days/hours/minutes/seconds display that ticks to a target time and stops at zero, announcing `sui:complete` once. This is NOT `counter`, which was checked first: `counter` tweens text from 0 to a target once when it scrolls into view. A one-shot animation and a recurring clock share a shape but not a behavior — different trigger, different cadence, different stopping condition, and time formatting rather than a single number. Reuse would have meant a `counter` that ignores most of its own parameters. `params.to` is an epoch-ms timestamp. Each `value` part carries `data-unit=\"days|hours|minutes|seconds\"` and only the units actually authored are written, so the markup decides which units show — the handler never invents or removes DOM. The authored markup already contains correct values for its render moment, so a page that never hydrates still shows a sensible (if frozen) countdown rather than empty boxes."
   }
 ]

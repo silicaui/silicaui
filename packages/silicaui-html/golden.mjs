@@ -131,6 +131,12 @@ const synthetic = e("section", {
         c("Filter", { class: "filter", props: { showReset: false }, children: [
           c("FilterItem", { class: "filter-item", props: { value: "x", text: "No reset" } }),
         ] }),
+        // Countdown — FIXED timestamps only. `expand` must stay pure or the
+        // fixture can't be pinned, which is exactly why the macro takes an
+        // explicit `from` rather than reading the clock.
+        c("Countdown", { class: "countdown", props: { to: 1800000000000, from: 1799826600000 } }),
+        c("Countdown", { props: { to: 1800000000000, from: 1799999000000, units: ["minutes", "seconds"], plain: true } }),
+        c("Countdown", { props: { to: 1800000000000 } }), // no `from` → placeholder values
         // Form: auto `form` behavior marker; props.action → action binding; an
         // explicit `data`/`behavior` on the node is respected (never clobbered).
         c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),

@@ -1672,6 +1672,57 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
 
+  // Countdown — a live clock. Renders the CORRECT values for its build moment
+  // rather than zeros, so a page that never hydrates shows a sensible (if
+  // frozen) countdown instead of empty boxes; the handler then takes over.
+  {
+    name: "Countdown",
+    category: "data",
+    label: "Countdown",
+    icon: "box",
+    container: false,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const to = typeof p.to === "number" ? p.to : Number(p.to);
+      const units =
+        Array.isArray(p.units) && p.units.length
+          ? (p.units as string[])
+          : ["days", "hours", "minutes", "seconds"];
+      // No Date.now() here: `expand` must be PURE, or two builds of the same
+      // tree differ and the golden fixture becomes unpinnable. Static values
+      // come from `props.from` when the author wants a rendered starting
+      // state; otherwise the units render as placeholders the handler fills.
+      const from = typeof p.from === "number" ? p.from : undefined;
+      const total = from != null && Number.isFinite(to) ? Math.max(0, Math.floor((to - from) / 1000)) : undefined;
+      const valueOf = (unit: string): string => {
+        if (total == null) return unit === "days" ? "0" : "00";
+        const n =
+          unit === "days"
+            ? Math.floor(total / 86400)
+            : unit === "hours"
+              ? Math.floor((total % 86400) / 3600)
+              : unit === "minutes"
+                ? Math.floor((total % 3600) / 60)
+                : total % 60;
+        return unit === "days" ? String(n) : String(n).padStart(2, "0");
+      };
+
+      const children: Child[] = units.map((unit) => {
+        const value = elc("span", "countdown-value", [valueOf(unit)], { "data-unit": unit });
+        value.part = "value";
+        return elc("div", "countdown-unit", [value, elc("span", "countdown-label", [unit])]);
+      });
+
+      const cls = p.plain === true ? "countdown countdown-plain" : "countdown";
+      const out = lower(n, "div", {
+        class: n.class ?? cls,
+        attrs: { role: "timer" },
+        children,
+      });
+      if (!out.behavior) out.behavior = { type: "countdown", params: { to } };
+      return out;
+    },
+  },
   // Filter — a single-select chip row with a reset. This is the EXISTING
   // `toggle-group` behavior, not a new one: same single-select press semantics,
   // same roving focus, same aria-pressed buttons. The only delta was the reset,

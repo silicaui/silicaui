@@ -200,7 +200,8 @@ export type BehaviorType =
   | "rating"
   | "theme-toggle"
   | "phone-input"
-  | "reveal";
+  | "reveal"
+  | "countdown";
 
 export type BehaviorRole =
   | "track"
@@ -230,7 +231,8 @@ export type BehaviorRole =
   | "thumb"
   | "input"
   | "list"
-  | "country";
+  | "country"
+  | "value";
 
 /** An authored, id-free, reusable template (a block or a user-saved component). */
 export interface Template {
