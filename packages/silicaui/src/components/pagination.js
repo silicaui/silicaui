@@ -73,6 +73,7 @@ export function pagination(colors, prefix = "") {
     [sel("-sm")]: { "--pagination-size": "1.875rem" },
     [sel("-md")]: { "--pagination-size": "2.25rem" },
     [sel("-lg")]: { "--pagination-size": "2.75rem" },
+    [sel("-xl")]: { "--pagination-size": "3.25rem", fontSize: "1.125rem" },
   };
 
   for (const name of colors) {

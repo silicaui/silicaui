@@ -2,6 +2,7 @@ import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
+import { CaptionedControl } from "./lib/captioned-control";
 
 export interface RadioProps
   extends Omit<
@@ -12,14 +13,18 @@ export interface RadioProps
   color?: SilicaColor;
   /** Default `md`. */
   size?: SilicaSize;
+  /** Caption. Wraps the control in a `<label>` so the text is a click target. */
+  children?: React.ReactNode;
 }
 
 /**
  * Silica Radio — a restyled native `<input type="radio">`. Group them by giving
  * several the same `name`. All native attributes pass through.
+ *
+ *   <Radio name="plan" value="pro">Pro</Radio>
  */
 export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
-  function Radio({ color, size = "md", className, ...rest }, ref) {
+  function Radio({ color, size = "md", className, children, ...rest }, ref) {
     const sc = useSilicaClass();
     const classes = cx(
       sc("radio"),
@@ -27,6 +32,12 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
       size !== "md" && sc(`radio-${size}`),
       className,
     );
-    return <input ref={ref} type="radio" className={classes} {...rest} />;
+    return (
+      <CaptionedControl
+        input={<input ref={ref} type="radio" className={classes} {...rest} />}
+      >
+        {children}
+      </CaptionedControl>
+    );
   },
 );

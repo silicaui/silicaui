@@ -15,7 +15,9 @@ export type SilicaColor =
   | "success"
   | "warning"
   | "error"
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // `string & {}` keeps the literal union's autocomplete while still accepting
+  // any custom color registered with the plugin. (`ban-types` was removed in
+  // typescript-eslint v8, so no disable directive is needed.)
   | (string & {});
 
 export type SilicaSize = "xs" | "sm" | "md" | "lg" | "xl";

@@ -28,9 +28,28 @@ export function label(prefix = "") {
       gap: "0.375rem",
       fontSize: "0.875rem",
       lineHeight: "1.25",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      // Real ink. A field label is text the reader MUST read to use the form,
+      // so it doesn't get a faded fill — the smaller size already carries the
+      // hierarchy against the field's own value.
+      color: "var(--color-base-content)",
 
       "& svg": { width: "1em", height: "1em", flexShrink: "0" },
+    },
+
+    // A label wrapping its own control (checkbox/radio/toggle + caption), as
+    // opposed to `.label` standing above a field. Two differences follow from
+    // that: the whole row is the click target, and the caption is text the
+    // reader is meant to READ — so it gets real ink, not the muted field-caption
+    // color `.label` uses.
+    [sel("-control")]: {
+      cursor: "pointer",
+      gap: "0.5rem",
+      color: "var(--color-base-content)",
+
+      "&:has(> input:disabled)": {
+        cursor: "not-allowed",
+        opacity: "0.5",
+      },
     },
 
     [sel("-required")]: {
@@ -57,7 +76,10 @@ export function label(prefix = "") {
         whiteSpace: "nowrap",
         fontSize: "0.875rem",
         lineHeight: "1",
-        color: "color-mix(in oklab, var(--color-base-content) 55%, transparent)",
+        // Real ink, same reason as `.label`: this caption IS the field's name.
+        // At rest it sits in an empty field, so full-strength reads as the
+        // label it is, not as a filled value.
+        color: "var(--color-base-content)",
         backgroundColor: "var(--color-base-100)",
         pointerEvents: "none",
         transitionProperty: "transform, color, font-size",

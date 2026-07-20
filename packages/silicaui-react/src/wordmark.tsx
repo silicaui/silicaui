@@ -3,15 +3,23 @@ import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
-export interface WordmarkProps extends React.HTMLAttributes<HTMLElement> {
+export interface WordmarkProps
+  // `AllHTMLAttributes` (not the plain `HTMLAttributes` most components here
+  // use) is deliberate, and matches `SidebarItem`: with `as="a"` the anchor's
+  // own attributes have to type-check. `href` used to be declared as a one-off
+  // prop, which made the documented `as="a"` usage half-work — `href` compiled
+  // and `target`/`rel`/`download` did not. `color`/`size` are omitted so the
+  // token unions below win over the native string/number attributes, and
+  // `src`/`alt` so their Wordmark-specific meaning is documented here.
+  // (`as` too: AllHTMLAttributes carries the native `<link rel=preload as>`
+  // attribute, which collides with the polymorphic `as` below.)
+  extends Omit<React.AllHTMLAttributes<HTMLElement>, "color" | "size" | "src" | "alt" | "as"> {
   /** Solid accent color for the whole mark; maps to `wordmark-<color>`. */
   color?: SilicaColor;
   /** Default `md`. */
   size?: SilicaSize;
   /** Render as a different element — typically `"a"` when the mark links home. */
   as?: React.ElementType;
-  /** Link target, when `as="a"`. */
-  href?: string;
   /** A logo image rendered before the name. The one-prop path, for when the mark
    *  is a URL rather than a slotted component; `children` composition is the
    *  richer path and both lower to the same DOM. Ignored when `children` is

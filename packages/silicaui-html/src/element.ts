@@ -170,6 +170,10 @@ export const RAW_ELEMENTS: ReadonlyMap<string, RawElementMeta> = new Map(
       attrs: [
         "type", "name", "value", "placeholder", "checked", "disabled", "required",
         "readonly", "min", "max", "step", "pattern", "autocomplete", "multiple",
+        // `accept` was missing, so every <input type="file" accept="image/*">
+        // silently lost its filter — the picker still opened, just unfiltered.
+        // It's an inert hint string (no URL, no script surface).
+        "accept",
       ],
     },
     textarea: { group: "form", attrs: ["name", "placeholder", "rows", "cols", "disabled", "required", "readonly"] },

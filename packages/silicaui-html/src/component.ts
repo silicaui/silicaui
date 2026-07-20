@@ -171,6 +171,33 @@ const FIELD_KEYS = ["name", "placeholder", "value", "required", "disabled"] as c
 /** Selectable controls — checkbox/radio/toggle. */
 const CHECK_KEYS = ["name", "value", "checked", "required", "disabled"] as const;
 
+/**
+ * Checkbox / Radio / Toggle, bare or captioned — one shape for both layers.
+ *
+ * Without children the control renders bare. With children it's wrapped in a
+ * `<label>` so the caption is a real click target, matching what
+ * `silicaui-react` emits for `<Checkbox>Run tests</Checkbox>`.
+ *
+ * The node's own `class` always lands on the **input**, never the wrapper.
+ * That's the fix for a real bug in the old captioned path: `lower()` carries
+ * `node.class` to whatever tag it's given, so routing it to the `<label>` left
+ * the actual control with no `.checkbox`/`.radio` class — i.e. an unstyled
+ * native control in every static/non-React output.
+ */
+function checkControl(
+  n: ComponentNode,
+  type: "checkbox" | "radio",
+  extraAttrs?: Record<string, string>,
+): ElementNode {
+  const attrs = { ...formAttrs(n, { type, ...extraAttrs }, CHECK_KEYS) };
+  if (!n.children?.length) return lower(n, "input", { attrs });
+  const input = elc("input", n.class, undefined, attrs);
+  return lower(n, "label", {
+    class: "label label-control",
+    children: [input, ...n.children],
+  });
+}
+
 /** One `props.options` entry → an `<option>` element child of a Select. */
 function toOption(opt: unknown): Child {
   if (opt != null && typeof opt === "object") {
@@ -741,6 +768,22 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   },
   // Divider — a void <hr>.
   { name: "Divider", category: "content", label: "Divider", icon: "box", expand: (n) => lower(n, "hr") },
+  // Link — a styled inline <a>. Static output had no way to author one at all,
+  // so every link in a projected page had to be a raw element node.
+  {
+    name: "Link",
+    category: "nav",
+    label: "Link",
+    icon: "link",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = {};
+      for (const k of ["href", "target", "rel", "download"] as const) {
+        if (n.props?.[k] != null) attrs[k] = n.props[k] as string;
+      }
+      return lower(n, "a", { attrs, children: textChildren(n, "text") });
+    },
+  },
 
   // ── form controls ─────────────────────────────────────────────────────────
   // Each lowers to a native form element, so the browser's built-in behavior +
@@ -755,6 +798,34 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       lower(n, "input", {
         attrs: formAttrs(n, { type: (n.props?.type ?? "text") as string }, FIELD_KEYS),
       }),
+  },
+  // FileInput — an <input type="file">. `type` is fixed, so it isn't reachable
+  // through Input's props.type the way the other field modes are.
+  {
+    name: "FileInput",
+    category: "form",
+    label: "File input",
+    icon: "input",
+    expand: (n) =>
+      lower(n, "input", {
+        attrs: formAttrs(n, { type: "file" }, [...FIELD_KEYS, "accept", "multiple"]),
+      }),
+  },
+  // FloatingLabel — <label> wrapping the control, caption LAST (the CSS floats
+  // it via the control's :placeholder-shown, which needs the sibling order the
+  // React component also produces: control first, caption second).
+  {
+    name: "FloatingLabel",
+    category: "form",
+    label: "Floating label",
+    icon: "label",
+    container: true,
+    expand: (n) => {
+      const caption = n.props?.label;
+      const children: Child[] = [...(n.children ?? [])];
+      if (caption != null) children.push(elc("span", undefined, [String(caption)]));
+      return lower(n, "label", { class: n.class ?? "floating-label", children });
+    },
   },
   // Textarea — a multi-line <textarea>; text/children are its value.
   {
@@ -785,27 +856,30 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
   // Checkbox / Radio / Toggle — native <input>s of the matching type. Toggle shares
-  // checkbox semantics; only its class (`toggle`) makes it a switch.
+  // checkbox semantics; only its class (`toggle`) plus role="switch" makes it a switch.
   {
     name: "Checkbox",
     category: "form",
     label: "Checkbox",
     icon: "checkbox",
-    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "checkbox" }, CHECK_KEYS) }),
+    container: true,
+    expand: (n) => checkControl(n, "checkbox"),
   },
   {
     name: "Radio",
     category: "form",
     label: "Radio",
     icon: "radio",
-    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "radio" }, CHECK_KEYS) }),
+    container: true,
+    expand: (n) => checkControl(n, "radio"),
   },
   {
     name: "Toggle",
     category: "form",
     label: "Toggle",
     icon: "toggle",
-    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "checkbox" }, CHECK_KEYS) }),
+    container: true,
+    expand: (n) => checkControl(n, "checkbox", { role: "switch" }),
   },
 
   // Simple element atoms.
@@ -852,6 +926,29 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
   elementDef("Card", "layout", "box", "div", true),
+  // SelectableCard — a card that IS an option tile: a real (visually hidden)
+  // radio/checkbox inside a <label>, so the whole card is the click target and
+  // the selection posts with the form. Matches the React component's DOM.
+  {
+    name: "SelectableCard",
+    category: "form",
+    label: "Selectable card",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const type = n.props?.type === "checkbox" ? "checkbox" : "radio";
+      const input = elc(
+        "input",
+        "card-selectable-indicator",
+        undefined,
+        formAttrs(n, { type }, CHECK_KEYS),
+      );
+      return lower(n, "label", {
+        class: n.class ?? "card card-selectable",
+        children: [input, ...(n.children ?? [])],
+      });
+    },
+  },
   elementDef("Section", "layout", "section", "section", true),
   elementDef("Container", "layout", "box", "div", true),
   elementDef("Grid", "layout", "grid", "div", true),
@@ -1058,8 +1155,30 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     category: "feedback",
     label: "Alert",
     icon: "warning",
-    expand: (n) =>
-      lower(n, "div", { attrs: { role: "alert" }, children: textChildren(n, "text") ?? ["Alert message"] }),
+    // `dismissible` is a real feature in the React layer AND has a working
+    // `dismiss` handler in silicaui-behaviors — but this macro used to emit a
+    // bare <div role="alert">, so a static/Sparx page rendered no close button
+    // at all. Emitting the button + the behavior marker is what makes the
+    // feature exist outside React.
+    expand: (n) => {
+      const children: Child[] = textChildren(n, "text") ?? ["Alert message"];
+      if (!n.props?.dismissible) {
+        return lower(n, "div", { attrs: { role: "alert" }, children });
+      }
+      const close = elc(
+        "button",
+        "alert-close",
+        [{ kind: "component", component: "Icon", props: { name: "close" } }],
+        { type: "button", "aria-label": "Dismiss" },
+      );
+      close.part = "trigger";
+      const out = lower(n, "div", {
+        attrs: { role: "alert" },
+        children: [...children, close],
+      });
+      if (!out.behavior) out.behavior = { type: "dismiss" };
+      return out;
+    },
   },
   // Progress — a track div + a fill div whose LITERAL width utility encodes value.
   {
@@ -1172,6 +1291,20 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   elementDef("MockupWindow", "media", "box", "div", true),
   elementDef("MockupBrowser", "media", "box", "div", true),
   elementDef("MockupCode", "media", "box", "div", true),
+  // MockupCodeLine — a <pre> row inside MockupCode. The gutter marker is a real
+  // `data-prefix` attribute the CSS reads, not text content.
+  {
+    name: "MockupCodeLine",
+    category: "media",
+    label: "Code line",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = {};
+      if (n.props?.prefix != null) attrs["data-prefix"] = String(n.props.prefix);
+      return lower(n, "pre", { attrs, children: textChildren(n, "text") });
+    },
+  },
   elementDef("MockupPhone", "media", "box", "div", true),
   elementDef("List", "data", "box", "div", true),
   elementDef("Dock", "nav", "sidebar", "div", true),
@@ -1301,10 +1434,9 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     label: "Checkbox option",
     icon: "checkbox",
     container: true,
-    expand: (n) => {
-      const input = elc("input", undefined, undefined, formAttrs(n, { type: "checkbox" }, CHECK_KEYS));
-      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
-    },
+    // Always the captioned form — `checkControl` keeps the control class on the
+    // <input> where it belongs (see its doc comment).
+    expand: (n) => checkControl(n, "checkbox"),
   },
   // Swap — a hidden checkbox driving a pure-CSS cross-fade between two children
   // (`.swap-on` / `.swap-off`, authored by the host as the node's children).
@@ -1404,10 +1536,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     label: "Radio option",
     icon: "radio",
     container: true,
-    expand: (n) => {
-      const input = elc("input", undefined, undefined, formAttrs(n, { type: "radio" }, CHECK_KEYS));
-      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
-    },
+    expand: (n) => checkControl(n, "radio"),
   },
   // Stats — a flex row grouping multiple Stat blocks (mirrors AvatarGroup).
   elementDef("Stats", "data", "stat", "div", true),

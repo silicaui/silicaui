@@ -6,7 +6,7 @@
  * alongside `resolveTree`, not here.
  */
 import type * as React from "react";
-import type { DataBinding, DataScope, DataSource, HostNode, Node, Resolved, ResolveHost } from "@wizeworks/silicaui-html";
+import type { DataBinding, DataSource, HostNode, Node, ResolveHost } from "@wizeworks/silicaui-html";
 import type { ClassValidator } from "@wizeworks/silicaui-html";
 import type { PaletteGroup } from "../palette";
 import type { StarterContribution } from "../component-starters";

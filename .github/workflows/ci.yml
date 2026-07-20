@@ -33,8 +33,20 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      # Every package's own probe suite plus the byte-identical HTML golden.
+      # These existed for a while but nothing ran them in CI, so a regression
+      # they were written to catch could still land on main.
+      - name: Verify
+        run: pnpm verify
+
       - name: Typecheck
         run: pnpm typecheck
+
+      # Correctness-only lint. Also runs the RuleTester for the local
+      # no-dom-in-state-initializer rule, which catches the SSR hydration bug
+      # class that eslint-plugin-ssr-friendly structurally cannot see.
+      - name: Lint
+        run: pnpm lint
 
   site:
     name: Build site (smoke test)

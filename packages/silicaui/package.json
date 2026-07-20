@@ -27,9 +27,12 @@
   "scripts": {
     "build": "echo \"(no build step — ships as source)\"",
     "typecheck": "echo \"(js plugin — no typecheck yet)\"",
-    "verify": "pnpm verify:layering && pnpm verify:field-border",
+    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale",
     "verify:layering": "node scripts/verify-layering.mjs",
-    "verify:field-border": "node scripts/verify-field-border.mjs"
+    "verify:field-border": "node scripts/verify-field-border.mjs",
+    "verify:icon-sizing": "node scripts/verify-icon-sizing.mjs",
+    "verify:size-scale": "node scripts/verify-size-scale.mjs",
+    "verify:variant-scale": "node scripts/verify-variant-scale.mjs"
   },
   "peerDependencies": {
     "tailwindcss": ">=4.3.0"

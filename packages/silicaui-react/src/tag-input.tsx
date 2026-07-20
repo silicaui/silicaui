@@ -1,9 +1,9 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
-import type { SilicaColor } from "./lib/tokens";
+import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
-export type TagInputSize = "sm" | "md" | "lg";
+export type TagInputSize = SilicaSize;
 
 export interface TagInputProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange" | "color"> {

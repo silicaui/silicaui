@@ -73,6 +73,9 @@ export function meter(colors, prefix = "") {
     [`${sel("-sm")} ${sel("-track")}`]: {
       height: "calc(var(--size-field, 0.25rem) * 1.5)",
     },
+    [`${sel("-md")} ${sel("-track")}`]: {
+      height: "calc(var(--size-field, 0.25rem) * 2)",
+    },
     [`${sel("-lg")} ${sel("-track")}`]: {
       height: "calc(var(--size-field, 0.25rem) * 3)",
     },

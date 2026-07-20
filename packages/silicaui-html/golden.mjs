@@ -82,7 +82,28 @@ const synthetic = e("section", {
         c("Checkbox", { class: "checkbox", props: { name: "agree", checked: true } }),
         c("Radio", { class: "radio", props: { name: "r", value: "1" } }),
         c("Toggle", { class: "toggle", props: { name: "t", disabled: true } }),
+        // Captioned form of the same three: children wrap the control in a
+        // <label> and the control class MUST stay on the <input>, not the
+        // wrapper (routing it to the wrapper left the real control unstyled).
+        c("Checkbox", { class: "checkbox", props: { name: "tos" }, children: ["I agree"] }),
+        c("Radio", { class: "radio", props: { name: "plan", value: "pro" }, children: ["Pro"] }),
+        c("Toggle", { class: "toggle", props: { name: "mail" }, children: ["Email me"] }),
+        c("CheckboxOption", { class: "checkbox", props: { name: "opt" }, children: ["Option A"] }),
+        c("RadioOption", { class: "radio", props: { name: "tier" }, children: ["Basic"] }),
         c("Field", { class: "field", children: [e("label", { class: "field-label", text: "Name" }), c("Input", { class: "input", props: {} })] }),
+        // Components that existed in React but had no -html macro, so a static or
+        // Sparx-rendered page simply could not author them. `accept` here also
+        // locks the sanitizer fix — it was absent from input's allowlist, so the
+        // file filter was silently dropped from every static file input.
+        c("Link", { class: "link link-primary", props: { href: "/docs", text: "Docs & more" } }),
+        c("Link", { class: "link", props: { href: "https://x.test", target: "_blank", rel: "noreferrer" }, children: [e("span", { text: "Out" })] }),
+        c("FileInput", { class: "file-input", props: { name: "cv", accept: "image/*", multiple: true } }),
+        c("FileInput", { props: {} }),
+        c("FloatingLabel", { class: "floating-label", props: { label: "Email" }, children: [c("Input", { class: "input", props: { type: "email", placeholder: " " } })] }),
+        c("SelectableCard", { class: "card card-selectable", props: { name: "plan", value: "pro", checked: true }, children: [c("Heading", { props: { text: "Pro" } })] }),
+        c("SelectableCard", { class: "card card-selectable", props: { type: "checkbox", name: "addons", value: "sso" }, children: ["SSO"] }),
+        c("MockupCodeLine", { props: { prefix: "$", text: "npm i @wizeworks/silicaui" } }),
+        c("MockupCodeLine", { class: "text-success", props: { text: "done & <ok>" } }),
         // Form: auto `form` behavior marker; props.action → action binding; an
         // explicit `data`/`behavior` on the node is respected (never clobbered).
         c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
@@ -99,6 +120,9 @@ const synthetic = e("section", {
         c("Navbar", { class: "navbar", children: [e("div", { class: "navbar-start", text: "SilicaUI" }), e("div", { class: "navbar-end", text: "Sign in" })] }),
         c("Alert", { class: "alert alert-info", props: { text: "Heads up <b> & stuff" } }),
         c("Alert", { class: "alert" }), // default message
+        // Dismissible: close button + `dismiss` behavior marker + inlined icon.
+        // This was React-only until the macro learned to emit it.
+        c("Alert", { class: "alert alert-warning", props: { text: "Closable", dismissible: true } }),
         c("Progress", { class: "progress", props: { value: 70 } }),
         c("Progress", { class: "progress", props: {} }), // default 50 → w-1/2
         c("Loading", { class: "loading loading-md" }),

@@ -2,7 +2,7 @@ import * as React from "react";
 import { Slider as BaseSlider } from "@base-ui-components/react/slider";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
-import type { SilicaColor } from "./lib/tokens";
+import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -10,7 +10,7 @@ type Styled<T extends React.ElementType> = Omit<
 > & { className?: string };
 
 export type SliderColor = SilicaColor;
-export type SliderSize = "sm" | "md" | "lg";
+export type SliderSize = SilicaSize;
 
 export interface SliderProps
   extends Omit<Styled<typeof BaseSlider.Root>, "color"> {

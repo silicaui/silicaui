@@ -74,15 +74,30 @@ export function segmentField(colors, prefix = "") {
     },
 
     // Sizes.
+    [sel("-xs")]: {
+      height: "calc(var(--size-field, 0.25rem) * 6)",
+      fontSize: "0.6875rem",
+      paddingInline: "0.375rem",
+    },
     [sel("-sm")]: {
       height: "calc(var(--size-field, 0.25rem) * 8)",
       fontSize: "0.8125rem",
       paddingInline: "0.5rem",
     },
+    [sel("-md")]: {
+      height: "calc(var(--size-field, 0.25rem) * 10)",
+      fontSize: "0.875rem",
+      paddingInline: "0.625rem",
+    },
     [sel("-lg")]: {
       height: "calc(var(--size-field, 0.25rem) * 12)",
       fontSize: "1rem",
       paddingInline: "0.75rem",
+    },
+    [sel("-xl")]: {
+      height: "calc(var(--size-field, 0.25rem) * 14)",
+      fontSize: "1.125rem",
+      paddingInline: "0.875rem",
     },
   };
 

@@ -44,11 +44,12 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs"
+    "verify": "node verify.mjs && node verify-prop-vocabulary.mjs"
   },
   "peerDependencies": {
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "@wizeworks/silicaui": ">=0.0.0"
   },
   "peerDependenciesMeta": {
     "@wizeworks/silicaui": {

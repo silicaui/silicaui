@@ -1,8 +1,9 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { SilicaSize } from "./lib/tokens";
 
-export type EmptyStateSize = "sm" | "md";
+export type EmptyStateSize = SilicaSize;
 
 export interface EmptyStateProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -35,7 +36,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
         ref={ref}
         className={cx(
           sc("empty-state"),
-          size === "sm" && sc("empty-state-sm"),
+          size && size !== "md" && sc(`empty-state-${size}`),
           className,
         )}
         {...rest}

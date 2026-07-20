@@ -66,6 +66,11 @@ export function stat(prefix = "") {
       gridRow: "1 / span 3",
       placeSelf: "center",
       color: "var(--stat-figure, var(--color-primary))",
+
+      // The figure is an icon slot, and it defines an implicit grid column —
+      // an unsized <svg> lets that column's width vary by browser, which shifts
+      // the whole stat's layout, not just the glyph.
+      "& svg": { width: "1.75em", height: "1.75em", flexShrink: "0" },
     },
   };
 }

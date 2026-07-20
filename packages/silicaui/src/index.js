@@ -2,6 +2,7 @@ import plugin from "tailwindcss/plugin";
 import { LIGHT, SEMANTIC_COLORS } from "./colors.js";
 import { buildBase } from "./theme.js";
 import { colorUtilities, softUtilities, glassUtilities } from "./color-utilities.js";
+import { warnUnregisteredColors } from "./lib/warn-unregistered-colors.js";
 import { button } from "./components/button.js";
 import { badge } from "./components/badge.js";
 import { input } from "./components/input.js";
@@ -156,9 +157,13 @@ function parsePrefix(option) {
  */
 export default plugin.withOptions(
   (options = {}) =>
-    ({ addBase, addUtilities }) => {
+    ({ addBase, addUtilities, theme }) => {
       const colors = parseColors(options.colors);
       const prefix = parsePrefix(options.prefix);
+      // A color declared in @theme but left out of `colors:` produces working
+      // `bg-*` utilities and silently missing `btn-*`/`badge-*` variants. Say
+      // so rather than letting it read as "the color is broken".
+      warnUnregisteredColors(theme, colors);
       addBase(buildBase());
       // Components are emitted via addBase, not addComponents, on purpose.
       // Tailwind v4 tree-shakes addComponents/addUtilities output against

@@ -10,7 +10,7 @@ export function TypographyDemo() {
                     <Heading level={1}>Heading 1</Heading>
                     <Heading level={2}>Heading 2</Heading>
                     <Heading level={3}>Heading 3</Heading>
-                    <Heading level={2} size={5}>
+                    <Heading level={2} visualLevel={5}>
                         h2 that reads as h5
                     </Heading>
                     <Text variant="lead">

@@ -250,7 +250,8 @@ export const modal: BehaviorHandler = (root, opts) => {
       const e = ev as KeyboardEvent;
       if (e.key.toLowerCase() === key && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        isOpen() ? close() : open();
+        if (isOpen()) close();
+        else open();
       }
     });
   }

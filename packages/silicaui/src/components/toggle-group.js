@@ -88,11 +88,23 @@ export function toggleGroup(colors, prefix = "") {
       fontSize: "0.75rem",
       "& svg": { width: "0.9rem", height: "0.9rem" },
     },
+    [`${sel("-md")} ${sel("-item")}`]: {
+      height: "calc(var(--size-field, 0.25rem) * 8.5)",
+      paddingInline: "0.8125rem",
+      fontSize: "0.8125rem",
+      "& svg": { width: "1.05rem", height: "1.05rem" },
+    },
     [`${sel("-lg")} ${sel("-item")}`]: {
       height: "calc(var(--size-field, 0.25rem) * 10)",
       paddingInline: "1rem",
       fontSize: "0.9375rem",
       "& svg": { width: "1.2rem", height: "1.2rem" },
+    },
+    [`${sel("-xl")} ${sel("-item")}`]: {
+      height: "calc(var(--size-field, 0.25rem) * 12)",
+      paddingInline: "1.25rem",
+      fontSize: "1.0625rem",
+      "& svg": { width: "1.4rem", height: "1.4rem" },
     },
   };
 

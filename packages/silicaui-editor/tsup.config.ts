@@ -1,5 +1,7 @@
 import { defineConfig } from "tsup";
 
+import { distDir, prependUseClient } from "../../scripts/tsup-use-client.mjs";
+
 export default defineConfig({
   entry: ["src/index.ts"],
   format: ["esm"],
@@ -17,4 +19,9 @@ export default defineConfig({
     /^@tiptap\//,
     /^prosemirror-/,
   ],
+  // Client-only: hooks + a DOM-touching engine. See the helper for why this
+  // can't be a tsup `banner`.
+  async onSuccess() {
+    prependUseClient(distDir(import.meta.url));
+  },
 });

@@ -132,9 +132,13 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
     const [expandedInternal, setExpandedInternal] = React.useState<Set<string>>(
       () => new Set(defaultExpanded ?? []),
     );
-    const expandedSet = expandedControlled
-      ? new Set(expanded)
-      : expandedInternal;
+    // Memoized because the `flatten` useMemo below depends on it: building the
+    // Set inline made a new object every render, so in the CONTROLLED case that
+    // memo never hit and the whole tree re-flattened on every render.
+    const expandedSet = React.useMemo(
+      () => (expandedControlled ? new Set(expanded) : expandedInternal),
+      [expandedControlled, expanded, expandedInternal],
+    );
 
     const selectedControlled = selected !== undefined;
     const [selectedInternal, setSelectedInternal] = React.useState<

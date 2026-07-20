@@ -66,7 +66,7 @@ export function NewComponentButton({ trigger }: { trigger: React.ReactElement })
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/45"
             />
             <Input
-              // eslint-disable-next-line jsx-a11y/no-autofocus -- a picker: focus goes to search
+              // A picker dialog: focus belongs in the search field on open.
               autoFocus
               type="search"
               className="w-full pl-8"

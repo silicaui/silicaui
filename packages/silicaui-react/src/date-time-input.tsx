@@ -115,7 +115,6 @@ export const DateTimeInput = React.forwardRef<HTMLDivElement, DateTimeInputProps
           hour12,
         ),
       );
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value, isControlled, hour12]);
 
     const dateParts = internalDate;

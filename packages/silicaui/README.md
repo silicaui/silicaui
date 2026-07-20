@@ -26,7 +26,32 @@ pnpm add -D @wizeworks/silicaui tailwindcss
 @plugin "@wizeworks/silicaui";
 ```
 
-That's it — every class below is now available anywhere in your markup.
+Every class below is now available anywhere in your markup.
+
+### If you also use `@wizeworks/silicaui-react`, add one more line
+
+```css
+@source "../node_modules/@wizeworks/silicaui-react/dist";
+```
+
+**Why this is required.** Tailwind v4 auto-detects your source files but
+**deliberately never scans `node_modules`**. Silica's own component classes
+(`btn`, `card`, …) are unaffected — the plugin emits them via `addBase`, so
+they always compile. But the React components internally use a handful of
+plain Tailwind utilities (`flex`, `gap-2`, `object-cover`, …), and without
+this line Tailwind never sees them.
+
+That produces a **partial** failure, which is far more confusing than a blank
+page: your buttons and cards look perfect, while dialog footers don't align,
+`Lightbox` has no dimensions, and `soft` / `glass` sit inert. It reads like a
+buggy library. It isn't — it's one missing line.
+
+Adjust the path so it resolves to that `dist` folder from your CSS file. In a
+monorepo the package usually hoists to the workspace root:
+
+```css
+@source "../../../node_modules/@wizeworks/silicaui-react/dist";
+```
 
 ## Colors
 

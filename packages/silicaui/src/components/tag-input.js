@@ -108,13 +108,25 @@ export function tagInput(colors, prefix = "") {
     },
 
     // Sizes.
+    [sel("-xs")]: {
+      minHeight: "calc(var(--size-field, 0.25rem) * 6)",
+      fontSize: "0.6875rem",
+    },
     [sel("-sm")]: {
       minHeight: "calc(var(--size-field, 0.25rem) * 8)",
       fontSize: "0.8125rem",
     },
+    [sel("-md")]: {
+      minHeight: "calc(var(--size-field, 0.25rem) * 10)",
+      fontSize: "0.875rem",
+    },
     [sel("-lg")]: {
       minHeight: "calc(var(--size-field, 0.25rem) * 12)",
       fontSize: "1rem",
+    },
+    [sel("-xl")]: {
+      minHeight: "calc(var(--size-field, 0.25rem) * 14)",
+      fontSize: "1.125rem",
     },
   };
 

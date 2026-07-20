@@ -20,8 +20,23 @@ pnpm add @wizeworks/silicaui-react
 pnpm add -D @wizeworks/silicaui tailwindcss
 ```
 
-Wire the CSS once (see [`@wizeworks/silicaui`](https://www.npmjs.com/package/@wizeworks/silicaui)),
-then:
+```css
+/* your globals.css */
+@import "tailwindcss";
+@plugin "@wizeworks/silicaui";
+@source "../node_modules/@wizeworks/silicaui-react/dist";
+```
+
+**Don't skip the `@source` line.** Tailwind v4 never scans `node_modules`, and
+these components use a few plain Tailwind utilities internally. Without it you
+get a *partial* break — buttons and cards look right while dialog footers
+don't align and `Lightbox` has no size — which reads like a library bug rather
+than a config gap. Adjust the relative path so it resolves to that `dist`
+folder from your CSS file (in a monorepo the package usually hoists to the
+workspace root). Full explanation in the
+[`@wizeworks/silicaui` README](https://www.npmjs.com/package/@wizeworks/silicaui).
+
+Then:
 
 ```tsx
 import { Button } from "@wizeworks/silicaui-react";
@@ -83,6 +98,30 @@ interactive components (`Dialog`, `Select`, …), mark your own component
 > a client reference, not a function.** Always import the class builders from
 > `"@wizeworks/silicaui-react/server"`.
 
+### `render` vs `as`
+
+Two components change what element they render, and which prop you reach for
+depends on *what you're changing* — they are not interchangeable spellings.
+
+| Prop | Takes | Use when | Server-safe |
+| --- | --- | --- | --- |
+| `render` | a React **element** (`<a href="/x" />`) | you're composing with a real element and its props | ❌ — the element serializes without its props |
+| `as` | a **tag name or component** (`"span"`, `Link`) | you're only swapping which element is rendered | ✅ with a string tag |
+
+`render` clones the element you hand it, merging Silica's classes in — which is
+why it needs the real element and breaks across a `"use client"` boundary.
+`as` only decides the tag, so a string like `"span"` crosses that boundary
+fine.
+
+```tsx
+<Button render={<a href="/docs" />}>Docs</Button>   // compose: a link that IS the button
+<Text as="span">Inline copy</Text>                  // swap: same styles, different tag
+<SidebarItem as={Link} href="/settings">Settings</SidebarItem>
+```
+
+Components taking `render`: `Button`, `Badge`, `ClickableCard`.
+Components taking `as`: `Text`, `BlockquoteCite`, `Wordmark`, `SidebarItem`.
+
 ## Components
 
 **125 components**, covering everything from primitives to composite
@@ -91,13 +130,13 @@ interaction patterns:
 | Category | Components |
 | --- | --- |
 | **Actions** | `Button` `DropdownMenu` `Swap` |
-| **Data display** | `Accordion` `Avatar` `Badge` `Card` `Carousel` `Chat` `ChatComposer` `ChatLayout` `ChatMessage` `ChatSystemMessage` `ChatToolCalls` `ChatTypingIndicator` `Collapse` `Countdown` `Diff` `Kbd` `List` `MetadataList` `Meter` `MockupBrowser` `MockupCode` `MockupCodeLine` `MockupPhone` `MockupWindow` `PreviewCard` `Stat` `Table` `Timeline` `Timestamp` |
-| **Data input** | `Autocomplete` `Calendar` `Checkbox` `CheckboxGroup` `ColorPicker` `Combobox` `DateInput` `DatePicker` `DateRangeInput` `DateTimeInput` `Field` `Fieldset` `FileInput` `FileUpload` `Filter` `Form` `Input` `InputGroup` `Join` `Label` `MultiSelect` `NativeSelect` `NumberField` `PasswordInput` `PhoneInput` `PinInput` `Radio` `RadioGroup` `Range` `Rating` `SearchInput` `Select` `SelectionList` `Slider` `Switch` `TagInput` `Textarea` `TimeInput` `Toggle` `ToggleGroup` `Validator` |
+| **Data display** | `Accordion` `Avatar` `Badge` `Card` `Carousel` `Chat` `ChatComposer` `ChatLayout` `ChatMessage` `ChatSystemMessage` `ChatToolCalls` `ChatTypingIndicator` `ClickableCard` `Collapse` `Countdown` `Diff` `Kbd` `List` `MetadataList` `Meter` `MockupBrowser` `MockupCode` `MockupCodeLine` `MockupPhone` `MockupWindow` `PreviewCard` `SelectableCard` `Stat` `Table` `Timeline` `Timestamp` |
+| **Data input** | `Autocomplete` `Calendar` `Checkbox` `CheckboxGroup` `CheckboxOption` `ColorPicker` `Combobox` `DateInput` `DatePicker` `DateRangeInput` `DateRangePicker` `DateTimeInput` `Field` `Fieldset` `FileInput` `FileUpload` `Filter` `FloatingLabel` `Form` `Input` `InputGroup` `Join` `Label` `MultiSelect` `NativeSelect` `NumberField` `PasswordInput` `PhoneInput` `PinInput` `Radio` `RadioGroup` `RadioOption` `Range` `Rating` `SearchInput` `Select` `SelectionList` `Slider` `Switch` `TagInput` `Textarea` `TimeInput` `Toggle` `ToggleGroup` `Validator` |
 | **Navigation** | `Breadcrumb` `Dock` `Link` `Menu` `Menubar` `Navbar` `NavigationMenu` `Outline` `OverflowList` `Pagination` `Sidebar` `Steps` `Tabs` |
 | **Feedback & overlay** | `Alert` `AlertDialog` `ContextMenu` `Dialog` `Drawer` `ImperativeAlertDialogProvider` `Indicator` `Lightbox` `Loading` `Overlay` `Popover` `Progress` `RadialProgress` `Skeleton` `Status` `ToastProvider` `Tooltip` |
 | **Layout** | `AppShell` `Divider` `Footer` `Hero` `Mask` `ScrollArea` `Stack` |
 | **Advanced / composite** | `Collapsible` `CommandPalette` `Dropzone` `EmptyState` `PowerSearch` `ThemeController` `Toolbar` `TreeView` `Wizard` |
-| **Typography** | `Blockquote` `Display` `Heading` `Prose` `Text` `Typography` `Wordmark` |
+| **Typography** | `Blockquote` `Display` `Heading` `Prose` `Text` `Wordmark` |
 
 Composite components with heavier engines are separate packages so this
 package stays dependency-light — install them alongside `@wizeworks/silicaui-react` when

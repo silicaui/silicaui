@@ -389,10 +389,16 @@
             "doc": "Auto-advance every N ms (pauses on hover/focus). Off by default."
           },
           {
-            "name": "onChange",
+            "name": "onValueChange",
             "optional": true,
             "type": "(index: number) => void",
             "doc": "Called with the active slide index whenever it changes."
+          },
+          {
+            "name": "onChange",
+            "optional": true,
+            "type": "(index: number) => void",
+            "doc": "@deprecated Use `onValueChange`. `onChange` is reserved for the native DOM handler on components that wrap a real form element; still honored here so this isn't a breaking change."
           },
           {
             "name": "className",
@@ -1145,6 +1151,44 @@
     "usageExample": null
   },
   {
+    "name": "ClickableCard",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data display",
+    "sourceFile": "silicaui-react/src/card.tsx",
+    "description": "A `Card` that's a whole clickable surface — a `<button>` by default, or any element via `render`.",
+    "props": [
+      {
+        "name": "CardProps",
+        "members": []
+      },
+      {
+        "name": "ClickableCardProps",
+        "extends": "extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, \"type\">",
+        "members": [
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element (e.g. an anchor) while keeping Card's classes and interaction styles. Mirrors Base UI's `render` composition. <ClickableCard render={<a href=\"/projects/silica\" />}>…</ClickableCard> CLIENT COMPONENTS ONLY — from a React Server Component the element loses its props crossing the `\"use client\"` boundary. Style the element directly instead: `clickableCardClasses()` from `@wizeworks/silicaui-react/server`."
+          }
+        ]
+      },
+      {
+        "name": "SelectableCardProps",
+        "extends": "extends Omit<React.InputHTMLAttributes<HTMLInputElement>, \"type\" | \"size\">",
+        "members": [
+          {
+            "name": "type",
+            "optional": true,
+            "type": "\"radio\" | \"checkbox\"",
+            "doc": "`\"radio\"` for a single-select group (shared `name`), `\"checkbox\"` for multi-select. Default `\"radio\"`."
+          }
+        ]
+      }
+    ],
+    "usageExample": null
+  },
+  {
     "name": "Collapse",
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
@@ -1771,6 +1815,44 @@
     "usageExample": "import { PreviewCard, Link, Avatar } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\n\r\nexport function PreviewCardDemo() {\r\n    return (\r\n        <Section title=\"Real use · hover a link to preview the profile\">\r\n            <p className=\"max-w-md text-sm\">\r\n                Reviewed by{\" \"}\r\n                <PreviewCard\r\n                    content={\r\n                        <div className=\"flex items-center gap-3\">\r\n                            <Avatar color=\"primary\" alt=\"Ada Lovelace\">\r\n                                AL\r\n                            </Avatar>\r\n                            <div>\r\n                                <div className=\"font-medium\">Ada Lovelace</div>\r\n                                <div className=\"text-xs opacity-60\">\r\n                                    Founding engineer · @ada\r\n                                </div>\r\n                            </div>\r\n                        </div>\r\n                    }\r\n                    arrow\r\n                >\r\n                    <Link href=\"#\" color=\"primary\">\r\n                        @ada\r\n                    </Link>\r\n                </PreviewCard>{\" \"}\r\n                on the pull request.\r\n            </p>\r\n        </Section>\r\n    );\r\n}"
   },
   {
+    "name": "SelectableCard",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data display",
+    "sourceFile": "silicaui-react/src/card.tsx",
+    "description": "A `Card` that's a selectable option tile — a real `<input type=\"radio\">` / `<input type=\"checkbox\">`, visually hidden, wrapped in a `<label>` so the whole card is the click target. Selection reads as a border + ring in the theme's primary color — no checkbox/radio glyph. Group several with the same `name` for single-select; use `type=\"checkbox\"` for multi-select. <SelectableCard name=\"plan\" value=\"pro\" defaultChecked> <CardTitle>Pro</CardTitle> <p>For growing teams.</p> </SelectableCard>",
+    "props": [
+      {
+        "name": "CardProps",
+        "members": []
+      },
+      {
+        "name": "ClickableCardProps",
+        "extends": "extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, \"type\">",
+        "members": [
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element (e.g. an anchor) while keeping Card's classes and interaction styles. Mirrors Base UI's `render` composition. <ClickableCard render={<a href=\"/projects/silica\" />}>…</ClickableCard> CLIENT COMPONENTS ONLY — from a React Server Component the element loses its props crossing the `\"use client\"` boundary. Style the element directly instead: `clickableCardClasses()` from `@wizeworks/silicaui-react/server`."
+          }
+        ]
+      },
+      {
+        "name": "SelectableCardProps",
+        "extends": "extends Omit<React.InputHTMLAttributes<HTMLInputElement>, \"type\" | \"size\">",
+        "members": [
+          {
+            "name": "type",
+            "optional": true,
+            "type": "\"radio\" | \"checkbox\"",
+            "doc": "`\"radio\"` for a single-select group (shared `name`), `\"checkbox\"` for multi-select. Default `\"radio\"`."
+          }
+        ]
+      }
+    ],
+    "usageExample": null
+  },
+  {
     "name": "Stat",
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
@@ -2204,11 +2286,11 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/checkbox.tsx",
-    "description": "Silica Checkbox — a restyled native `<input type=\"checkbox\">`. All native attributes (`checked`, `defaultChecked`, `onChange`, `disabled`, …) pass through. Pair it with your own `<label>` for a clickable caption.",
+    "description": "Silica Checkbox — a restyled native `<input type=\"checkbox\">`. All native attributes (`checked`, `defaultChecked`, `onChange`, `disabled`, …) pass through. <Checkbox /> // bare; pair with your own <label htmlFor> <Checkbox>Run tests</Checkbox> // captioned; the whole row is clickable",
     "props": [
       {
         "name": "CheckboxProps",
-        "extends": "extends Omit<\n    React.InputHTMLAttributes<HTMLInputElement>,\n    \"size\" | \"color\" | \"type\"\n  >",
+        "extends": "extends Omit<\r\n    React.InputHTMLAttributes<HTMLInputElement>,\r\n    \"size\" | \"color\" | \"type\"\r\n  >",
         "members": [
           {
             "name": "color",
@@ -2221,6 +2303,12 @@
             "optional": true,
             "type": "SilicaSize",
             "doc": "Default `md`."
+          },
+          {
+            "name": "children",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": "Caption. Wraps the control in a `<label>` so the text is a click target."
           }
         ]
       }
@@ -2314,6 +2402,94 @@
       }
     ],
     "usageExample": "import { useState } from \"react\";\r\nimport { CheckboxGroup, CheckboxOption } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\n\r\nexport function CheckboxGroupDemo() {\r\n    const [channels, setChannels] = useState<string[]>([\"email\", \"push\"]);\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Real use · notification channels\">\r\n                <CheckboxGroup value={channels} onValueChange={setChannels} color=\"primary\">\r\n                    <CheckboxOption value=\"email\">Email</CheckboxOption>\r\n                    <CheckboxOption value=\"push\">Push</CheckboxOption>\r\n                    <CheckboxOption value=\"sms\">SMS</CheckboxOption>\r\n                </CheckboxGroup>\r\n                <p className=\"pt-2 text-xs opacity-60\">\r\n                    Selected: {channels.join(\", \") || \"none\"}\r\n                </p>\r\n            </Section>\r\n\r\n            <Section title=\"Horizontal\">\r\n                <CheckboxGroup defaultValue={[\"mon\", \"wed\", \"fri\"]} orientation=\"horizontal\" color=\"primary\">\r\n                    <CheckboxOption value=\"mon\">Mon</CheckboxOption>\r\n                    <CheckboxOption value=\"wed\">Wed</CheckboxOption>\r\n                    <CheckboxOption value=\"fri\">Fri</CheckboxOption>\r\n                </CheckboxGroup>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
+  },
+  {
+    "name": "CheckboxOption",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data input",
+    "sourceFile": "silicaui-react/src/checkbox-group.tsx",
+    "description": "One labeled checkbox within a CheckboxGroup.",
+    "props": [
+      {
+        "name": "CheckboxGroupProps",
+        "extends": "extends Omit<React.HTMLAttributes<HTMLDivElement>, \"onChange\" | \"defaultValue\">",
+        "members": [
+          {
+            "name": "value",
+            "optional": true,
+            "type": "string[]",
+            "doc": "Controlled array of checked values."
+          },
+          {
+            "name": "defaultValue",
+            "optional": true,
+            "type": "string[]",
+            "doc": "Uncontrolled initial checked values."
+          },
+          {
+            "name": "onValueChange",
+            "optional": true,
+            "type": "(value: string[]) => void",
+            "doc": "Fires with the new array of checked values."
+          },
+          {
+            "name": "orientation",
+            "optional": true,
+            "type": "CheckboxGroupOrientation",
+            "doc": "Stack (`vertical`, default) or row (`horizontal`)."
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Disable every option."
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "SilicaColor",
+            "doc": "Default accent color for the options."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "SilicaSize",
+            "doc": "Default size for the options."
+          }
+        ]
+      },
+      {
+        "name": "CheckboxOptionProps",
+        "extends": "extends Omit<React.LabelHTMLAttributes<HTMLLabelElement>, \"onChange\">",
+        "members": [
+          {
+            "name": "value",
+            "optional": false,
+            "type": "string",
+            "doc": "This option's value."
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": ""
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "SilicaColor",
+            "doc": ""
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "SilicaSize",
+            "doc": ""
+          }
+        ]
+      }
+    ],
+    "usageExample": null
   },
   {
     "name": "ColorPicker",
@@ -3133,6 +3309,272 @@
     "usageExample": null
   },
   {
+    "name": "DateRangePicker",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data input",
+    "sourceFile": "silicaui-react/src/date-picker.tsx",
+    "description": "Silica DateRangePicker — an input that opens a two-month `Calendar` to pick a start/end range. Closes once both ends are chosen. <DateRangePicker value={range} onValueChange={setRange} />",
+    "props": [
+      {
+        "name": "DatePickerProps",
+        "members": [
+          {
+            "name": "value",
+            "optional": true,
+            "type": "Date | null",
+            "doc": ""
+          },
+          {
+            "name": "defaultValue",
+            "optional": true,
+            "type": "Date | null",
+            "doc": ""
+          },
+          {
+            "name": "onValueChange",
+            "optional": true,
+            "type": "(value: Date | null) => void",
+            "doc": ""
+          },
+          {
+            "name": "placeholder",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": ""
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": ""
+          },
+          {
+            "name": "weekStartsOn",
+            "optional": true,
+            "type": "Weekday",
+            "doc": ""
+          },
+          {
+            "name": "min",
+            "optional": true,
+            "type": "Date",
+            "doc": ""
+          },
+          {
+            "name": "max",
+            "optional": true,
+            "type": "Date",
+            "doc": ""
+          },
+          {
+            "name": "isDateDisabled",
+            "optional": true,
+            "type": "(date: Date) => boolean",
+            "doc": ""
+          },
+          {
+            "name": "locale",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "formatOptions",
+            "optional": true,
+            "type": "Intl.DateTimeFormatOptions",
+            "doc": "Intl options for the trigger label (default `{ dateStyle: \"medium\" }`)."
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "DatePickerColor",
+            "doc": ""
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "DatePickerSize",
+            "doc": ""
+          },
+          {
+            "name": "side",
+            "optional": true,
+            "type": "DatePickerSide",
+            "doc": ""
+          },
+          {
+            "name": "align",
+            "optional": true,
+            "type": "DatePickerAlign",
+            "doc": ""
+          },
+          {
+            "name": "sideOffset",
+            "optional": true,
+            "type": "number",
+            "doc": ""
+          },
+          {
+            "name": "className",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "popupClassName",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "id",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "\"aria-label\"",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          }
+        ]
+      },
+      {
+        "name": "DateRangePickerProps",
+        "members": [
+          {
+            "name": "value",
+            "optional": true,
+            "type": "DateRange",
+            "doc": ""
+          },
+          {
+            "name": "defaultValue",
+            "optional": true,
+            "type": "DateRange",
+            "doc": ""
+          },
+          {
+            "name": "onValueChange",
+            "optional": true,
+            "type": "(value: DateRange) => void",
+            "doc": ""
+          },
+          {
+            "name": "placeholder",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": ""
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": ""
+          },
+          {
+            "name": "numberOfMonths",
+            "optional": true,
+            "type": "number",
+            "doc": ""
+          },
+          {
+            "name": "weekStartsOn",
+            "optional": true,
+            "type": "Weekday",
+            "doc": ""
+          },
+          {
+            "name": "min",
+            "optional": true,
+            "type": "Date",
+            "doc": ""
+          },
+          {
+            "name": "max",
+            "optional": true,
+            "type": "Date",
+            "doc": ""
+          },
+          {
+            "name": "isDateDisabled",
+            "optional": true,
+            "type": "(date: Date) => boolean",
+            "doc": ""
+          },
+          {
+            "name": "locale",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "formatOptions",
+            "optional": true,
+            "type": "Intl.DateTimeFormatOptions",
+            "doc": ""
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "DatePickerColor",
+            "doc": ""
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "DatePickerSize",
+            "doc": ""
+          },
+          {
+            "name": "side",
+            "optional": true,
+            "type": "DatePickerSide",
+            "doc": ""
+          },
+          {
+            "name": "align",
+            "optional": true,
+            "type": "DatePickerAlign",
+            "doc": ""
+          },
+          {
+            "name": "sideOffset",
+            "optional": true,
+            "type": "number",
+            "doc": ""
+          },
+          {
+            "name": "className",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "popupClassName",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "id",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          },
+          {
+            "name": "\"aria-label\"",
+            "optional": true,
+            "type": "string",
+            "doc": ""
+          }
+        ]
+      }
+    ],
+    "usageExample": null
+  },
+  {
     "name": "DateTimeInput",
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
@@ -3359,7 +3801,7 @@
     "props": [
       {
         "name": "FileInputProps",
-        "extends": "extends Omit<React.InputHTMLAttributes<HTMLInputElement>, \"type\" | \"size\">",
+        "extends": "extends VoidElementProps<\n    Omit<React.InputHTMLAttributes<HTMLInputElement>, \"type\" | \"size\">\n  >",
         "members": [
           {
             "name": "size",
@@ -3495,6 +3937,46 @@
     "usageExample": "import { useState } from \"react\";\r\nimport { Filter, FilterItem } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\nimport { COLORS } from \"../lib/data\";\r\n\r\nconst CATEGORIES = [\"All\", \"Apparel\", \"Footwear\", \"Accessories\", \"Sale\"];\r\n\r\nexport function FilterDemo() {\r\n    const [category, setCategory] = useState<string | undefined>(\"All\");\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Colors\">\r\n                <div className=\"flex flex-col gap-3\">\r\n                    {COLORS.slice(0, 6).map((color) => (\r\n                        <Filter key={color} color={color} defaultValue=\"all\">\r\n                            <FilterItem value=\"all\">All</FilterItem>\r\n                            <FilterItem value=\"new\">New</FilterItem>\r\n                            <FilterItem value=\"sale\">Sale</FilterItem>\r\n                        </Filter>\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Real use · category filter\">\r\n                <div className=\"flex flex-col gap-2\">\r\n                    <Filter color=\"primary\" value={category} onValueChange={setCategory}>\r\n                        {CATEGORIES.map((c) => (\r\n                            <FilterItem key={c} value={c}>\r\n                                {c}\r\n                            </FilterItem>\r\n                        ))}\r\n                    </Filter>\r\n                    <p className=\"text-sm opacity-60\">\r\n                        Showing: {category ?? \"nothing selected\"}\r\n                    </p>\r\n                </div>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
   },
   {
+    "name": "FloatingLabel",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data input",
+    "sourceFile": "silicaui-react/src/label.tsx",
+    "description": "Silica FloatingLabel — a caption that rests inside the field and floats up on focus or when the field has a value. <FloatingLabel label=\"Email\"> <Input type=\"email\" /> </FloatingLabel> The \"filled\" state relies on `:placeholder-shown`, so the control needs a placeholder — one (a single space) is injected automatically if you don't set your own.",
+    "props": [
+      {
+        "name": "LabelProps",
+        "extends": "extends React.LabelHTMLAttributes<HTMLLabelElement>",
+        "members": [
+          {
+            "name": "required",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Appends a required-field asterisk after the label text."
+          }
+        ]
+      },
+      {
+        "name": "FloatingLabelProps",
+        "extends": "extends Omit<React.LabelHTMLAttributes<HTMLLabelElement>, \"children\">",
+        "members": [
+          {
+            "name": "label",
+            "optional": false,
+            "type": "React.ReactNode",
+            "doc": "Caption text that floats onto the border when the field is focused/filled."
+          },
+          {
+            "name": "children",
+            "optional": false,
+            "type": "React.ReactElement<{ placeholder?: string }>",
+            "doc": "The control (an `<Input>`, `<Textarea>`, `<select>`, …)."
+          }
+        ]
+      }
+    ],
+    "usageExample": null
+  },
+  {
     "name": "Form",
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
@@ -3517,7 +3999,7 @@
     "props": [
       {
         "name": "InputProps",
-        "extends": "extends Omit<React.InputHTMLAttributes<HTMLInputElement>, \"size\" | \"color\">",
+        "extends": "extends VoidElementProps<\r\n    Omit<React.InputHTMLAttributes<HTMLInputElement>, \"size\" | \"color\">\r\n  >",
         "members": [
           {
             "name": "color",
@@ -3860,7 +4342,7 @@
     "props": [
       {
         "name": "PasswordInputProps",
-        "extends": "extends Omit<\n    React.InputHTMLAttributes<HTMLInputElement>,\n    \"size\" | \"color\" | \"type\"\n  >",
+        "extends": "extends VoidElementProps<\r\n    Omit<\r\n      React.InputHTMLAttributes<HTMLInputElement>,\r\n      \"size\" | \"color\" | \"type\"\r\n    >\r\n  >",
         "members": [
           {
             "name": "color",
@@ -4095,11 +4577,11 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/radio.tsx",
-    "description": "Silica Radio — a restyled native `<input type=\"radio\">`. Group them by giving several the same `name`. All native attributes pass through.",
+    "description": "Silica Radio — a restyled native `<input type=\"radio\">`. Group them by giving several the same `name`. All native attributes pass through. <Radio name=\"plan\" value=\"pro\">Pro</Radio>",
     "props": [
       {
         "name": "RadioProps",
-        "extends": "extends Omit<\n    React.InputHTMLAttributes<HTMLInputElement>,\n    \"size\" | \"color\" | \"type\"\n  >",
+        "extends": "extends Omit<\r\n    React.InputHTMLAttributes<HTMLInputElement>,\r\n    \"size\" | \"color\" | \"type\"\r\n  >",
         "members": [
           {
             "name": "color",
@@ -4112,6 +4594,12 @@
             "optional": true,
             "type": "SilicaSize",
             "doc": "Default `md`."
+          },
+          {
+            "name": "children",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": "Caption. Wraps the control in a `<label>` so the text is a click target."
           }
         ]
       }
@@ -4213,6 +4701,100 @@
     "usageExample": "import { useState } from \"react\";\r\nimport { RadioGroup, RadioOption } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\n\r\nexport function RadioGroupDemo() {\r\n    const [plan, setPlan] = useState(\"pro\");\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Real use · billing plan\">\r\n                <RadioGroup value={plan} onValueChange={setPlan} color=\"primary\">\r\n                    <RadioOption value=\"starter\">Starter — $9/mo</RadioOption>\r\n                    <RadioOption value=\"pro\">Pro — $29/mo</RadioOption>\r\n                    <RadioOption value=\"enterprise\">Enterprise — custom</RadioOption>\r\n                </RadioGroup>\r\n            </Section>\r\n\r\n            <Section title=\"Horizontal\">\r\n                <RadioGroup defaultValue=\"md\" orientation=\"horizontal\" color=\"primary\">\r\n                    <RadioOption value=\"sm\">Small</RadioOption>\r\n                    <RadioOption value=\"md\">Medium</RadioOption>\r\n                    <RadioOption value=\"lg\">Large</RadioOption>\r\n                </RadioGroup>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
   },
   {
+    "name": "RadioOption",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data input",
+    "sourceFile": "silicaui-react/src/radio-group.tsx",
+    "description": "One labeled radio within a RadioGroup.",
+    "props": [
+      {
+        "name": "RadioGroupProps",
+        "extends": "extends Omit<React.HTMLAttributes<HTMLDivElement>, \"onChange\" | \"defaultValue\">",
+        "members": [
+          {
+            "name": "value",
+            "optional": true,
+            "type": "string",
+            "doc": "Controlled selected value."
+          },
+          {
+            "name": "defaultValue",
+            "optional": true,
+            "type": "string",
+            "doc": "Uncontrolled initial value."
+          },
+          {
+            "name": "onValueChange",
+            "optional": true,
+            "type": "(value: string) => void",
+            "doc": "Fires with the newly-selected value."
+          },
+          {
+            "name": "name",
+            "optional": true,
+            "type": "string",
+            "doc": "Shared radio `name` (auto-generated if omitted)."
+          },
+          {
+            "name": "orientation",
+            "optional": true,
+            "type": "RadioGroupOrientation",
+            "doc": "Stack (`vertical`, default) or row (`horizontal`)."
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Disable every option."
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "SilicaColor",
+            "doc": "Default accent color for the options."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "SilicaSize",
+            "doc": "Default size for the options."
+          }
+        ]
+      },
+      {
+        "name": "RadioOptionProps",
+        "extends": "extends Omit<React.LabelHTMLAttributes<HTMLLabelElement>, \"onChange\">",
+        "members": [
+          {
+            "name": "value",
+            "optional": false,
+            "type": "string",
+            "doc": "This option's value."
+          },
+          {
+            "name": "disabled",
+            "optional": true,
+            "type": "boolean",
+            "doc": ""
+          },
+          {
+            "name": "color",
+            "optional": true,
+            "type": "SilicaColor",
+            "doc": ""
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "SilicaSize",
+            "doc": ""
+          }
+        ]
+      }
+    ],
+    "usageExample": null
+  },
+  {
     "name": "Range",
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
@@ -4239,7 +4821,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/rating.tsx",
-    "description": "Silica Rating — a row of star buttons. <Rating defaultValue={3} onChange={setStars} /> <Rating value={4.5 | 4} color=\"warning\" readOnly /> Keyboard: arrow keys change the value; Home/End jump to 1/max.",
+    "description": "Silica Rating — a row of star buttons. <Rating defaultValue={3} onValueChange={setStars} /> <Rating value={4.5 | 4} color=\"warning\" readOnly /> Keyboard: arrow keys change the value; Home/End jump to 1/max.",
     "props": [
       {
         "name": "RatingProps",
@@ -4258,10 +4840,16 @@
             "doc": "Initial value when uncontrolled."
           },
           {
+            "name": "onValueChange",
+            "optional": true,
+            "type": "(value: number) => void",
+            "doc": "Called with the new rating whenever it changes."
+          },
+          {
             "name": "onChange",
             "optional": true,
             "type": "(value: number) => void",
-            "doc": "Called when the rating changes."
+            "doc": "@deprecated Use `onValueChange`. `onChange` is reserved for the native DOM handler on components that wrap a real form element; still honored here so this isn't a breaking change."
           },
           {
             "name": "max",
@@ -4302,7 +4890,7 @@
         ]
       }
     ],
-    "usageExample": "import { useState } from \"react\";\r\nimport { Rating } from \"@wizeworks/silicaui-react\";\r\nimport { Section, Row, LabeledRow } from \"../lib/Section\";\r\nimport { COLORS, SIZES } from \"../lib/data\";\r\n\r\nexport function RatingDemo() {\r\n    const [stars, setStars] = useState(3);\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Colors (read-only)\">\r\n                <Row>\r\n                    {COLORS.slice(0, 6).map((color) => (\r\n                        <Rating key={color} color={color} defaultValue={4} readOnly />\r\n                    ))}\r\n                </Row>\r\n            </Section>\r\n\r\n            <Section title=\"Sizes\">\r\n                <div className=\"flex flex-col gap-2\">\r\n                    {SIZES.map((size) => (\r\n                        <Rating key={size} color=\"warning\" size={size} defaultValue={3} readOnly />\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Real use · rate this product\">\r\n                <LabeledRow label={`You rated this ${stars} of 5 stars`}>\r\n                    <Rating color=\"warning\" value={stars} onChange={setStars} />\r\n                </LabeledRow>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
+    "usageExample": "import { useState } from \"react\";\r\nimport { Rating } from \"@wizeworks/silicaui-react\";\r\nimport { Section, Row, LabeledRow } from \"../lib/Section\";\r\nimport { COLORS, SIZES } from \"../lib/data\";\r\n\r\nexport function RatingDemo() {\r\n    const [stars, setStars] = useState(3);\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Colors (read-only)\">\r\n                <Row>\r\n                    {COLORS.slice(0, 6).map((color) => (\r\n                        <Rating key={color} color={color} defaultValue={4} readOnly />\r\n                    ))}\r\n                </Row>\r\n            </Section>\r\n\r\n            <Section title=\"Sizes\">\r\n                <div className=\"flex flex-col gap-2\">\r\n                    {SIZES.map((size) => (\r\n                        <Rating key={size} color=\"warning\" size={size} defaultValue={3} readOnly />\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Real use · rate this product\">\r\n                <LabeledRow label={`You rated this ${stars} of 5 stars`}>\r\n                    <Rating color=\"warning\" value={stars} onValueChange={setStars} />\r\n                </LabeledRow>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
   },
   {
     "name": "SearchInput",
@@ -4313,7 +4901,7 @@
     "props": [
       {
         "name": "SearchInputProps",
-        "extends": "extends Omit<\n    React.InputHTMLAttributes<HTMLInputElement>,\n    \"size\" | \"color\" | \"type\"\n  >",
+        "extends": "extends VoidElementProps<\r\n    Omit<\r\n      React.InputHTMLAttributes<HTMLInputElement>,\r\n      \"size\" | \"color\" | \"type\"\r\n    >\r\n  >",
         "members": [
           {
             "name": "color",
@@ -4837,11 +5425,11 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/toggle.tsx",
-    "description": "Silica Toggle — a restyled native `<input type=\"checkbox\">` presented as a switch. Adds `role=\"switch\"` for assistive tech; all native attributes (`checked`, `onChange`, `disabled`, …) pass through.",
+    "description": "Silica Toggle — a restyled native `<input type=\"checkbox\">` presented as a switch. Adds `role=\"switch\"` for assistive tech; all native attributes (`checked`, `onChange`, `disabled`, …) pass through. <Toggle defaultChecked>Email notifications</Toggle>",
     "props": [
       {
         "name": "ToggleProps",
-        "extends": "extends Omit<\n    React.InputHTMLAttributes<HTMLInputElement>,\n    \"size\" | \"color\" | \"type\"\n  >",
+        "extends": "extends Omit<\r\n    React.InputHTMLAttributes<HTMLInputElement>,\r\n    \"size\" | \"color\" | \"type\"\r\n  >",
         "members": [
           {
             "name": "color",
@@ -4854,6 +5442,12 @@
             "optional": true,
             "type": "SilicaSize",
             "doc": "Default `md`."
+          },
+          {
+            "name": "children",
+            "optional": true,
+            "type": "React.ReactNode",
+            "doc": "Caption. Wraps the control in a `<label>` so the text is a click target."
           }
         ]
       }
@@ -5214,7 +5808,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Navigation",
     "sourceFile": "silicaui-react/src/pagination.tsx",
-    "description": "Silica Pagination — page controls with prev/next and ellipsis. <Pagination page={page} count={12} onChange={setPage} color=\"primary\" />",
+    "description": "Silica Pagination — page controls with prev/next and ellipsis. <Pagination page={page} count={12} onValueChange={setPage} color=\"primary\" />",
     "props": [
       {
         "name": "PaginationProps",
@@ -5233,10 +5827,16 @@
             "doc": "Total number of pages."
           },
           {
-            "name": "onChange",
+            "name": "onValueChange",
             "optional": true,
             "type": "(page: number) => void",
             "doc": "Called with the new page."
+          },
+          {
+            "name": "onChange",
+            "optional": true,
+            "type": "(page: number) => void",
+            "doc": "@deprecated Use `onValueChange`. `onChange` is reserved for the native DOM handler on components that wrap a real form element; still honored here so this isn't a breaking change."
           },
           {
             "name": "siblingCount",
@@ -5271,7 +5871,7 @@
         ]
       }
     ],
-    "usageExample": "import { useState } from \"react\";\r\nimport { Pagination } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\nimport { COLORS } from \"../lib/data\";\r\n\r\nexport function PaginationDemo() {\r\n    const [page, setPage] = useState(4);\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Colors\">\r\n                <div className=\"flex flex-col gap-3\">\r\n                    {COLORS.slice(0, 6).map((color) => (\r\n                        <Pagination\r\n                            key={color}\r\n                            color={color}\r\n                            page={3}\r\n                            count={10}\r\n                            onChange={() => {}}\r\n                        />\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Sizes\">\r\n                <div className=\"flex flex-col gap-3\">\r\n                    {([\"xs\", \"sm\", \"md\", \"lg\"] as const).map((size) => (\r\n                        <Pagination\r\n                            key={size}\r\n                            size={size}\r\n                            color=\"primary\"\r\n                            page={3}\r\n                            count={10}\r\n                            onChange={() => {}}\r\n                        />\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Real use · interactive search results\">\r\n                <div className=\"flex max-w-lg flex-col gap-3\">\r\n                    <p className=\"text-sm opacity-70\">\r\n                        Showing page {page} of 12 — 118 results\r\n                    </p>\r\n                    <Pagination\r\n                        color=\"primary\"\r\n                        page={page}\r\n                        count={12}\r\n                        onChange={setPage}\r\n                    />\r\n                </div>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
+    "usageExample": "import { useState } from \"react\";\r\nimport { Pagination } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\nimport { COLORS } from \"../lib/data\";\r\n\r\nexport function PaginationDemo() {\r\n    const [page, setPage] = useState(4);\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Colors\">\r\n                <div className=\"flex flex-col gap-3\">\r\n                    {COLORS.slice(0, 6).map((color) => (\r\n                        <Pagination\r\n                            key={color}\r\n                            color={color}\r\n                            page={3}\r\n                            count={10}\r\n                            onValueChange={() => {}}\r\n                        />\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Sizes\">\r\n                <div className=\"flex flex-col gap-3\">\r\n                    {([\"xs\", \"sm\", \"md\", \"lg\"] as const).map((size) => (\r\n                        <Pagination\r\n                            key={size}\r\n                            size={size}\r\n                            color=\"primary\"\r\n                            page={3}\r\n                            count={10}\r\n                            onValueChange={() => {}}\r\n                        />\r\n                    ))}\r\n                </div>\r\n            </Section>\r\n\r\n            <Section title=\"Real use · interactive search results\">\r\n                <div className=\"flex max-w-lg flex-col gap-3\">\r\n                    <p className=\"text-sm opacity-70\">\r\n                        Showing page {page} of 12 — 118 results\r\n                    </p>\r\n                    <Pagination\r\n                        color=\"primary\"\r\n                        page={page}\r\n                        count={12}\r\n                        onValueChange={setPage}\r\n                    />\r\n                </div>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
   },
   {
     "name": "Sidebar",
@@ -6015,7 +6615,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Feedback & overlay",
     "sourceFile": "silicaui-react/src/radial-progress.tsx",
-    "description": "Silica RadialProgress — a circular progress ring with a centered label. <RadialProgress value={70} color=\"success\" /> <RadialProgress value={40} size=\"7rem\" thickness=\"0.75rem\">40%</RadialProgress> Defaults the label to `{value}%`; pass children to override.",
+    "description": "Silica RadialProgress — a circular progress ring with a centered label. <RadialProgress value={70} color=\"success\" /> <RadialProgress value={40} diameter=\"7rem\" thickness=\"0.75rem\">40%</RadialProgress> Defaults the label to `{value}%`; pass children to override.",
     "props": [
       {
         "name": "RadialProgressProps",
@@ -6028,10 +6628,10 @@
             "doc": "Progress percentage, 0–100."
           },
           {
-            "name": "size",
+            "name": "diameter",
             "optional": true,
             "type": "string",
-            "doc": "Overall diameter (any CSS length). Default `5rem`."
+            "doc": "Overall diameter (any CSS length). Default `5rem`. Named `diameter`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` scale, so `size=\"lg\"` used to type-check here and emit `--size: lg` — an invalid length that silently collapsed the ring. Pairs with `thickness`, which is also a CSS length."
           },
           {
             "name": "thickness",
@@ -6048,7 +6648,7 @@
         ]
       }
     ],
-    "usageExample": "import { useState, useEffect } from \"react\";\r\nimport { RadialProgress } from \"@wizeworks/silicaui-react\";\r\nimport { Section, Row } from \"../lib/Section\";\r\nimport { COLORS } from \"../lib/data\";\r\n\r\nexport function RadialProgressDemo() {\r\n    const [pct, setPct] = useState(0);\r\n\r\n    useEffect(() => {\r\n        const id = setInterval(() => setPct((p) => (p >= 100 ? 0 : p + 5)), 200);\r\n        return () => clearInterval(id);\r\n    }, []);\r\n\r\n    return (\r\n        <>\r\n            <Section title=\"Colors\">\r\n                <Row>\r\n                    {COLORS.slice(0, 6).map((color) => (\r\n                        <RadialProgress key={color} value={70} color={color} />\r\n                    ))}\r\n                </Row>\r\n            </Section>\r\n\r\n            <Section title=\"Sizes\">\r\n                <Row>\r\n                    <RadialProgress value={60} color=\"primary\" size=\"3rem\" thickness=\"0.35rem\" />\r\n                    <RadialProgress value={60} color=\"primary\" size=\"5rem\" thickness=\"0.5rem\" />\r\n                    <RadialProgress value={60} color=\"primary\" size=\"8rem\" thickness=\"0.75rem\" />\r\n                </Row>\r\n            </Section>\r\n\r\n            <Section title=\"Real use · animated upload progress\">\r\n                <RadialProgress value={pct} color=\"brand\" size=\"6rem\" />\r\n            </Section>\r\n        </>\r\n    );\r\n}"
+    "usageExample": "import { useState, useEffect } from \"react\";\nimport { RadialProgress } from \"@wizeworks/silicaui-react\";\nimport { Section, Row } from \"../lib/Section\";\nimport { COLORS } from \"../lib/data\";\n\nexport function RadialProgressDemo() {\n    const [pct, setPct] = useState(0);\n\n    useEffect(() => {\n        const id = setInterval(() => setPct((p) => (p >= 100 ? 0 : p + 5)), 200);\n        return () => clearInterval(id);\n    }, []);\n\n    return (\n        <>\n            <Section title=\"Colors\">\n                <Row>\n                    {COLORS.slice(0, 6).map((color) => (\n                        <RadialProgress key={color} value={70} color={color} />\n                    ))}\n                </Row>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <Row>\n                    <RadialProgress value={60} color=\"primary\" diameter=\"3rem\" thickness=\"0.35rem\" />\n                    <RadialProgress value={60} color=\"primary\" diameter=\"5rem\" thickness=\"0.5rem\" />\n                    <RadialProgress value={60} color=\"primary\" diameter=\"8rem\" thickness=\"0.75rem\" />\n                </Row>\n            </Section>\n\n            <Section title=\"Real use · animated upload progress\">\n                <RadialProgress value={pct} color=\"brand\" diameter=\"6rem\" />\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "Skeleton",
@@ -6743,10 +7343,16 @@
             "doc": "Uncontrolled initial theme (falls back to stored value, then the target's current `data-theme`, then the first theme)."
           },
           {
-            "name": "onChange",
+            "name": "onValueChange",
             "optional": true,
             "type": "(theme: string) => void",
             "doc": "Called with the new theme when it changes."
+          },
+          {
+            "name": "onChange",
+            "optional": true,
+            "type": "(theme: string) => void",
+            "doc": "@deprecated Use `onValueChange`. `onChange` is reserved for the native DOM handler on components that wrap a real form element; still honored here so this isn't a breaking change."
           },
           {
             "name": "target",
@@ -7011,10 +7617,10 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
-            "name": "size",
+            "name": "visualLevel",
             "optional": true,
             "type": "HeadingLevel | \"display\"",
-            "doc": "Visual size override (`1`–`6` or `\"display\"`); omit to use the tag default."
+            "doc": "Visual heading scale (`1`–`6` or `\"display\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
           }
         ]
       },
@@ -7085,10 +7691,10 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
-            "name": "size",
+            "name": "visualLevel",
             "optional": true,
             "type": "HeadingLevel | \"display\"",
-            "doc": "Visual size override (`1`–`6` or `\"display\"`); omit to use the tag default."
+            "doc": "Visual heading scale (`1`–`6` or `\"display\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
           }
         ]
       },
@@ -7159,10 +7765,10 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
-            "name": "size",
+            "name": "visualLevel",
             "optional": true,
             "type": "HeadingLevel | \"display\"",
-            "doc": "Visual size override (`1`–`6` or `\"display\"`); omit to use the tag default."
+            "doc": "Visual heading scale (`1`–`6` or `\"display\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
           }
         ]
       },
@@ -7255,10 +7861,10 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
-            "name": "size",
+            "name": "visualLevel",
             "optional": true,
             "type": "HeadingLevel | \"display\"",
-            "doc": "Visual size override (`1`–`6` or `\"display\"`); omit to use the tag default."
+            "doc": "Visual heading scale (`1`–`6` or `\"display\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
           }
         ]
       },
@@ -7312,80 +7918,6 @@
     "usageExample": null
   },
   {
-    "name": "Typography",
-    "package": "@wizeworks/silicaui-react",
-    "category": "Typography",
-    "sourceFile": "silicaui-react/src/typography.tsx",
-    "description": "",
-    "props": [
-      {
-        "name": "HeadingProps",
-        "extends": "extends React.HTMLAttributes<HTMLHeadingElement>",
-        "members": [
-          {
-            "name": "level",
-            "optional": true,
-            "type": "HeadingLevel",
-            "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
-          },
-          {
-            "name": "size",
-            "optional": true,
-            "type": "HeadingLevel | \"display\"",
-            "doc": "Visual size override (`1`–`6` or `\"display\"`); omit to use the tag default."
-          }
-        ]
-      },
-      {
-        "name": "DisplayProps",
-        "extends": "extends React.HTMLAttributes<HTMLHeadingElement>",
-        "members": [
-          {
-            "name": "level",
-            "optional": true,
-            "type": "HeadingLevel",
-            "doc": "Semantic level for the outline (the look is always `.display`). Default 1."
-          }
-        ]
-      },
-      {
-        "name": "TextProps",
-        "extends": "extends React.HTMLAttributes<HTMLElement>",
-        "members": [
-          {
-            "name": "variant",
-            "optional": true,
-            "type": "TextVariant",
-            "doc": "`body` (default), `lead` (larger intro), or `caption` (small, muted)."
-          },
-          {
-            "name": "as",
-            "optional": true,
-            "type": "React.ElementType",
-            "doc": "Element to render. Default `p`."
-          }
-        ]
-      },
-      {
-        "name": "BlockquoteProps",
-        "members": []
-      },
-      {
-        "name": "BlockquoteCiteProps",
-        "extends": "extends React.HTMLAttributes<HTMLElement>",
-        "members": [
-          {
-            "name": "as",
-            "optional": true,
-            "type": "React.ElementType",
-            "doc": "Element to render. Default `footer`."
-          }
-        ]
-      }
-    ],
-    "usageExample": "import { Heading, Display, Text, Blockquote, BlockquoteCite } from \"@wizeworks/silicaui-react\";\r\nimport { Section, Stack } from \"../lib/Section\";\r\n\r\nexport function TypographyDemo() {\r\n    return (\r\n        <>\r\n            <Section title=\"Heading · semantic level + visual size are independent\">\r\n                <Stack>\r\n                    <Display>Display</Display>\r\n                    <Heading level={1}>Heading 1</Heading>\r\n                    <Heading level={2}>Heading 2</Heading>\r\n                    <Heading level={3}>Heading 3</Heading>\r\n                    <Heading level={2} size={5}>\r\n                        h2 that reads as h5\r\n                    </Heading>\r\n                    <Text variant=\"lead\">\r\n                        Lead text — a slightly larger, muted intro paragraph.\r\n                    </Text>\r\n                    <Text>Body text — the default paragraph style.</Text>\r\n                    <Text variant=\"caption\">Caption — small, muted, for metadata.</Text>\r\n                </Stack>\r\n            </Section>\r\n\r\n            <Section title=\"Blockquote · pull-quote with attribution\">\r\n                <Stack className=\"max-w-lg\">\r\n                    <Blockquote>\r\n                        “Silica cut our design review time in half — everything just lines\r\n                        up on the same token system.”\r\n                        <BlockquoteCite>Ada Lovelace, Analytical Engines Inc.</BlockquoteCite>\r\n                    </Blockquote>\r\n                    <Blockquote>No attribution needed for a short pull-quote.</Blockquote>\r\n                </Stack>\r\n            </Section>\r\n        </>\r\n    );\r\n}"
-  },
-  {
     "name": "Wordmark",
     "package": "@wizeworks/silicaui-react",
     "category": "Typography",
@@ -7394,7 +7926,7 @@
     "props": [
       {
         "name": "WordmarkProps",
-        "extends": "extends React.HTMLAttributes<HTMLElement>",
+        "extends": "extends Omit<React.AllHTMLAttributes<HTMLElement>, \"color\" | \"size\" | \"src\" | \"alt\" | \"as\">",
         "members": [
           {
             "name": "color",
@@ -7413,12 +7945,6 @@
             "optional": true,
             "type": "React.ElementType",
             "doc": "Render as a different element — typically `\"a\"` when the mark links home."
-          },
-          {
-            "name": "href",
-            "optional": true,
-            "type": "string",
-            "doc": "Link target, when `as=\"a\"`."
           },
           {
             "name": "src",
@@ -7791,7 +8317,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:600"
+    "sourceFile": "silicaui-html/src/component.ts:627"
   },
   {
     "name": "Image",
@@ -7801,7 +8327,7 @@
     "icon": "image",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:620"
+    "sourceFile": "silicaui-html/src/component.ts:647"
   },
   {
     "name": "Video",
@@ -7811,7 +8337,7 @@
     "icon": "video",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:643"
+    "sourceFile": "silicaui-html/src/component.ts:670"
   },
   {
     "name": "Embed",
@@ -7821,7 +8347,7 @@
     "icon": "video",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:685"
+    "sourceFile": "silicaui-html/src/component.ts:712"
   },
   {
     "name": "Heading",
@@ -7831,7 +8357,7 @@
     "icon": "heading",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:720"
+    "sourceFile": "silicaui-html/src/component.ts:747"
   },
   {
     "name": "Icon",
@@ -7841,7 +8367,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:732"
+    "sourceFile": "silicaui-html/src/component.ts:759"
   },
   {
     "name": "Divider",
@@ -7851,7 +8377,17 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:743"
+    "sourceFile": "silicaui-html/src/component.ts:770"
+  },
+  {
+    "name": "Link",
+    "package": "@wizeworks/silicaui-html",
+    "category": "nav",
+    "label": "Link",
+    "icon": "link",
+    "container": true,
+    "behaviors": [],
+    "sourceFile": "silicaui-html/src/component.ts:774"
   },
   {
     "name": "Input",
@@ -7861,7 +8397,27 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:750"
+    "sourceFile": "silicaui-html/src/component.ts:793"
+  },
+  {
+    "name": "FileInput",
+    "package": "@wizeworks/silicaui-html",
+    "category": "form",
+    "label": "File input",
+    "icon": "input",
+    "container": false,
+    "behaviors": [],
+    "sourceFile": "silicaui-html/src/component.ts:805"
+  },
+  {
+    "name": "FloatingLabel",
+    "package": "@wizeworks/silicaui-html",
+    "category": "form",
+    "label": "Floating label",
+    "icon": "label",
+    "container": true,
+    "behaviors": [],
+    "sourceFile": "silicaui-html/src/component.ts:818"
   },
   {
     "name": "Textarea",
@@ -7871,7 +8427,7 @@
     "icon": "textarea",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:761"
+    "sourceFile": "silicaui-html/src/component.ts:832"
   },
   {
     "name": "Select",
@@ -7881,7 +8437,7 @@
     "icon": "select",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:773"
+    "sourceFile": "silicaui-html/src/component.ts:844"
   },
   {
     "name": "Checkbox",
@@ -7889,9 +8445,9 @@
     "category": "form",
     "label": "Checkbox",
     "icon": "checkbox",
-    "container": false,
+    "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:790"
+    "sourceFile": "silicaui-html/src/component.ts:861"
   },
   {
     "name": "Radio",
@@ -7899,9 +8455,9 @@
     "category": "form",
     "label": "Radio",
     "icon": "radio",
-    "container": false,
+    "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:797"
+    "sourceFile": "silicaui-html/src/component.ts:869"
   },
   {
     "name": "Toggle",
@@ -7909,9 +8465,9 @@
     "category": "form",
     "label": "Toggle",
     "icon": "toggle",
-    "container": false,
+    "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:804"
+    "sourceFile": "silicaui-html/src/component.ts:877"
   },
   {
     "name": "Text",
@@ -7941,7 +8497,7 @@
     "icon": "wordmark",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:824"
+    "sourceFile": "silicaui-html/src/component.ts:898"
   },
   {
     "name": "Card",
@@ -7952,6 +8508,16 @@
     "container": true,
     "behaviors": [],
     "sourceFile": "silicaui-html/src/component.ts"
+  },
+  {
+    "name": "SelectableCard",
+    "package": "@wizeworks/silicaui-html",
+    "category": "form",
+    "label": "Selectable card",
+    "icon": "box",
+    "container": true,
+    "behaviors": [],
+    "sourceFile": "silicaui-html/src/component.ts:933"
   },
   {
     "name": "Section",
@@ -8073,7 +8639,7 @@
     "behaviors": [
       "form"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:874"
+    "sourceFile": "silicaui-html/src/component.ts:971"
   },
   {
     "name": "Sidebar",
@@ -8085,7 +8651,7 @@
     "behaviors": [
       "sidebar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:893"
+    "sourceFile": "silicaui-html/src/component.ts:990"
   },
   {
     "name": "SidebarTrigger",
@@ -8095,7 +8661,7 @@
     "icon": "sidebarTrigger",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:914"
+    "sourceFile": "silicaui-html/src/component.ts:1011"
   },
   {
     "name": "SelectionList",
@@ -8107,7 +8673,7 @@
     "behaviors": [
       "selection-list"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:931"
+    "sourceFile": "silicaui-html/src/component.ts:1028"
   },
   {
     "name": "Breadcrumb",
@@ -8117,7 +8683,7 @@
     "icon": "breadcrumb",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:990"
+    "sourceFile": "silicaui-html/src/component.ts:1087"
   },
   {
     "name": "Menu",
@@ -8127,7 +8693,7 @@
     "icon": "nav",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1007"
+    "sourceFile": "silicaui-html/src/component.ts:1104"
   },
   {
     "name": "Steps",
@@ -8137,7 +8703,7 @@
     "icon": "steps",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1021"
+    "sourceFile": "silicaui-html/src/component.ts:1118"
   },
   {
     "name": "Pagination",
@@ -8147,7 +8713,7 @@
     "icon": "pagination",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1036"
+    "sourceFile": "silicaui-html/src/component.ts:1133"
   },
   {
     "name": "Alert",
@@ -8157,7 +8723,7 @@
     "icon": "warning",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1057"
+    "sourceFile": "silicaui-html/src/component.ts:1154"
   },
   {
     "name": "Progress",
@@ -8167,7 +8733,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1066"
+    "sourceFile": "silicaui-html/src/component.ts:1185"
   },
   {
     "name": "Stat",
@@ -8177,7 +8743,7 @@
     "icon": "stat",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1079"
+    "sourceFile": "silicaui-html/src/component.ts:1198"
   },
   {
     "name": "Avatar",
@@ -8187,7 +8753,7 @@
     "icon": "avatar",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1094"
+    "sourceFile": "silicaui-html/src/component.ts:1213"
   },
   {
     "name": "Collapse",
@@ -8197,7 +8763,7 @@
     "icon": "collapse",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1116"
+    "sourceFile": "silicaui-html/src/component.ts:1235"
   },
   {
     "name": "Timeline",
@@ -8207,7 +8773,7 @@
     "icon": "timeline",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1132"
+    "sourceFile": "silicaui-html/src/component.ts:1251"
   },
   {
     "name": "Label",
@@ -8247,7 +8813,7 @@
     "icon": "text",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1162"
+    "sourceFile": "silicaui-html/src/component.ts:1281"
   },
   {
     "name": "Hero",
@@ -8308,6 +8874,16 @@
     "container": true,
     "behaviors": [],
     "sourceFile": "silicaui-html/src/component.ts"
+  },
+  {
+    "name": "MockupCodeLine",
+    "package": "@wizeworks/silicaui-html",
+    "category": "media",
+    "label": "Code line",
+    "icon": "box",
+    "container": true,
+    "behaviors": [],
+    "sourceFile": "silicaui-html/src/component.ts:1297"
   },
   {
     "name": "MockupPhone",
@@ -8497,7 +9073,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1196"
+    "sourceFile": "silicaui-html/src/component.ts:1329"
   },
   {
     "name": "ToolbarCenter",
@@ -8517,7 +9093,7 @@
     "icon": "sidebarTrigger",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1217"
+    "sourceFile": "silicaui-html/src/component.ts:1350"
   },
   {
     "name": "InputGroupButton",
@@ -8527,7 +9103,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1225"
+    "sourceFile": "silicaui-html/src/component.ts:1358"
   },
   {
     "name": "ToolbarButton",
@@ -8537,7 +9113,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1233"
+    "sourceFile": "silicaui-html/src/component.ts:1366"
   },
   {
     "name": "ToolbarLink",
@@ -8547,7 +9123,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1241"
+    "sourceFile": "silicaui-html/src/component.ts:1374"
   },
   {
     "name": "ToolbarSeparator",
@@ -8557,7 +9133,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1249"
+    "sourceFile": "silicaui-html/src/component.ts:1382"
   },
   {
     "name": "ClickableCard",
@@ -8567,7 +9143,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1258"
+    "sourceFile": "silicaui-html/src/component.ts:1391"
   },
   {
     "name": "SearchInput",
@@ -8577,7 +9153,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1274"
+    "sourceFile": "silicaui-html/src/component.ts:1407"
   },
   {
     "name": "PasswordInput",
@@ -8587,7 +9163,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1281"
+    "sourceFile": "silicaui-html/src/component.ts:1414"
   },
   {
     "name": "CheckboxGroup",
@@ -8597,7 +9173,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1291"
+    "sourceFile": "silicaui-html/src/component.ts:1424"
   },
   {
     "name": "CheckboxOption",
@@ -8607,7 +9183,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1299"
+    "sourceFile": "silicaui-html/src/component.ts:1432"
   },
   {
     "name": "Swap",
@@ -8617,7 +9193,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1312"
+    "sourceFile": "silicaui-html/src/component.ts:1444"
   },
   {
     "name": "Display",
@@ -8627,7 +9203,7 @@
     "icon": "heading",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1326"
+    "sourceFile": "silicaui-html/src/component.ts:1458"
   },
   {
     "name": "Timestamp",
@@ -8637,7 +9213,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1341"
+    "sourceFile": "silicaui-html/src/component.ts:1473"
   },
   {
     "name": "EmptyState",
@@ -8647,7 +9223,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1375"
+    "sourceFile": "silicaui-html/src/component.ts:1507"
   },
   {
     "name": "RadioGroup",
@@ -8657,7 +9233,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1394"
+    "sourceFile": "silicaui-html/src/component.ts:1526"
   },
   {
     "name": "RadioOption",
@@ -8667,7 +9243,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1402"
+    "sourceFile": "silicaui-html/src/component.ts:1534"
   },
   {
     "name": "Stats",
@@ -8687,7 +9263,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1418"
+    "sourceFile": "silicaui-html/src/component.ts:1547"
   },
   {
     "name": "RadialProgress",
@@ -8697,7 +9273,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1432"
+    "sourceFile": "silicaui-html/src/component.ts:1561"
   },
   {
     "name": "Accordion",
@@ -8709,7 +9285,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1465"
+    "sourceFile": "silicaui-html/src/component.ts:1594"
   },
   {
     "name": "AccordionItem",
@@ -8729,7 +9305,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1481"
+    "sourceFile": "silicaui-html/src/component.ts:1610"
   },
   {
     "name": "AccordionPanel",
@@ -8739,7 +9315,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1493"
+    "sourceFile": "silicaui-html/src/component.ts:1622"
   },
   {
     "name": "Collapsible",
@@ -8751,7 +9327,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1509"
+    "sourceFile": "silicaui-html/src/component.ts:1638"
   },
   {
     "name": "CollapsibleTrigger",
@@ -8761,7 +9337,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1521"
+    "sourceFile": "silicaui-html/src/component.ts:1650"
   },
   {
     "name": "CollapsiblePanel",
@@ -8771,7 +9347,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1533"
+    "sourceFile": "silicaui-html/src/component.ts:1662"
   },
   {
     "name": "Carousel",
@@ -8783,7 +9359,7 @@
     "behaviors": [
       "carousel"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1551"
+    "sourceFile": "silicaui-html/src/component.ts:1680"
   },
   {
     "name": "CarouselItem",
@@ -8793,7 +9369,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1585"
+    "sourceFile": "silicaui-html/src/component.ts:1714"
   },
   {
     "name": "DropdownMenu",
@@ -8805,7 +9381,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1602"
+    "sourceFile": "silicaui-html/src/component.ts:1731"
   },
   {
     "name": "DropdownMenuTrigger",
@@ -8815,7 +9391,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1614"
+    "sourceFile": "silicaui-html/src/component.ts:1743"
   },
   {
     "name": "DropdownMenuContent",
@@ -8825,7 +9401,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1626"
+    "sourceFile": "silicaui-html/src/component.ts:1755"
   },
   {
     "name": "DropdownMenuItem",
@@ -8835,7 +9411,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1640"
+    "sourceFile": "silicaui-html/src/component.ts:1769"
   },
   {
     "name": "Tabs",
@@ -8847,7 +9423,7 @@
     "behaviors": [
       "tabs"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1655"
+    "sourceFile": "silicaui-html/src/component.ts:1784"
   },
   {
     "name": "TabsList",
@@ -8857,7 +9433,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1671"
+    "sourceFile": "silicaui-html/src/component.ts:1800"
   },
   {
     "name": "TabsTab",
@@ -8867,7 +9443,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1679"
+    "sourceFile": "silicaui-html/src/component.ts:1808"
   },
   {
     "name": "TabsPanel",
@@ -8877,7 +9453,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1691"
+    "sourceFile": "silicaui-html/src/component.ts:1820"
   },
   {
     "name": "Outline",
@@ -8889,7 +9465,7 @@
     "behaviors": [
       "toc"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1708"
+    "sourceFile": "silicaui-html/src/component.ts:1837"
   },
   {
     "name": "Dialog",
@@ -8901,7 +9477,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1741"
+    "sourceFile": "silicaui-html/src/component.ts:1870"
   },
   {
     "name": "DialogTrigger",
@@ -8911,7 +9487,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1753"
+    "sourceFile": "silicaui-html/src/component.ts:1882"
   },
   {
     "name": "DialogBackdrop",
@@ -8921,7 +9497,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1765"
+    "sourceFile": "silicaui-html/src/component.ts:1894"
   },
   {
     "name": "DialogContent",
@@ -8931,7 +9507,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1776"
+    "sourceFile": "silicaui-html/src/component.ts:1905"
   },
   {
     "name": "DialogClose",
@@ -8941,7 +9517,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1791"
+    "sourceFile": "silicaui-html/src/component.ts:1920"
   },
   {
     "name": "DialogTitle",
@@ -8973,7 +9549,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1809"
+    "sourceFile": "silicaui-html/src/component.ts:1938"
   },
   {
     "name": "DrawerTrigger",
@@ -8983,7 +9559,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1821"
+    "sourceFile": "silicaui-html/src/component.ts:1950"
   },
   {
     "name": "DrawerBackdrop",
@@ -8993,7 +9569,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1833"
+    "sourceFile": "silicaui-html/src/component.ts:1962"
   },
   {
     "name": "DrawerContent",
@@ -9003,7 +9579,7 @@
     "icon": "sidebar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1844"
+    "sourceFile": "silicaui-html/src/component.ts:1973"
   },
   {
     "name": "DrawerClose",
@@ -9013,7 +9589,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1860"
+    "sourceFile": "silicaui-html/src/component.ts:1989"
   },
   {
     "name": "DrawerTitle",
@@ -9045,7 +9621,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1879"
+    "sourceFile": "silicaui-html/src/component.ts:2008"
   },
   {
     "name": "AlertDialogTrigger",
@@ -9055,7 +9631,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1891"
+    "sourceFile": "silicaui-html/src/component.ts:2020"
   },
   {
     "name": "AlertDialogBackdrop",
@@ -9065,7 +9641,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1903"
+    "sourceFile": "silicaui-html/src/component.ts:2032"
   },
   {
     "name": "AlertDialogContent",
@@ -9075,7 +9651,7 @@
     "icon": "warning",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1914"
+    "sourceFile": "silicaui-html/src/component.ts:2043"
   },
   {
     "name": "AlertDialogClose",
@@ -9085,7 +9661,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1929"
+    "sourceFile": "silicaui-html/src/component.ts:2058"
   },
   {
     "name": "AlertDialogCancel",
@@ -9095,7 +9671,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1941"
+    "sourceFile": "silicaui-html/src/component.ts:2070"
   },
   {
     "name": "AlertDialogAction",
@@ -9105,7 +9681,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1953"
+    "sourceFile": "silicaui-html/src/component.ts:2082"
   },
   {
     "name": "AlertDialogTitle",
@@ -9137,7 +9713,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1971"
+    "sourceFile": "silicaui-html/src/component.ts:2100"
   },
   {
     "name": "LightboxTrigger",
@@ -9147,7 +9723,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1983"
+    "sourceFile": "silicaui-html/src/component.ts:2112"
   },
   {
     "name": "LightboxBackdrop",
@@ -9157,7 +9733,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1995"
+    "sourceFile": "silicaui-html/src/component.ts:2124"
   },
   {
     "name": "LightboxContent",
@@ -9167,7 +9743,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2006"
+    "sourceFile": "silicaui-html/src/component.ts:2135"
   },
   {
     "name": "LightboxSlide",
@@ -9177,7 +9753,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2021"
+    "sourceFile": "silicaui-html/src/component.ts:2150"
   },
   {
     "name": "LightboxPrev",
@@ -9187,7 +9763,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2033"
+    "sourceFile": "silicaui-html/src/component.ts:2162"
   },
   {
     "name": "LightboxNext",
@@ -9197,7 +9773,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2047"
+    "sourceFile": "silicaui-html/src/component.ts:2176"
   },
   {
     "name": "LightboxClose",
@@ -9207,7 +9783,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2061"
+    "sourceFile": "silicaui-html/src/component.ts:2190"
   },
   {
     "name": "LightboxCounter",
@@ -9217,7 +9793,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2076"
+    "sourceFile": "silicaui-html/src/component.ts:2205"
   },
   {
     "name": "CommandPalette",
@@ -9229,7 +9805,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2091"
+    "sourceFile": "silicaui-html/src/component.ts:2220"
   },
   {
     "name": "CommandPaletteBackdrop",
@@ -9239,7 +9815,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2106"
+    "sourceFile": "silicaui-html/src/component.ts:2235"
   },
   {
     "name": "CommandPaletteContent",
@@ -9249,7 +9825,7 @@
     "icon": "search",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2117"
+    "sourceFile": "silicaui-html/src/component.ts:2246"
   },
   {
     "name": "CommandPaletteInput",
@@ -9259,7 +9835,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2132"
+    "sourceFile": "silicaui-html/src/component.ts:2261"
   },
   {
     "name": "CommandPaletteItem",
@@ -9269,7 +9845,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2145"
+    "sourceFile": "silicaui-html/src/component.ts:2274"
   },
   {
     "name": "Popover",
@@ -9281,7 +9857,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2162"
+    "sourceFile": "silicaui-html/src/component.ts:2291"
   },
   {
     "name": "PopoverTrigger",
@@ -9291,7 +9867,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2174"
+    "sourceFile": "silicaui-html/src/component.ts:2303"
   },
   {
     "name": "PopoverContent",
@@ -9301,7 +9877,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2186"
+    "sourceFile": "silicaui-html/src/component.ts:2315"
   },
   {
     "name": "PopoverClose",
@@ -9311,7 +9887,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2198"
+    "sourceFile": "silicaui-html/src/component.ts:2327"
   },
   {
     "name": "PopoverTitle",
@@ -9343,7 +9919,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2216"
+    "sourceFile": "silicaui-html/src/component.ts:2345"
   },
   {
     "name": "TooltipTrigger",
@@ -9353,7 +9929,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2228"
+    "sourceFile": "silicaui-html/src/component.ts:2357"
   },
   {
     "name": "TooltipContent",
@@ -9363,7 +9939,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2240"
+    "sourceFile": "silicaui-html/src/component.ts:2369"
   },
   {
     "name": "PreviewCard",
@@ -9375,7 +9951,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2255"
+    "sourceFile": "silicaui-html/src/component.ts:2384"
   },
   {
     "name": "PreviewCardTrigger",
@@ -9385,7 +9961,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2267"
+    "sourceFile": "silicaui-html/src/component.ts:2396"
   },
   {
     "name": "PreviewCardContent",
@@ -9395,7 +9971,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2279"
+    "sourceFile": "silicaui-html/src/component.ts:2408"
   },
   {
     "name": "ContextMenu",
@@ -9407,7 +9983,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2297"
+    "sourceFile": "silicaui-html/src/component.ts:2426"
   },
   {
     "name": "ContextMenuTrigger",
@@ -9417,7 +9993,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2309"
+    "sourceFile": "silicaui-html/src/component.ts:2438"
   },
   {
     "name": "ContextMenuContent",
@@ -9427,7 +10003,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2321"
+    "sourceFile": "silicaui-html/src/component.ts:2450"
   },
   {
     "name": "ContextMenuItem",
@@ -9437,7 +10013,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2333"
+    "sourceFile": "silicaui-html/src/component.ts:2462"
   },
   {
     "name": "Menubar",
@@ -9459,7 +10035,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2351"
+    "sourceFile": "silicaui-html/src/component.ts:2480"
   },
   {
     "name": "MenubarTrigger",
@@ -9469,7 +10045,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2363"
+    "sourceFile": "silicaui-html/src/component.ts:2492"
   },
   {
     "name": "MenubarContent",
@@ -9479,7 +10055,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2375"
+    "sourceFile": "silicaui-html/src/component.ts:2504"
   },
   {
     "name": "MenubarItem",
@@ -9489,7 +10065,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2387"
+    "sourceFile": "silicaui-html/src/component.ts:2516"
   },
   {
     "name": "NavigationMenu",
@@ -9511,7 +10087,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2405"
+    "sourceFile": "silicaui-html/src/component.ts:2534"
   },
   {
     "name": "NavigationMenuTrigger",
@@ -9521,7 +10097,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2417"
+    "sourceFile": "silicaui-html/src/component.ts:2546"
   },
   {
     "name": "NavigationMenuContent",
@@ -9531,7 +10107,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2429"
+    "sourceFile": "silicaui-html/src/component.ts:2558"
   },
   {
     "name": "NavigationMenuLink",
@@ -9541,7 +10117,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2441"
+    "sourceFile": "silicaui-html/src/component.ts:2570"
   },
   {
     "name": "Combobox",
@@ -9553,7 +10129,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2456"
+    "sourceFile": "silicaui-html/src/component.ts:2585"
   },
   {
     "name": "Autocomplete",
@@ -9565,7 +10141,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2463"
+    "sourceFile": "silicaui-html/src/component.ts:2592"
   },
   {
     "name": "MultiSelect",
@@ -9577,7 +10153,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2470"
+    "sourceFile": "silicaui-html/src/component.ts:2599"
   },
   {
     "name": "DateInput",
@@ -9589,7 +10165,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2482"
+    "sourceFile": "silicaui-html/src/component.ts:2611"
   },
   {
     "name": "DateRangeInput",
@@ -9601,7 +10177,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2500"
+    "sourceFile": "silicaui-html/src/component.ts:2629"
   },
   {
     "name": "DateTimeInput",
@@ -9613,7 +10189,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2516"
+    "sourceFile": "silicaui-html/src/component.ts:2645"
   },
   {
     "name": "TimeInput",
@@ -9625,7 +10201,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2542"
+    "sourceFile": "silicaui-html/src/component.ts:2671"
   },
   {
     "name": "PinInput",
@@ -9637,7 +10213,7 @@
     "behaviors": [
       "pin-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2568"
+    "sourceFile": "silicaui-html/src/component.ts:2697"
   },
   {
     "name": "Calendar",
@@ -9649,7 +10225,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2613"
+    "sourceFile": "silicaui-html/src/component.ts:2742"
   },
   {
     "name": "DatePicker",
@@ -9661,7 +10237,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2625"
+    "sourceFile": "silicaui-html/src/component.ts:2754"
   },
   {
     "name": "DatePickerTrigger",
@@ -9671,7 +10247,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2637"
+    "sourceFile": "silicaui-html/src/component.ts:2766"
   },
   {
     "name": "DatePickerContent",
@@ -9683,7 +10259,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2649"
+    "sourceFile": "silicaui-html/src/component.ts:2778"
   },
   {
     "name": "DateRangePicker",
@@ -9695,7 +10271,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2663"
+    "sourceFile": "silicaui-html/src/component.ts:2792"
   },
   {
     "name": "DateRangePickerTrigger",
@@ -9705,7 +10281,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2675"
+    "sourceFile": "silicaui-html/src/component.ts:2804"
   },
   {
     "name": "DateRangePickerContent",
@@ -9717,7 +10293,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2687"
+    "sourceFile": "silicaui-html/src/component.ts:2816"
   },
   {
     "name": "TreeView",
@@ -9729,7 +10305,7 @@
     "behaviors": [
       "tree"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2707"
+    "sourceFile": "silicaui-html/src/component.ts:2836"
   },
   {
     "name": "TreeNode",
@@ -9739,7 +10315,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2719"
+    "sourceFile": "silicaui-html/src/component.ts:2848"
   },
   {
     "name": "TreeToggle",
@@ -9749,7 +10325,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2731"
+    "sourceFile": "silicaui-html/src/component.ts:2860"
   },
   {
     "name": "TreeGroup",
@@ -9759,7 +10335,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2745"
+    "sourceFile": "silicaui-html/src/component.ts:2874"
   },
   {
     "name": "Wizard",
@@ -9771,7 +10347,7 @@
     "behaviors": [
       "wizard"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2759"
+    "sourceFile": "silicaui-html/src/component.ts:2888"
   },
   {
     "name": "WizardStep",
@@ -9781,7 +10357,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2771"
+    "sourceFile": "silicaui-html/src/component.ts:2900"
   },
   {
     "name": "WizardPanel",
@@ -9791,7 +10367,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2785"
+    "sourceFile": "silicaui-html/src/component.ts:2914"
   },
   {
     "name": "WizardBack",
@@ -9801,7 +10377,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2797"
+    "sourceFile": "silicaui-html/src/component.ts:2926"
   },
   {
     "name": "WizardNext",
@@ -9811,7 +10387,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2809"
+    "sourceFile": "silicaui-html/src/component.ts:2938"
   },
   {
     "name": "NumberField",
@@ -9823,7 +10399,7 @@
     "behaviors": [
       "number-field"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2827"
+    "sourceFile": "silicaui-html/src/component.ts:2956"
   },
   {
     "name": "ToggleGroup",
@@ -9835,7 +10411,7 @@
     "behaviors": [
       "toggle-group"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2857"
+    "sourceFile": "silicaui-html/src/component.ts:2986"
   },
   {
     "name": "ToggleGroupItem",
@@ -9845,7 +10421,7 @@
     "icon": "toggle",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2875"
+    "sourceFile": "silicaui-html/src/component.ts:3004"
   },
   {
     "name": "Range",
@@ -9857,7 +10433,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2895"
+    "sourceFile": "silicaui-html/src/component.ts:3024"
   },
   {
     "name": "Slider",
@@ -9869,7 +10445,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2896"
+    "sourceFile": "silicaui-html/src/component.ts:3025"
   },
   {
     "name": "Switch",
@@ -9881,7 +10457,7 @@
     "behaviors": [
       "switch"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2902"
+    "sourceFile": "silicaui-html/src/component.ts:3031"
   },
   {
     "name": "Rating",
@@ -9893,7 +10469,7 @@
     "behaviors": [
       "rating"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2926"
+    "sourceFile": "silicaui-html/src/component.ts:3055"
   },
   {
     "name": "ScrollArea",
@@ -9905,7 +10481,7 @@
     "behaviors": [
       "scroll-area"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2962"
+    "sourceFile": "silicaui-html/src/component.ts:3091"
   },
   {
     "name": "OverflowList",
@@ -9917,7 +10493,7 @@
     "behaviors": [
       "overflow-list"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2982"
+    "sourceFile": "silicaui-html/src/component.ts:3111"
   },
   {
     "name": "OverflowListItem",
@@ -9927,7 +10503,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3010"
+    "sourceFile": "silicaui-html/src/component.ts:3139"
   },
   {
     "name": "Dropzone",
@@ -9939,7 +10515,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3027"
+    "sourceFile": "silicaui-html/src/component.ts:3156"
   },
   {
     "name": "FileUpload",
@@ -9951,7 +10527,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3028"
+    "sourceFile": "silicaui-html/src/component.ts:3157"
   },
   {
     "name": "PhoneInput",
@@ -9963,7 +10539,7 @@
     "behaviors": [
       "phone-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3034"
+    "sourceFile": "silicaui-html/src/component.ts:3163"
   },
   {
     "name": "ThemeController",
@@ -9975,7 +10551,7 @@
     "behaviors": [
       "theme-toggle"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3073"
+    "sourceFile": "silicaui-html/src/component.ts:3202"
   },
   {
     "name": "Overlay",
@@ -9985,7 +10561,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3095"
+    "sourceFile": "silicaui-html/src/component.ts:3224"
   },
   {
     "name": "OverlayScrim",
@@ -9995,6 +10571,6 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3103"
+    "sourceFile": "silicaui-html/src/component.ts:3232"
   }
 ]

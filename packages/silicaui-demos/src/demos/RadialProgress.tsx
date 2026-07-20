@@ -23,14 +23,14 @@ export function RadialProgressDemo() {
 
             <Section title="Sizes">
                 <Row>
-                    <RadialProgress value={60} color="primary" size="3rem" thickness="0.35rem" />
-                    <RadialProgress value={60} color="primary" size="5rem" thickness="0.5rem" />
-                    <RadialProgress value={60} color="primary" size="8rem" thickness="0.75rem" />
+                    <RadialProgress value={60} color="primary" diameter="3rem" thickness="0.35rem" />
+                    <RadialProgress value={60} color="primary" diameter="5rem" thickness="0.5rem" />
+                    <RadialProgress value={60} color="primary" diameter="8rem" thickness="0.75rem" />
                 </Row>
             </Section>
 
             <Section title="Real use · animated upload progress">
-                <RadialProgress value={pct} color="brand" size="6rem" />
+                <RadialProgress value={pct} color="brand" diameter="6rem" />
             </Section>
         </>
     );

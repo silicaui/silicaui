@@ -127,5 +127,33 @@ console.log("preview mode — collapsed panels revealed");
   check("accordion: every panel revealed in preview", acPanels.every((p) => !hidden(p)));
 }
 
+// ── Alert dismissal: a feature that existed in React but NOT in static output ─
+// The `dismiss` handler and the `.alert-close` CSS both shipped, while the
+// -html macro emitted a bare <div role="alert"> — so `dismissible` was silently
+// React-only. This walks the whole chain (schema → toHtml → hydrate → click)
+// because a structural markup assertion alone would have passed before the fix
+// too, as long as it only checked the button's presence.
+console.log("alert — dismissible in static output");
+{
+  const node = {
+    kind: "component",
+    component: "Alert",
+    class: "alert alert-warning",
+    props: { text: "Heads up", dismissible: true },
+  };
+  const root = mount(toHtml(node));
+  check("dismissible alert emits a close trigger", !!root.querySelector('[data-sui-part="trigger"]'));
+  check("dismissible alert carries the behavior marker", !!root.querySelector('[data-sui-behavior="dismiss"]'));
+
+  hydrate(root, {});
+  click(root.querySelector('[data-sui-part="trigger"]'));
+  check("clicking the close button removes the alert", !root.querySelector(".alert"));
+
+  // A plain alert must stay inert — no stray button, no marker.
+  const plain = mount(toHtml({ ...node, props: { text: "Heads up" } }));
+  check("non-dismissible alert emits no close button", !plain.querySelector("button"));
+  check("non-dismissible alert has no behavior marker", !plain.querySelector("[data-sui-behavior]"));
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

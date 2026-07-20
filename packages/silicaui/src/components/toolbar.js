@@ -7,7 +7,7 @@
  * hover. `data-orientation="vertical"` stacks it. Separators read their own
  * `data-orientation` (a vertical rule inside a horizontal bar, and vice-versa).
  *
- * `data-size` ("sm" | (default) | "lg") sets `--toolbar-height`/
+ * `data-size` ("xs" | "sm" | "md" | "lg" | "xl") sets `--toolbar-height`/
  * `--toolbar-padding-inline` and the bar's own `font-size`, which its native
  * `.toolbar-button`/`.toolbar-link` parts read — so they resize for free. That
  * cascade is real only for THOSE parts (this module owns both ends of it); a
@@ -70,17 +70,38 @@ export function toolbar(prefix = "") {
       },
 
       // ---- Sizes ----------------------------------------------------------
+      // The full xs–xl scale, so `size` accepts the same vocabulary here as on
+      // every other component. `md` restates the default explicitly rather than
+      // relying on omission, so an authored `data-size="md"` resolves.
+      '&[data-size="xs"]': {
+        "--toolbar-height": "calc(var(--size-field, 0.25rem) * 5)",
+        "--toolbar-padding-inline": "0.25rem",
+        padding: "0.125rem",
+        fontSize: "0.6875rem",
+      },
       '&[data-size="sm"]': {
         "--toolbar-height": "calc(var(--size-field, 0.25rem) * 6)",
         "--toolbar-padding-inline": "0.375rem",
         padding: "0.1875rem",
         fontSize: "0.75rem",
       },
+      '&[data-size="md"]': {
+        "--toolbar-height": "calc(var(--size-field, 0.25rem) * 8)",
+        "--toolbar-padding-inline": "0.5rem",
+        padding: "0.25rem",
+        fontSize: "0.8125rem",
+      },
       '&[data-size="lg"]': {
         "--toolbar-height": "calc(var(--size-field, 0.25rem) * 10)",
         "--toolbar-padding-inline": "0.75rem",
         padding: "0.375rem",
         fontSize: "0.875rem",
+      },
+      '&[data-size="xl"]': {
+        "--toolbar-height": "calc(var(--size-field, 0.25rem) * 12)",
+        "--toolbar-padding-inline": "1rem",
+        padding: "0.5rem",
+        fontSize: "0.9375rem",
       },
 
       // ---- Variant ----------------------------------------------------------

@@ -27,6 +27,12 @@ export function swap(prefix = "") {
         opacity: "0",
         margin: "0",
       },
+
+      // Swap's whole purpose is swapping ICONS (hamburger↔close, sun↔moon), and
+      // both faces are absolutely stacked in one grid cell — so an unsized
+      // <svg> here doesn't just render oddly, it gives the grid cell no
+      // intrinsic size to lay out against, and the result differs per browser.
+      "& svg": { width: "1.25em", height: "1.25em", flexShrink: "0" },
     },
 
     [`${sel("-on")}, ${sel("-off")}`]: {

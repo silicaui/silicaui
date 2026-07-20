@@ -2,6 +2,7 @@ import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
+import { CaptionedControl } from "./lib/captioned-control";
 
 export interface CheckboxProps
   extends Omit<
@@ -12,15 +13,20 @@ export interface CheckboxProps
   color?: SilicaColor;
   /** Default `md`. */
   size?: SilicaSize;
+  /** Caption. Wraps the control in a `<label>` so the text is a click target. */
+  children?: React.ReactNode;
 }
 
 /**
  * Silica Checkbox — a restyled native `<input type="checkbox">`. All native
  * attributes (`checked`, `defaultChecked`, `onChange`, `disabled`, …) pass
- * through. Pair it with your own `<label>` for a clickable caption.
+ * through.
+ *
+ *   <Checkbox />                       // bare; pair with your own <label htmlFor>
+ *   <Checkbox>Run tests</Checkbox>     // captioned; the whole row is clickable
  */
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  function Checkbox({ color, size = "md", className, ...rest }, ref) {
+  function Checkbox({ color, size = "md", className, children, ...rest }, ref) {
     const sc = useSilicaClass();
     const classes = cx(
       sc("checkbox"),
@@ -28,6 +34,12 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       size !== "md" && sc(`checkbox-${size}`),
       className,
     );
-    return <input ref={ref} type="checkbox" className={classes} {...rest} />;
+    return (
+      <CaptionedControl
+        input={<input ref={ref} type="checkbox" className={classes} {...rest} />}
+      >
+        {children}
+      </CaptionedControl>
+    );
   },
 );

@@ -131,8 +131,20 @@ Rules:
 - **`sc()` returns `string | false | null | undefined`** — a bare `sc("x")`
   assigned to `className` fails typecheck. ALWAYS wrap: `className={cx(sc("x"))}`.
 - Compose conditionals inside `cx(...)`: `color && sc(\`widget-${color}\`)`.
-- Controlled/uncontrolled: accept `value`/`defaultValue` + `onChange`; keep an
-  internal state and prefer controlled when `value !== undefined`.
+- **Controlled/uncontrolled: accept `value`/`defaultValue` + `onValueChange`,
+  and use the shared `useControllableState` hook** (`./lib/use-controllable-state`)
+  rather than hand-rolling the `value !== undefined ? mirror : own state` dance:
+
+  ```tsx
+  const [value, setValue] = useControllableState({ value: valueProp, defaultValue, onChange: onValueChange });
+  ```
+
+  **The callback is `onValueChange`, NOT `onChange`.** `onChange` is reserved for
+  the native DOM handler passing through on components that wrap a real form
+  element (`Input`, `Checkbox`, `Textarea`, …) — declaring your own `onChange`
+  shadows it, which is why every component that did has an
+  `Omit<…, "onChange">` sitting in its props type paying for the collision. If
+  you find yourself writing that `Omit`, you picked the wrong name.
 - Canonical examples: **`divider.tsx`** (simple), **`rating.tsx`** (interactive
   state + keyboard), **`accordion.tsx`**/**`tooltip.tsx`** (Base UI).
 
@@ -159,6 +171,21 @@ const asRender = (el: React.ReactElement) => el as React.ReactElement<Record<str
 ```
 - Compose behavior via the **`render` prop**, not `asChild`. A trigger that
   wraps one child element: `<Base.Trigger render={asRender(children)} />`.
+- **`render` vs `as` is a real distinction, not two spellings of one idea.**
+  `render` takes an **element** and clones it (composition — `<Button
+  render={<a href="/x" />}>`); `as` takes a **tag name or component type** and
+  only decides what's rendered (`<Text as="span">`). Pick by what the component
+  actually needs: composing with a caller's element → `render`; swapping the
+  tag → `as`. Do NOT "standardize" an `as` component onto `render`: `render`
+  needs the real element, so it breaks across a `"use client"` boundary, while
+  `as="span"` is a string that crosses it fine. Existing `render` components:
+  `Button`, `Badge`, `ClickableCard`. Existing `as`: `Text`, `BlockquoteCite`,
+  `Wordmark`, `SidebarItem`.
+- **`size` ALWAYS means the `xs`–`xl` token scale** (or a documented subset the
+  CSS actually emits). A prop that means a CSS length or an index is not a
+  `size` — give it its own name (`diameter`, `visualLevel`), or it type-checks
+  into silently-broken output. Enforced by
+  `packages/silicaui-react/verify-prop-vocabulary.mjs`.
 - **Enter/exit animation**: style `[data-starting-style]` / `[data-ending-style]`
   (+ `transform-origin: var(--transform-origin)` for popups). Menus/items use
   `[data-highlighted]`, `[data-disabled]`; selected varies by component (Tabs use
