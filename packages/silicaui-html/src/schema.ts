@@ -202,7 +202,8 @@ export type BehaviorType =
   | "phone-input"
   | "reveal"
   | "countdown"
-  | "tag-input";
+  | "tag-input"
+  | "color-picker";
 
 export type BehaviorRole =
   | "track"
@@ -235,7 +236,8 @@ export type BehaviorRole =
   | "country"
   | "value"
   | "template"
-  | "label";
+  | "label"
+  | "swatch";
 
 /** An authored, id-free, reusable template (a block or a user-saved component). */
 export interface Template {

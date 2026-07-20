@@ -1672,6 +1672,94 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
 
+  // ColorPicker — the real OKLCH editor, not `<input type="color">`. The native
+  // input was the obvious shortcut and is a DIFFERENT control (an sRGB swatch
+  // dialog, not an L/C/H editor); shipping it under this name would misdescribe
+  // what a consumer gets. Structure only — no `style` attributes, since static
+  // output must stay CSP-clean (verify-csp). The handler paints the ramps.
+  {
+    name: "ColorPicker",
+    category: "form",
+    label: "Color picker",
+    icon: "box",
+    container: false,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const value = typeof p.value === "string" ? p.value : "oklch(0.7 0.15 250)";
+
+      const readout = (key: string, cls: string): ElementNode => {
+        const el = elc("span", cls, undefined, { "data-value": key });
+        el.part = "value";
+        return el;
+      };
+
+      const swatch = elc("div", "color-picker-swatch");
+      swatch.part = "swatch";
+      const preview = elc("div", "color-picker-preview", [
+        swatch,
+        elc("div", "color-picker-values", [
+          readout("oklch", "color-picker-value-oklch"),
+          readout("hex", "color-picker-value-hex"),
+        ]),
+      ]);
+
+      const slider = (channel: string, label: string, aria: string, max: number, step: number): ElementNode => {
+        const thumb = elc("span", "color-picker-thumb");
+        thumb.part = "thumb";
+        const track = elc("div", "color-picker-track", [thumb], {
+          "data-channel": channel,
+          role: "slider",
+          "aria-label": aria,
+          "aria-valuemin": 0,
+          "aria-valuemax": max,
+          // aria-valuenow/valuetext are written by the handler; omitted rather
+          // than guessed here, since `expand` must stay pure and can't run the
+          // OKLCH math against an authored string.
+          tabindex: 0,
+          ...(step ? { "data-step": step } : {}),
+        });
+        track.part = "track";
+        return elc("div", "color-picker-slider", [
+          elc("span", "color-picker-slider-label", [label]),
+          track,
+          readout(channel, "color-picker-slider-value"),
+        ]);
+      };
+
+      const hexField = elc("input", "color-picker-hex-input", undefined, {
+        type: "text",
+        spellcheck: false,
+        "aria-label": "Hex color",
+      });
+      hexField.part = "input";
+
+      const children: Child[] = [
+        preview,
+        elc("div", "color-picker-sliders", [
+          slider("l", "L", "Lightness", 1, 0.01),
+          slider("c", "C", "Chroma", 0.37, 0.005),
+          slider("h", "H", "Hue", 360, 1),
+        ]),
+        elc("div", "color-picker-hex", [
+          elc("span", "color-picker-hex-label", ["HEX"]),
+          hexField,
+        ]),
+        elc("input", undefined, undefined, {
+          type: "hidden",
+          name: (p.name as string) ?? "color",
+          value,
+        }),
+      ];
+
+      const out = lower(n, "div", { class: n.class ?? "color-picker", children });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = { value };
+        if (p.format === "hex") params.format = "hex";
+        out.behavior = { type: "color-picker", params };
+      }
+      return out;
+    },
+  },
   // TagInput — chips + a text field. The `template` part is what lets the
   // handler create new chips without hardcoding class names in the runtime,
   // which would break under a SilicaProvider prefix.

@@ -335,5 +335,66 @@ console.log("tag input — chips created by cloning the authored template");
   dispose();
 }
 
+// ── ColorPicker: the real OKLCH editor in vanilla, not `<input type=color>`.
+// Static output is deliberately unpainted (no style attrs — verify-csp), so
+// these checks prove the handler is what makes it functional.
+console.log("color picker — OKLCH editor, painted on hydrate");
+{
+  const node = {
+    kind: "component",
+    component: "ColorPicker",
+    props: { name: "brand", value: "oklch(0.62 0.19 265)" },
+  };
+  const doc = mount(toHtml(node));
+  const root = doc.querySelector(".color-picker");
+  const track = (ch) => doc.querySelector(`[data-channel="${ch}"]`);
+  const readout = (k) => doc.querySelector(`[data-value="${k}"]`);
+  const hiddenInput = () => doc.querySelector('input[type="hidden"]');
+  const hexField = doc.querySelector('[data-sui-part="input"]');
+
+  check("static output carries NO style attribute", !toHtml(node).includes("style="));
+  check("readouts are empty before hydrate", readout("hex").textContent === "");
+
+  const dispose = hydrate(doc, {});
+  check("hydrate seeds from the authored value", track("l").getAttribute("aria-valuenow") === "0.62");
+  check("hex readout is computed from OKLCH", /^#[0-9a-f]{6}$/.test(readout("hex").textContent));
+  check("oklch readout is canonical", readout("oklch").textContent === "oklch(0.62 0.19 265)");
+  check("swatch is painted", !!root.querySelector('[data-sui-part="swatch"]').style.background);
+  check("track gradient is painted", track("h").style.background.includes("linear-gradient"));
+  check("thumb position reflects the value", track("l").querySelector('[data-sui-part="thumb"]').style.left === "62%");
+
+  // Keyboard: the step sizes must match React's exactly.
+  key(track("l"), "ArrowRight");
+  check("ArrowRight steps L by 0.01", Math.abs(Number(track("l").getAttribute("aria-valuenow")) - 0.63) < 1e-9);
+  key(track("h"), "PageUp");
+  check("PageUp steps H by 10", track("h").getAttribute("aria-valuenow") === "275");
+  key(track("c"), "Home");
+  check("Home clamps chroma to its min", track("c").getAttribute("aria-valuenow") === "0");
+  key(track("l"), "End");
+  check("End clamps lightness to its max", track("l").getAttribute("aria-valuenow") === "1");
+
+  check("hidden input tracks the value for form posts", /^oklch\(/.test(hiddenInput().value));
+
+  // Hex entry drives the sliders back the other way — the round trip is the
+  // whole reason the math is duplicated into this package.
+  hexField.value = "#ff0000";
+  hexField.dispatchEvent(new Event("change", { bubbles: true }));
+  check("hex entry updates the channels", Number(track("h").getAttribute("aria-valuenow")) > 25 && Number(track("h").getAttribute("aria-valuenow")) < 35);
+  check("hex entry round-trips back to the same hex", readout("hex").textContent === "#ff0000");
+  check("invalid hex is ignored, not applied", (() => {
+    const before = readout("hex").textContent;
+    hexField.value = "nonsense";
+    hexField.dispatchEvent(new Event("change", { bubbles: true }));
+    return readout("hex").textContent === before;
+  })());
+  dispose();
+
+  // `format: "hex"` changes only what the form posts, not the editor.
+  const asHex = mount(toHtml({ ...node, props: { ...node.props, format: "hex" } }));
+  const d2 = hydrate(asHex, {});
+  check("format=hex posts a hex value", /^#[0-9a-f]{6}$/.test(asHex.querySelector('input[type="hidden"]').value));
+  d2();
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

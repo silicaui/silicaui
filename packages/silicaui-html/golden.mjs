@@ -144,6 +144,11 @@ const synthetic = e("section", {
         c("TagInput", { props: { value: [], placeholder: "Empty" } }),
         c("TagInput", { props: { value: ["locked"], disabled: true } }), // no remove buttons
         c("TagInput", { props: { value: ["a"], max: 3, allowDuplicates: true, addOnBlur: true } }),
+        // ColorPicker — structure only. The absence of any `style` attribute
+        // here is the point: static output stays CSP-clean and the handler
+        // paints the ramps on hydrate.
+        c("ColorPicker", { class: "color-picker", props: { name: "brand", value: "oklch(0.62 0.19 265)" } }),
+        c("ColorPicker", { props: { format: "hex" } }),
         // Form: auto `form` behavior marker; props.action → action binding; an
         // explicit `data`/`behavior` on the node is respected (never clobbered).
         c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),

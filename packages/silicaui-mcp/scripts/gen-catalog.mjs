@@ -481,8 +481,6 @@ const HTML_EXEMPT = {
   Validator: "pure class-applicator — express as a class on the node",
   // The -html `Select` IS the native <select>; React splits rich vs native.
   NativeSelect: "covered by -html `Select`, which lowers to a native <select>",
-  // Deferred with a known reason (OKLCH color math needs a port).
-  ColorPicker: "deferred — needs the OKLCH picker ported to vanilla",
   // Checked against the existing vocabulary first, per the reuse-before-forking
   // rule. What remains is exempt for a stated reason, not by oversight:
   //   PowerSearch— NOT a missing behavior: an application-integration surface.
