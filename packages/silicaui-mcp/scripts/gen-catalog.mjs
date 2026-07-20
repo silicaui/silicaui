@@ -4,7 +4,7 @@
 // drift into fiction).
 // Run via `pnpm --filter @wizeworks/silicaui-mcp gen`; output is committed
 // under src/data/ (same discipline as silicaui-builder's gen-icons.mjs).
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
@@ -15,6 +15,19 @@ const packagesRoot = path.join(pkgRoot, "..");
 const repoRoot = path.join(packagesRoot, "..");
 const dataDir = path.join(pkgRoot, "src", "data");
 mkdirSync(dataDir, { recursive: true });
+
+// Where `usageExample` comes from. Asserted up front rather than discovered
+// per-component: the per-component read has to tolerate a missing demo (most
+// components have none), so a wrong directory here degrades silently into
+// "every component has no example" — which is exactly what happened when the
+// demos moved out of examples/playground into their own package and this path
+// wasn't updated. All 344 examples vanished with no error.
+const demosDir = path.join(packagesRoot, "silicaui-demos", "src", "demos");
+if (!existsSync(demosDir)) {
+  throw new Error(
+    `gen-catalog: demos directory not found at ${demosDir} — usageExample would be null for every component. Fix the path rather than letting the catalog ship without examples.`,
+  );
+}
 
 // Folder names on disk stay unscoped (packages/silicaui-react/...); only the
 // published/installable identity gets the @wizeworks scope. `scoped()` and
@@ -57,14 +70,13 @@ const PACKAGES = [
   { name: "silicaui-dnd", purpose: "dnd-kit wrapped — SortableList + drag primitives.", install: "pnpm add silicaui-dnd silicaui-react" },
   { name: "silicaui-panels", purpose: "react-resizable-panels wrapped in Silica styling.", install: "pnpm add silicaui-panels silicaui-react" },
 ];
-for (const p of PACKAGES) {
-  try {
-    const pj = JSON.parse(readFileSync(path.join(packagesRoot, p.name, "package.json"), "utf8"));
-    p.version = pj.version;
-  } catch {
-    p.version = "unknown";
-  }
-}
+// NOTE: versions are deliberately NOT written here. `gen` isn't part of
+// `build` or the release, so a version snapshotted at generation time freezes
+// at whatever was current the last time someone ran this by hand — that's how
+// the catalog ended up advertising 0.26.0 after 0.29.0 shipped. The server
+// stamps its own version onto every entry at runtime instead (see VERSION in
+// src/server.ts); the whole family is released in lockstep via changesets
+// `fixed`, so that value is correct for all of them.
 writeJson(
   "packages.json",
   PACKAGES.map((p) => ({
@@ -394,12 +406,10 @@ for (const meta of [...componentMeta, ...wrapperMeta]) {
 
   let usageExample = null;
   try {
-    usageExample = readFileSync(
-      path.join(repoRoot, "examples/playground/src/demos", `${meta.name}.tsx`),
-      "utf8",
-    ).trim();
+    usageExample = readFileSync(path.join(demosDir, `${meta.name}.tsx`), "utf8").trim();
   } catch {
-    // no demo file — leave null
+    // No demo for this component — legitimately common, so stay quiet here.
+    // A WRONG demosDir is caught once, up front, where it can't be missed.
   }
 
   components.push({

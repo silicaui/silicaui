@@ -12,12 +12,47 @@ function loadJson<T>(name: string): T {
   return JSON.parse(readFileSync(path.join(dataDir, `${name}.json`), "utf8")) as T;
 }
 
+/**
+ * The version this catalog documents, read from our OWN package.json at
+ * startup rather than baked into the generated catalog.
+ *
+ * Every package in the family is released in lockstep — they're all listed in
+ * `fixed` in .changeset/config.json, so their versions are identical by
+ * construction — which makes our own version the right answer for all of them.
+ *
+ * This used to be snapshotted into `packages.json` at catalog-generation time,
+ * but `gen` isn't part of `build` or the release, so the number froze at
+ * whichever version happened to be current the last time someone ran it by
+ * hand, and the server reported 0.26.0 while npm served 0.29.0. Reading it at
+ * runtime makes that drift structurally impossible instead of a step someone
+ * has to remember.
+ */
+function readOwnVersion(): string {
+  // `here` is dist/ in a build and src/ in dev; package.json sits one level up
+  // from both, and npm always includes it in the published tarball.
+  try {
+    const pkg = JSON.parse(
+      readFileSync(path.join(here, "..", "package.json"), "utf8"),
+    ) as { version?: unknown };
+    if (typeof pkg.version === "string" && pkg.version) return pkg.version;
+    console.error(
+      "[silicaui-mcp] package.json has no usable `version`; reporting 'unknown'.",
+    );
+  } catch (err) {
+    console.error(
+      `[silicaui-mcp] could not read own package.json (${(err as Error).message}); reporting 'unknown'.`,
+    );
+  }
+  return "unknown";
+}
+
+const VERSION = readOwnVersion();
+
 interface PackageMeta {
   name: string;
   purpose: string;
   install: string | null;
   private?: boolean;
-  version: string;
 }
 
 interface TokensData {
@@ -106,7 +141,7 @@ function blockSummary(b: BlockData) {
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "@wizeworks/silicaui-mcp",
-    version: "0.1.0",
+    version: VERSION,
   });
 
   server.registerTool(
@@ -118,7 +153,17 @@ export function createServer(): McpServer {
       inputSchema: {},
     },
     async () => ({
-      content: [{ type: "text", text: JSON.stringify(packages, null, 2) }],
+      content: [
+        {
+          type: "text",
+          // Version is stamped here, not stored in the catalog — see VERSION.
+          text: JSON.stringify(
+            packages.map((p) => ({ ...p, version: VERSION })),
+            null,
+            2,
+          ),
+        },
+      ],
     }),
   );
 

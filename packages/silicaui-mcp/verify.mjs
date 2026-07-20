@@ -1,6 +1,7 @@
 // Runnable proof the server actually answers every tool over real stdio — not
 // just that it builds. Run against the built output:
 // `pnpm --filter @wizeworks/silicaui-mcp build && node verify.mjs`.
+import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
@@ -26,6 +27,28 @@ check("server registers all 10 tools", tools.tools.length === 10);
 
 const packages = JSON.parse(text(await client.callTool({ name: "list_packages", arguments: {} })));
 check("list_packages returns the family", packages.some((p) => p.name === "@wizeworks/silicaui-react"));
+
+// The catalog once snapshotted versions at generation time, and since `gen`
+// runs neither in `build` nor at release, the number froze — the server
+// advertised 0.26.0 after 0.29.0 had shipped. Versions are now stamped at
+// runtime from our own package.json, so assert against that rather than
+// against any value stored in the catalog.
+const ownVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
+check(
+  `list_packages reports the live version (${ownVersion}) for every package`,
+  packages.length > 0 && packages.every((p) => p.version === ownVersion),
+);
+check(
+  "server identity reports the live version",
+  client.getServerVersion()?.version === ownVersion,
+);
+// Guards the generator: a re-baked `version` would silently win again.
+check(
+  "catalog does NOT store versions (they must stay runtime-stamped)",
+  JSON.parse(readFileSync("src/data/packages.json", "utf8")).every(
+    (p) => !("version" in p),
+  ),
+);
 
 const components = JSON.parse(
   text(await client.callTool({ name: "list_components", arguments: { package: "@wizeworks/silicaui-react" } })),
@@ -63,7 +86,27 @@ const block = JSON.parse(text(await client.callTool({ name: "get_block", argumen
 check("get_block returns the full tree", block.root !== undefined);
 
 const behaviors = JSON.parse(text(await client.callTool({ name: "list_behaviors", arguments: {} })));
-check("list_behaviors returns every registered BehaviorType", behaviors.length === 30 && behaviors.some((b) => b.type === "modal"));
+// Compare against the BehaviorType union itself, not a hardcoded count. The
+// literal `=== 30` this replaced started failing the moment a 31st behavior was
+// registered — reporting a stale test as a broken catalog, and giving a real
+// omission nowhere to show up distinctly.
+const behaviorTypes = new Set(
+  (
+    readFileSync("../silicaui-behaviors/src/types.ts", "utf8")
+      .split("export type BehaviorType =")[1]
+      ?.split(";")[0] ?? ""
+  )
+    .split("|")
+    .map((s) => s.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean),
+);
+const listed = new Set(behaviors.map((b) => b.type));
+const missingBehaviors = [...behaviorTypes].filter((t) => !listed.has(t));
+check(
+  `list_behaviors returns every registered BehaviorType (${behaviorTypes.size})`,
+  behaviorTypes.size > 0 && missingBehaviors.length === 0,
+);
+if (missingBehaviors.length) console.log(`      missingBehaviors: ${missingBehaviors.join(", ")}`);
 
 const behavior = JSON.parse(text(await client.callTool({ name: "get_behavior", arguments: { type: "disclosure" } })));
 check("get_behavior returns a description", behavior.description.includes("trigger"));
