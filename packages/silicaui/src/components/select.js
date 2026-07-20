@@ -41,7 +41,8 @@ export function select(colors, prefix = "") {
       backgroundColor: "var(--color-base-100)",
       borderWidth: "var(--border, 1px)",
       borderStyle: "solid",
-      borderColor: "var(--select-accent, var(--color-base-300))",
+      borderColor:
+        "var(--select-border, var(--select-accent, var(--color-base-300)))",
       borderRadius: "var(--radius-field, 0.25rem)",
       cursor: "pointer",
       appearance: "none",
@@ -98,10 +99,13 @@ export function select(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  // Each color sets only the accent — border + focus ring take that color.
+  // Each color sets the accent (focus ring + focused border) and a softened
+  // resting border. Kept as separate levers so field.js's validation statuses,
+  // which drive the accent alone, keep their solid border.
   for (const name of colors) {
     base[sel(`-${name}`)] = {
       "--select-accent": `var(--color-${name})`,
+      "--select-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
     };
   }
 

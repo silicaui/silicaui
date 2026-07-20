@@ -27,7 +27,8 @@ export function textarea(colors, prefix = "") {
       backgroundColor: "var(--color-base-100)",
       borderWidth: "var(--border, 1px)",
       borderStyle: "solid",
-      borderColor: "var(--textarea-accent, var(--color-base-300))",
+      borderColor:
+        "var(--textarea-border, var(--textarea-accent, var(--color-base-300)))",
       borderRadius: "var(--radius-field, 0.25rem)",
       appearance: "none",
       resize: "vertical",
@@ -83,9 +84,13 @@ export function textarea(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
+  // Accent drives the focus ring + focused border; the separate border lever
+  // softens the resting border (field.js statuses set only the accent, so they
+  // stay solid).
   for (const name of colors) {
     base[sel(`-${name}`)] = {
       "--textarea-accent": `var(--color-${name})`,
+      "--textarea-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
     };
   }
 

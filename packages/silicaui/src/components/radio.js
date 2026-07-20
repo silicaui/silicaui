@@ -25,7 +25,8 @@ export function radio(colors, prefix = "") {
       borderRadius: "9999px",
       borderWidth: "var(--border, 1px)",
       borderStyle: "solid",
-      borderColor: "var(--radio-accent, var(--color-base-300))",
+      borderColor:
+        "var(--radio-border, var(--radio-accent, var(--color-base-300)))",
       backgroundColor: "var(--color-base-100)",
       cursor: "pointer",
       transitionProperty: "background-color, border-color, box-shadow",
@@ -60,7 +61,11 @@ export function radio(colors, prefix = "") {
 
   // ---- Color variants (extensible) -----------------------------------------
   for (const name of colors) {
-    base[sel(`-${name}`)] = { "--radio-accent": `var(--color-${name})` };
+    // Soft border while unchecked; `:checked` repaints border + fill solid.
+    base[sel(`-${name}`)] = {
+      "--radio-accent": `var(--color-${name})`,
+      "--radio-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
+    };
   }
 
   return base;

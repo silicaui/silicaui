@@ -43,7 +43,8 @@ export function checkbox(colors, prefix = "") {
         "min(var(--radius-selector, 0.375rem), calc(var(--checkbox-size) * 0.3))",
       borderWidth: "var(--border, 1px)",
       borderStyle: "solid",
-      borderColor: "var(--checkbox-accent, var(--color-base-300))",
+      borderColor:
+        "var(--checkbox-border, var(--checkbox-accent, var(--color-base-300)))",
       backgroundColor: "var(--color-base-100)",
       cursor: "pointer",
       transitionProperty: "background-color, border-color, box-shadow",
@@ -85,9 +86,12 @@ export function checkbox(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
+  // The border lever softens only the UNCHECKED box; `:checked` paints border
+  // and fill from the accent directly, so a checked box stays fully solid.
   for (const name of colors) {
     base[sel(`-${name}`)] = {
       "--checkbox-accent": `var(--color-${name})`,
+      "--checkbox-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
       "--checkbox-content": contentVar(name),
     };
   }

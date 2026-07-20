@@ -21,18 +21,23 @@
 export function validator(prefix = "") {
   const sel = (suffix = "") => `.${prefix}validator${suffix}`;
 
-  const invalid = {
-    "--input-accent": "var(--color-error)",
-    "--select-accent": "var(--color-error)",
-    "--textarea-accent": "var(--color-error)",
-    borderColor: "var(--color-error)",
-  };
-  const valid = {
-    "--input-accent": "var(--color-success)",
-    "--select-accent": "var(--color-success)",
-    "--textarea-accent": "var(--color-success)",
-    borderColor: "var(--color-success)",
-  };
+  // Each state sets the accent solid and clears `--*-border` back to `initial`.
+  // A decorative color class (`.input-primary`) sets that border lever on the
+  // element to a soft tint; clearing it keeps a validity border solid — the
+  // direct `border-color` below already wins on specificity, but resetting the
+  // lever too means the invariant holds without depending on that.
+  const state = (name) => ({
+    "--input-accent": `var(--color-${name})`,
+    "--select-accent": `var(--color-${name})`,
+    "--textarea-accent": `var(--color-${name})`,
+    "--input-border": "initial",
+    "--select-border": "initial",
+    "--textarea-border": "initial",
+    borderColor: `var(--color-${name})`,
+  });
+
+  const invalid = state("error");
+  const valid = state("success");
 
   return {
     // Invalid: native post-interaction state OR explicit aria flag.

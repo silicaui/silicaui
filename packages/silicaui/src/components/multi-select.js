@@ -12,8 +12,9 @@ import { affordanceButton, textClearance, BOX } from "../lib/field-affordance.js
  * `.select-item`, `.select-item-indicator`, `.combobox-empty`) so every listbox
  * in the system reads identically — this module only adds the chip field.
  *
- * Colored: `.multi-select-<name>` sets `--multi-select-accent`, read by the
- * focus ring and chip fill/text.
+ * Colored: `.multi-select-<name>` sets `--multi-select-accent` (focus ring, chip
+ * fill/text, focused border) and `--multi-select-border` (a softened tint of the
+ * same color for the resting border), matching the other field-tier controls.
  *
  * @param {string[]} colors - color names to generate `.multi-select-<name>` for
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
@@ -33,7 +34,12 @@ export function multiSelect(colors, prefix = "") {
       paddingInlineEnd: textClearance(2),
       paddingBlock: "0.3rem",
       borderRadius: "var(--radius-field, 0.25rem)",
-      border: "var(--border, 1px) solid var(--color-base-300)",
+      // Same two-lever border as the other field-tier controls: the softened
+      // resting tint if a color class set one, else the accent, else neutral.
+      borderWidth: "var(--border, 1px)",
+      borderStyle: "solid",
+      borderColor:
+        "var(--multi-select-border, var(--multi-select-accent, var(--color-base-300)))",
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",
       fontSize: "0.875rem",
@@ -143,8 +149,13 @@ export function multiSelect(colors, prefix = "") {
     },
   };
 
+  // Accent drives the focus ring + chip fill; the border lever softens the
+  // resting border so rest -> focus-within is a visible change.
   for (const name of colors) {
-    base[sel(`-${name}`)] = { "--multi-select-accent": `var(--color-${name})` };
+    base[sel(`-${name}`)] = {
+      "--multi-select-accent": `var(--color-${name})`,
+      "--multi-select-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
+    };
   }
 
   return base;
