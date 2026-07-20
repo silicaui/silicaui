@@ -483,13 +483,18 @@ const HTML_EXEMPT = {
   NativeSelect: "covered by -html `Select`, which lowers to a native <select>",
   // Deferred with a known reason (OKLCH color math needs a port).
   ColorPicker: "deferred — needs the OKLCH picker ported to vanilla",
-  // Interactive, and each needs a genuinely NEW BehaviorType — checked against
-  // the existing vocabulary first, per the reuse-before-forking rule:
-  //   PowerSearch— faceted multi-term query building; `combobox` covers a
-  //                single value, not a term list with per-field value pickers.
+  // Checked against the existing vocabulary first, per the reuse-before-forking
+  // rule. What remains is exempt for a stated reason, not by oversight:
+  //   PowerSearch— NOT a missing behavior: an application-integration surface.
+  //                It is explicitly "a view over `usePowerSearchConfig`" — the
+  //                host supplies live field configs and consumes `value.terms`
+  //                to build API requests. A static document has no state loop
+  //                to hold the other end, so a macro would emit markup for a
+  //                component that cannot function. Same category as
+  //                ToastProvider, for the same reason.
   // (`Filter` and `Countdown` both came off this list — Filter turned out to BE
   //  `toggle-group` plus an optional `close` part; Countdown got a real one.)
-  PowerSearch: "needs a new BehaviorType (faceted multi-term search)",
+  PowerSearch: "application-integration surface, not a document component (see above)",
 };
 const htmlNames = new Set(htmlComponents.map((c) => c.name));
 const reactOnly = components
