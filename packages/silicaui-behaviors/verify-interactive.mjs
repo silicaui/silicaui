@@ -283,5 +283,57 @@ console.log("countdown — live clock, distinct from `counter`");
   d4();
 }
 
+// ── TagInput: the handler CREATES DOM, which nothing else here does. It clones
+// a `template` part so class names come from authored markup — a runtime that
+// built `<span class="tag-input-chip">` itself would emit unprefixed classes
+// and render unstyled under a SilicaProvider prefix. Checked below.
+console.log("tag input — chips created by cloning the authored template");
+{
+  const node = {
+    kind: "component",
+    component: "TagInput",
+    props: { name: "topics", value: ["alpha"], placeholder: "Add a topic" },
+  };
+  const doc = mount(toHtml(node));
+  const root = doc.querySelector(".tag-input");
+  const field = doc.querySelector('[data-sui-part="input"]');
+  const hiddenInput = () => doc.querySelector('input[type="hidden"]');
+  const chips = () => [...root.querySelectorAll('[data-sui-part="item"]')];
+
+  check("authored chip renders", chips().length === 1);
+  check("template does NOT render as a visible chip", root.querySelector("template") !== null);
+
+  const dispose = hydrate(doc, {});
+  check("hidden input seeds from authored chips", hiddenInput().value === "alpha");
+
+  field.value = "beta";
+  key(field, "Enter");
+  check("Enter adds a chip", chips().length === 2);
+  check("new chip carries the typed text", chips()[1].textContent.trim() === "beta");
+  check("hidden input tracks the value", hiddenInput().value === "alpha,beta");
+  check("field clears after adding", field.value === "");
+
+  // The prefix-safety property: the cloned chip must carry the SAME classes the
+  // authored one does, because it came from the template rather than from JS.
+  check(
+    "cloned chip reuses the authored class names",
+    chips()[1].className === chips()[0].className,
+  );
+
+  field.value = "alpha";
+  key(field, "Enter");
+  check("duplicates are rejected by default", chips().length === 2);
+
+  key(field, "Backspace");
+  check("Backspace on an empty field removes the last chip", chips().length === 1);
+  check("hidden input updates after removal", hiddenInput().value === "alpha");
+
+  click(chips()[0].querySelector('[data-sui-part="close"]'));
+  check("clicking a chip's close removes that chip", chips().length === 0);
+  check("hidden input empties", hiddenInput().value === "");
+  check("placeholder returns once empty", field.placeholder === "Add a topic");
+  dispose();
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

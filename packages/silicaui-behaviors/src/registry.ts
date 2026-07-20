@@ -29,6 +29,7 @@ import { themeToggle } from "./behaviors/theme-toggle";
 import { phoneInput } from "./behaviors/phone-input";
 import { reveal } from "./behaviors/reveal";
 import { countdown } from "./behaviors/countdown";
+import { tagInput } from "./behaviors/tag-input";
 import type { BehaviorHandler, BehaviorType } from "./types";
 
 /** The closed dispatch table — one handler per `BehaviorType` (architecture §7). */
@@ -65,4 +66,5 @@ export const HANDLERS: Record<BehaviorType, BehaviorHandler> = {
   "phone-input": phoneInput,
   reveal,
   countdown,
+  "tag-input": tagInput,
 };

@@ -1672,6 +1672,79 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
 
+  // TagInput — chips + a text field. The `template` part is what lets the
+  // handler create new chips without hardcoding class names in the runtime,
+  // which would break under a SilicaProvider prefix.
+  {
+    name: "TagInput",
+    category: "form",
+    label: "Tag input",
+    icon: "input",
+    container: false,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const tags = Array.isArray(p.value) ? (p.value as unknown[]).map(String) : [];
+      const disabled = p.disabled === true;
+
+      const makeChip = (text: string): ElementNode => {
+        const label = elc("span", "tag-input-chip-label", text ? [text] : undefined);
+        label.part = "label";
+        const kids: Child[] = [label];
+        if (!disabled) {
+          const close = elc("button", "tag-input-remove", [{ kind: "component", component: "Icon", props: { name: "close" } }], {
+            type: "button",
+            "aria-label": text ? `Remove ${text}` : "Remove",
+          });
+          close.part = "close";
+          kids.push(close);
+        }
+        const chip = elc("span", "tag-input-chip", kids);
+        chip.part = "item";
+        return chip;
+      };
+
+      const children: Child[] = tags.map(makeChip);
+
+      const field = elc("input", "tag-input-field", undefined, {
+        type: "text",
+        ...(tags.length === 0 && p.placeholder != null ? { placeholder: String(p.placeholder) } : {}),
+        ...(disabled ? { disabled: true } : {}),
+      });
+      field.part = "input";
+      children.push(field);
+
+      // Real form value — chips are comma-joined, matching what React posts.
+      children.push(
+        elc("input", undefined, undefined, {
+          type: "hidden",
+          name: (p.name as string) ?? "tags",
+          value: tags.join(","),
+        }),
+      );
+
+      // The blueprint for chips added at runtime. Empty label on purpose: the
+      // handler fills it, and an authored value here would render as a real
+      // chip in browsers that (correctly) don't render <template> content.
+      const tpl = elc("template", undefined, [makeChip("")]);
+      tpl.part = "template";
+      children.push(tpl);
+
+      const out = lower(n, "div", {
+        class: n.class ?? "tag-input",
+        attrs: disabled ? { "data-disabled": true } : undefined,
+        children,
+      });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = {};
+        if (p.placeholder != null) params.placeholder = String(p.placeholder);
+        if (typeof p.max === "number") params.max = p.max;
+        if (p.allowDuplicates === true) params.allowDuplicates = true;
+        if (p.addOnBlur === true) params.addOnBlur = true;
+        out.behavior = { type: "tag-input", ...(Object.keys(params).length ? { params } : {}) };
+      }
+      return out;
+    },
+  },
   // Countdown — a live clock. Renders the CORRECT values for its build moment
   // rather than zeros, so a page that never hydrates shows a sensible (if
   // frozen) countdown instead of empty boxes; the handler then takes over.

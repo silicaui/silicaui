@@ -38,7 +38,7 @@ const SVG_PRESENTATION: readonly string[] = [
 ];
 
 /** Deliberately excludes `script style object embed link meta base noscript
- *  template iframe`. `iframe` in particular stays out on purpose — it embeds an
+ *  iframe`. `iframe` in particular stays out on purpose — it embeds an
  *  arbitrary origin (script execution, clickjacking, framebusting), a different
  *  threat class from `img`/`video`/`audio`, which only play media from a
  *  scheme-checked URL and so ride the same floor as the already-allowed `img`.
@@ -58,6 +58,15 @@ export const RAW_ELEMENTS: ReadonlyMap<string, RawElementMeta> = new Map(
     aside: { group: "structure" },
     main: { group: "structure" },
     span: { group: "structure" },
+    // `template` is inert by construction: the parser puts its content in a
+    // separate DocumentFragment that is never rendered and never executed, and
+    // its children still pass through sanitizeElement here — a <script> inside
+    // one is downgraded exactly like a <script> anywhere else. It sat in the
+    // exclusion list next to script/iframe/object, which are a different
+    // category (they execute or embed). It's needed so a behavior can clone new
+    // DOM from authored markup instead of constructing it in the runtime, which
+    // is what keeps class names correct under a SilicaProvider prefix.
+    template: { group: "structure" },
 
     // text
     h1: { group: "text" },

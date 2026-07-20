@@ -137,6 +137,13 @@ const synthetic = e("section", {
         c("Countdown", { class: "countdown", props: { to: 1800000000000, from: 1799826600000 } }),
         c("Countdown", { props: { to: 1800000000000, from: 1799999000000, units: ["minutes", "seconds"], plain: true } }),
         c("Countdown", { props: { to: 1800000000000 } }), // no `from` → placeholder values
+        // TagInput — the `template` part is the whole point: it's what lets the
+        // handler clone new chips instead of constructing them with hardcoded
+        // class names, so a prefix regression shows up here as a byte diff.
+        c("TagInput", { class: "tag-input", props: { name: "topics", value: ["alpha", "beta & co"], placeholder: "Add a topic" } }),
+        c("TagInput", { props: { value: [], placeholder: "Empty" } }),
+        c("TagInput", { props: { value: ["locked"], disabled: true } }), // no remove buttons
+        c("TagInput", { props: { value: ["a"], max: 3, allowDuplicates: true, addOnBlur: true } }),
         // Form: auto `form` behavior marker; props.action → action binding; an
         // explicit `data`/`behavior` on the node is respected (never clobbered).
         c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
