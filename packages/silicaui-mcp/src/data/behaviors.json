@@ -85,7 +85,7 @@
   },
   {
     "type": "toggle-group",
-    "description": "`toggle-group` — a toolbar of toggle buttons (`item` parts), not a listbox (distinct ARIA pattern from `selection-list`: `aria-pressed`/`data-pressed` on real buttons, not `aria-selected` on listbox options). `params.multiple` allows several pressed at once (default: single, pressing one un-presses the rest); `params.orientation` (`\"horizontal\"` default | `\"vertical\"`) picks which arrow keys rove focus, matching `tabs`' convention."
+    "description": "`toggle-group` — a toolbar of toggle buttons (`item` parts), not a listbox (distinct ARIA pattern from `selection-list`: `aria-pressed`/`data-pressed` on real buttons, not `aria-selected` on listbox options). `params.multiple` allows several pressed at once (default: single, pressing one un-presses the rest); `params.orientation` (`\"horizontal\"` default | `\"vertical\"`) picks which arrow keys rove focus, matching `tabs`' convention. An OPTIONAL `close` part un-presses everything. That's what makes `Filter` (a single-select chip row with a reset) this behavior rather than a new one: the only delta was one extra control, which is the \"one type, optional parts\" pattern, not a fork. The reset hides itself while nothing is pressed, so a static page renders the same resting state React does."
   },
   {
     "type": "scroll-area",

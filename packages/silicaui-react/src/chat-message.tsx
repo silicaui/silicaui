@@ -59,7 +59,9 @@ export function ChatMessage({
       {!compact && (name != null || time != null) && (
         <ChatFooter>
           {name}
-          {time != null && <time className="opacity-60"> {time}</time>}
+          {/* No opacity: a timestamp is read, and `.chat-footer` already
+              carries the quiet treatment (RULE #3 — scale and color, not fade). */}
+          {time != null && <time> {time}</time>}
         </ChatFooter>
       )}
       {metadata != null && <ChatFooter>{metadata}</ChatFooter>}

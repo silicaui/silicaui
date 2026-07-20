@@ -155,5 +155,87 @@ console.log("alert — dismissible in static output");
   check("non-dismissible alert has no behavior marker", !plain.querySelector("[data-sui-behavior]"));
 }
 
+// ── ChatToolCalls: a composite that REUSES `disclosure` rather than inventing
+// a BehaviorType. Reuse is only correct if it actually hydrates, so this drives
+// the real toggle instead of asserting the marker is present.
+console.log("chat tool calls — reuses the disclosure behavior");
+{
+  const node = {
+    kind: "component",
+    component: "ChatToolCalls",
+    props: { label: "Called search_web(query)" },
+    children: ["{ ok: true }"],
+  };
+  const doc = mount(toHtml(node));
+  const trigger = doc.querySelector('[data-sui-part="trigger"]');
+  const panel = doc.querySelector('[data-sui-part="panel"]');
+  check("emits a trigger + panel", !!trigger && !!panel);
+  check("collapsed before hydrate", hidden(panel));
+
+  const dispose = hydrate(doc, {});
+  click(trigger);
+  check("click trigger: tool-call detail opens", !hidden(panel));
+  check("aria-expanded reflects the open state", trigger.getAttribute("aria-expanded") === "true");
+  click(trigger);
+  check("click again: it closes", hidden(panel));
+  dispose();
+
+  // defaultOpen must survive the round trip, not just the initial render.
+  const openDoc = mount(toHtml({ ...node, props: { ...node.props, defaultOpen: true } }));
+  check("defaultOpen renders expanded", !hidden(openDoc.querySelector('[data-sui-part="panel"]')));
+}
+
+// ── Filter: single-select chips + reset, reusing `toggle-group` rather than
+// adding a BehaviorType. The reset is the handler's optional `close` part, so
+// the plain-toggle-group path must stay untouched — checked both ways below.
+console.log("filter — chips reuse toggle-group, reset is an optional part");
+{
+  const node = {
+    kind: "component",
+    component: "Filter",
+    props: {},
+    children: [
+      { kind: "component", component: "FilterItem", props: { value: "all", text: "All", selected: true } },
+      { kind: "component", component: "FilterItem", props: { value: "gear", text: "Gear" } },
+    ],
+  };
+  const doc = mount(toHtml(node));
+  const chips = [...doc.querySelectorAll('[data-sui-part="item"]')];
+  const reset = doc.querySelector('[data-sui-part="close"]');
+  check("authored: 2 chips + a reset", chips.length === 2 && !!reset);
+
+  const dispose = hydrate(doc, {});
+  check("reset is visible while a chip is pressed", !hidden(reset));
+
+  click(chips[1]);
+  check("single-select: pressing one un-presses the other", chips[1].getAttribute("aria-pressed") === "true" && chips[0].getAttribute("aria-pressed") === "false");
+
+  click(reset);
+  check("reset clears every chip", chips.every((c) => c.getAttribute("aria-pressed") === "false"));
+  check("reset hides itself once nothing is selected", hidden(reset));
+
+  click(chips[0]);
+  check("reset reappears when a chip is pressed again", !hidden(reset));
+  dispose();
+
+  // A plain toggle group has no `close` part — the reset code must no-op, not throw.
+  const plain = mount(
+    toHtml({
+      kind: "element",
+      tag: "div",
+      behavior: { type: "toggle-group" },
+      children: [
+        { kind: "element", tag: "button", part: "item", attrs: { "aria-pressed": "false" }, children: ["A"] },
+        { kind: "element", tag: "button", part: "item", attrs: { "aria-pressed": "false" }, children: ["B"] },
+      ],
+    }),
+  );
+  const d2 = hydrate(plain, {});
+  const plainItems = [...plain.querySelectorAll('[data-sui-part="item"]')];
+  click(plainItems[0]);
+  check("plain toggle-group (no reset part) still presses", plainItems[0].getAttribute("aria-pressed") === "true");
+  d2();
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

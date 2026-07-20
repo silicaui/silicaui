@@ -1672,6 +1672,223 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
 
+  // Filter — a single-select chip row with a reset. This is the EXISTING
+  // `toggle-group` behavior, not a new one: same single-select press semantics,
+  // same roving focus, same aria-pressed buttons. The only delta was the reset,
+  // which is now an optional `reset` part on that handler. Reusing kept the
+  // BehaviorType vocabulary closed, which is deliberate.
+  {
+    name: "Filter",
+    category: "form",
+    label: "Filter chips",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const children: Child[] = [...(n.children ?? [])];
+      if (n.props?.showReset !== false) {
+        const reset = elc("button", "filter-reset", [String(n.props?.resetLabel ?? "×")], {
+          type: "button",
+          "aria-label": String(n.props?.resetLabel ?? "Reset filter"),
+          hidden: true, // nothing selected at rest; the handler reveals it
+        });
+        reset.part = "close";
+        children.push(reset);
+      }
+      const out = lower(n, "div", { class: n.class ?? "filter", children });
+      if (!out.behavior) out.behavior = { type: "toggle-group" };
+      return out;
+    },
+  },
+  {
+    name: "FilterItem",
+    category: "form",
+    label: "Filter chip",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const pressed = n.props?.selected === true;
+      const attrs: NonNullable<ElementNode["attrs"]> = {
+        type: "button",
+        "aria-pressed": String(pressed),
+      };
+      if (n.props?.value != null) attrs["data-value"] = String(n.props.value);
+      if (pressed) attrs["data-pressed"] = true;
+      const out = lower(n, "button", {
+        class: n.class ?? "filter-item",
+        attrs,
+        children: textChildren(n, "text"),
+      });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // ── chat ──────────────────────────────────────────────────────────────────
+  // The whole family lands together on purpose. Half a family is worse than
+  // none: a consumer who finds `Chat` but no `ChatComposer` hand-rolls the
+  // missing half in markup that then drifts from the React layer, which is the
+  // exact failure this registry exists to prevent.
+  //
+  // The primitives (image/header/footer/bubble/layout) take their class from
+  // the authored node like `Card` does; the composites below build inner
+  // structure the author never writes, so those classes ARE emitted here.
+  elementDef("ChatImage", "data", "box", "div", true),
+  elementDef("ChatHeader", "data", "box", "div", true),
+  elementDef("ChatFooter", "data", "box", "div", true),
+  elementDef("ChatBubble", "data", "box", "div", true),
+  elementDef("ChatLayout", "data", "box", "div", true),
+  elementDef("ChatLayoutMessages", "data", "box", "div", true),
+  elementDef("ChatMessageMetadata", "data", "box", "div", true),
+  // Chat — one message row. `side: "end"` flips it to the outgoing side.
+  {
+    name: "Chat",
+    category: "data",
+    label: "Chat row",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const end = n.props?.side === "end";
+      return lower(n, "div", {
+        class: n.class ?? (end ? "chat chat-end" : "chat"),
+        children: n.children,
+      });
+    },
+  },
+  // A centered notice ("Today", "Ada joined") — attributed to neither side.
+  {
+    name: "ChatSystemMessage",
+    category: "data",
+    label: "Chat system message",
+    icon: "box",
+    container: true,
+    expand: (n) =>
+      lower(n, "div", {
+        class: n.class ?? "chat-system-message",
+        attrs: { role: "status" },
+        children: textChildren(n, "text"),
+      }),
+  },
+  // ChatMessage — the convenience composite the React layer also exposes,
+  // lowering to the same primitives. `avatar` is a STRING here (initials); a
+  // rich avatar node is authored by composing Chat/ChatImage/ChatBubble
+  // directly, exactly as in React.
+  {
+    name: "ChatMessage",
+    category: "data",
+    label: "Chat message",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const end = p.side === "end";
+      const compact = p.compact === true;
+      const kids: Child[] = [];
+      if (p.avatar != null && !compact) {
+        kids.push(elc("div", "chat-image", [String(p.avatar)]));
+      }
+      const bubbleClass = p.color ? `chat-bubble chat-bubble-${String(p.color)}` : "chat-bubble";
+      kids.push(elc("div", bubbleClass, n.children ?? []));
+      if (!compact && (p.name != null || p.time != null)) {
+        const footer: Child[] = [];
+        if (p.name != null) footer.push(String(p.name));
+        if (p.time != null) footer.push(elc("time", undefined, [` ${String(p.time)}`]));
+        kids.push(elc("div", "chat-footer", footer));
+      }
+      if (p.metadata != null) {
+        kids.push(elc("div", "chat-footer", [String(p.metadata)]));
+      }
+      return lower(n, "div", {
+        class: n.class ?? (end ? "chat chat-end" : "chat"),
+        children: kids,
+      });
+    },
+  },
+  // Three animated dots inside a real bubble, so it occupies the slot the next
+  // message will land in rather than reading as a stray line of muted text.
+  {
+    name: "ChatTypingIndicator",
+    category: "data",
+    label: "Chat typing indicator",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const end = p.side === "end";
+      const dots = [0, 1, 2].map(() => elc("span", "chat-typing-dot"));
+      const typing = elc("span", "chat-typing", dots, {
+        role: "status",
+        "aria-label": p.name != null ? `${String(p.name)} is typing` : "Typing",
+      });
+      const kids: Child[] = [];
+      if (p.avatar != null) kids.push(elc("div", "chat-image", [String(p.avatar)]));
+      kids.push(elc("div", "chat-bubble", [typing]));
+      return lower(n, "div", {
+        class: n.class ?? (end ? "chat chat-end" : "chat"),
+        children: kids,
+      });
+    },
+  },
+  // ChatToolCalls — reuses the existing `disclosure` behavior and the
+  // Collapsible part classes the CSS already targets, rather than inventing a
+  // new BehaviorType for what is structurally a collapsible.
+  {
+    name: "ChatToolCalls",
+    category: "data",
+    label: "Chat tool calls",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const open = p.defaultOpen === true;
+      const trigger = elc("button", "collapsible-trigger", [String(p.label ?? "Tool call")], {
+        type: "button",
+      });
+      trigger.part = "trigger";
+      const panel = elc("div", "collapsible-content", n.children ?? [], open ? undefined : { hidden: true });
+      panel.part = "panel";
+      const out = lower(n, "div", {
+        class: n.class ?? "chat-tool-calls",
+        children: [trigger, panel],
+      });
+      if (!out.behavior) out.behavior = { type: "disclosure" };
+      return out;
+    },
+  },
+  // ChatComposer — a real <form> so a static page can actually send. React
+  // adds autoresize and Enter-to-send on top; those are progressive
+  // enhancements, and their absence degrades to a normal textarea + submit
+  // rather than to something broken.
+  {
+    name: "ChatComposer",
+    category: "form",
+    label: "Chat composer",
+    icon: "textarea",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const kids: Child[] = [];
+      if (n.children?.length) kids.push(elc("div", "chat-composer-actions", n.children));
+      kids.push(
+        elc("textarea", "textarea chat-composer-field", undefined, {
+          rows: 1,
+          name: (p.name as string) ?? "message",
+          placeholder: (p.placeholder as string) ?? "Message…",
+          "aria-label": (p.ariaLabel as string) ?? "Message",
+          ...(p.disabled === true ? { disabled: true } : {}),
+        }),
+      );
+      kids.push(
+        elc("button", "btn btn-primary btn-sm btn-circle", [String(p.sendLabel ?? "Send")], {
+          type: "submit",
+          "aria-label": "Send message",
+        }),
+      );
+      const out = lower(n, "form", { class: n.class ?? "chat-composer", children: kids });
+      if (!out.behavior) out.behavior = { type: "form" };
+      return out;
+    },
+  },
+
   // Carousel — `carousel`; unlike Accordion/Tabs/Menu, Track/Prev/Next/Dot
   // aren't part of the public React API (Carousel/CarouselItem only), so the
   // macro builds that inner structure itself from `node.children`, matching

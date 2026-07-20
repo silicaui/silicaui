@@ -483,20 +483,19 @@ const HTML_EXEMPT = {
   NativeSelect: "covered by -html `Select`, which lowers to a native <select>",
   // Deferred with a known reason (OKLCH color math needs a port).
   ColorPicker: "deferred — needs the OKLCH picker ported to vanilla",
-  // Interactive; each needs a behavior handler designed, not just a macro.
-  Countdown: "needs a behavior handler (ticking clock)",
-  TagInput: "needs a behavior handler (token entry/removal)",
-  Filter: "needs a behavior handler (filter chips)",
-  PowerSearch: "needs a behavior handler (async search)",
-  // The whole Chat family is unbuilt on purpose — half a family is worse than
-  // none, and chat UIs are app surfaces rather than static-site content.
-  Chat: "Chat family unbuilt in -html (tracked as one unit)",
-  ChatComposer: "Chat family unbuilt in -html (tracked as one unit)",
-  ChatLayout: "Chat family unbuilt in -html (tracked as one unit)",
-  ChatMessage: "Chat family unbuilt in -html (tracked as one unit)",
-  ChatSystemMessage: "Chat family unbuilt in -html (tracked as one unit)",
-  ChatToolCalls: "Chat family unbuilt in -html (tracked as one unit)",
-  ChatTypingIndicator: "Chat family unbuilt in -html (tracked as one unit)",
+  // Interactive, and each needs a genuinely NEW BehaviorType — checked against
+  // the existing vocabulary first, per the reuse-before-forking rule:
+  //   Countdown  — `counter` is a one-shot 0→target tween on scroll-in, not a
+  //                live recurring clock with time formatting. Not the same.
+  //   TagInput   — text entry that emits removable tokens; nothing existing
+  //                models "type to create a child element".
+  //   PowerSearch— faceted multi-term query building; `combobox` covers a
+  //                single value, not a term list with per-field value pickers.
+  // (`Filter` was on this list and came off it: it turned out to BE
+  //  `toggle-group` plus an optional `close` part.)
+  Countdown: "needs a new BehaviorType (live clock; `counter` is a one-shot tween)",
+  TagInput: "needs a new BehaviorType (token entry/removal)",
+  PowerSearch: "needs a new BehaviorType (faceted multi-term search)",
 };
 const htmlNames = new Set(htmlComponents.map((c) => c.name));
 const reactOnly = components

@@ -16,7 +16,7 @@ export interface ChatProps extends React.HTMLAttributes<HTMLDivElement> {
  *
  *   <Chat side="start">
  *     <ChatImage><Avatar>OW</Avatar></ChatImage>
- *     <ChatHeader>Obi-Wan <time className="opacity-60">12:45</time></ChatHeader>
+ *     <ChatHeader>Obi-Wan <time>12:45</time></ChatHeader>
  *     <ChatBubble>You were the chosen one!</ChatBubble>
  *     <ChatFooter>Seen</ChatFooter>
  *   </Chat>

@@ -104,6 +104,33 @@ const synthetic = e("section", {
         c("SelectableCard", { class: "card card-selectable", props: { type: "checkbox", name: "addons", value: "sso" }, children: ["SSO"] }),
         c("MockupCodeLine", { props: { prefix: "$", text: "npm i @wizeworks/silicaui" } }),
         c("MockupCodeLine", { class: "text-success", props: { text: "done & <ok>" } }),
+        // Chat family — the whole set, including the composites that build inner
+        // structure the author never writes, so a drift in that structure shows
+        // up here as a byte diff rather than silently.
+        c("ChatMessage", { props: { side: "start", avatar: "OW", name: "Obi-Wan & Co", time: "12:45" }, children: ["You were the chosen one!"] }),
+        c("ChatMessage", { props: { side: "end", color: "primary", metadata: "Delivered" }, children: ["I hate you!"] }),
+        c("ChatMessage", { props: { compact: true }, children: ["Grouped follow-up"] }),
+        c("ChatTypingIndicator", { props: { avatar: "S", name: "Silica <Assistant>" } }),
+        c("ChatTypingIndicator", { props: {} }), // no avatar, default aria-label
+        c("ChatSystemMessage", { props: { text: "Today" } }),
+        c("ChatToolCalls", { props: { label: 'Called search_web("silica")' }, children: ["{ ok: true }"] }),
+        c("ChatToolCalls", { props: { label: "Open by default", defaultOpen: true }, children: ["detail"] }),
+        c("ChatComposer", { props: {} }),
+        c("ChatComposer", { props: { name: "msg", placeholder: "Say hi & wave", sendLabel: "Send", disabled: true }, children: [c("Button", { class: "btn", props: { label: "Attach" } })] }),
+        c("ChatLayout", { class: "chat-layout", children: [
+          c("ChatLayoutMessages", { class: "chat-layout-messages", children: [c("Chat", { class: "chat", children: [c("ChatBubble", { class: "chat-bubble", props: { text: "Hi" } })] })] }),
+        ] }),
+        c("Chat", { class: "chat chat-end", children: [c("ChatHeader", { class: "chat-header", props: { text: "Ada" } }), c("ChatBubble", { class: "chat-bubble", props: { text: "Yo" } }), c("ChatFooter", { class: "chat-footer", props: { text: "Seen" } })] }),
+        c("ChatMessageMetadata", { class: "chat-message-metadata", props: { text: "Edited" } }),
+        // Filter — reuses `toggle-group` + an optional `close` part rather than
+        // adding a BehaviorType; locking the markup keeps that reuse honest.
+        c("Filter", { class: "filter", children: [
+          c("FilterItem", { class: "filter-item", props: { value: "all", text: "All", selected: true } }),
+          c("FilterItem", { class: "filter-item", props: { value: "gear", text: "Gear & kit" } }),
+        ] }),
+        c("Filter", { class: "filter", props: { showReset: false }, children: [
+          c("FilterItem", { class: "filter-item", props: { value: "x", text: "No reset" } }),
+        ] }),
         // Form: auto `form` behavior marker; props.action → action binding; an
         // explicit `data`/`behavior` on the node is respected (never clobbered).
         c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
