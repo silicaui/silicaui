@@ -35,9 +35,13 @@ export function Stack({
   const items = React.useMemo(() => React.Children.toArray(children), [children]);
   const [order, setOrder] = React.useState<number[]>(() => items.map((_, i) => i));
 
-  // Reset the order if the number of children changes.
+  // Reset the order if the NUMBER of children changes. Depending on `items`
+  // itself is what the exhaustive-deps rule wants and is wrong here: it would
+  // throw away the user's cycled order on every re-render that produces a new
+  // children array, which is most of them.
   React.useEffect(() => {
     setOrder(items.map((_, i) => i));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
 
   const cycle = React.useCallback(() => {

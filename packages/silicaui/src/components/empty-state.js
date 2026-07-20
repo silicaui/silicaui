@@ -45,7 +45,7 @@ export function emptyState(prefix = "") {
       maxWidth: "34ch",
       fontSize: "0.9rem",
       lineHeight: "1.5",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     [sel("-actions")]: {
@@ -56,10 +56,15 @@ export function emptyState(prefix = "") {
       marginTop: "0.5rem",
     },
 
-    // Compact variant (e.g. inside a small panel or table body).
-    [sel("-sm")]: {
-      padding: "1.75rem 1rem",
-      gap: "0.5rem",
-    },
+    // ---- Sizes ------------------------------------------------------------
+    // The full xs–xl scale, like every other sized component. `-md` restates
+    // the base on purpose so a hand-written `class="empty-state empty-state-md"`
+    // resolves in the class-first (vanilla / silicaui-html) layer, where there's
+    // no React wrapper to omit the default for you.
+    [sel("-xs")]: { padding: "1.25rem 0.75rem", gap: "0.375rem" },
+    [sel("-sm")]: { padding: "1.75rem 1rem", gap: "0.5rem" },
+    [sel("-md")]: { padding: "3rem 1.5rem", gap: "0.75rem" },
+    [sel("-lg")]: { padding: "4rem 2rem", gap: "1rem" },
+    [sel("-xl")]: { padding: "5rem 2.5rem", gap: "1.25rem" },
   };
 }

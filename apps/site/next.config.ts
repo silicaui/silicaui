@@ -25,6 +25,21 @@ const nextConfig: NextConfig = {
     "@wizeworks/silicaui-html",
     "@wizeworks/silicaui-demos",
   ],
+  // Node 24 workaround, not a preference. Webpack hashes modules with a
+  // bundled xxhash64 WASM module; `WasmHash._updateWithBuffer` caches a
+  // reference to `exports.memory.buffer`, and on Node 24 V8 detaches that
+  // ArrayBuffer when the wasm memory grows — so the next read throws
+  // "Cannot read properties of undefined (reading 'length')" with no usable
+  // stack. CI runs Node 20 and never hits it, which is exactly why a local
+  // build could fail while CI stayed green.
+  //
+  // hashFunction only names build artifacts (chunk ids, asset filenames), so
+  // switching to Node's native crypto sha256 changes nothing observable about
+  // the output. Revisit once webpack ships a fix.
+  webpack: (config) => {
+    config.output.hashFunction = "sha256";
+    return config;
+  },
 };
 
 const withMDX = createMDX({});

@@ -5,9 +5,9 @@ import { useSilicaClass } from "./lib/config";
 /**
  * Typography components for @wizeworks/silicaui's UI type ramp (see the `typography` plugin
  * module). They keep the *semantic* element and its *visual* size independent: a
- * `<Heading level={1} size={3}>` is an `<h1>` for the document outline but reads
- * as an h3. With no `size`, a heading just inherits its tag's global default, so
- * `<Heading level={2} />` and a bare `<h2>` match.
+ * `<Heading level={1} visualLevel={3}>` is an `<h1>` for the document outline but
+ * reads as an h3. With no `visualLevel`, a heading just inherits its tag's global
+ * default, so `<Heading level={2} />` and a bare `<h2>` match.
  */
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
@@ -15,18 +15,28 @@ export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
   /** Semantic level → renders `<h1>`…`<h6>`. Default 2. */
   level?: HeadingLevel;
-  /** Visual size override (`1`–`6` or `"display"`); omit to use the tag default. */
-  size?: HeadingLevel | "display";
+  /**
+   * Visual heading scale (`1`–`6` or `"display"`), independent of the semantic
+   * `level`; omit to use the tag default.
+   *
+   * Named `visualLevel`, not `size`, on purpose: everywhere else in Silica
+   * `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one
+   * component and `"lg"` in the next is a prop in name only.
+   */
+  visualLevel?: HeadingLevel | "display";
 }
 
 /** A heading whose semantic level and visual size are set independently. */
 export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
-  function Heading({ level = 2, size, className, ...rest }, ref) {
+  function Heading({ level = 2, visualLevel, className, ...rest }, ref) {
     const sc = useSilicaClass();
     const Tag = `h${level}` as "h1";
-    // Only emit a size class when it differs from the tag's own default — a bare
+    // Only emit a scale class when it differs from the tag's own default — a bare
     // `<h2>` and `<Heading level={2}>` should render identically.
-    const sizeClass = size !== undefined && size !== level ? sc(size === "display" ? "display" : `h${size}`) : undefined;
+    const sizeClass =
+      visualLevel !== undefined && visualLevel !== level
+        ? sc(visualLevel === "display" ? "display" : `h${visualLevel}`)
+        : undefined;
     return <Tag ref={ref} className={cx(sizeClass, className)} {...rest} />;
   },
 );

@@ -9,12 +9,21 @@ export interface UseControllableStateOptions<T> {
 }
 
 /**
- * The controlled/uncontrolled pattern every Silica component uses internally
- * (`value !== undefined` ? mirror it : own state), exposed so you can build
- * your own Silica-consistent components without reimplementing it.
+ * The controlled/uncontrolled pattern (`value !== undefined` ? mirror it : own
+ * state), as one hook — for Silica's own components and for yours.
  *
- *   const [value, setValue] = useControllableState({ value: propValue, defaultValue: "", onChange });
+ *   const [value, setValue] = useControllableState({ value: propValue, defaultValue: "", onChange: onValueChange });
  *   setValue("next");                 // or setValue((prev) => prev + "!")
+ *
+ * Note the callback a Silica component exposes for this is named
+ * **`onValueChange`**, not `onChange` — `onChange` stays reserved for the
+ * native DOM handler on components that wrap a real form element. Pass it
+ * through as the `onChange` option here.
+ *
+ * Adoption inside Silica is partial and ongoing: components written before
+ * this hook existed still hand-roll the same logic inline. New components
+ * should use it, and existing ones are being migrated as they're touched —
+ * `rating.tsx` is the reference.
  */
 export function useControllableState<T>({
   value,

@@ -82,7 +82,73 @@ const synthetic = e("section", {
         c("Checkbox", { class: "checkbox", props: { name: "agree", checked: true } }),
         c("Radio", { class: "radio", props: { name: "r", value: "1" } }),
         c("Toggle", { class: "toggle", props: { name: "t", disabled: true } }),
+        // Captioned form of the same three: children wrap the control in a
+        // <label> and the control class MUST stay on the <input>, not the
+        // wrapper (routing it to the wrapper left the real control unstyled).
+        c("Checkbox", { class: "checkbox", props: { name: "tos" }, children: ["I agree"] }),
+        c("Radio", { class: "radio", props: { name: "plan", value: "pro" }, children: ["Pro"] }),
+        c("Toggle", { class: "toggle", props: { name: "mail" }, children: ["Email me"] }),
+        c("CheckboxOption", { class: "checkbox", props: { name: "opt" }, children: ["Option A"] }),
+        c("RadioOption", { class: "radio", props: { name: "tier" }, children: ["Basic"] }),
         c("Field", { class: "field", children: [e("label", { class: "field-label", text: "Name" }), c("Input", { class: "input", props: {} })] }),
+        // Components that existed in React but had no -html macro, so a static or
+        // Sparx-rendered page simply could not author them. `accept` here also
+        // locks the sanitizer fix — it was absent from input's allowlist, so the
+        // file filter was silently dropped from every static file input.
+        c("Link", { class: "link link-primary", props: { href: "/docs", text: "Docs & more" } }),
+        c("Link", { class: "link", props: { href: "https://x.test", target: "_blank", rel: "noreferrer" }, children: [e("span", { text: "Out" })] }),
+        c("FileInput", { class: "file-input", props: { name: "cv", accept: "image/*", multiple: true } }),
+        c("FileInput", { props: {} }),
+        c("FloatingLabel", { class: "floating-label", props: { label: "Email" }, children: [c("Input", { class: "input", props: { type: "email", placeholder: " " } })] }),
+        c("SelectableCard", { class: "card card-selectable", props: { name: "plan", value: "pro", checked: true }, children: [c("Heading", { props: { text: "Pro" } })] }),
+        c("SelectableCard", { class: "card card-selectable", props: { type: "checkbox", name: "addons", value: "sso" }, children: ["SSO"] }),
+        c("MockupCodeLine", { props: { prefix: "$", text: "npm i @wizeworks/silicaui" } }),
+        c("MockupCodeLine", { class: "text-success", props: { text: "done & <ok>" } }),
+        // Chat family — the whole set, including the composites that build inner
+        // structure the author never writes, so a drift in that structure shows
+        // up here as a byte diff rather than silently.
+        c("ChatMessage", { props: { side: "start", avatar: "OW", name: "Obi-Wan & Co", time: "12:45" }, children: ["You were the chosen one!"] }),
+        c("ChatMessage", { props: { side: "end", color: "primary", metadata: "Delivered" }, children: ["I hate you!"] }),
+        c("ChatMessage", { props: { compact: true }, children: ["Grouped follow-up"] }),
+        c("ChatTypingIndicator", { props: { avatar: "S", name: "Silica <Assistant>" } }),
+        c("ChatTypingIndicator", { props: {} }), // no avatar, default aria-label
+        c("ChatSystemMessage", { props: { text: "Today" } }),
+        c("ChatToolCalls", { props: { label: 'Called search_web("silica")' }, children: ["{ ok: true }"] }),
+        c("ChatToolCalls", { props: { label: "Open by default", defaultOpen: true }, children: ["detail"] }),
+        c("ChatComposer", { props: {} }),
+        c("ChatComposer", { props: { name: "msg", placeholder: "Say hi & wave", sendLabel: "Send", disabled: true }, children: [c("Button", { class: "btn", props: { label: "Attach" } })] }),
+        c("ChatLayout", { class: "chat-layout", children: [
+          c("ChatLayoutMessages", { class: "chat-layout-messages", children: [c("Chat", { class: "chat", children: [c("ChatBubble", { class: "chat-bubble", props: { text: "Hi" } })] })] }),
+        ] }),
+        c("Chat", { class: "chat chat-end", children: [c("ChatHeader", { class: "chat-header", props: { text: "Ada" } }), c("ChatBubble", { class: "chat-bubble", props: { text: "Yo" } }), c("ChatFooter", { class: "chat-footer", props: { text: "Seen" } })] }),
+        c("ChatMessageMetadata", { class: "chat-message-metadata", props: { text: "Edited" } }),
+        // Filter — reuses `toggle-group` + an optional `close` part rather than
+        // adding a BehaviorType; locking the markup keeps that reuse honest.
+        c("Filter", { class: "filter", children: [
+          c("FilterItem", { class: "filter-item", props: { value: "all", text: "All", selected: true } }),
+          c("FilterItem", { class: "filter-item", props: { value: "gear", text: "Gear & kit" } }),
+        ] }),
+        c("Filter", { class: "filter", props: { showReset: false }, children: [
+          c("FilterItem", { class: "filter-item", props: { value: "x", text: "No reset" } }),
+        ] }),
+        // Countdown — FIXED timestamps only. `expand` must stay pure or the
+        // fixture can't be pinned, which is exactly why the macro takes an
+        // explicit `from` rather than reading the clock.
+        c("Countdown", { class: "countdown", props: { to: 1800000000000, from: 1799826600000 } }),
+        c("Countdown", { props: { to: 1800000000000, from: 1799999000000, units: ["minutes", "seconds"], plain: true } }),
+        c("Countdown", { props: { to: 1800000000000 } }), // no `from` → placeholder values
+        // TagInput — the `template` part is the whole point: it's what lets the
+        // handler clone new chips instead of constructing them with hardcoded
+        // class names, so a prefix regression shows up here as a byte diff.
+        c("TagInput", { class: "tag-input", props: { name: "topics", value: ["alpha", "beta & co"], placeholder: "Add a topic" } }),
+        c("TagInput", { props: { value: [], placeholder: "Empty" } }),
+        c("TagInput", { props: { value: ["locked"], disabled: true } }), // no remove buttons
+        c("TagInput", { props: { value: ["a"], max: 3, allowDuplicates: true, addOnBlur: true } }),
+        // ColorPicker — structure only. The absence of any `style` attribute
+        // here is the point: static output stays CSP-clean and the handler
+        // paints the ramps on hydrate.
+        c("ColorPicker", { class: "color-picker", props: { name: "brand", value: "oklch(0.62 0.19 265)" } }),
+        c("ColorPicker", { props: { format: "hex" } }),
         // Form: auto `form` behavior marker; props.action → action binding; an
         // explicit `data`/`behavior` on the node is respected (never clobbered).
         c("Form", { class: "flex", children: [c("Button", { class: "btn", props: { label: "Go", type: "submit" } })] }),
@@ -99,6 +165,9 @@ const synthetic = e("section", {
         c("Navbar", { class: "navbar", children: [e("div", { class: "navbar-start", text: "SilicaUI" }), e("div", { class: "navbar-end", text: "Sign in" })] }),
         c("Alert", { class: "alert alert-info", props: { text: "Heads up <b> & stuff" } }),
         c("Alert", { class: "alert" }), // default message
+        // Dismissible: close button + `dismiss` behavior marker + inlined icon.
+        // This was React-only until the macro learned to emit it.
+        c("Alert", { class: "alert alert-warning", props: { text: "Closable", dismissible: true } }),
         c("Progress", { class: "progress", props: { value: 70 } }),
         c("Progress", { class: "progress", props: {} }), // default 50 → w-1/2
         c("Loading", { class: "loading loading-md" }),

@@ -42,7 +42,7 @@ export function meter(colors, prefix = "") {
       fontSize: "0.875rem",
       fontVariantNumeric: "tabular-nums",
       lineHeight: "1.25",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // The rail: a full-width pill clipping the fill to its rounded corners.
@@ -72,6 +72,9 @@ export function meter(colors, prefix = "") {
     },
     [`${sel("-sm")} ${sel("-track")}`]: {
       height: "calc(var(--size-field, 0.25rem) * 1.5)",
+    },
+    [`${sel("-md")} ${sel("-track")}`]: {
+      height: "calc(var(--size-field, 0.25rem) * 2)",
     },
     [`${sel("-lg")} ${sel("-track")}`]: {
       height: "calc(var(--size-field, 0.25rem) * 3)",

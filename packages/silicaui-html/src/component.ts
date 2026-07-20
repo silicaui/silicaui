@@ -171,6 +171,33 @@ const FIELD_KEYS = ["name", "placeholder", "value", "required", "disabled"] as c
 /** Selectable controls — checkbox/radio/toggle. */
 const CHECK_KEYS = ["name", "value", "checked", "required", "disabled"] as const;
 
+/**
+ * Checkbox / Radio / Toggle, bare or captioned — one shape for both layers.
+ *
+ * Without children the control renders bare. With children it's wrapped in a
+ * `<label>` so the caption is a real click target, matching what
+ * `silicaui-react` emits for `<Checkbox>Run tests</Checkbox>`.
+ *
+ * The node's own `class` always lands on the **input**, never the wrapper.
+ * That's the fix for a real bug in the old captioned path: `lower()` carries
+ * `node.class` to whatever tag it's given, so routing it to the `<label>` left
+ * the actual control with no `.checkbox`/`.radio` class — i.e. an unstyled
+ * native control in every static/non-React output.
+ */
+function checkControl(
+  n: ComponentNode,
+  type: "checkbox" | "radio",
+  extraAttrs?: Record<string, string>,
+): ElementNode {
+  const attrs = { ...formAttrs(n, { type, ...extraAttrs }, CHECK_KEYS) };
+  if (!n.children?.length) return lower(n, "input", { attrs });
+  const input = elc("input", n.class, undefined, attrs);
+  return lower(n, "label", {
+    class: "label label-control",
+    children: [input, ...n.children],
+  });
+}
+
 /** One `props.options` entry → an `<option>` element child of a Select. */
 function toOption(opt: unknown): Child {
   if (opt != null && typeof opt === "object") {
@@ -741,6 +768,22 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   },
   // Divider — a void <hr>.
   { name: "Divider", category: "content", label: "Divider", icon: "box", expand: (n) => lower(n, "hr") },
+  // Link — a styled inline <a>. Static output had no way to author one at all,
+  // so every link in a projected page had to be a raw element node.
+  {
+    name: "Link",
+    category: "nav",
+    label: "Link",
+    icon: "link",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = {};
+      for (const k of ["href", "target", "rel", "download"] as const) {
+        if (n.props?.[k] != null) attrs[k] = n.props[k] as string;
+      }
+      return lower(n, "a", { attrs, children: textChildren(n, "text") });
+    },
+  },
 
   // ── form controls ─────────────────────────────────────────────────────────
   // Each lowers to a native form element, so the browser's built-in behavior +
@@ -755,6 +798,34 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       lower(n, "input", {
         attrs: formAttrs(n, { type: (n.props?.type ?? "text") as string }, FIELD_KEYS),
       }),
+  },
+  // FileInput — an <input type="file">. `type` is fixed, so it isn't reachable
+  // through Input's props.type the way the other field modes are.
+  {
+    name: "FileInput",
+    category: "form",
+    label: "File input",
+    icon: "input",
+    expand: (n) =>
+      lower(n, "input", {
+        attrs: formAttrs(n, { type: "file" }, [...FIELD_KEYS, "accept", "multiple"]),
+      }),
+  },
+  // FloatingLabel — <label> wrapping the control, caption LAST (the CSS floats
+  // it via the control's :placeholder-shown, which needs the sibling order the
+  // React component also produces: control first, caption second).
+  {
+    name: "FloatingLabel",
+    category: "form",
+    label: "Floating label",
+    icon: "label",
+    container: true,
+    expand: (n) => {
+      const caption = n.props?.label;
+      const children: Child[] = [...(n.children ?? [])];
+      if (caption != null) children.push(elc("span", undefined, [String(caption)]));
+      return lower(n, "label", { class: n.class ?? "floating-label", children });
+    },
   },
   // Textarea — a multi-line <textarea>; text/children are its value.
   {
@@ -785,27 +856,30 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
   // Checkbox / Radio / Toggle — native <input>s of the matching type. Toggle shares
-  // checkbox semantics; only its class (`toggle`) makes it a switch.
+  // checkbox semantics; only its class (`toggle`) plus role="switch" makes it a switch.
   {
     name: "Checkbox",
     category: "form",
     label: "Checkbox",
     icon: "checkbox",
-    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "checkbox" }, CHECK_KEYS) }),
+    container: true,
+    expand: (n) => checkControl(n, "checkbox"),
   },
   {
     name: "Radio",
     category: "form",
     label: "Radio",
     icon: "radio",
-    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "radio" }, CHECK_KEYS) }),
+    container: true,
+    expand: (n) => checkControl(n, "radio"),
   },
   {
     name: "Toggle",
     category: "form",
     label: "Toggle",
     icon: "toggle",
-    expand: (n) => lower(n, "input", { attrs: formAttrs(n, { type: "checkbox" }, CHECK_KEYS) }),
+    container: true,
+    expand: (n) => checkControl(n, "checkbox", { role: "switch" }),
   },
 
   // Simple element atoms.
@@ -852,6 +926,29 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     },
   },
   elementDef("Card", "layout", "box", "div", true),
+  // SelectableCard — a card that IS an option tile: a real (visually hidden)
+  // radio/checkbox inside a <label>, so the whole card is the click target and
+  // the selection posts with the form. Matches the React component's DOM.
+  {
+    name: "SelectableCard",
+    category: "form",
+    label: "Selectable card",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const type = n.props?.type === "checkbox" ? "checkbox" : "radio";
+      const input = elc(
+        "input",
+        "card-selectable-indicator",
+        undefined,
+        formAttrs(n, { type }, CHECK_KEYS),
+      );
+      return lower(n, "label", {
+        class: n.class ?? "card card-selectable",
+        children: [input, ...(n.children ?? [])],
+      });
+    },
+  },
   elementDef("Section", "layout", "section", "section", true),
   elementDef("Container", "layout", "box", "div", true),
   elementDef("Grid", "layout", "grid", "div", true),
@@ -1058,8 +1155,30 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     category: "feedback",
     label: "Alert",
     icon: "warning",
-    expand: (n) =>
-      lower(n, "div", { attrs: { role: "alert" }, children: textChildren(n, "text") ?? ["Alert message"] }),
+    // `dismissible` is a real feature in the React layer AND has a working
+    // `dismiss` handler in silicaui-behaviors — but this macro used to emit a
+    // bare <div role="alert">, so a static/Sparx page rendered no close button
+    // at all. Emitting the button + the behavior marker is what makes the
+    // feature exist outside React.
+    expand: (n) => {
+      const children: Child[] = textChildren(n, "text") ?? ["Alert message"];
+      if (!n.props?.dismissible) {
+        return lower(n, "div", { attrs: { role: "alert" }, children });
+      }
+      const close = elc(
+        "button",
+        "alert-close",
+        [{ kind: "component", component: "Icon", props: { name: "close" } }],
+        { type: "button", "aria-label": "Dismiss" },
+      );
+      close.part = "trigger";
+      const out = lower(n, "div", {
+        attrs: { role: "alert" },
+        children: [...children, close],
+      });
+      if (!out.behavior) out.behavior = { type: "dismiss" };
+      return out;
+    },
   },
   // Progress — a track div + a fill div whose LITERAL width utility encodes value.
   {
@@ -1172,6 +1291,20 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   elementDef("MockupWindow", "media", "box", "div", true),
   elementDef("MockupBrowser", "media", "box", "div", true),
   elementDef("MockupCode", "media", "box", "div", true),
+  // MockupCodeLine — a <pre> row inside MockupCode. The gutter marker is a real
+  // `data-prefix` attribute the CSS reads, not text content.
+  {
+    name: "MockupCodeLine",
+    category: "media",
+    label: "Code line",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const attrs: NonNullable<ElementNode["attrs"]> = {};
+      if (n.props?.prefix != null) attrs["data-prefix"] = String(n.props.prefix);
+      return lower(n, "pre", { attrs, children: textChildren(n, "text") });
+    },
+  },
   elementDef("MockupPhone", "media", "box", "div", true),
   elementDef("List", "data", "box", "div", true),
   elementDef("Dock", "nav", "sidebar", "div", true),
@@ -1301,10 +1434,9 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     label: "Checkbox option",
     icon: "checkbox",
     container: true,
-    expand: (n) => {
-      const input = elc("input", undefined, undefined, formAttrs(n, { type: "checkbox" }, CHECK_KEYS));
-      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
-    },
+    // Always the captioned form — `checkControl` keeps the control class on the
+    // <input> where it belongs (see its doc comment).
+    expand: (n) => checkControl(n, "checkbox"),
   },
   // Swap — a hidden checkbox driving a pure-CSS cross-fade between two children
   // (`.swap-on` / `.swap-off`, authored by the host as the node's children).
@@ -1404,10 +1536,7 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     label: "Radio option",
     icon: "radio",
     container: true,
-    expand: (n) => {
-      const input = elc("input", undefined, undefined, formAttrs(n, { type: "radio" }, CHECK_KEYS));
-      return lower(n, "label", { children: [input, ...(n.children ?? [])] });
-    },
+    expand: (n) => checkControl(n, "radio"),
   },
   // Stats — a flex row grouping multiple Stat blocks (mirrors AvatarGroup).
   elementDef("Stats", "data", "stat", "div", true),
@@ -1539,6 +1668,435 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       const attrs = n.props?.defaultOpen === true ? undefined : { hidden: true };
       const out = lower(n, "div", { attrs, children: n.children });
       if (!out.part) out.part = "panel";
+      return out;
+    },
+  },
+
+  // ColorPicker — the real OKLCH editor, not `<input type="color">`. The native
+  // input was the obvious shortcut and is a DIFFERENT control (an sRGB swatch
+  // dialog, not an L/C/H editor); shipping it under this name would misdescribe
+  // what a consumer gets. Structure only — no `style` attributes, since static
+  // output must stay CSP-clean (verify-csp). The handler paints the ramps.
+  {
+    name: "ColorPicker",
+    category: "form",
+    label: "Color picker",
+    icon: "box",
+    container: false,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const value = typeof p.value === "string" ? p.value : "oklch(0.7 0.15 250)";
+
+      const readout = (key: string, cls: string): ElementNode => {
+        const el = elc("span", cls, undefined, { "data-value": key });
+        el.part = "value";
+        return el;
+      };
+
+      const swatch = elc("div", "color-picker-swatch");
+      swatch.part = "swatch";
+      const preview = elc("div", "color-picker-preview", [
+        swatch,
+        elc("div", "color-picker-values", [
+          readout("oklch", "color-picker-value-oklch"),
+          readout("hex", "color-picker-value-hex"),
+        ]),
+      ]);
+
+      const slider = (channel: string, label: string, aria: string, max: number, step: number): ElementNode => {
+        const thumb = elc("span", "color-picker-thumb");
+        thumb.part = "thumb";
+        const track = elc("div", "color-picker-track", [thumb], {
+          "data-channel": channel,
+          role: "slider",
+          "aria-label": aria,
+          "aria-valuemin": 0,
+          "aria-valuemax": max,
+          // aria-valuenow/valuetext are written by the handler; omitted rather
+          // than guessed here, since `expand` must stay pure and can't run the
+          // OKLCH math against an authored string.
+          tabindex: 0,
+          ...(step ? { "data-step": step } : {}),
+        });
+        track.part = "track";
+        return elc("div", "color-picker-slider", [
+          elc("span", "color-picker-slider-label", [label]),
+          track,
+          readout(channel, "color-picker-slider-value"),
+        ]);
+      };
+
+      const hexField = elc("input", "color-picker-hex-input", undefined, {
+        type: "text",
+        spellcheck: false,
+        "aria-label": "Hex color",
+      });
+      hexField.part = "input";
+
+      const children: Child[] = [
+        preview,
+        elc("div", "color-picker-sliders", [
+          slider("l", "L", "Lightness", 1, 0.01),
+          slider("c", "C", "Chroma", 0.37, 0.005),
+          slider("h", "H", "Hue", 360, 1),
+        ]),
+        elc("div", "color-picker-hex", [
+          elc("span", "color-picker-hex-label", ["HEX"]),
+          hexField,
+        ]),
+        elc("input", undefined, undefined, {
+          type: "hidden",
+          name: (p.name as string) ?? "color",
+          value,
+        }),
+      ];
+
+      const out = lower(n, "div", { class: n.class ?? "color-picker", children });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = { value };
+        if (p.format === "hex") params.format = "hex";
+        out.behavior = { type: "color-picker", params };
+      }
+      return out;
+    },
+  },
+  // TagInput — chips + a text field. The `template` part is what lets the
+  // handler create new chips without hardcoding class names in the runtime,
+  // which would break under a SilicaProvider prefix.
+  {
+    name: "TagInput",
+    category: "form",
+    label: "Tag input",
+    icon: "input",
+    container: false,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const tags = Array.isArray(p.value) ? (p.value as unknown[]).map(String) : [];
+      const disabled = p.disabled === true;
+
+      const makeChip = (text: string): ElementNode => {
+        const label = elc("span", "tag-input-chip-label", text ? [text] : undefined);
+        label.part = "label";
+        const kids: Child[] = [label];
+        if (!disabled) {
+          const close = elc("button", "tag-input-remove", [{ kind: "component", component: "Icon", props: { name: "close" } }], {
+            type: "button",
+            "aria-label": text ? `Remove ${text}` : "Remove",
+          });
+          close.part = "close";
+          kids.push(close);
+        }
+        const chip = elc("span", "tag-input-chip", kids);
+        chip.part = "item";
+        return chip;
+      };
+
+      const children: Child[] = tags.map(makeChip);
+
+      const field = elc("input", "tag-input-field", undefined, {
+        type: "text",
+        ...(tags.length === 0 && p.placeholder != null ? { placeholder: String(p.placeholder) } : {}),
+        ...(disabled ? { disabled: true } : {}),
+      });
+      field.part = "input";
+      children.push(field);
+
+      // Real form value — chips are comma-joined, matching what React posts.
+      children.push(
+        elc("input", undefined, undefined, {
+          type: "hidden",
+          name: (p.name as string) ?? "tags",
+          value: tags.join(","),
+        }),
+      );
+
+      // The blueprint for chips added at runtime. Empty label on purpose: the
+      // handler fills it, and an authored value here would render as a real
+      // chip in browsers that (correctly) don't render <template> content.
+      const tpl = elc("template", undefined, [makeChip("")]);
+      tpl.part = "template";
+      children.push(tpl);
+
+      const out = lower(n, "div", {
+        class: n.class ?? "tag-input",
+        attrs: disabled ? { "data-disabled": true } : undefined,
+        children,
+      });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = {};
+        if (p.placeholder != null) params.placeholder = String(p.placeholder);
+        if (typeof p.max === "number") params.max = p.max;
+        if (p.allowDuplicates === true) params.allowDuplicates = true;
+        if (p.addOnBlur === true) params.addOnBlur = true;
+        out.behavior = { type: "tag-input", ...(Object.keys(params).length ? { params } : {}) };
+      }
+      return out;
+    },
+  },
+  // Countdown — a live clock. Renders the CORRECT values for its build moment
+  // rather than zeros, so a page that never hydrates shows a sensible (if
+  // frozen) countdown instead of empty boxes; the handler then takes over.
+  {
+    name: "Countdown",
+    category: "data",
+    label: "Countdown",
+    icon: "box",
+    container: false,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const to = typeof p.to === "number" ? p.to : Number(p.to);
+      const units =
+        Array.isArray(p.units) && p.units.length
+          ? (p.units as string[])
+          : ["days", "hours", "minutes", "seconds"];
+      // No Date.now() here: `expand` must be PURE, or two builds of the same
+      // tree differ and the golden fixture becomes unpinnable. Static values
+      // come from `props.from` when the author wants a rendered starting
+      // state; otherwise the units render as placeholders the handler fills.
+      const from = typeof p.from === "number" ? p.from : undefined;
+      const total = from != null && Number.isFinite(to) ? Math.max(0, Math.floor((to - from) / 1000)) : undefined;
+      const valueOf = (unit: string): string => {
+        if (total == null) return unit === "days" ? "0" : "00";
+        const n =
+          unit === "days"
+            ? Math.floor(total / 86400)
+            : unit === "hours"
+              ? Math.floor((total % 86400) / 3600)
+              : unit === "minutes"
+                ? Math.floor((total % 3600) / 60)
+                : total % 60;
+        return unit === "days" ? String(n) : String(n).padStart(2, "0");
+      };
+
+      const children: Child[] = units.map((unit) => {
+        const value = elc("span", "countdown-value", [valueOf(unit)], { "data-unit": unit });
+        value.part = "value";
+        return elc("div", "countdown-unit", [value, elc("span", "countdown-label", [unit])]);
+      });
+
+      const cls = p.plain === true ? "countdown countdown-plain" : "countdown";
+      const out = lower(n, "div", {
+        class: n.class ?? cls,
+        attrs: { role: "timer" },
+        children,
+      });
+      if (!out.behavior) out.behavior = { type: "countdown", params: { to } };
+      return out;
+    },
+  },
+  // Filter — a single-select chip row with a reset. This is the EXISTING
+  // `toggle-group` behavior, not a new one: same single-select press semantics,
+  // same roving focus, same aria-pressed buttons. The only delta was the reset,
+  // which is now an optional `reset` part on that handler. Reusing kept the
+  // BehaviorType vocabulary closed, which is deliberate.
+  {
+    name: "Filter",
+    category: "form",
+    label: "Filter chips",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const children: Child[] = [...(n.children ?? [])];
+      if (n.props?.showReset !== false) {
+        const reset = elc("button", "filter-reset", [String(n.props?.resetLabel ?? "×")], {
+          type: "button",
+          "aria-label": String(n.props?.resetLabel ?? "Reset filter"),
+          hidden: true, // nothing selected at rest; the handler reveals it
+        });
+        reset.part = "close";
+        children.push(reset);
+      }
+      const out = lower(n, "div", { class: n.class ?? "filter", children });
+      if (!out.behavior) out.behavior = { type: "toggle-group" };
+      return out;
+    },
+  },
+  {
+    name: "FilterItem",
+    category: "form",
+    label: "Filter chip",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const pressed = n.props?.selected === true;
+      const attrs: NonNullable<ElementNode["attrs"]> = {
+        type: "button",
+        "aria-pressed": String(pressed),
+      };
+      if (n.props?.value != null) attrs["data-value"] = String(n.props.value);
+      if (pressed) attrs["data-pressed"] = true;
+      const out = lower(n, "button", {
+        class: n.class ?? "filter-item",
+        attrs,
+        children: textChildren(n, "text"),
+      });
+      if (!out.part) out.part = "item";
+      return out;
+    },
+  },
+
+  // ── chat ──────────────────────────────────────────────────────────────────
+  // The whole family lands together on purpose. Half a family is worse than
+  // none: a consumer who finds `Chat` but no `ChatComposer` hand-rolls the
+  // missing half in markup that then drifts from the React layer, which is the
+  // exact failure this registry exists to prevent.
+  //
+  // The primitives (image/header/footer/bubble/layout) take their class from
+  // the authored node like `Card` does; the composites below build inner
+  // structure the author never writes, so those classes ARE emitted here.
+  elementDef("ChatImage", "data", "box", "div", true),
+  elementDef("ChatHeader", "data", "box", "div", true),
+  elementDef("ChatFooter", "data", "box", "div", true),
+  elementDef("ChatBubble", "data", "box", "div", true),
+  elementDef("ChatLayout", "data", "box", "div", true),
+  elementDef("ChatLayoutMessages", "data", "box", "div", true),
+  elementDef("ChatMessageMetadata", "data", "box", "div", true),
+  // Chat — one message row. `side: "end"` flips it to the outgoing side.
+  {
+    name: "Chat",
+    category: "data",
+    label: "Chat row",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const end = n.props?.side === "end";
+      return lower(n, "div", {
+        class: n.class ?? (end ? "chat chat-end" : "chat"),
+        children: n.children,
+      });
+    },
+  },
+  // A centered notice ("Today", "Ada joined") — attributed to neither side.
+  {
+    name: "ChatSystemMessage",
+    category: "data",
+    label: "Chat system message",
+    icon: "box",
+    container: true,
+    expand: (n) =>
+      lower(n, "div", {
+        class: n.class ?? "chat-system-message",
+        attrs: { role: "status" },
+        children: textChildren(n, "text"),
+      }),
+  },
+  // ChatMessage — the convenience composite the React layer also exposes,
+  // lowering to the same primitives. `avatar` is a STRING here (initials); a
+  // rich avatar node is authored by composing Chat/ChatImage/ChatBubble
+  // directly, exactly as in React.
+  {
+    name: "ChatMessage",
+    category: "data",
+    label: "Chat message",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const end = p.side === "end";
+      const compact = p.compact === true;
+      const kids: Child[] = [];
+      if (p.avatar != null && !compact) {
+        kids.push(elc("div", "chat-image", [String(p.avatar)]));
+      }
+      const bubbleClass = p.color ? `chat-bubble chat-bubble-${String(p.color)}` : "chat-bubble";
+      kids.push(elc("div", bubbleClass, n.children ?? []));
+      if (!compact && (p.name != null || p.time != null)) {
+        const footer: Child[] = [];
+        if (p.name != null) footer.push(String(p.name));
+        if (p.time != null) footer.push(elc("time", undefined, [` ${String(p.time)}`]));
+        kids.push(elc("div", "chat-footer", footer));
+      }
+      if (p.metadata != null) {
+        kids.push(elc("div", "chat-footer", [String(p.metadata)]));
+      }
+      return lower(n, "div", {
+        class: n.class ?? (end ? "chat chat-end" : "chat"),
+        children: kids,
+      });
+    },
+  },
+  // Three animated dots inside a real bubble, so it occupies the slot the next
+  // message will land in rather than reading as a stray line of muted text.
+  {
+    name: "ChatTypingIndicator",
+    category: "data",
+    label: "Chat typing indicator",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const end = p.side === "end";
+      const dots = [0, 1, 2].map(() => elc("span", "chat-typing-dot"));
+      const typing = elc("span", "chat-typing", dots, {
+        role: "status",
+        "aria-label": p.name != null ? `${String(p.name)} is typing` : "Typing",
+      });
+      const kids: Child[] = [];
+      if (p.avatar != null) kids.push(elc("div", "chat-image", [String(p.avatar)]));
+      kids.push(elc("div", "chat-bubble", [typing]));
+      return lower(n, "div", {
+        class: n.class ?? (end ? "chat chat-end" : "chat"),
+        children: kids,
+      });
+    },
+  },
+  // ChatToolCalls — reuses the existing `disclosure` behavior and the
+  // Collapsible part classes the CSS already targets, rather than inventing a
+  // new BehaviorType for what is structurally a collapsible.
+  {
+    name: "ChatToolCalls",
+    category: "data",
+    label: "Chat tool calls",
+    icon: "collapse",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const open = p.defaultOpen === true;
+      const trigger = elc("button", "collapsible-trigger", [String(p.label ?? "Tool call")], {
+        type: "button",
+      });
+      trigger.part = "trigger";
+      const panel = elc("div", "collapsible-content", n.children ?? [], open ? undefined : { hidden: true });
+      panel.part = "panel";
+      const out = lower(n, "div", {
+        class: n.class ?? "chat-tool-calls",
+        children: [trigger, panel],
+      });
+      if (!out.behavior) out.behavior = { type: "disclosure" };
+      return out;
+    },
+  },
+  // ChatComposer — a real <form> so a static page can actually send. React
+  // adds autoresize and Enter-to-send on top; those are progressive
+  // enhancements, and their absence degrades to a normal textarea + submit
+  // rather than to something broken.
+  {
+    name: "ChatComposer",
+    category: "form",
+    label: "Chat composer",
+    icon: "textarea",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const kids: Child[] = [];
+      if (n.children?.length) kids.push(elc("div", "chat-composer-actions", n.children));
+      kids.push(
+        elc("textarea", "textarea chat-composer-field", undefined, {
+          rows: 1,
+          name: (p.name as string) ?? "message",
+          placeholder: (p.placeholder as string) ?? "Message…",
+          "aria-label": (p.ariaLabel as string) ?? "Message",
+          ...(p.disabled === true ? { disabled: true } : {}),
+        }),
+      );
+      kids.push(
+        elc("button", "btn btn-primary btn-sm btn-circle", [String(p.sendLabel ?? "Send")], {
+          type: "submit",
+          "aria-label": "Send message",
+        }),
+      );
+      const out = lower(n, "form", { class: n.class ?? "chat-composer", children: kids });
+      if (!out.behavior) out.behavior = { type: "form" };
       return out;
     },
   },

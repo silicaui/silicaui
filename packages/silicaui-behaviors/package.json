@@ -37,7 +37,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-interactive.mjs && node verify-a11y.mjs"
+    "verify": "node verify.mjs && node verify-interactive.mjs && node verify-a11y.mjs && pnpm verify:oklch-parity",
+    "verify:oklch-parity": "node verify-oklch-parity.mjs"
   },
   "devDependencies": {
     "jsdom": "^25.0.0",

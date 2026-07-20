@@ -36,7 +36,10 @@ export type BehaviorType =
   | "rating"
   | "theme-toggle"
   | "phone-input"
-  | "reveal";
+  | "reveal"
+  | "countdown"
+  | "tag-input"
+  | "color-picker";
 
 /** A gathered form value: one control's value, or many for a repeated name. */
 export type FormValue = string | string[];

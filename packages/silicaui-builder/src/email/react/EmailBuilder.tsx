@@ -24,6 +24,8 @@ import {
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import type { Theme } from "@wizeworks/silicaui-html";
 import { EmailEditor } from "../engine";
+import type { HistoryDelegate } from "../engine";
+import type { Op, OpMeta } from "../ops";
 import type { EmailDocument, EmailProject } from "../schema";
 import { toEmailHtml } from "../projector";
 import { EmailEditorProvider, useEmailDocument, useEmailEditor, useEmailHistory } from "./editor-context";
@@ -389,11 +391,23 @@ export interface EmailBuilderProps {
    * reach an email at all. Omit `theme` for the built-in neutral palette.
    */
   theme?: Theme;
-  /** Fires after every committed edit, with the WHOLE project (every template,
-   *  not just the active one) to persist. The builder stores nothing itself
-   *  (beyond the local crash-recovery draft below) — the host owns real
-   *  persistence. */
-  onChange?: (project: EmailProject) => void;
+  /**
+   * Fires after every committed edit. The builder stores nothing itself (beyond
+   * the local crash-recovery draft below) — the host owns real persistence.
+   *
+   *  - `project` — the WHOLE project (every template, not just the active one),
+   *    as before. Storing it verbatim is correct for a single author and lossy
+   *    for two: both hold a complete project, so the last writer silently
+   *    reverts the other's work on templates they never opened.
+   *  - `ops` — what the author actually DID, in causal order (see `Op`).
+   *    Applying these instead lets two authors edit one project without erasing
+   *    each other. Never empty when this fires.
+   *  - `meta.baseSeq` — the sequence number this client last had applied.
+   *
+   * The extra arguments are additive: a host that ignores them behaves exactly
+   * as it did before.
+   */
+  onChange?: (project: EmailProject, ops: readonly Op[], meta: OpMeta) => void;
   /** Fires (in addition to the built-in client-side download) when the user
    *  clicks Export HTML, with the projected HTML string. */
   onExport?: (html: string) => void;
@@ -430,8 +444,27 @@ export interface EmailBuilderProps {
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder-email";
 
+/**
+ * The imperative handle a host uses to push state INTO a live email builder —
+ * the other half of the `onChange(project, ops, meta)` contract. A ref rather
+ * than a prop, because the seed document is read once at boot by design.
+ */
+export interface EmailBuilderHandle {
+  /** Render another author's edits in place. Never lands on the local undo
+   *  stack and never echoes back out of `onChange`. */
+  applyRemoteOps(ops: readonly Op[]): { applied: number; dropped: Op[] };
+  /** Forced resync: replace the project wholesale at `seq`, discarding local
+   *  undo/redo (it describes a lineage that no longer applies). */
+  replaceState(project: EmailProject, seq: number): void;
+  /** Record the sequence number the host assigned to our last batch. */
+  ackSeq(seq: number): void;
+  /** Hand undo/redo to the host for a collaborative session; `undefined`
+   *  restores the local stack. */
+  setHistoryDelegate(delegate: HistoryDelegate | undefined): void;
+}
+
 /** The full email builder. Mount it anywhere; it fills its host container. */
-export function EmailBuilder({
+export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderProps>(function EmailBuilder({
   document,
   project,
   host,
@@ -442,7 +475,7 @@ export function EmailBuilder({
   onSendTest,
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
-}: EmailBuilderProps) {
+}: EmailBuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
   // `project` takes precedence over the legacy single-template `document`.
   const seedRef = React.useRef(project ?? document);
@@ -456,6 +489,22 @@ export function EmailBuilder({
     { editor: EmailEditor; recoveredAt: number | null; gen: number } | null
   >(null);
   const editor = current?.editor ?? null;
+
+  // The handle is stable across editor swaps (restore, "start fresh"), so a host
+  // that captured it at mount keeps a working reference. It reads the CURRENT
+  // editor through a ref rather than closing over one.
+  const editorRef = React.useRef<EmailEditor | null>(null);
+  editorRef.current = editor;
+  React.useImperativeHandle<EmailBuilderHandle, EmailBuilderHandle>(
+    handleRef,
+    () => ({
+      applyRemoteOps: (ops) => editorRef.current?.applyRemoteOps(ops) ?? { applied: 0, dropped: [...ops] },
+      replaceState: (proj, seq) => editorRef.current?.replaceState(proj, seq),
+      ackSeq: (seq) => editorRef.current?.ackSeq(seq),
+      setHistoryDelegate: (delegate) => editorRef.current?.setHistoryDelegate(delegate),
+    }),
+    [],
+  );
 
   // Boot: restore a saved draft if one exists, else seed from the `project`/
   // `document` prop. `colorDefaults` seeds a FRESH document's colors; a
@@ -491,13 +540,15 @@ export function EmailBuilder({
   // afterward captures the full current roster.
   React.useEffect(() => {
     if (!editor) return;
-    const relay = () => {
+    // An action that recorded no ops changed no stored state, so there is
+    // nothing to save or relay. A stronger test than a kind allowlist — derived
+    // from what actually changed rather than a list someone must remember to
+    // update, and it holds the engine to the rule that no mutation is silent.
+    const unsub = editor.subscribe((e) => {
+      if (!e.ops.length) return;
       const proj = editor.extractProject();
       store?.save(proj);
-      onChange?.(proj);
-    };
-    const unsub = editor.subscribe((e) => {
-      if (e.kind !== "selection" && e.kind !== "active") relay();
+      onChange?.(proj, e.ops, { baseSeq: editor.baseSeq });
     });
     const flush = () => store?.flush();
     window.addEventListener("visibilitychange", flush);
@@ -541,4 +592,4 @@ export function EmailBuilder({
       </EmailEditorProvider>
     </EmailHostProvider>
   );
-}
+});

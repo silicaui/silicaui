@@ -27,7 +27,7 @@ export function inputGroup(prefix = "") {
     alignItems: "center",
     justifyContent: "center",
     height: "1.5rem",
-    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+    color: "var(--color-base-content)",
     "& svg": { width: "1rem", height: "1rem", flexShrink: "0" },
   };
 
@@ -64,7 +64,7 @@ export function inputGroup(prefix = "") {
       border: "0",
       background: "none",
       borderRadius: "9999px",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
       cursor: "pointer",
       pointerEvents: "auto",
       "& svg": { width: "1rem", height: "1rem", flexShrink: "0" },

@@ -16,7 +16,7 @@ export function PaginationDemo() {
                             color={color}
                             page={3}
                             count={10}
-                            onChange={() => {}}
+                            onValueChange={() => {}}
                         />
                     ))}
                 </div>
@@ -31,7 +31,7 @@ export function PaginationDemo() {
                             color="primary"
                             page={3}
                             count={10}
-                            onChange={() => {}}
+                            onValueChange={() => {}}
                         />
                     ))}
                 </div>
@@ -46,7 +46,7 @@ export function PaginationDemo() {
                         color="primary"
                         page={page}
                         count={12}
-                        onChange={setPage}
+                        onValueChange={setPage}
                     />
                 </div>
             </Section>

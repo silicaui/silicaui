@@ -524,8 +524,17 @@ interface BuilderHandle {
 }
 ```
 
-The engine **never persists** — it edits in memory and emits via `host.onChange`.
-Save, autosave-vs-explicit, versioning, conflict policy, publish: all the host's.
+The engine **never persists** — it edits in memory and emits via the `<Builder>`
+`onChange(site, ops, meta)` prop. Save, autosave-vs-explicit, versioning,
+conflict policy, publish: all the host's.
+
+`onChange` is **state and intent**: the whole `Site`, plus the semantic
+operations that produced it (`Op[]`, causal order) and the sequence number this
+client last had applied. A single-author host can ignore the extra arguments and
+store `site`; a multi-editor host applies the ops instead, because two clients
+each PUTting a whole `Site` silently revert each other. Ops come back in through
+the `BuilderHandle` ref (`applyRemoteOps` / `replaceState`). See
+[builder-contract.md §5.1](builder-contract.md).
 
 ### 9.2 The host (`BuilderHost`)
 
@@ -534,7 +543,7 @@ Composes the render-time `DataResolver` + `ClassPolicy` (§8) with editor concer
 ```ts
 interface BuilderHost extends DataResolver, ClassPolicy {
   catalog(): CatalogEntry[];                             // what the Add palette offers; default = the blocks index
-  onChange(document: Document): void;                    // debounced after every edit; the host saves
+  // change notification is a <Builder> PROP, not a host method — see above
   pickAsset?(kind: 'image' | 'video'): Promise<AssetRef | null>;
   inspectorPanels?(node: Node): InspectorPanel[];        // host panels rendered beside the generic ones
 }
@@ -544,9 +553,9 @@ type AssetRef      = { ref: string; kind: 'image' | 'video'; alt?: string };
 interface InspectorPanel { id: string; title: string; render(node: Node, api: EditApi): unknown }
 ```
 
-**Seven methods, four optional.** Required: `catalog`, `validateClass`, `onChange`.
+**Six methods, four optional.** Required: `catalog`, `validateClass`.
 Optional: `resolveValue`, `resolveCollection`, `pickAsset`, `inspectorPanels`. A host
-with the three required methods gets a working **static-site** builder; add the
+with the two required methods gets a working **static-site** builder; add the
 resolvers + assets and it builds a full commerce/CMS site — with **no** engine domain
 code.
 
@@ -667,8 +676,9 @@ host conforms to it here and gains no foothold in the engine.
 - **Policy.** Supply the class denylist as `validateClass` (sparx: `fixed` / `z-[…]` /
   `content-[…]` / `url()`, plus its bounded `.fixed-*` and named z-scale). The engine
   enforces; the policy is the host's.
-- **Persistence.** `onChange(document)` → the host's save / versioning / publish /
-  tenancy / RLS. The engine never persists.
+- **Persistence.** `onChange(site, ops, meta)` → the host's save / versioning /
+  publish / tenancy / RLS, and — via the ops — its concurrency story. The engine
+  never persists.
 - **Catalog, assets, panels.** `catalog()` curates the palette (default = the blocks
   index; hide some, add domain composites); `pickAsset` fronts the media library;
   `inspectorPanels` contributes domain editors (SEO, product-pin) beside the generic

@@ -57,7 +57,7 @@ export function combobox(prefix = "") {
     [sel("-empty")]: {
       padding: "0.5rem 0.6rem",
       fontSize: "0.875rem",
-      color: "color-mix(in oklab, var(--color-base-content) 55%, transparent)",
+      color: "var(--color-base-content)",
     },
   };
 }

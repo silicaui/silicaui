@@ -11,6 +11,12 @@ export interface ThemeControllerProps {
    *  current `data-theme`, then the first theme). */
   defaultValue?: string;
   /** Called with the new theme when it changes. */
+  onValueChange?: (theme: string) => void;
+  /**
+   * @deprecated Use `onValueChange`. `onChange` is reserved for the native DOM
+   * handler on components that wrap a real form element; still honored here so
+   * this isn't a breaking change.
+   */
   onChange?: (theme: string) => void;
   /** Element to set `data-theme` on. Default `document.documentElement`. */
   target?: HTMLElement | null | (() => HTMLElement | null);
@@ -74,6 +80,7 @@ export function ThemeController({
   themes = ["light", "dark"],
   value,
   defaultValue,
+  onValueChange,
   onChange,
   target,
   storageKey = "silica-theme",
@@ -89,21 +96,36 @@ export function ThemeController({
     return typeof document !== "undefined" ? document.documentElement : null;
   }, [target]);
 
-  const resolveInitial = (): string => {
-    if (value) return value;
-    if (typeof window !== "undefined") {
-      if (storageKey) {
-        const stored = window.localStorage.getItem(storageKey);
-        if (stored && themes.includes(stored)) return stored;
-      }
-      const attr = getTarget()?.dataset.theme;
-      if (attr && themes.includes(attr)) return attr;
-    }
-    return defaultValue ?? themes[0] ?? "light";
-  };
-
-  const [internal, setInternal] = React.useState<string>(resolveInitial);
+  // Start from a value the SERVER can also compute — never read localStorage or
+  // the DOM in the initializer. Doing so makes the client's pre-hydration render
+  // disagree with the server's: the server has no storage, resolves "light", and
+  // emits a Moon; a client with "dark" stored emits a Sun. React then warns and
+  // the wrong icon can stick. The effect below adopts the persisted value right
+  // after mount instead. Same rule as `useTheme` / `useMediaQuery`.
+  const [internal, setInternal] = React.useState<string>(
+    () => defaultValue ?? themes[0] ?? "light",
+  );
   const current = value ?? internal;
+
+  // Post-mount: adopt the stored / already-applied theme. Controlled callers
+  // own the value, so this only runs for the uncontrolled case.
+  const adopted = React.useRef(false);
+  React.useEffect(() => {
+    if (adopted.current || value !== undefined) return;
+    adopted.current = true;
+    if (storageKey) {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored && themes.includes(stored)) {
+        setInternal(stored);
+        return;
+      }
+    }
+    const attr = getTarget()?.dataset.theme;
+    if (attr && themes.includes(attr)) setInternal(attr);
+    // `themes` is a fresh array literal on most renders; the `adopted` guard is
+    // what makes this run once, so it deliberately isn't a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, storageKey, getTarget]);
 
   // Keep the target in sync with the current theme.
   React.useEffect(() => {
@@ -118,7 +140,7 @@ export function ThemeController({
     if (storageKey && typeof window !== "undefined") {
       window.localStorage.setItem(storageKey, next);
     }
-    onChange?.(next);
+    (onValueChange ?? onChange)?.(next);
   };
 
   const cycle = () => {

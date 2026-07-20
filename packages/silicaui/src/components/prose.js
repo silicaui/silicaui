@@ -172,7 +172,9 @@ export function prose(prefix = "") {
     },
 
     // ---- Sizes (rescale the em base) ---------------------------------------
+    [sel("-xs")]: { fontSize: "0.8125rem", lineHeight: "1.65" },
     [sel("-sm")]: { fontSize: "0.875rem", lineHeight: "1.7" },
+    [sel("-md")]: { fontSize: "1rem", lineHeight: "1.75" },
     [sel("-lg")]: { fontSize: "1.125rem", lineHeight: "1.8" },
     [sel("-xl")]: { fontSize: "1.25rem", lineHeight: "1.8" },
   };

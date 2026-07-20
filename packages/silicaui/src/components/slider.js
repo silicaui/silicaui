@@ -43,7 +43,7 @@ export function slider(colors, prefix = "") {
       minWidth: "2.5ch",
       fontSize: "0.875rem",
       fontVariantNumeric: "tabular-nums",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // Interactive hit area.
@@ -102,8 +102,11 @@ export function slider(colors, prefix = "") {
     },
 
     // ---- Sizes (drive rail thickness + thumb diameter) ---------------------
+    [sel("-xs")]: { "--slider-rail": "0.1875rem", "--slider-thumb": "0.7rem" },
     [sel("-sm")]: { "--slider-rail": "0.25rem", "--slider-thumb": "0.9rem" },
+    [sel("-md")]: { "--slider-rail": "0.375rem", "--slider-thumb": "1.1rem" },
     [sel("-lg")]: { "--slider-rail": "0.5rem", "--slider-thumb": "1.35rem" },
+    [sel("-xl")]: { "--slider-rail": "0.625rem", "--slider-thumb": "1.6rem" },
   };
 
   // ---- Color variants (extensible) -----------------------------------------

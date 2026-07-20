@@ -1,8 +1,9 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { SilicaSize } from "./lib/tokens";
 
-export type ProseSize = "sm" | "md" | "lg" | "xl";
+export type ProseSize = SilicaSize;
 
 export interface ProseProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Default `md`. Rescales the whole block by one root font-size. */

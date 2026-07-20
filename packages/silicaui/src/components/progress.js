@@ -93,7 +93,7 @@ export function progress(colors, prefix = "") {
       fontSize: "0.8125rem",
     },
     [sel("-label")]: {
-      color: "color-mix(in oklab, var(--color-base-content) 75%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-value")]: {
       fontWeight: "600",

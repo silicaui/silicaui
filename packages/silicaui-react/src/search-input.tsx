@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { VoidElementProps } from "./lib/void-element";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 import { InputGroup, InputGroupAddon, InputGroupButton } from "./input-group";
 
@@ -8,9 +9,11 @@ export type SearchInputColor = SilicaColor;
 export type SearchInputSize = SilicaSize;
 
 export interface SearchInputProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    "size" | "color" | "type"
+  extends VoidElementProps<
+    Omit<
+      React.InputHTMLAttributes<HTMLInputElement>,
+      "size" | "color" | "type"
+    >
   > {
   /** Accent color; maps to `input-<color>` (border + focus ring). */
   color?: SearchInputColor;

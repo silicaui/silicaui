@@ -4,7 +4,11 @@
  * foundations but over the closed email schema.
  */
 export { EmailBuilder } from "./EmailBuilder";
-export type { EmailBuilderProps } from "./EmailBuilder";
+export type { EmailBuilderProps, EmailBuilderHandle } from "./EmailBuilder";
+// The state-and-intent-out contract types, re-exported so a host wiring the
+// email builder doesn't have to reach into the framework-neutral entry.
+export type { Op, OpKind, OpTarget, OpMeta } from "../ops";
+export type { HistoryDelegate } from "../engine";
 export {
   EmailEditorProvider,
   useEmailEditor,

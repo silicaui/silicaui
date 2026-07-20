@@ -26,7 +26,7 @@ export function RatingDemo() {
 
             <Section title="Real use · rate this product">
                 <LabeledRow label={`You rated this ${stars} of 5 stars`}>
-                    <Rating color="warning" value={stars} onChange={setStars} />
+                    <Rating color="warning" value={stars} onValueChange={setStars} />
                 </LabeledRow>
             </Section>
         </>

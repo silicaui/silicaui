@@ -19,6 +19,7 @@
     "alert-dismiss",
     "alert-dismiss-inner",
     "alert-error",
+    "alert-ghost",
     "alert-info",
     "alert-lg",
     "alert-md",
@@ -390,8 +391,12 @@
     "empty-state-actions",
     "empty-state-description",
     "empty-state-icon",
+    "empty-state-lg",
+    "empty-state-md",
     "empty-state-sm",
-    "empty-state-title"
+    "empty-state-title",
+    "empty-state-xl",
+    "empty-state-xs"
   ],
   "field": [
     "field",
@@ -417,7 +422,10 @@
   "file-input": [
     "file-input",
     "file-input-lg",
-    "file-input-sm"
+    "file-input-md",
+    "file-input-sm",
+    "file-input-xl",
+    "file-input-xs"
   ],
   "file-upload": [
     "file-upload",
@@ -499,6 +507,7 @@
   "label": [
     "floating-label",
     "label",
+    "label-control",
     "label-required"
   ],
   "lightbox": [
@@ -579,6 +588,7 @@
     "meter-info",
     "meter-label",
     "meter-lg",
+    "meter-md",
     "meter-neutral",
     "meter-primary",
     "meter-secondary",
@@ -610,13 +620,16 @@
     "multi-select-info",
     "multi-select-input",
     "multi-select-lg",
+    "multi-select-md",
     "multi-select-neutral",
     "multi-select-primary",
     "multi-select-secondary",
     "multi-select-sm",
     "multi-select-success",
     "multi-select-trigger",
-    "multi-select-warning"
+    "multi-select-warning",
+    "multi-select-xl",
+    "multi-select-xs"
   ],
   "navbar": [
     "navbar",
@@ -674,6 +687,7 @@
     "pagination-sm",
     "pagination-success",
     "pagination-warning",
+    "pagination-xl",
     "pagination-xs"
   ],
   "phone-input": [
@@ -747,8 +761,10 @@
   "prose": [
     "prose",
     "prose-lg",
+    "prose-md",
     "prose-sm",
-    "prose-xl"
+    "prose-xl",
+    "prose-xs"
   ],
   "radial-progress": [
     "radial-progress"
@@ -838,13 +854,16 @@
     "segment-field-info",
     "segment-field-lg",
     "segment-field-literal",
+    "segment-field-md",
     "segment-field-neutral",
     "segment-field-primary",
     "segment-field-secondary",
     "segment-field-segment",
     "segment-field-sm",
     "segment-field-success",
-    "segment-field-warning"
+    "segment-field-warning",
+    "segment-field-xl",
+    "segment-field-xs"
   ],
   "select-menu": [
     "select-group-label",
@@ -917,6 +936,7 @@
     "slider-indicator",
     "slider-info",
     "slider-lg",
+    "slider-md",
     "slider-neutral",
     "slider-primary",
     "slider-secondary",
@@ -925,7 +945,9 @@
     "slider-thumb",
     "slider-track",
     "slider-value",
-    "slider-warning"
+    "slider-warning",
+    "slider-xl",
+    "slider-xs"
   ],
   "sortable-list": [
     "sortable-handle",
@@ -1036,13 +1058,16 @@
     "tag-input-field",
     "tag-input-info",
     "tag-input-lg",
+    "tag-input-md",
     "tag-input-neutral",
     "tag-input-primary",
     "tag-input-remove",
     "tag-input-secondary",
     "tag-input-sm",
     "tag-input-success",
-    "tag-input-warning"
+    "tag-input-warning",
+    "tag-input-xl",
+    "tag-input-xs"
   ],
   "textarea": [
     "textarea",
@@ -1088,12 +1113,14 @@
     "toggle-group-info",
     "toggle-group-item",
     "toggle-group-lg",
+    "toggle-group-md",
     "toggle-group-neutral",
     "toggle-group-primary",
     "toggle-group-secondary",
     "toggle-group-sm",
     "toggle-group-success",
     "toggle-group-warning",
+    "toggle-group-xl",
     "toggle-group-xs"
   ],
   "toggle": [

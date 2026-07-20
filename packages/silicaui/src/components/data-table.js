@@ -102,7 +102,7 @@ export function dataTable(colors, prefix = "") {
     [sel("-empty")]: {
       textAlign: "center",
       padding: "2.5rem 1rem",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // Loading skeleton bar (sits inside a cell).
@@ -121,7 +121,7 @@ export function dataTable(colors, prefix = "") {
       gap: "0.75rem",
       flexWrap: "wrap",
       fontSize: "0.875rem",
-      color: "color-mix(in oklab, var(--color-base-content) 75%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-pager")]: {
       display: "inline-flex",

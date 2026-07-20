@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { VoidElementProps } from "./lib/void-element";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 export type InputColor = SilicaColor;
@@ -9,7 +10,9 @@ export type InputSize = SilicaSize;
 
 export interface InputProps
   // Omit the native numeric `size` and string `color` so our token unions win.
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "color"> {
+  extends VoidElementProps<
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "color">
+  > {
   /** Accent color; maps to `input-<color>` (border + focus ring). */
   color?: InputColor;
   /** Default `md`. Matches same-size Button heights. */

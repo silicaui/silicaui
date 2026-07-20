@@ -3,7 +3,7 @@ import { ToggleGroup as BaseToggleGroup } from "@base-ui-components/react/toggle
 import { Toggle as BaseToggle } from "@base-ui-components/react/toggle";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
-import type { SilicaColor } from "./lib/tokens";
+import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -11,7 +11,7 @@ type Styled<T extends React.ElementType> = Omit<
 > & { className?: string };
 
 /** The track re-scales its items; `md` is the default and emits no class. */
-export type ToggleGroupSize = "xs" | "sm" | "md" | "lg";
+export type ToggleGroupSize = SilicaSize;
 
 // `color` shadows the native HTML attribute of the same name, so drop that one.
 export type ToggleGroupProps = Omit<Styled<typeof BaseToggleGroup>, "color"> & {

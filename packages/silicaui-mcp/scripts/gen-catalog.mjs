@@ -4,7 +4,7 @@
 // drift into fiction).
 // Run via `pnpm --filter @wizeworks/silicaui-mcp gen`; output is committed
 // under src/data/ (same discipline as silicaui-builder's gen-icons.mjs).
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
@@ -15,6 +15,19 @@ const packagesRoot = path.join(pkgRoot, "..");
 const repoRoot = path.join(packagesRoot, "..");
 const dataDir = path.join(pkgRoot, "src", "data");
 mkdirSync(dataDir, { recursive: true });
+
+// Where `usageExample` comes from. Asserted up front rather than discovered
+// per-component: the per-component read has to tolerate a missing demo (most
+// components have none), so a wrong directory here degrades silently into
+// "every component has no example" — which is exactly what happened when the
+// demos moved out of examples/playground into their own package and this path
+// wasn't updated. All 344 examples vanished with no error.
+const demosDir = path.join(packagesRoot, "silicaui-demos", "src", "demos");
+if (!existsSync(demosDir)) {
+  throw new Error(
+    `gen-catalog: demos directory not found at ${demosDir} — usageExample would be null for every component. Fix the path rather than letting the catalog ship without examples.`,
+  );
+}
 
 // Folder names on disk stay unscoped (packages/silicaui-react/...); only the
 // published/installable identity gets the @wizeworks scope. `scoped()` and
@@ -57,14 +70,13 @@ const PACKAGES = [
   { name: "silicaui-dnd", purpose: "dnd-kit wrapped — SortableList + drag primitives.", install: "pnpm add silicaui-dnd silicaui-react" },
   { name: "silicaui-panels", purpose: "react-resizable-panels wrapped in Silica styling.", install: "pnpm add silicaui-panels silicaui-react" },
 ];
-for (const p of PACKAGES) {
-  try {
-    const pj = JSON.parse(readFileSync(path.join(packagesRoot, p.name, "package.json"), "utf8"));
-    p.version = pj.version;
-  } catch {
-    p.version = "unknown";
-  }
-}
+// NOTE: versions are deliberately NOT written here. `gen` isn't part of
+// `build` or the release, so a version snapshotted at generation time freezes
+// at whatever was current the last time someone ran this by hand — that's how
+// the catalog ended up advertising 0.26.0 after 0.29.0 shipped. The server
+// stamps its own version onto every entry at runtime instead (see VERSION in
+// src/server.ts); the whole family is released in lockstep via changesets
+// `fixed`, so that value is correct for all of them.
 writeJson(
   "packages.json",
   PACKAGES.map((p) => ({
@@ -365,19 +377,61 @@ for (const w of wrapperMeta) documentedNames.add(w.name);
 
 // Real exports that are infrastructure, not catalog components (context
 // providers, etc.) — deliberately absent from the README's component table.
-const NON_CATALOG_EXPORTS = new Set(["SilicaProvider"]);
+const NON_CATALOG_EXPORTS = new Set(["SilicaProvider", "PortalContainerProvider"]);
 
-// A file where AT LEAST ONE export is documented is a compound whose OTHER
-// exports are Base-UI-style sub-parts (DialogTrigger next to documented
-// Dialog, CardBody next to documented Card, ...) — not a gap, don't warn.
-// Only flag files where NOTHING they export made it into the README at all.
-const undocumentedFiles = Object.entries(reactNamesByFile).filter(
-  ([, names]) => names.some((n) => !NON_CATALOG_EXPORTS.has(n)) && !names.some((n) => documentedNames.has(n)),
-);
-if (undocumentedFiles.length) {
-  const summary = undocumentedFiles.map(([file, names]) => `${file} (${names.join(", ")})`).join("; ");
+// Genuine sub-parts the prefix rule below can't see, because their name isn't
+// prefixed by their documented root in either direction. Keep this list SHORT
+// and explicit: an entry here is an auditable "yes, reviewed, it's a sub-part",
+// whereas loosening the prefix rule to cover them would silently swallow real
+// missing components too.
+const KNOWN_SUBPARTS = new Set(["MetadataItem"]);
+
+// ── README table vs the barrel, checked in BOTH directions ──────────────────
+// The previous check ran one way (export -> README) at FILE granularity, which
+// left two blind spots that both shipped:
+//
+//   1. A real component sharing a file with a documented sibling was exempted
+//      wholesale, so `DateRangePicker` (in date-picker.tsx next to documented
+//      `DatePicker`) never appeared in the catalog and never warned.
+//   2. Nothing checked README -> export at all. A row naming a component that
+//      does not exist resolved via the toKebab fallback to a real file and
+//      emitted a fully-formed catalog entry: `Typography` was published with
+//      `HeadingProps` attached, so the catalog confidently described a
+//      component that cannot be imported.
+//
+// (2) is an ERROR, not a warning: a phantom entry is worse than a missing one,
+// because a consumer acts on it.
+const phantomNames = componentMeta.filter((m) => !reactFileByExport[m.name]).map((m) => m.name);
+if (phantomNames.length) {
+  console.error(
+    `  ✗ ${phantomNames.length} name(s) in @wizeworks/silicaui-react README's component table are NOT exported from the barrel. ` +
+      `Each would be published as a catalog entry for a component that cannot be imported: ${phantomNames.join(", ")}`,
+  );
+  process.exitCode = 1;
+  // Drop them from the emitted data as well. The exit code alone only protects
+  // CI; a developer who reruns locally and moves on would otherwise still be
+  // holding a catalog that documents a component nobody can import.
+  const phantom = new Set(phantomNames);
+  for (let i = componentMeta.length - 1; i >= 0; i--) {
+    if (phantom.has(componentMeta[i].name)) componentMeta.splice(i, 1);
+  }
+}
+
+// A sub-part is name-prefixed by a documented sibling in the SAME file, in
+// either direction (DialogTrigger ⊃ Dialog; Steps ⊃ Step). Anything else that
+// is exported but undocumented is a real missing row.
+const undocumentedExports = [];
+for (const [file, names] of Object.entries(reactNamesByFile)) {
+  for (const name of names) {
+    if (documentedNames.has(name) || NON_CATALOG_EXPORTS.has(name) || KNOWN_SUBPARTS.has(name)) continue;
+    const root = names.find((o) => documentedNames.has(o) && o !== name && (name.startsWith(o) || o.startsWith(name)));
+    if (!root) undocumentedExports.push(`${name} (${file})`);
+  }
+}
+if (undocumentedExports.length) {
   console.warn(
-    `  ! ${undocumentedFiles.length} @wizeworks/silicaui-react source file(s) have NO export in README's component table — likely a missing row, not a sub-part (won't appear in list_components until fixed): ${summary}`,
+    `  ! ${undocumentedExports.length} @wizeworks/silicaui-react export(s) have no row in README's component table and are not a sub-part of a documented sibling ` +
+      `(won't appear in list_components until a row is added): ${undocumentedExports.join(", ")}`,
   );
 }
 
@@ -394,12 +448,10 @@ for (const meta of [...componentMeta, ...wrapperMeta]) {
 
   let usageExample = null;
   try {
-    usageExample = readFileSync(
-      path.join(repoRoot, "examples/playground/src/demos", `${meta.name}.tsx`),
-      "utf8",
-    ).trim();
+    usageExample = readFileSync(path.join(demosDir, `${meta.name}.tsx`), "utf8").trim();
   } catch {
-    // no demo file — leave null
+    // No demo for this component — legitimately common, so stay quiet here.
+    // A WRONG demosDir is caught once, up front, where it can't be missed.
   }
 
   components.push({
@@ -411,6 +463,54 @@ for (const meta of [...componentMeta, ...wrapperMeta]) {
     props: parsed.props,
     usageExample,
   });
+}
+
+// ── React ↔ HTML parity ─────────────────────────────────────────────────────
+// A component that exists only in silicaui-react is invisible to every
+// non-React consumer (Sparx tenant sites, static export) — they cannot author
+// it at all. That's a legitimate state for some components, but it has to be a
+// DECISION, not an oversight, so the exemptions are enumerated here with a
+// reason and anything else is a loud warning.
+const HTML_EXEMPT = {
+  // Imperative APIs: `toast.add()` / `alertDialog.confirm()` have no
+  // pre-existing DOM node for a data-sui-behavior marker to attach to.
+  ToastProvider: "imperative API — no markup to mark up",
+  ImperativeAlertDialogProvider: "imperative API — no markup to mark up",
+  // Not a component in schema terms: it clones its child to add a class, which
+  // an authored node expresses by just putting `validator` in its class.
+  Validator: "pure class-applicator — express as a class on the node",
+  // The -html `Select` IS the native <select>; React splits rich vs native.
+  NativeSelect: "covered by -html `Select`, which lowers to a native <select>",
+  // Checked against the existing vocabulary first, per the reuse-before-forking
+  // rule. What remains is exempt for a stated reason, not by oversight:
+  //   PowerSearch— NOT a missing behavior: an application-integration surface.
+  //                It is explicitly "a view over `usePowerSearchConfig`" — the
+  //                host supplies live field configs and consumes `value.terms`
+  //                to build API requests. A static document has no state loop
+  //                to hold the other end, so a macro would emit markup for a
+  //                component that cannot function. Same category as
+  //                ToastProvider, for the same reason.
+  // (`Filter` and `Countdown` both came off this list — Filter turned out to BE
+  //  `toggle-group` plus an optional `close` part; Countdown got a real one.)
+  PowerSearch: "application-integration surface, not a document component (see above)",
+};
+const htmlNames = new Set(htmlComponents.map((c) => c.name));
+const reactOnly = components
+  .filter((c) => c.package === "@wizeworks/silicaui-react" && !htmlNames.has(c.name) && !HTML_EXEMPT[c.name])
+  .map((c) => c.name);
+if (reactOnly.length) {
+  console.warn(
+    `  ! ${reactOnly.length} @wizeworks/silicaui-react component(s) have no @wizeworks/silicaui-html macro, so non-React consumers cannot author them. ` +
+      `Add a ComponentDef, or add an entry to HTML_EXEMPT in this script saying why not: ${reactOnly.join(", ")}`,
+  );
+}
+// Exemptions must stay honest in the other direction too: once a macro lands,
+// its stale exemption should go, or the list quietly rots into fiction.
+const staleExempt = Object.keys(HTML_EXEMPT).filter((n) => htmlNames.has(n));
+if (staleExempt.length) {
+  console.warn(
+    `  ! HTML_EXEMPT lists component(s) that now DO have an -html macro — remove the stale entries: ${staleExempt.join(", ")}`,
+  );
 }
 
 const allComponents = [...components, ...htmlComponents];

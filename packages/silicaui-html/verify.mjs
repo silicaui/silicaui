@@ -102,6 +102,25 @@ check("video drops javascript: URLs (src + poster)", !posterXss.includes("javasc
 const iframeHtml = toHtml(el("iframe", undefined, { attrs: { src: "https://evil.example.com" } }));
 check("iframe still downgrades to <div>", iframeHtml.startsWith("<div") && !iframeHtml.includes("iframe"));
 
+// `template` was moved OUT of the exclusion list (it's inert — content parses
+// into a detached fragment, never renders, never executes) so a behavior can
+// clone new DOM from authored markup instead of constructing it in the runtime.
+// That widening is only safe if the floor still applies INSIDE the template, so
+// that is asserted here rather than assumed.
+const tpl = toHtml(
+  el("template", undefined, {
+    children: [
+      el("script", undefined, { children: ["alert(1)"] }),
+      el("iframe", undefined, { attrs: { src: "https://evil.example.com" } }),
+      el("span", undefined, { attrs: { onclick: "steal()" }, children: ["ok"] }),
+    ],
+  }),
+);
+check("template renders as <template> (not downgraded)", tpl.startsWith("<template"));
+check("script inside a template still downgrades", !tpl.includes("<script"));
+check("iframe inside a template still downgrades", !tpl.includes("<iframe"));
+check("on* handler inside a template is still stripped", !tpl.includes("onclick"));
+
 // ── Embed component: curated iframe (allowlist) vs. floor (arbitrary iframe) ──
 const ytEmbed = toHtml({ kind: "component", component: "Embed", class: "w-full", props: { url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Demo" } });
 check("Embed (YouTube) emits a sandboxed iframe", ytEmbed.includes("<iframe") && ytEmbed.includes("sandbox="));

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import { useControllableState } from "./lib/use-controllable-state";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 export type RatingColor = SilicaColor;
@@ -12,7 +13,13 @@ export interface RatingProps
   value?: number;
   /** Initial value when uncontrolled. */
   defaultValue?: number;
-  /** Called when the rating changes. */
+  /** Called with the new rating whenever it changes. */
+  onValueChange?: (value: number) => void;
+  /**
+   * @deprecated Use `onValueChange`. `onChange` is reserved for the native DOM
+   * handler on components that wrap a real form element; still honored here so
+   * this isn't a breaking change.
+   */
   onChange?: (value: number) => void;
   /** Number of stars. Default 5. */
   max?: number;
@@ -37,7 +44,7 @@ const StarIcon = () => (
 /**
  * Silica Rating — a row of star buttons.
  *
- *   <Rating defaultValue={3} onChange={setStars} />
+ *   <Rating defaultValue={3} onValueChange={setStars} />
  *   <Rating value={4.5 | 4} color="warning" readOnly />
  *
  * Keyboard: arrow keys change the value; Home/End jump to 1/max.
@@ -45,6 +52,7 @@ const StarIcon = () => (
 export function Rating({
   value,
   defaultValue = 0,
+  onValueChange,
   onChange,
   max = 5,
   color,
@@ -56,25 +64,24 @@ export function Rating({
   ...rest
 }: RatingProps) {
   const sc = useSilicaClass();
-  const isControlled = value !== undefined;
-  const [internal, setInternal] = React.useState(defaultValue);
-  const current = isControlled ? (value as number) : internal;
+  const [current, commit] = useControllableState({
+    value,
+    defaultValue,
+    onChange: onValueChange ?? onChange,
+  });
   const [hover, setHover] = React.useState<number | null>(null);
   const shown = hover ?? current;
   const refs = React.useRef<(HTMLButtonElement | null)[]>([]);
 
   const setValue = (v: number) => {
     if (readOnly) return;
-    const next = v === current ? 0 : v; // click the current star to clear
-    if (!isControlled) setInternal(next);
-    onChange?.(next);
+    commit(v === current ? 0 : v); // click the current star to clear
   };
 
   const focusStar = (i: number) => {
     const clamped = Math.max(1, Math.min(max, i));
     refs.current[clamped - 1]?.focus();
-    if (!isControlled) setInternal(clamped);
-    onChange?.(clamped);
+    commit(clamped);
   };
 
   const onKeyDown = (e: React.KeyboardEvent, i: number) => {

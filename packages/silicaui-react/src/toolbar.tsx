@@ -2,6 +2,7 @@ import * as React from "react";
 import { Toolbar as BaseToolbar } from "@base-ui-components/react/toolbar";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { SilicaSize } from "./lib/tokens";
 
 // Narrow Base UI's `className` (which also allows a function) to a string so it
 // composes with cx().
@@ -10,7 +11,7 @@ type Styled<T extends React.ElementType> = Omit<
   "className"
 > & { className?: string };
 
-export type ToolbarSize = "sm" | "md" | "lg";
+export type ToolbarSize = SilicaSize;
 export type ToolbarVariant = "muted";
 export type ToolbarDividers = "top" | "bottom" | "both";
 

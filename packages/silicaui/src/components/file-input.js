@@ -54,7 +54,10 @@ export function fileInput(prefix = "") {
     },
 
     // ---- Sizes -------------------------------------------------------------
+    [sel("-xs")]: { height: "calc(var(--size-field, 0.25rem) * 6)", fontSize: "0.6875rem" },
     [sel("-sm")]: { height: "calc(var(--size-field, 0.25rem) * 8)", fontSize: "0.8125rem" },
+    [sel("-md")]: { height: "calc(var(--size-field, 0.25rem) * 10)", fontSize: "0.875rem" },
     [sel("-lg")]: { height: "calc(var(--size-field, 0.25rem) * 12)", fontSize: "1rem" },
+    [sel("-xl")]: { height: "calc(var(--size-field, 0.25rem) * 14)", fontSize: "1.125rem" },
   };
 }

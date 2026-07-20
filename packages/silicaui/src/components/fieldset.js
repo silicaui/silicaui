@@ -45,7 +45,7 @@ export function fieldset(prefix = "") {
       gap: "0.375rem",
       fontSize: "0.75rem",
       lineHeight: "1.25",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
 
       "& svg": { width: "1em", height: "1em", flexShrink: "0" },
     },

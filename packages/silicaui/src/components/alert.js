@@ -159,6 +159,14 @@ export function alert(colors, prefix = "") {
       color: "var(--alert-accent, var(--color-base-content))",
       borderColor: "transparent",
     },
+    // Chromeless — accent ink only, no surface and no border. Same meaning as
+    // `badge-ghost`/`btn-ghost`; Alert was the one component missing it, so
+    // `variant="ghost"` worked on a Badge and was a type error on an Alert.
+    [sel("-ghost")]: {
+      backgroundColor: "transparent",
+      color: "var(--alert-accent, var(--color-base-content))",
+      borderColor: "transparent",
+    },
 
     // ---- Sizes (content-driven height; scale padding + type + gap) ----------
     [sel("-xs")]: {

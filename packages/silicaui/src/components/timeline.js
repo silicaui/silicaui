@@ -45,7 +45,7 @@ export function timeline(prefix = "") {
       textAlign: "end",
       paddingBlock: "0.5rem",
       fontSize: "0.875rem",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // The marker column: a flex stack of [rail] [dot] [rail].

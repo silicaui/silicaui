@@ -102,7 +102,7 @@ export function calendar(colors, prefix = "") {
       fontWeight: "600",
       textTransform: "uppercase",
       letterSpacing: "0.02em",
-      color: "color-mix(in oklab, var(--color-base-content) 55%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-grid")]: {
       display: "grid",

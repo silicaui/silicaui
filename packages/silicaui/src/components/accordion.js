@@ -78,7 +78,7 @@ export function accordion(prefix = "") {
       paddingInline: "1.125rem",
       paddingBottom: "1rem",
       fontSize: "0.9375rem",
-      color: "color-mix(in oklab, var(--color-base-content) 80%, transparent)",
+      color: "var(--color-base-content)",
     },
   };
 }

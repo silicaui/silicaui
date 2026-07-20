@@ -1,11 +1,15 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { SilicaSize } from "./lib/tokens";
+import type { VoidElementProps } from "./lib/void-element";
 
-export type FileInputSize = "sm" | "md" | "lg";
+export type FileInputSize = SilicaSize;
 
 export interface FileInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
+  extends VoidElementProps<
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "size">
+  > {
   size?: FileInputSize;
 }
 

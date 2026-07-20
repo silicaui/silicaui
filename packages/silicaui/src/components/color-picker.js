@@ -62,7 +62,7 @@ export function colorPicker(prefix = "") {
       fontSize: "0.75rem",
       textTransform: "uppercase",
       letterSpacing: "0.02em",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // The stack of L / C / H sliders.
@@ -80,13 +80,13 @@ export function colorPicker(prefix = "") {
     [sel("-slider-label")]: {
       fontSize: "0.75rem",
       fontWeight: "700",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-slider-value")]: {
       fontSize: "0.72rem",
       textAlign: "right",
       fontVariantNumeric: "tabular-nums",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // The gradient track (background set inline per channel) + draggable thumb.
@@ -124,7 +124,7 @@ export function colorPicker(prefix = "") {
     [sel("-hex-label")]: {
       fontSize: "0.75rem",
       fontWeight: "700",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-hex-input")]: {
       flex: "1 1 auto",
@@ -181,7 +181,7 @@ export function colorPicker(prefix = "") {
       fontSize: "0.75rem",
       fontVariantNumeric: "tabular-nums",
       textTransform: "uppercase",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-popover")]: {
       padding: "0",

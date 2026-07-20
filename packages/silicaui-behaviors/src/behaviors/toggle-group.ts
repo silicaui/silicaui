@@ -8,6 +8,12 @@ import type { BehaviorHandler } from "../types";
  * allows several pressed at once (default: single, pressing one un-presses
  * the rest); `params.orientation` (`"horizontal"` default | `"vertical"`)
  * picks which arrow keys rove focus, matching `tabs`' convention.
+ *
+ * An OPTIONAL `close` part un-presses everything. That's what makes `Filter`
+ * (a single-select chip row with a reset) this behavior rather than a new one:
+ * the only delta was one extra control, which is the "one type, optional parts"
+ * pattern, not a fork. The reset hides itself while nothing is pressed, so a
+ * static page renders the same resting state React does.
  */
 export const toggleGroup: BehaviorHandler = (root, _opts) => {
   const params = parseParams(root);
@@ -23,12 +29,20 @@ export const toggleGroup: BehaviorHandler = (root, _opts) => {
     item.toggleAttribute("data-pressed", pressed);
   };
 
+  // Optional reset control (see the doc comment). Absent on a plain toggle
+  // group, in which case every line below is a no-op.
+  const reset = ownParts(root, "close")[0];
+  const syncReset = () => {
+    if (reset) (reset as HTMLElement).hidden = !items.some(isPressed);
+  };
+
   const press = (item: Element) => {
     if (multiple) {
       setPressed(item, !isPressed(item));
     } else {
       for (const other of items) setPressed(other, other === item);
     }
+    syncReset();
   };
 
   // Seed the roving tabindex WITHOUT focusing — hydrate must never move the
@@ -74,6 +88,15 @@ export const toggleGroup: BehaviorHandler = (root, _opts) => {
       }
     });
   }
+
+  if (reset) {
+    bag.listen(reset, "click", () => {
+      for (const item of items) setPressed(item, false);
+      syncReset();
+      seedTabindex(items[0]!);
+    });
+  }
+  syncReset();
 
   return () => bag.dispose();
 };

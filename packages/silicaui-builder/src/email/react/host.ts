@@ -7,7 +7,7 @@
  * URL inputs today, unlike the site's asset-picker-integrated fields).
  */
 import type * as React from "react";
-import type { DataBinding, DataScope, DataSource, Resolved } from "../schema";
+import type { DataBinding, DataSource } from "../schema";
 import type { EmailNode } from "../schema";
 import type { EmailPaletteItem } from "../palette";
 import type { EmailResolveHost } from "../resolve";

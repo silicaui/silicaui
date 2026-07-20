@@ -70,7 +70,12 @@ export function Countdown({
     >
       {units.map((u) => (
         <div key={u} className={cx(sc("countdown-unit"))}>
-          <span className={cx(sc("countdown-value"))}>
+          {/* The server renders this at ITS `Date.now()` and the client
+              hydrates at a different one, so the text legitimately differs.
+              That's exactly what suppressHydrationWarning is for — the value is
+              time-dependent by definition, not a bug to reconcile. Without it,
+              every SSR'd countdown logs a hydration error. */}
+          <span className={cx(sc("countdown-value"))} suppressHydrationWarning>
             {u === "days" ? values[u] : pad(values[u])}
           </span>
           <span className={cx(sc("countdown-label"))}>{u}</span>

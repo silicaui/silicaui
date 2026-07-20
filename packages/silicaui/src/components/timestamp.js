@@ -12,7 +12,7 @@ export function timestamp(prefix = "") {
   const sel = (suffix = "") => `.${prefix}timestamp${suffix}`;
   return {
     [sel()]: {
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
       fontVariantNumeric: "tabular-nums",
     },
   };

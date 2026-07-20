@@ -20,6 +20,12 @@ export interface CarouselProps
   /** Auto-advance every N ms (pauses on hover/focus). Off by default. */
   autoplay?: number;
   /** Called with the active slide index whenever it changes. */
+  onValueChange?: (index: number) => void;
+  /**
+   * @deprecated Use `onValueChange`. `onChange` is reserved for the native DOM
+   * handler on components that wrap a real form element; still honored here so
+   * this isn't a breaking change.
+   */
   onChange?: (index: number) => void;
   /**
    * Extra class, applied to BOTH the outer root (so e.g. a width constraint
@@ -60,6 +66,7 @@ export function Carousel({
   indicators = true,
   loop = false,
   autoplay,
+  onValueChange,
   onChange,
   className,
   children,
@@ -110,9 +117,19 @@ export function Carousel({
     setActive((prev) => (prev === nearest ? prev : nearest));
   }, [horizontal]);
 
+  // Notify on real index CHANGES only. Two things this guards against, both of
+  // which the naive `[active, onChange]` version got wrong: firing once on
+  // mount (reporting a change that never happened), and re-firing on every
+  // render when the caller passes an inline arrow, whose identity is new each
+  // time — which turns a parent `setState` in the handler into a render loop.
+  const notifyRef = React.useRef(onValueChange ?? onChange);
+  notifyRef.current = onValueChange ?? onChange;
+  const lastActive = React.useRef(active);
   React.useEffect(() => {
-    onChange?.(active);
-  }, [active, onChange]);
+    if (lastActive.current === active) return;
+    lastActive.current = active;
+    notifyRef.current?.(active);
+  }, [active]);
 
   React.useEffect(() => {
     if (!autoplay || paused || count <= 1) return;

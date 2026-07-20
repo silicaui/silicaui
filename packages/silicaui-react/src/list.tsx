@@ -16,7 +16,7 @@ export interface ListProps extends React.HTMLAttributes<HTMLDivElement> {
  *       <Avatar size="sm">AL</Avatar>
  *       <ListColGrow>
  *         <div className="font-medium">Ada Lovelace</div>
- *         <div className="text-sm opacity-60">Owner</div>
+ *         <div className="text-sm">Owner</div>
  *       </ListColGrow>
  *       <Button size="sm" variant="ghost">Manage</Button>
  *     </ListRow>

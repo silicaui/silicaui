@@ -1,10 +1,10 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
-import type { SilicaColor } from "./lib/tokens";
+import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 export type PaginationColor = SilicaColor;
-export type PaginationSize = "xs" | "sm" | "md" | "lg";
+export type PaginationSize = SilicaSize;
 
 export interface PaginationProps
   extends Omit<React.HTMLAttributes<HTMLElement>, "onChange"> {
@@ -13,6 +13,12 @@ export interface PaginationProps
   /** Total number of pages. */
   count: number;
   /** Called with the new page. */
+  onValueChange?: (page: number) => void;
+  /**
+   * @deprecated Use `onValueChange`. `onChange` is reserved for the native DOM
+   * handler on components that wrap a real form element; still honored here so
+   * this isn't a breaking change.
+   */
   onChange?: (page: number) => void;
   /** Pages shown on each side of the current page. Default 1. */
   siblingCount?: number;
@@ -78,11 +84,12 @@ const NextIcon = () => (
 /**
  * Silica Pagination — page controls with prev/next and ellipsis.
  *
- *   <Pagination page={page} count={12} onChange={setPage} color="primary" />
+ *   <Pagination page={page} count={12} onValueChange={setPage} color="primary" />
  */
 export function Pagination({
   page,
   count,
+  onValueChange,
   onChange,
   siblingCount = 1,
   boundaryCount = 1,
@@ -96,7 +103,7 @@ export function Pagination({
   const items = paginationItems(page, count, siblingCount, boundaryCount);
   const go = (p: number) => {
     const clamped = Math.max(1, Math.min(count, p));
-    if (clamped !== page) onChange?.(clamped);
+    if (clamped !== page) (onValueChange ?? onChange)?.(clamped);
   };
 
   return (
