@@ -80,14 +80,14 @@ export function DialogDemo() {
                             <DialogHeader sticky>
                                 <DialogTitle>Terms of service</DialogTitle>
                             </DialogHeader>
-                            <DialogDescription>
+                            <div>
                                 {Array.from({ length: 12 }, (_, i) => (
                                     <p key={i} className="mb-3">
                                         Section {i + 1} — placeholder legal text to force this
                                         dialog to scroll so the sticky footer below stays pinned.
                                     </p>
                                 ))}
-                            </DialogDescription>
+                            </div>
                             <DialogFooter sticky>
                                 <DialogClose>
                                     <Button variant="ghost" color="neutral">

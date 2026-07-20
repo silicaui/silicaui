@@ -4,7 +4,18 @@
    packages/silicaui/src/colors.js). No `silicaui/theme` override block here on
    purpose: this is the real product default, not a re-derived site palette. */
 @plugin "@wizeworks/silicaui" {
-  colors: primary, secondary, accent, neutral, info, success, warning, error;
+  colors: primary, secondary, accent, neutral, info, success, warning, error, brand;
+}
+
+/* `brand` is not one of silicaui's roles — it's invented here, by this site,
+   exactly the way a consumer would invent one. Naming it in the `colors:` list
+   above is the entire integration step: the plugin then emits `btn-brand`,
+   `badge-brand`, `text-brand`, `bg-brand`, `border-brand` and every other
+   color-aware class as var-setters, with no rebuild and no safelist.
+   The landing page demonstrates that claim with this very token, so the demo
+   cannot be true on the page and false in a consumer's app. */
+:root {
+  --color-brand: oklch(58% 0.24 320);
 }
 
 /* The other shipped presets from packages/silicaui-html/src/themes.ts,

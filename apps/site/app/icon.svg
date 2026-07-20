@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SilicaUI">
+  <!--
+    A first cut at the Si·14 periodic-table mark (silicon, atomic number 14) —
+    the direction already agreed, built here so the site stops 404ing on
+    favicon.ico. Literal hex is correct in this one context: an SVG favicon is
+    fetched outside the document, so it can't resolve the theme's CSS custom
+    properties. Treat the palette as provisional until the real brand asset
+    lands.
+  -->
+  <rect width="64" height="64" rx="12" fill="#1B2430" />
+  <text x="14" y="44" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+        font-size="30" font-weight="600" fill="#F4F7FA">Si</text>
+  <text x="45" y="24" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+        font-size="14" font-weight="500" fill="#5FD3E4">14</text>
+</svg>

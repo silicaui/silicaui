@@ -29,7 +29,7 @@ export function statsSection(): Node {
         el("div", "mx-auto grid w-full max-w-5xl grid-cols-2 gap-8 px-6 py-16 @2xl:grid-cols-4", {
           children: [
             stat("113", "Components"),
-            stat("25", "Behaviors"),
+            stat("34", "Behaviors"),
             stat("13", "Packages"),
             stat("MIT", "License"),
           ],
