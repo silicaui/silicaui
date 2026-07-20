@@ -1,5 +1,191 @@
 # @wizeworks/silicaui
 
+## 0.30.0
+
+### Minor Changes
+
+- fa40d33: **Text you're meant to read now uses real ink (RULE #3).**
+
+  Faded ink had spread to 35 places it didn't belong. Each instance looked
+  defensible on its own, which is exactly how it accumulated — it compiles, it
+  renders, and it makes a screenshot look tidier. In aggregate it was draining
+  the signal out of the one thing de-emphasis exists for.
+
+  The worst of it:
+
+  - `.lead` — the **lead paragraph**, the most prominent body copy on a page —
+    was rendered at 82%.
+  - `.accordion-content` and `.collapsible-content`, which are the entire reason
+    those components exist, were at 80%.
+  - Every `-description` (`dialog`, `popover`, `drawer`, `field`, `empty-state`)
+    sat between 65% and 75%.
+  - Data a user reads to make a decision — `meter-value`, `slider-value`,
+    `color-picker-value-hex`, `timestamp`, `stat-title`/`-desc`,
+    `data-table-pagination` — was faded.
+  - Empty-state messages (`combobox-empty`, `data-table-empty`) — the only text
+    on screen at that moment — were the faintest thing on it.
+
+  Faded ink is retained where it's genuinely _not_ meant to be read: disabled
+  controls, placeholders, the calendar's other-month days, transient
+  enter/exit animation states, icons and glyphs, structural punctuation (a date
+  field's `/`, a range separator), and the mockup browser's deliberately fake URL
+  bar.
+
+  Selection state was **not** treated as a reason to fade. `tabs-tab` and
+  `outline-link` already mark the active item with a real accent color, so the
+  fade on inactive items was redundant on top of a distinction that was already
+  doing the work correctly — which is what RULE #3 prescribes: hierarchy from
+  scale, weight, and color, not from fading text out.
+
+  Guarded by `packages/silicaui/scripts/verify-readable-ink.mjs`, which fails the
+  build on a muted `--color-base-content` ink outside the reviewed allowlist. The
+  probe earned its keep immediately: it caught two instances the initial sweep
+  missed, because it parses a selector-assignment form the sweep didn't. Verified
+  visually in a browser, light and dark, not just as compiled CSS.
+
+- a90b819: First-five-minutes hardening pass — four defects that shipped to npm and one
+  latent projection bug, all in the surface a new adopter hits before anything
+  else.
+
+  **`<Checkbox>Run tests</Checkbox>` no longer crashes the page.** `Checkbox`,
+  `Radio`, and `Toggle` now accept `children` as a caption, wrapping the control
+  in a `<label>` so the text is a real click target. Previously the types
+  permitted `children` (inherited from `React.InputHTMLAttributes`) while React
+  threw _"input is a void element tag and must neither have `children`"_ at
+  runtime — a type-checks-clean white screen. Passing no children is unchanged,
+  so pairing with your own `<label htmlFor>` still works exactly as before.
+
+  **The four components where a caption is meaningless now reject `children` at
+  the type level** — `Input`, `FileInput`, `PasswordInput`, `SearchInput`. The
+  last two were the sneakiest: their root JSX is a `<div>`, so the mistake looked
+  safe while `{...rest}` landed the `children` on the inner `<input>` anyway.
+
+  **Five packages were missing their `'use client'` directive.**
+  `@wizeworks/silicaui-charts`, `-table`, `-editor`, `-dnd`, and `-panels` all use
+  hooks but shipped without the directive, so importing any of them from a
+  Next.js App Router page threw. The prepend logic is now one shared build helper
+  instead of being re-derived per package, and a new `verify:packaging` CI step
+  asserts the directive is present in every client bundle — and absent from
+  `silicaui-react/server`, whose entire purpose is being server-safe.
+
+  **`peerDependenciesMeta` no longer dangles.** `@wizeworks/silicaui-react`
+  declared `@wizeworks/silicaui` as an optional peer with no matching
+  `peerDependencies` entry, which npm and pnpm both accept silently — so the
+  intended "you're missing the CSS package" warning never fired. The same CI step
+  now catches this class of no-op.
+
+  **`CheckboxOption` / `RadioOption` rendered an unstyled native control in
+  static output.** The expansion routed the node's class to the wrapping
+  `<label>`, leaving the actual `<input>` with no `.checkbox` / `.radio` class at
+  all. The control class now stays on the input, and `Checkbox` / `Radio` /
+  `Toggle` in `silicaui-html` gained the same optional caption as their React
+  counterparts — so both layers now emit byte-identical markup for identical
+  authoring. `Toggle` also picked up the `role="switch"` that React already had.
+
+  **New `.label-control` class** for a label that wraps its own control: the whole
+  row is the click target, and the caption gets real ink rather than the muted
+  field-caption color `.label` uses, since it's text meant to be read.
+
+  ### Documentation
+
+  The `@source` directive is now documented in both READMEs. Tailwind v4 never
+  scans `node_modules`, so without it the plain utilities used inside
+  `silicaui-react` never compile — producing a _partial_ break (buttons and cards
+  look right; dialog footers don't align, `Lightbox` has no size, `soft`/`glass`
+  sit inert) that reads like a library bug rather than a one-line config gap.
+  This affected every consumer, not just monorepos.
+
+- a90b819: Three defects that produced no error — the page rendered, and was wrong.
+
+  **`Alert` with `dismissible` now works outside React.** The React layer had
+  `dismissible`/`onDismiss`, `silicaui-behaviors` shipped a working `dismiss`
+  handler, and the `.alert-close` CSS existed — but the `silicaui-html` macro
+  emitted a bare `<div role="alert">`, so a static or Sparx-rendered page got no
+  close button at all. The macro now emits the button, the inlined close icon,
+  and the `data-sui-behavior="dismiss"` marker. Verified across the whole chain
+  (schema → `toHtml` → `hydrate` → click → removed) rather than by asserting the
+  markup, since a structural check alone would have passed before the fix too.
+
+  **`Swap` and `Stat` sized their icons.** Neither declared `width`/`height` for
+  its `svg`, violating the project's own rule. This is the worst failure mode
+  available: an unsized inline `<svg>` has no intrinsic size, so it can render
+  correctly in Playwright's Chromium and collapse or balloon in a real browser —
+  invisible to CI, including screenshots. `Swap` is entirely an icon component,
+  and `stat-figure` defines an implicit grid column, so its glyph shifts the whole
+  component's layout rather than just itself. A new `verify:icon-sizing` probe
+  asserts every icon slot declares both dimensions.
+
+  **A theme color that isn't registered with the plugin now says so.** Adding a
+  color takes two steps, and doing only the first produces the most confusing
+  possible result: `bg-brand` and `text-brand` work (Tailwind emits those), while
+  `btn-brand`, `badge-brand`, and `alert-brand` silently render in the default
+  color. Every instinct says the color is broken; it isn't, only the registration
+  is missing. The plugin now detects this at build time and prints the exact
+  fix line, ready to paste:
+
+  ```
+  [silicaui] Theme color brand is declared in @theme but not registered with the plugin.
+    Fix: @plugin "@wizeworks/silicaui" { colors: primary, …, brand; }
+  ```
+
+  Best-effort by design: the plugin runs at its own position in the stylesheet, so
+  this only sees `@theme` blocks declared _before_ the `@plugin` line. Colors
+  registered through Silica's own `@plugin "@wizeworks/silicaui/theme"` block
+  correctly stay silent — that path registers them by construction.
+
+  ### CI
+
+  Six packages shipped verify suites that **CI never ran**, so a regression any of
+  them was written to catch could still reach `main`. A root `pnpm verify` now
+  runs all of them plus the byte-identical HTML golden, and CI runs it.
+
+- a90b819: **Every sized component now ships the full `xs`–`xl` scale.**
+
+  Ten of twenty-nine sized components shipped a partial scale, so the same prop
+  worked on one component and did nothing on the next:
+
+  | Component      | Shipped             | Added               |
+  | -------------- | ------------------- | ------------------- |
+  | `EmptyState`   | `sm`                | `xs` `md` `lg` `xl` |
+  | `FileInput`    | `sm` `lg`           | `xs` `md` `xl`      |
+  | `MultiSelect`  | `sm` `lg`           | `xs` `md` `xl`      |
+  | `TagInput`     | `sm` `lg`           | `xs` `md` `xl`      |
+  | `Slider`       | `sm` `lg`           | `xs` `md` `xl`      |
+  | `SegmentField` | `sm` `lg`           | `xs` `md` `xl`      |
+  | `Toolbar`      | `sm` `lg`           | `xs` `md` `xl`      |
+  | `ToggleGroup`  | `xs` `sm` `lg`      | `md` `xl`           |
+  | `Prose`        | `sm` `lg` `xl`      | `xs` `md`           |
+  | `Pagination`   | `xs` `sm` `md` `lg` | `xl`                |
+  | `Meter`        | `xs` `sm` `lg` `xl` | `md`                |
+
+  Nothing errored when a size was missing — `size="xs"` just rendered at the
+  default, which reads as "the prop was ignored". The only way to learn which
+  sizes a component actually supported was to read its CSS, per component. For a
+  developer that's a papercut; for an agent generating code it's a silent
+  correctness failure.
+
+  The TypeScript unions were _honest_ about this (`ToolbarSize = "sm" | "md" |
+"lg"`), which is why typecheck never flagged it — the types faithfully
+  described an inconsistent system. They're now all `SilicaSize`, because the CSS
+  backs it. `EmptyState`'s wrapper also hard-coded `size === "sm"`, so it would
+  have ignored the new classes even once they existed.
+
+  Each component was extended along its **own** ladder rather than a generic one:
+  field-height components follow the `×6/8/10/12/14` `--size-field` ramp that
+  `Input` establishes, while `Meter` (track height), `Slider` (rail/thumb),
+  `Prose` (font/line-height), `Pagination` (cell size) and `ToggleGroup` (item
+  height, which is offset because the item sits inside track padding) keep their
+  existing proportions.
+
+  `-md` is now declared explicitly everywhere rather than left implicit in the
+  base rule. React wrappers may still omit it, but the class-first layers —
+  vanilla markup and `silicaui-html` — author `class="foo foo-md"` by hand, and
+  that has to resolve.
+
+  Guarded by `packages/silicaui/scripts/verify-size-scale.mjs`, which fails the
+  build if any component ships a partial scale, and verified against real
+  compiled CSS from the playground rather than only the plugin's JS output.
+
 ## 0.29.0
 
 ### Minor Changes
