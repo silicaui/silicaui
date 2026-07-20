@@ -56,7 +56,7 @@ export function typography(prefix = "") {
   rules["[data-theme] :where(p)"] = { lineHeight: "1.6" };
   rules["[data-theme] :where(small)"] = {
     fontSize: "0.875rem",
-    color: "color-mix(in oklab, var(--color-base-content) 62%, transparent)",
+    color: "var(--color-base-content)",
   };
   // Bare `<blockquote>` — a pull-quote/testimonial treatment (distinct from
   // `.prose`'s smaller, italic, inline-quote-in-a-paragraph style).
@@ -73,7 +73,7 @@ export function typography(prefix = "") {
     marginTop: "0.5rem",
     fontSize: "0.875rem",
     fontStyle: "normal",
-    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+    color: "var(--color-base-content)",
   };
 
   // ── explicit override classes (normal specificity) ────────────────────────
@@ -92,12 +92,12 @@ export function typography(prefix = "") {
     fontSize: "1.125rem",
     lineHeight: "1.6",
     fontWeight: "400",
-    color: "color-mix(in oklab, var(--color-base-content) 82%, transparent)",
+    color: "var(--color-base-content)",
   };
   rules[cls("caption")] = {
     fontSize: "0.875rem",
     lineHeight: "1.4",
-    color: "color-mix(in oklab, var(--color-base-content) 62%, transparent)",
+    color: "var(--color-base-content)",
   };
   rules[cls("blockquote")] = {
     margin: "0",
@@ -112,7 +112,7 @@ export function typography(prefix = "") {
     marginTop: "0.5rem",
     fontSize: "0.875rem",
     fontStyle: "normal",
-    color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+    color: "var(--color-base-content)",
   };
 
   return rules;

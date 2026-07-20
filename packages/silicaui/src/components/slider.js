@@ -43,7 +43,7 @@ export function slider(colors, prefix = "") {
       minWidth: "2.5ch",
       fontSize: "0.875rem",
       fontVariantNumeric: "tabular-nums",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // Interactive hit area.

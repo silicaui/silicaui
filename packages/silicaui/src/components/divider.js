@@ -19,7 +19,7 @@ export function divider(prefix = "") {
       marginBlock: "1rem",
       fontSize: "0.875rem",
       whiteSpace: "nowrap",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
 
       "&::before, &::after": {
         content: '""',

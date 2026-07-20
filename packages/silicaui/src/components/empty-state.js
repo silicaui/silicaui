@@ -45,7 +45,7 @@ export function emptyState(prefix = "") {
       maxWidth: "34ch",
       fontSize: "0.9rem",
       lineHeight: "1.5",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     [sel("-actions")]: {

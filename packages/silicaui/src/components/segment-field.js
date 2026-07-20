@@ -108,6 +108,8 @@ export function segmentField(colors, prefix = "") {
     gap: "0.5rem",
   };
   base[`.${prefix}date-range-input-sep`] = {
+    // Structural punctuation (the "–" between the two fields), not content —
+    // same reasoning as `-literal`. Legitimately faded under RULE #3.
     color: "color-mix(in oklab, var(--color-base-content) 45%, transparent)",
   };
 

@@ -60,7 +60,7 @@ export function dialog(prefix = "") {
       margin: "0.375rem 0 0",
       fontSize: "0.875rem",
       lineHeight: "1.5",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // Header/Footer are placeable docking bars, not position-locked — put one

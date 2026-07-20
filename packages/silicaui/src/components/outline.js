@@ -34,7 +34,7 @@ export function outline(prefix = "") {
       borderInlineStart: "1px solid transparent",
       fontSize: "0.8125rem",
       lineHeight: "1.4",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
       textDecoration: "none",
       overflow: "hidden",
       textOverflow: "ellipsis",

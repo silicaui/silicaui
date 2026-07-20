@@ -46,7 +46,7 @@ export function stat(prefix = "") {
     [sel("-title")]: {
       gridColumnStart: "1",
       fontSize: "0.8125rem",
-      color: "color-mix(in oklab, var(--color-base-content) 60%, transparent)",
+      color: "var(--color-base-content)",
     },
     [sel("-value")]: {
       gridColumnStart: "1",
@@ -58,7 +58,7 @@ export function stat(prefix = "") {
     [sel("-desc")]: {
       gridColumnStart: "1",
       fontSize: "0.75rem",
-      color: "color-mix(in oklab, var(--color-base-content) 55%, transparent)",
+      color: "var(--color-base-content)",
     },
     // Figure sits in an implicit second column, spanning all three text rows.
     [sel("-figure")]: {

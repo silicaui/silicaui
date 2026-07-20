@@ -106,7 +106,7 @@ export function collapsible(prefix = "") {
     [sel("-content")]: {
       paddingTop: "0.5rem",
       fontSize: "0.9375rem",
-      color: "color-mix(in oklab, var(--color-base-content) 80%, transparent)",
+      color: "var(--color-base-content)",
     },
   };
 }

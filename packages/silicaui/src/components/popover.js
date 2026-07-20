@@ -68,7 +68,7 @@ export function popover(prefix = "") {
       margin: "0.25rem 0 0",
       fontSize: "0.875rem",
       lineHeight: "1.5",
-      color: "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
+      color: "var(--color-base-content)",
     },
   };
 }

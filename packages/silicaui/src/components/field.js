@@ -56,7 +56,7 @@ export function field(prefix = "") {
     [sel("-description")]: {
       fontSize: "0.75rem",
       lineHeight: "1.4",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     [sel("-error")]: {

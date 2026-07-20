@@ -68,7 +68,7 @@ export function drawer(prefix = "") {
     },
     [sel("-description")]: {
       fontSize: "0.9375rem",
-      color: "color-mix(in oklab, var(--color-base-content) 75%, transparent)",
+      color: "var(--color-base-content)",
     },
 
     // Header/Footer are placeable docking bars — put one anywhere inside

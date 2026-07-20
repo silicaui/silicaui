@@ -48,7 +48,7 @@ export function tabs(colors, prefix = "") {
       fontSize: "0.875rem",
       fontWeight: "500",
       lineHeight: "1.4",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      color: "var(--color-base-content)",
       borderRadius:
         "var(--radius-field, 0.25rem) var(--radius-field, 0.25rem) 0 0",
       transitionProperty: "color",
