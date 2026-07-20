@@ -33,7 +33,8 @@ export function pinInput(colors, prefix = "") {
       backgroundColor: "var(--color-base-100)",
       borderWidth: "var(--border, 1px)",
       borderStyle: "solid",
-      borderColor: "var(--pin-input-accent, var(--color-base-300))",
+      borderColor:
+        "var(--pin-input-border, var(--pin-input-accent, var(--color-base-300)))",
       borderRadius: "var(--radius-field, 0.25rem)",
       appearance: "none",
       transitionProperty: "color, background-color, border-color, box-shadow",
@@ -83,9 +84,11 @@ export function pinInput(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
+  // Soft resting border, solid accent once the cell is focused or filled.
   for (const name of colors) {
     base[cell(`-${name}`)] = {
       "--pin-input-accent": `var(--color-${name})`,
+      "--pin-input-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
     };
   }
 

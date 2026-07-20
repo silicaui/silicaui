@@ -10,6 +10,28 @@
  *
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
  */
+
+/**
+ * Drives a validation status onto whichever control it lands on. (Helper —
+ * `field()` itself is defined below.)
+ *
+ * Sets the accent solid AND clears `--*-border` back to `initial`. That reset
+ * is load-bearing: a decorative color class (`.input-primary`) sets the border
+ * lever on the element itself to a soft tint, and would otherwise survive this
+ * rule and leave an invalid field wearing a primary border. Falling the lever
+ * back to `initial` drops it through to the accent — so a status border is
+ * always solid, which is the whole point of a status.
+ */
+function statusAccent(name) {
+  const color = `var(--color-${name})`;
+  const out = {};
+  for (const part of ["input", "select", "textarea"]) {
+    out[`--${part}-accent`] = color;
+    out[`--${part}-border`] = "initial";
+  }
+  return out;
+}
+
 export function field(prefix = "") {
   const sel = (suffix = "") => `.${prefix}field${suffix}`;
   const status = (suffix = "") => `.${prefix}field-status${suffix}`;
@@ -46,21 +68,17 @@ export function field(prefix = "") {
     // When Base UI flags the control invalid, drive the shared input accent to
     // error so border + focus ring recolor (same lever the inputs already read).
     [`.${prefix}input[data-invalid], .${prefix}select[data-invalid], .${prefix}textarea[data-invalid]`]:
-      {
-        "--input-accent": "var(--color-error)",
-        "--select-accent": "var(--color-error)",
-        "--textarea-accent": "var(--color-error)",
-      },
+      statusAccent("error"),
 
     // ---- FieldStatus (error/warning/success/loading, attached or detached) --
     // `data-status` lands on the control itself (FieldControl stamps it, mirroring
     // the `[data-invalid]` lever above) so a color class isn't needed per field.
     [`.${prefix}input[data-status="error"], .${prefix}select[data-status="error"], .${prefix}textarea[data-status="error"]`]:
-      { "--input-accent": "var(--color-error)", "--select-accent": "var(--color-error)", "--textarea-accent": "var(--color-error)" },
+      statusAccent("error"),
     [`.${prefix}input[data-status="warning"], .${prefix}select[data-status="warning"], .${prefix}textarea[data-status="warning"]`]:
-      { "--input-accent": "var(--color-warning)", "--select-accent": "var(--color-warning)", "--textarea-accent": "var(--color-warning)" },
+      statusAccent("warning"),
     [`.${prefix}input[data-status="success"], .${prefix}select[data-status="success"], .${prefix}textarea[data-status="success"]`]:
-      { "--input-accent": "var(--color-success)", "--select-accent": "var(--color-success)", "--textarea-accent": "var(--color-success)" },
+      statusAccent("success"),
 
     // A status panel that follows flattens the control's bottom corners so the
     // two read as one continuous shape (attached mode only).

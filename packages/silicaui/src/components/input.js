@@ -3,8 +3,9 @@
  *
  * Field-tier element: rounds with `--radius-field` and scales with the
  * `--size-field` density lever, so it lines up pixel-for-pixel with same-size
- * Buttons. A color class (`.input-primary`, `.input-error`, …) sets only
- * `--input-accent`, which colors the border and the focus ring; the default
+ * Buttons. A color class (`.input-primary`, `.input-error`, …) sets
+ * `--input-accent` (focus ring + focused border) and `--input-border` (a
+ * softened tint of the same color for the resting border); the default
  * (no color) shows a neutral border and a primary focus ring.
  *
  * @param {string[]} colors - color names to generate `.input-<name>` variants for
@@ -28,7 +29,8 @@ export function input(colors, prefix = "") {
       backgroundColor: "var(--color-base-100)",
       borderWidth: "var(--border, 1px)",
       borderStyle: "solid",
-      borderColor: "var(--input-accent, var(--color-base-300))",
+      borderColor:
+        "var(--input-border, var(--input-accent, var(--color-base-300)))",
       borderRadius: "var(--radius-field, 0.25rem)",
       appearance: "none",
       transitionProperty: "color, background-color, border-color, box-shadow",
@@ -98,10 +100,17 @@ export function input(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  // Each color sets only the accent — border + focus ring take that color.
+  // Each color sets the accent (focus ring + focused border) and a softened
+  // resting border, so rest → focus is a real state change rather than a no-op.
+  //
+  // `--input-border` is deliberately a SEPARATE lever from `--input-accent`:
+  // field.js drives validation status (error/warning/success) through the
+  // accent alone, so those keep the solid border they need — the soft tint is
+  // opt-in and only decorative color classes set it.
   for (const name of colors) {
     base[sel(`-${name}`)] = {
       "--input-accent": `var(--color-${name})`,
+      "--input-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
     };
   }
 

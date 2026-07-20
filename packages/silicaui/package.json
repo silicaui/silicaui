@@ -26,7 +26,8 @@
   ],
   "scripts": {
     "build": "echo \"(no build step — ships as source)\"",
-    "typecheck": "echo \"(js plugin — no typecheck yet)\""
+    "typecheck": "echo \"(js plugin — no typecheck yet)\"",
+    "verify": "node verify-field-border.mjs"
   },
   "peerDependencies": {
     "tailwindcss": ">=4.3.0"
