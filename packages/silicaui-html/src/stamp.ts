@@ -5,6 +5,7 @@
  * (document subtree → id-free template, for "save selection as component").
  */
 import type { Document, Node, Template, Theme } from "./schema";
+import { assignOrds } from "./ord";
 
 export type MakeId = () => string;
 
@@ -27,15 +28,27 @@ function assignIds(node: Node, makeId: MakeId): void {
 function removeIds(node: Node): void {
   if (node.kind === "outlet") return;
   delete node.id;
+  delete node.ord; // a template has no siblings, so it has no position
   for (const child of node.children ?? []) {
     if (typeof child !== "string") removeIds(child);
   }
 }
 
-/** Deep-clone a subtree, minting a fresh id on every node (stamp/duplicate/paste). */
+/**
+ * Deep-clone a subtree, minting a fresh id on every node (stamp/duplicate/paste)
+ * and giving its children ordering keys.
+ *
+ * The subtree ROOT is deliberately left without an `ord`: its position is a
+ * property of where it's being placed, which only the caller knows. Dropping any
+ * inherited key (a duplicate would otherwise carry its source's) means a missed
+ * assignment surfaces as a missing key rather than as two siblings claiming the
+ * same position.
+ */
 export function stampTree(node: Node, makeId: MakeId = defaultMakeId): Node {
   const clone = structuredClone(node) as Node;
   assignIds(clone, makeId);
+  if (clone.kind !== "outlet") delete clone.ord;
+  assignOrds(clone);
   return clone;
 }
 

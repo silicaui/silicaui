@@ -2,9 +2,9 @@ import "./styles.css";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Builder, useEditor } from "@wizeworks/silicaui-builder/react";
-import type { BuilderHost, Editor } from "@wizeworks/silicaui-builder/react";
+import type { BuilderHandle, BuilderHost, Editor, Op, OpMeta } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
-import type { EmailBuilderHost } from "@wizeworks/silicaui-builder/email/react";
+import type { EmailBuilderHandle, EmailBuilderHost } from "@wizeworks/silicaui-builder/email/react";
 import { stamp, el } from "@wizeworks/silicaui-html";
 import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
 
@@ -253,8 +253,16 @@ const bus = window as unknown as {
   __sentTest?: { to: string; subject: string };
   __activePage?: unknown;
   __editor?: Editor;
+  // The state-and-intent-out contract: every op batch the builder has emitted,
+  // the meta that rode with it, and the imperative handle a real collaborative
+  // host would hold. Exactly what such a host sees — no bespoke test API.
+  __ops: Op[];
+  __lastMeta?: OpMeta;
+  __handle?: BuilderHandle;
+  __emailHandle?: EmailBuilderHandle;
 };
 bus.__changeCount = 0;
+bus.__ops = [];
 
 /**
  * The host's toolbar UI — and the harness's handle on the editor. `toolbarSlot`
@@ -301,12 +309,17 @@ if (editorMode === "email") {
   root.render(
     <React.StrictMode>
       <EmailBuilder
+        ref={(h) => {
+          bus.__emailHandle = h ?? undefined;
+        }}
         theme={theme}
         host={emailHost}
         persistKey={persist ? "silicaui-designer-email" : null}
-        onChange={(project) => {
+        onChange={(project, ops, meta) => {
           bus.__lastChange = project;
           bus.__changeCount += 1;
+          bus.__ops.push(...(ops as unknown as Op[]));
+          bus.__lastMeta = meta;
         }}
         onExport={(html) => {
           bus.__exported = html;
@@ -330,12 +343,17 @@ if (editorMode === "email") {
   root.render(
     <React.StrictMode>
       <Builder
+        ref={(h) => {
+          bus.__handle = h ?? undefined;
+        }}
         document={stamp(heroSplitCta, theme)}
         host={host}
         persistKey={persistKey}
-        onChange={(site) => {
+        onChange={(site, ops, meta) => {
           bus.__lastChange = site;
           bus.__changeCount += 1;
+          bus.__ops.push(...ops);
+          bus.__lastMeta = meta;
         }}
         onActivePageChange={(page) => {
           bus.__activePage = page;

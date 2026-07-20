@@ -15,7 +15,8 @@ import { renderSite } from "@wizeworks/silicaui-html";
 import { Button, ToggleGroup, Kbd, EmptyState } from "@wizeworks/silicaui-react";
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import { Editor } from "../engine";
-import type { PageMeta } from "../engine";
+import type { HistoryDelegate, PageMeta } from "../engine";
+import type { Op, OpMeta } from "../ops";
 import { DraftStore } from "../../shared/persistence";
 import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
 import { HostProvider, useHost } from "./host-context";
@@ -405,11 +406,27 @@ export interface BuilderProps {
   host?: BuilderHost;
   /**
    * Fires after every edit that changes stored state (theme, structure, text,
-   * pages, the site's saved-theme library…), with the whole `Site` to persist.
-   * View-only changes — selection, page/mode switches — don't fire. The host
-   * debounces + stores; the builder owns no backend.
+   * pages, the site's saved-theme library…). View-only changes — selection,
+   * page/mode switches — don't fire. The host debounces + stores; the builder
+   * owns no backend.
+   *
+   * Three arguments, and which one you use decides your concurrency story:
+   *
+   *  - `site` — the whole document, as before. Storing it verbatim is correct
+   *    for a single author and lossy for two: both hold a complete `Site`, so
+   *    the last writer silently reverts the other's work on pages they never
+   *    opened.
+   *  - `ops` — what the author actually DID, in causal order, as semantic
+   *    operations (see `Op`). Applying these instead lets two authors edit one
+   *    site without erasing each other. Never empty when this fires.
+   *  - `meta.baseSeq` — the sequence number this client last had applied, so a
+   *    host can tell whether it was behind when it produced these ops and send
+   *    back whatever it missed (via `applyRemoteOps`).
+   *
+   * The extra arguments are additive: a host that ignores them behaves exactly
+   * as it did before.
    */
-  onChange?: (site: Site) => void;
+  onChange?: (site: Site, ops: readonly Op[], meta: OpMeta) => void;
   /**
    * Fires on mount and whenever the ACTIVE page's identity changes — a page
    * switch, or a rename/slug edit of the page currently open — with that page's
@@ -454,8 +471,47 @@ export interface BuilderProps {
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
 
+/**
+ * The imperative handle a host uses to push state INTO a live builder — the
+ * other half of the `onChange(site, ops, meta)` contract.
+ *
+ * It exists as a ref rather than a prop because `document` is read once at boot
+ * by design (a prop that re-seeded the editor would blow away in-flight edits on
+ * every parent render). These are explicit, host-timed calls.
+ */
+export interface BuilderHandle {
+  /**
+   * Render another author's edits in place, without a reload. Never lands on
+   * the local undo stack and never echoes back out of `onChange`. Returns what
+   * was applied and what was dropped — a drop means the op's subject was
+   * already gone, which is benign under concurrency but worth surfacing.
+   */
+  applyRemoteOps(ops: readonly Op[]): { applied: number; dropped: Op[] };
+  /**
+   * Forced resync: replace the document wholesale at sequence `seq`, discarding
+   * local undo/redo history (it describes a lineage that no longer applies).
+   *
+   * This is also the answer to the local-draft-vs-server question: let the
+   * builder boot from its crash-recovery draft for instant paint, then call
+   * this once the server's authoritative state arrives. The draft only ever
+   * wins for that first moment. Note that it discards local edits made while
+   * disconnected, which is what "server authoritative" means.
+   */
+  replaceState(site: Site, seq: number): void;
+  /** Record the sequence number the host assigned to our last batch of ops;
+   *  it rides out as `meta.baseSeq` on the next one. */
+  ackSeq(seq: number): void;
+  /**
+   * Hand undo/redo to the host, for a collaborative session. A local undo stack
+   * in a shared editor reverts other people's work; pass a delegate and the
+   * toolbar drives the host's authoritative history instead. Pass `undefined`
+   * to restore the local stack (correct for a single author).
+   */
+  setHistoryDelegate(delegate: HistoryDelegate | undefined): void;
+}
+
 /** The full builder. Mount it anywhere; it fills its host container. */
-export function Builder({
+export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Builder({
   document,
   studioTheme = "studio",
   host,
@@ -465,7 +521,7 @@ export function Builder({
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
   dataToggle = true,
-}: BuilderProps) {
+}: BuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
   const docRef = React.useRef(document);
   // Seeded once, same lifecycle as `docRef` — a policy change mid-session takes
@@ -479,6 +535,22 @@ export function Builder({
     null,
   );
   const editor = current?.editor ?? null;
+
+  // The handle is stable across editor swaps (restore, "start fresh"), so a host
+  // that captured it at mount keeps a working reference. It reads the CURRENT
+  // editor through a ref rather than closing over one.
+  const editorRef = React.useRef<Editor | null>(null);
+  editorRef.current = editor;
+  React.useImperativeHandle<BuilderHandle, BuilderHandle>(
+    handleRef,
+    () => ({
+      applyRemoteOps: (ops) => editorRef.current?.applyRemoteOps(ops) ?? { applied: 0, dropped: [...ops] },
+      replaceState: (site, seq) => editorRef.current?.replaceState(site, seq),
+      ackSeq: (seq) => editorRef.current?.ackSeq(seq),
+      setHistoryDelegate: (delegate) => editorRef.current?.setHistoryDelegate(delegate),
+    }),
+    [],
+  );
 
   // Boot: restore a saved draft if one exists, else seed from the `document` prop.
   React.useEffect(() => {
@@ -504,13 +576,16 @@ export function Builder({
   // on tab-hide / pagehide / unmount so the very last edit always lands.
   React.useEffect(() => {
     if (!editor) return;
-    const relay = () => {
+    // An action that recorded no ops changed no stored state, so there is
+    // nothing to save or relay. That's a stronger test than a kind allowlist —
+    // it's derived from what actually changed rather than from a list someone
+    // has to remember to update, and it holds the engine to the rule that no
+    // mutation is silent.
+    const unsub = editor.subscribe((e) => {
+      if (!e.ops.length) return;
       const site = editor.extractSite();
       store?.save(site);
-      onChange?.(site);
-    };
-    const unsub = editor.subscribe((e) => {
-      if (e.kind !== "selection" && e.kind !== "active") relay();
+      onChange?.(site, e.ops, { baseSeq: editor.baseSeq });
     });
     const flush = () => store?.flush();
     window.addEventListener("visibilitychange", flush);
@@ -540,8 +615,10 @@ export function Builder({
       onActivePageChange(page);
     };
     notify();
+    // `kinds`, not `kind` — `createComponent` batches ["symbols", "active"], and
+    // the stronger "symbols" would hide the "active" this listener exists for.
     return editor.subscribe((e) => {
-      if (e.kind === "active" || e.kind === "page") notify();
+      if (e.kinds.includes("active") || e.kinds.includes("page")) notify();
     });
   }, [editor, onActivePageChange]);
 
@@ -588,4 +665,4 @@ export function Builder({
       </EditorProvider>
     </HostProvider>
   );
-}
+});

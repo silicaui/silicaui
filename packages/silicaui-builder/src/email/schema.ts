@@ -22,6 +22,21 @@ export type FontWeight = "normal" | "medium" | "semibold" | "bold";
 interface BaseNode {
   id: string;
   /**
+   * Fractional ORDERING KEY among siblings — a string chosen to sort strictly
+   * between its neighbors (`generateKeyBetween` in `@wizeworks/silicaui-html`).
+   * The same mechanism, and the same reasoning, as the site schema's `Node.ord`.
+   *
+   * `children` order still drives rendering; `ord` is what makes a position
+   * transportable in an op. An array index is not a stable address — "insert at
+   * 2" resolves differently depending on what else landed first — so two authors
+   * inserting into one section would produce a result neither saw.
+   *
+   * Authoring metadata: `toEmailHtml` never reads it, so it cannot reach sent
+   * markup. Backfilled at load by the engine for documents authored before it
+   * existed.
+   */
+  ord?: string;
+  /**
    * The SAME dynamic-content marker the site engine's `Node` carries (reused
    * type, not reinvented) — an opaque `{ kind, ref, attr? }` the engine never
    * parses. `value`/`action` are meaningful on any node; `collection` (repeat

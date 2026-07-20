@@ -41,6 +41,10 @@ export { toJson } from "./to-json";
 export { stamp, stampTree, stripIds, defaultMakeId } from "./stamp";
 export type { MakeId } from "./stamp";
 
+// Fractional sibling ordering (`Node.ord`) — the transportable position key that
+// lets concurrent inserts into one parent commute.
+export { generateKeyBetween, compareOrd, ordNeighbors, ordAt, assignOrds, stripOrds } from "./ord";
+
 // The multi-page site container (§3): pages sharing one theme + frame.
 export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage, renderSite } from "./site";
 export type { RenderedPage } from "./site";

@@ -3,7 +3,10 @@
  * projector. The React chrome lives at `@wizeworks/silicaui-builder/email/react`.
  */
 export { EmailEditor } from "./engine";
-export type { ChangeEvent, ChangeKind, TemplateMeta, TemplatesView } from "./engine";
+export type { ChangeEvent, ChangeKind, HistoryDelegate, TemplateMeta, TemplatesView } from "./engine";
+// The semantic operation vocabulary — what `onChange` hands back alongside the
+// state, and what `applyRemoteOps` accepts.
+export type { Op, OpKind, OpTarget, OpMeta } from "./ops";
 export { toEmailHtml } from "./projector";
 export { resolveEmailTree, emailScopeAt } from "./resolve";
 export type { EmailResolveHost } from "./resolve";

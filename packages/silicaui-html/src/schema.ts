@@ -22,6 +22,23 @@ interface NodeBase {
   /** Builder-only layer name shown in the Navigator (user-renamable). Authoring
    *  metadata — ignored by every projection. */
   label?: string;
+  /**
+   * Fractional ORDERING KEY among siblings — a string chosen to sort strictly
+   * between its neighbors (see `generateKeyBetween`). Authoring metadata in the
+   * same band as `label`/`locked`: no projection reads it, and `exportSite`
+   * strips it, so it never reaches published markup.
+   *
+   * `children` order still drives local rendering; `ord` is the key that makes
+   * a position transportable. An array index is not a stable address — "insert
+   * at 2" resolves differently depending on what else landed first, so two
+   * authors inserting into one parent produce a result neither saw. A key
+   * between two neighbors is stable: an insert touches only the inserted node,
+   * the parent is never rewritten, and concurrent inserts can't collide.
+   *
+   * Absent on template/block nodes (like `id`) and on any tree authored before
+   * ordering keys existed; `assignOrds` backfills it at load in array order.
+   */
+  ord?: string;
   /** The ONLY styling surface: @wizeworks/silicaui component classes + the allowed utility
    *  subset. A host gates these. No inline style, ever. */
   class?: string;
@@ -315,7 +332,15 @@ export interface Site {
   version: string;
   theme: Theme;
   frame?: Frame;
-  /** At least one page; `pages[0]` is the home/default page. */
+  /**
+   * At least one page. Order is AUTHORING order — what the page switcher lists,
+   * nothing more. It carries no routing meaning: `pages[0]` is not the home page
+   * and not a default of any kind. The editor opens on it and falls back to it
+   * when the active-page pointer dangles; that is the whole of its significance.
+   * A route resolves by `slug` (a home page is the one whose slug normalizes to
+   * "/"), and `renderSite` keys its output by slug, never by index — so
+   * reordering pages can never change what a visitor gets.
+   */
   pages: Page[];
   /** User-saved reusable components, keyed by symbol id. Instances across any page
    *  or the frame reference these; edit-once-propagate flows from here. */

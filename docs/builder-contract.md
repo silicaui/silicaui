@@ -167,8 +167,8 @@ interface BuilderHandle {
 ```
 
 - **Load** = pass a `BuilderDocument`. That's the entire input.
-- **Extract** = `extract()` returns the current `BuilderDocument`, same shape. The host decides when to call it (on `host.onChange`, on a Save button, on unload).
-- **The engine never persists.** It edits in memory and notifies via `host.onChange`. Persistence, autosave-vs-explicit-save, versioning, conflict policy — all the host's call.
+- **Extract** = `extract()` returns the current `BuilderDocument`, same shape. The host decides when to call it (on `onChange`, on a Save button, on unload).
+- **The engine never persists.** It edits in memory and notifies via the `<Builder>` `onChange(site, ops, meta)` prop (§5.1). Persistence, autosave-vs-explicit-save, versioning, conflict policy — all the host's call.
 
 ---
 
@@ -218,9 +218,8 @@ interface BuilderHost {
   // asks for a source; the host returns a ref (and owns upload, the library, CDN).
   pickAsset?(kind: 'image' | 'video'): Promise<AssetRef | null>;
 
-  // CHANGES — the engine emits the current document (debounced) after every edit.
-  // The host owns save / versioning / publish. The engine never persists.
-  onChange(document: BuilderDocument): void;
+  // NOTE: change notification is NOT on the host object — it's a `<Builder>`
+  // prop, `onChange(site, ops, meta)`. See §5.1.
 }
 
 interface InspectorPanel {
@@ -238,7 +237,97 @@ interface DataSource {
 }
 ```
 
-That's it. Two required methods (`onChange`, plus whichever of the rest a host's use case needs); everything else is optional. A host that implements `onChange` alone gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`pickAsset` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
+Every field is optional. A host that passes no adapter at all gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`pickAsset` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
+
+---
+
+## 5.1 Changes out, changes in (state **and intent**)
+
+Change notification is a `<Builder>` prop, not a host method:
+
+```ts
+onChange(site: Site, ops: readonly Op[], meta: { baseSeq: number }): void;
+```
+
+**`site`** is the whole document, as it always was. Storing it verbatim is correct
+for a single author and **lossy for two**: both hold a complete `Site`, so whoever
+saves last silently reverts the other's work on pages they never opened.
+
+**`ops`** is what the author *did* — semantic operations in causal order (see
+`src/site/ops.ts`). Apply these instead and two authors can edit one site without
+erasing each other. Three properties make them commute, which is what removes the
+need for an operational-transform layer:
+
+1. **Nodes are addressed by id**, never by index or tree path.
+2. **Position is a fractional key** (`Node.ord`), not an index — so an insert
+   touches only the inserted node and concurrent inserts can't collide.
+3. **Property writes are shallow merges** — two authors editing different props
+   of one node (copy and image, the common case) don't conflict.
+
+Ops carry **intent, never ambient state**: a sender's view of the rest of the
+document is stale by definition under concurrent edit. The rule is *anything
+randomly minted must travel, anything computable must not* — which is why
+`node.insert` carries a whole subtree and `symbol.delete` carries its detach
+cascade (node ids are minted client-side and cannot be re-derived), while nothing
+carries a slug roster or a sibling list.
+
+`site.replace` is the escape hatch, emitted only where there is genuinely no
+delta — today, undo/redo restoring a snapshot. **Its frequency is the signal that
+the vocabulary has a gap**, not a shortcut.
+
+Changes come back in through an imperative handle (a ref, not a prop — `document`
+is read once at boot by design):
+
+```ts
+interface BuilderHandle {
+  applyRemoteOps(ops: readonly Op[]): { applied: number; dropped: Op[] };
+  replaceState(site: Site, seq: number): void;
+  ackSeq(seq: number): void;
+  setHistoryDelegate(delegate: HistoryDelegate | undefined): void;
+}
+```
+
+Three rules a host needs to know:
+
+- **Remote ops never echo and never become undoable.** Applying one emits a
+  change event (the canvas must repaint) but no ops, so wiring `onChange`
+  straight to a broadcast cannot loop.
+- **A remote op invalidates local undo history.** A whole-document snapshot is
+  only a truthful "before" while this client is the only writer; once another
+  author's edit lands, undoing one would revert work this client never did.
+  Supply a `HistoryDelegate` to keep undo working in a shared session — it is
+  left untouched.
+- **Persist the `site` argument at least once, not ops alone.** Loading a site
+  that lacks a frame materializes one with fresh random ids, so two clients
+  normalizing the same raw site independently can never converge. After the
+  first save this is moot.
+
+### The email builder carries the same contract
+
+`<EmailBuilder>` emits `onChange(project, ops, meta)` and takes an
+`EmailBuilderHandle` ref with the same four methods. Everything above — ops carry
+intent not context, remote ops don't echo, remote ops invalidate local undo
+unless a `HistoryDelegate` is supplied, `project.replace` is the escape hatch —
+holds identically. A host integrating both builders writes the transport once.
+
+The op **vocabulary** is smaller, because the email schema is closed. Email nodes
+carry typed fields instead of a class string plus a props bag, so there is one
+`node.update` where the site needs `setClass`/`setProps`/`setAttrs`/`setTag`, and
+there are no symbol, frame, or page scopes — an email is one canvas, so those
+don't exist rather than being stubbed. Two additions have no site equivalent:
+
+- **`columns.rebalance`** — add/remove/duplicate-column rewrites every sibling
+  column's `widthPct`. Emitting that as N separate updates would let a peer
+  observe a row that briefly doesn't sum to 100, and would race badly against a
+  concurrent column edit. One op keeps the row's invariant atomic.
+- **`colors.set`** carries the resulting per-node `repaint`. Those colors are
+  derivable from the palette in principle, but only by a receiver that
+  reimplements the auto-color rules exactly — and drift between the two would
+  paint two authors' canvases differently with neither noticing.
+
+The closed schema is enforced on **incoming** ops too: a remote `node.insert` or
+`node.move` that would nest a section inside a section is rejected, not applied.
+A peer cannot smuggle in a structure the local editing API would have refused.
 
 ---
 
@@ -310,7 +399,7 @@ function buildClassValidator(config: { blocks: AllowlistRule[] }): BuilderHost['
 - [ ] `BuilderDocument` / `BuilderNode` / `ThemeConfig` / `DocumentFrame` types (§2), one shape shared with @wizeworks/silicaui-blocks (+ `id`).
 - [ ] `mountBuilder(el, { document, host })` → `BuilderHandle` with `extract()` symmetric to load (§4).
 - [ ] The three dynamic primitives (`bind` / `repeat` / `action`) as **opaque** markers resolved only through the host (§3).
-- [ ] `BuilderHost` (§5): `catalog` + `validateClass` + `onChange` required; `resolveBinding` + `resolveCollection` + `inspectorPanels` + `pickAsset` optional.
+- [ ] `BuilderHost` (§5): `catalog` + `validateClass` required (`onChange` is a `<Builder>` prop, §5.1); `resolveBinding` + `resolveCollection` + `inspectorPanels` + `pickAsset` optional.
 - [ ] Canvas renders preview==production under a `[data-theme]` island with `@scope` isolation (§8); editor chrome on its own token lane.
 - [ ] Direct manipulation: select/multi-select, drag reorder+reparent, add (from catalog)/remove/duplicate/paste, edit class + props + slots.
 - [ ] Layers tree, inspector framework (generic panels + host panels), theme panel, device preview, undo/redo, behavior preview.
