@@ -3,9 +3,19 @@ import { contentProse, ctaBand, navbar } from "@wizeworks/silicaui-html/blocks";
 import { fillSlots, type SlotContent } from "@/lib/fill-slots";
 import { siteFooter, statsSection } from "@/lib/home-sections";
 
+const ABOUT_DESCRIPTION =
+  "Why SilicaUI exists: a component library that treats CSS classes and OKLCH design tokens as the interface, so one named color re-tints every variant with no rebuild — the same accessible primitives across React, framework-neutral HTML, and vanilla JS.";
+
 export const metadata = {
-  title: "About — SilicaUI",
-  description: "Why SilicaUI exists.",
+  title: "About",
+  description: ABOUT_DESCRIPTION,
+  alternates: { canonical: "/about" },
+  openGraph: {
+    type: "website" as const,
+    title: "About SilicaUI",
+    description: ABOUT_DESCRIPTION,
+    url: "/about",
+  },
 };
 
 const theme = THEME_PRESETS[0]!; // "quartz"

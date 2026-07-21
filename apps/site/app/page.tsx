@@ -17,6 +17,7 @@ import {
   SizeVocabulary,
   TheWall,
 } from "@/components/landing/story";
+import { Faq } from "@/components/landing/faq";
 
 /**
  * The landing page is built from silicaui-react components directly rather
@@ -63,6 +64,7 @@ export default function HomePage() {
         <NoFramework generatedHtml={generatedSwitchHtml()} />
         <StatsBand />
         <Ecosystem components={DEMO_META} />
+        <Faq />
         <ClosingCta />
       </main>
       <SiteFooter />
