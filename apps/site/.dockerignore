@@ -1,0 +1,12 @@
+# The image only needs the prebuilt `out/` and nginx.conf — keep everything
+# heavy out of the build context so `docker build` stays fast.
+node_modules
+.next
+src
+app
+public
+*.ts
+*.tsx
+*.mjs
+tsconfig*.json
+next-env.d.ts
