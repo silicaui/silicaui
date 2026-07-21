@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SilicaUI host block — ADD THIS to the sparx Caddyfile (the same source that
+# owns the `kanninja.com` block), then redeploy Caddy. It does NOT belong in a
+# ConfigMap edited by hand: the live config is Kustomize-generated (hash-named),
+# so an in-cluster edit is overwritten on the next apply.
+#
+# Same model as kanNINJA — a co-tenant in its own `silicaui` namespace, reached
+# cross-namespace via its ClusterIP Service. It deliberately OMITS
+# `tls { on_demand }`: the on-demand ask endpoint (api-rest /internal/
+# domain-check) only validates sparx tenants and custom domains, and would
+# REJECT silicaui.com — no cert. An explicit host block instead gets a normal
+# Caddy-managed Let's Encrypt cert (HTTP-01 / TLS-ALPN), which is what we want.
+#
+# Requires silicaui.com and www.silicaui.com DNS to resolve to this LB:
+#   35.254.145.54
+# ─────────────────────────────────────────────────────────────────────────────
+
+silicaui.com {
+  import security_headers
+  reverse_proxy site.silicaui.svc.cluster.local:80
+}
+
+www.silicaui.com {
+  redir https://silicaui.com{uri} permanent
+}

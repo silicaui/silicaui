@@ -1,0 +1,22 @@
+# Ties the workload manifests together and gives CI a clean, race-free way to
+# pin the image tag it just pushed:
+#
+#   cd apps/site/deploy
+#   kustomize edit set image site=us-central1-docker.pkg.dev/sparxworks/silicaui/site:sha-<gitsha>
+#   kubectl apply -k .
+#
+# This mirrors how sparx-prod itself is applied (Kustomize, content-hashed).
+# The ingress layer (a Caddy host block, OR a GKE Ingress + ManagedCertificate)
+# is deliberately NOT here yet — that's the one decision still open.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: site
+    newName: us-central1-docker.pkg.dev/sparxworks/silicaui/site
+    newTag: latest

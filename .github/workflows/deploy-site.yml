@@ -1,35 +1,47 @@
 name: Deploy site
 
+# Builds the static export into a container, pushes it to Artifact Registry, and
+# rolls the `site` Deployment in the `silicaui` namespace of the sparx-prod
+# Autopilot cluster. Fronting/TLS is the shared Caddy (see
+# apps/site/deploy/caddy-silicaui.caddyfile) — nothing here touches it.
+#
+# Auth is keyless: GitHub's OIDC token is exchanged for short-lived GCP creds
+# via Workload Identity Federation. The provider + deployer SA are created once
+# by apps/site/deploy/setup-gcp.sh, and their identifiers live in repo Variables
+# GCP_WIF_PROVIDER / GCP_DEPLOYER_SA.
+
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - "apps/site/**"
+      - "packages/**"
+      - ".github/workflows/deploy-site.yml"
   workflow_dispatch:
 
-# Separate group from `release.yml` / `ci.yml` — a site build failure must
-# never block npm publishing, and vice versa.
 concurrency:
-  group: pages
+  group: deploy-site
   cancel-in-progress: false
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  id-token: write # mint the OIDC token WIF exchanges for GCP credentials
+
+env:
+  PROJECT: sparxworks
+  REGION: us-central1
+  CLUSTER: sparx-prod-autopilot
+  IMAGE: us-central1-docker.pkg.dev/sparxworks/silicaui/site
 
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Build & deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
@@ -37,31 +49,40 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The site imports built entry points (`@wizeworks/silicaui-demos/meta`),
-      # and every package `dist/` is gitignored — so a clean checkout has to
-      # build the workspace before Next can resolve them.
+      # The site imports built entry points (`@wizeworks/silicaui-demos/meta`);
+      # every package `dist/` is gitignored, so a clean checkout must build the
+      # workspace before Next can resolve them.
       - name: Build packages
         run: pnpm build
 
       - name: Build site
         run: pnpm site:build
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Authenticate to GCP (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
         with:
-          path: apps/site/out
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
 
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: gke-gcloud-auth-plugin
+
+      - name: Build & push image
+        run: |
+          TAG="sha-$(git rev-parse --short HEAD)"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" apps/site
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
+
+      - name: Get cluster credentials (Connect Gateway)
+        run: gcloud container fleet memberships get-credentials "$CLUSTER" --project "$PROJECT"
+
+      - name: Deploy
+        run: |
+          kubectl apply -k apps/site/deploy
+          kubectl set image deployment/site "site=${IMAGE}:${TAG}" -n silicaui
+          kubectl rollout status deployment/site -n silicaui --timeout=180s

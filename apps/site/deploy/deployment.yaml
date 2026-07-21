@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: site
+  namespace: silicaui
+  labels:
+    app.kubernetes.io/name: silicaui-site
+spec:
+  # Two replicas so a node drain or a rollout never drops the site. It's a
+  # static nginx image, so each pod is tiny — this is cheap insurance, not
+  # real scaling.
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: silicaui-site
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: silicaui-site
+    spec:
+      containers:
+        - name: site
+          # CI rewrites this tag to the immutable sha-<gitsha> it just pushed
+          # (see kustomization.yaml `images:`). `latest` is only a placeholder
+          # so the manifest is valid on its own.
+          image: us-central1-docker.pkg.dev/sparxworks/silicaui/site:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          # GKE Autopilot requires explicit resource requests and schedules on
+          # them. A static file server needs almost nothing.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          # nginx-unprivileged already runs as non-root (uid 101); make it
+          # explicit and lock the container down for Autopilot.
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 20
