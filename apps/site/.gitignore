@@ -1,0 +1,4 @@
+# Generated Open Graph images — rebuilt from scripts/gen-og.mjs on every build
+# (the `build` script runs it before `next build`). The source fonts in
+# scripts/fonts/ ARE tracked, since generation needs them.
+/public/og/

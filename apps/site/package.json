@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "next dev --port 4011",
-        "build": "next build",
+        "build": "node scripts/gen-og.mjs && next build",
+        "og": "node scripts/gen-og.mjs",
         "start": "next start",
         "typecheck": "tsc --noEmit"
     },
@@ -22,12 +23,14 @@
         "react-dom": "^19.0.0"
     },
     "devDependencies": {
+        "@resvg/resvg-js": "^2.6.2",
         "@tailwindcss/postcss": "^4.3.0",
         "@types/mdx": "^2.0.13",
         "@types/node": "^22.0.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "@wizeworks/silicaui": "workspace:*",
+        "satori": "^0.28.2",
         "tailwindcss": "^4.3.0",
         "typescript": "^5.6.0"
     }
