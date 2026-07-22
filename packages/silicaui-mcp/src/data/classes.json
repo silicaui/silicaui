@@ -1166,6 +1166,9 @@
     "blockquote-cite",
     "caption",
     "display",
+    "display-1",
+    "display-2",
+    "display-3",
     "h1",
     "h2",
     "h3",
@@ -1278,5 +1281,22 @@
     "text-success-content",
     "text-warning",
     "text-warning-content"
+  ],
+  "type-scale": [
+    "text-xs",
+    "text-sm",
+    "text-md",
+    "text-base",
+    "text-lg",
+    "text-xl",
+    "text-2xl",
+    "text-3xl",
+    "text-4xl",
+    "text-5xl",
+    "text-6xl",
+    "text-7xl",
+    "text-8xl",
+    "text-9xl",
+    "text-10xl"
   ]
 }

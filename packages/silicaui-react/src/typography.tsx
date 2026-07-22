@@ -12,18 +12,21 @@ import { useSilicaClass } from "./lib/config";
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
+/** The oversized display ramp (`.display-1`–`.display-3`); `1` is the largest. */
+export type DisplayStep = 1 | 2 | 3;
+
 export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
   /** Semantic level → renders `<h1>`…`<h6>`. Default 2. */
   level?: HeadingLevel;
   /**
-   * Visual heading scale (`1`–`6` or `"display"`), independent of the semantic
-   * `level`; omit to use the tag default.
+   * Visual heading scale (`1`–`6`, `"display"`, or `"display-1"`–`"display-3"`),
+   * independent of the semantic `level`; omit to use the tag default.
    *
    * Named `visualLevel`, not `size`, on purpose: everywhere else in Silica
    * `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one
    * component and `"lg"` in the next is a prop in name only.
    */
-  visualLevel?: HeadingLevel | "display";
+  visualLevel?: HeadingLevel | "display" | `display-${DisplayStep}`;
 }
 
 /** A heading whose semantic level and visual size are set independently. */
@@ -32,26 +35,35 @@ export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
     const sc = useSilicaClass();
     const Tag = `h${level}` as "h1";
     // Only emit a scale class when it differs from the tag's own default — a bare
-    // `<h2>` and `<Heading level={2}>` should render identically.
+    // `<h2>` and `<Heading level={2}>` should render identically. A `display*`
+    // value is already a class name; a numeric level maps to `h{n}`.
     const sizeClass =
       visualLevel !== undefined && visualLevel !== level
-        ? sc(visualLevel === "display" ? "display" : `h${visualLevel}`)
+        ? sc(typeof visualLevel === "string" ? visualLevel : `h${visualLevel}`)
         : undefined;
     return <Tag ref={ref} className={cx(sizeClass, className)} {...rest} />;
   },
 );
 
 export interface DisplayProps extends React.HTMLAttributes<HTMLHeadingElement> {
-  /** Semantic level for the outline (the look is always `.display`). Default 1. */
+  /** Semantic level for the outline (default 1) — independent of the visual size. */
   level?: HeadingLevel;
+  /**
+   * Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the
+   * base `.display` (equal to `.display-3`). Named `visualLevel` to parallel
+   * `Heading`, never `size` (which is the `xs`–`xl` token scale everywhere else).
+   */
+  visualLevel?: DisplayStep;
 }
 
-/** Oversized hero/display heading (`.display`) on a semantic heading element. */
+/** Oversized hero/display heading on a semantic heading element. */
 export const Display = React.forwardRef<HTMLHeadingElement, DisplayProps>(
-  function Display({ level = 1, className, ...rest }, ref) {
+  function Display({ level = 1, visualLevel, className, ...rest }, ref) {
     const sc = useSilicaClass();
     const Tag = `h${level}` as "h1";
-    return <Tag ref={ref} className={cx(sc("display"), className)} {...rest} />;
+    return (
+      <Tag ref={ref} className={cx(sc(visualLevel ? `display-${visualLevel}` : "display"), className)} {...rest} />
+    );
   },
 );
 
