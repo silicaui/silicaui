@@ -53,6 +53,41 @@ test("heading typeface is independent of body, and 'Match body' clears it", asyn
   await expect(board).not.toHaveAttribute("style", /Playfair Display/);
 });
 
+// A token on the island's `style` proves the theme was written, NOT that anything
+// RENDERS with it. Assert the board's Typography specimen actually resolves the
+// picked heading font on a real heading (while body stays untouched) AND that the
+// ramp descends — a hardcoded `text-*` override once inverted h1 below h3 and made
+// the font swap impossible to perceive.
+test("board Typography specimen renders the heading font and a descending ramp", async ({ page }) => {
+  await ready(page);
+  const board = page.locator(".sui-brd");
+
+  const firstFamily = (loc: ReturnType<Page["getByText"]>) =>
+    loc.evaluate((el) => getComputedStyle(el).fontFamily.split(",")[0].replace(/["']/g, ""));
+  const px = (loc: ReturnType<Page["getByText"]>) =>
+    loc.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+
+  const display = board.getByText("Ship faster", { exact: true });
+  const h1 = board.getByText("Heading one", { exact: true });
+  const h3 = board.getByText("Heading three", { exact: true });
+  const body = board.getByText(/Body copy sits/);
+
+  await pickFont(page, "Heading typeface", "Playfair Display");
+  // The declared `font-family` resolves as soon as the token is on the island —
+  // no need to wait for the actual webfont FILE to download.
+  await expect(board).toHaveAttribute("style", /Playfair Display/);
+
+  expect(await firstFamily(h1)).toBe("Playfair Display");
+  expect(await firstFamily(h3)).toBe("Playfair Display");
+  expect(await firstFamily(body)).not.toBe("Playfair Display"); // body untouched
+
+  // Strictly descending: display › h1 › h3 › body.
+  const [d, one, three, b] = [await px(display), await px(h1), await px(h3), await px(body)];
+  expect(d).toBeGreaterThan(one);
+  expect(one).toBeGreaterThan(three);
+  expect(three).toBeGreaterThan(b);
+});
+
 test("the 4 legacy system stacks still select with no regression", async ({ page }) => {
   await ready(page);
   const board = page.locator(".sui-brd");

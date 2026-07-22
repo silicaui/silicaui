@@ -70,8 +70,13 @@ export function ComponentBoard() {
 
       <div className="columns-2 @5xl:columns-3 gap-4">
         <BoardCard title="Typography" aside="ramp · font">
-          <Display className="text-3xl">Ship faster</Display>
-          <Heading level={1} className="mt-2 text-xl">Heading one</Heading>
+          {/* The real type ramp — every step carries its DESIGNED size, weight, and
+              tracking (and the theme's `--font-head`). No `text-*` overrides: a magic
+              size here would invert the ramp and hide the very font/scale this card
+              exists to judge. `size={1}` puts the display at the ramp's head so it
+              reads above `<h1>` even in this narrow, container-queried card. */}
+          <Display size={1}>Ship faster</Display>
+          <Heading level={1} className="mt-2">Heading one</Heading>
           <Heading level={3} className="mt-1">Heading three</Heading>
           <Text variant="lead" className="mt-2">A lead paragraph introduces the section with a touch more size.</Text>
           <Text className="mt-2">Body copy sits at the 16px base — the world-standard reading size — with comfortable line height.</Text>
