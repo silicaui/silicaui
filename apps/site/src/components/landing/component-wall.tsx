@@ -21,11 +21,11 @@ import {
 } from "@wizeworks/silicaui-react";
 
 /**
- * Three columns of REAL components scrolling vertically behind the hero copy.
+ * Three columns of REAL components scrolling vertically.
  *
- * The whole wall lives inside the hero's `data-theme` island, so the theme
- * toggle recolors every component in it live. That's the distinction worth
- * keeping: peers who do this ship a tall pre-rendered image of their
+ * The wall lives inside `ThemeWall`'s `data-theme` island, so that section's
+ * theme toggle recolors every component in it live. That's the distinction
+ * worth keeping: peers who do this ship a tall pre-rendered image of their
  * components, which can never re-theme, can never be interacted with, and goes
  * stale the moment a component changes. These are the actual shipped
  * components — they re-theme because they read the same tokens everything else

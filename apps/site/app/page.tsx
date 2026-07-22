@@ -18,6 +18,7 @@ import {
   TheWall,
 } from "@/components/landing/story";
 import { Faq } from "@/components/landing/faq";
+import { ThemeWall } from "@/components/landing/theme-wall";
 
 /**
  * The landing page is built from silicaui-react components directly rather
@@ -52,6 +53,10 @@ export default function HomePage() {
       <SiteNav />
       <main>
         <Hero />
+        {/* The scrolling component wall, its own act now — with a theme toggle
+            scoped to just this section, so a visitor can re-tint live UI and
+            see the payoff in the same frame. */}
+        <ThemeWall />
         {/* Problem → proof, four times, then the claim no peer can make.
             Surfaces alternate base-100 / base-200 so the page has rhythm
             rather than one undifferentiated expanse. */}
