@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui-fonts",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "Silica UI fonts — publish-time Google Fonts self-hosting for sites built with @wizeworks/silicaui-builder.",
   "type": "module",
   "license": "MIT",
