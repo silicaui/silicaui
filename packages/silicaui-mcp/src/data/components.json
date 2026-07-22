@@ -7617,10 +7617,16 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "HeadingSize",
+            "doc": "Visual size, independent of the semantic `level`: an h-level (`1`–`6`), `\"display\"`, or `\"display-1\"`–`\"display-3\"`. Omit to use the tag default — set it only when the outline needs one level but the design wants another size (an `<h2>` that should read as an h4, a hero `<h1>` sized to `display-1`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
-            "type": "HeadingLevel | \"display\" | `display-${DisplayStep}`",
-            "doc": "Visual heading scale (`1`–`6`, `\"display\"`, or `\"display-1\"`–`\"display-3\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
+            "type": "HeadingSize",
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7635,10 +7641,16 @@
             "doc": "Semantic level for the outline (default 1) — independent of the visual size."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "DisplayStep",
+            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
             "type": "DisplayStep",
-            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`). Named `visualLevel` to parallel `Heading`, never `size` (which is the `xs`–`xl` token scale everywhere else)."
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7651,6 +7663,12 @@
             "optional": true,
             "type": "TextVariant",
             "doc": "`body` (default), `lead` (larger intro), or `caption` (small, muted)."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "TextSize",
+            "doc": "Explicit font size from the type scale (`text-*`). Overrides the size implied by `variant`; omit to use the variant's own size."
           },
           {
             "name": "as",
@@ -7697,10 +7715,16 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "HeadingSize",
+            "doc": "Visual size, independent of the semantic `level`: an h-level (`1`–`6`), `\"display\"`, or `\"display-1\"`–`\"display-3\"`. Omit to use the tag default — set it only when the outline needs one level but the design wants another size (an `<h2>` that should read as an h4, a hero `<h1>` sized to `display-1`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
-            "type": "HeadingLevel | \"display\" | `display-${DisplayStep}`",
-            "doc": "Visual heading scale (`1`–`6`, `\"display\"`, or `\"display-1\"`–`\"display-3\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
+            "type": "HeadingSize",
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7715,10 +7739,16 @@
             "doc": "Semantic level for the outline (default 1) — independent of the visual size."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "DisplayStep",
+            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
             "type": "DisplayStep",
-            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`). Named `visualLevel` to parallel `Heading`, never `size` (which is the `xs`–`xl` token scale everywhere else)."
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7731,6 +7761,12 @@
             "optional": true,
             "type": "TextVariant",
             "doc": "`body` (default), `lead` (larger intro), or `caption` (small, muted)."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "TextSize",
+            "doc": "Explicit font size from the type scale (`text-*`). Overrides the size implied by `variant`; omit to use the variant's own size."
           },
           {
             "name": "as",
@@ -7777,10 +7813,16 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "HeadingSize",
+            "doc": "Visual size, independent of the semantic `level`: an h-level (`1`–`6`), `\"display\"`, or `\"display-1\"`–`\"display-3\"`. Omit to use the tag default — set it only when the outline needs one level but the design wants another size (an `<h2>` that should read as an h4, a hero `<h1>` sized to `display-1`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
-            "type": "HeadingLevel | \"display\" | `display-${DisplayStep}`",
-            "doc": "Visual heading scale (`1`–`6`, `\"display\"`, or `\"display-1\"`–`\"display-3\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
+            "type": "HeadingSize",
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7795,10 +7837,16 @@
             "doc": "Semantic level for the outline (default 1) — independent of the visual size."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "DisplayStep",
+            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
             "type": "DisplayStep",
-            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`). Named `visualLevel` to parallel `Heading`, never `size` (which is the `xs`–`xl` token scale everywhere else)."
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7811,6 +7859,12 @@
             "optional": true,
             "type": "TextVariant",
             "doc": "`body` (default), `lead` (larger intro), or `caption` (small, muted)."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "TextSize",
+            "doc": "Explicit font size from the type scale (`text-*`). Overrides the size implied by `variant`; omit to use the variant's own size."
           },
           {
             "name": "as",
@@ -7879,10 +7933,16 @@
             "doc": "Semantic level → renders `<h1>`…`<h6>`. Default 2."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "HeadingSize",
+            "doc": "Visual size, independent of the semantic `level`: an h-level (`1`–`6`), `\"display\"`, or `\"display-1\"`–`\"display-3\"`. Omit to use the tag default — set it only when the outline needs one level but the design wants another size (an `<h2>` that should read as an h4, a hero `<h1>` sized to `display-1`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
-            "type": "HeadingLevel | \"display\" | `display-${DisplayStep}`",
-            "doc": "Visual heading scale (`1`–`6`, `\"display\"`, or `\"display-1\"`–`\"display-3\"`), independent of the semantic `level`; omit to use the tag default. Named `visualLevel`, not `size`, on purpose: everywhere else in Silica `size` is the `xs`–`xl` token scale, and a prop that takes `3` in one component and `\"lg\"` in the next is a prop in name only."
+            "type": "HeadingSize",
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7897,10 +7957,16 @@
             "doc": "Semantic level for the outline (default 1) — independent of the visual size."
           },
           {
+            "name": "size",
+            "optional": true,
+            "type": "DisplayStep",
+            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`)."
+          },
+          {
             "name": "visualLevel",
             "optional": true,
             "type": "DisplayStep",
-            "doc": "Which step of the display ramp (`1`–`3`, largest → smallest). Omit for the base `.display` (equal to `.display-3`). Named `visualLevel` to parallel `Heading`, never `size` (which is the `xs`–`xl` token scale everywhere else)."
+            "doc": "@deprecated Renamed to `size`. Still honored; `size` wins if both are set."
           }
         ]
       },
@@ -7913,6 +7979,12 @@
             "optional": true,
             "type": "TextVariant",
             "doc": "`body` (default), `lead` (larger intro), or `caption` (small, muted)."
+          },
+          {
+            "name": "size",
+            "optional": true,
+            "type": "TextSize",
+            "doc": "Explicit font size from the type scale (`text-*`). Overrides the size implied by `variant`; omit to use the variant's own size."
           },
           {
             "name": "as",
