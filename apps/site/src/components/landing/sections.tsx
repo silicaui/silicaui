@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Badge, Button, Rating } from "@wizeworks/silicaui-react";
 import { InstallCommand } from "./install-command";
-import { ThemedWall } from "./hero-demo";
+import { ElementCard } from "./element-card";
 import { PropsDemo } from "./props-demo";
 import { Reveal } from "./reveal";
 
@@ -53,8 +53,9 @@ export function SiteNav() {
 }
 
 /* ---------------------------------------------------------------------------
-   Hero — a dark theme island, so the product panel reads as the lit thing on
-   the page.
+   Hero — a dark theme island, so the Si·14 element tile reads as the lit thing
+   on the page. The live component wall it used to hold now has its own act
+   directly below (see ThemeWall), where a scoped theme toggle can drive it.
    --------------------------------------------------------------------------- */
 
 export function Hero() {
@@ -81,14 +82,9 @@ export function Hero() {
             </Button>
             <InstallCommand />
           </div>
-
-          <p className="max-w-md pt-2 text-base-content">
-            Every component beside this is real and rendering live &mdash; the same markup
-            you&rsquo;d ship, re-themed by a token swap, never a rebuild.
-          </p>
         </div>
 
-        <ThemedWall />
+        <ElementCard />
       </div>
     </section>
   );
