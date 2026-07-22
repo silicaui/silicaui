@@ -30,6 +30,10 @@
       "types": "./dist/email/react/index.d.ts",
       "import": "./dist/email/react/index.js"
     },
+    "./vocab": {
+      "types": "./dist/vocab.d.ts",
+      "import": "./dist/vocab.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.js",

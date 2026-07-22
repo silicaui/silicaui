@@ -8,6 +8,8 @@ export default defineConfig({
     "react/index": "src/react/index.ts",
     "email/index": "src/email/index.ts",
     "email/react/index": "src/email/react/index.ts",
+    // Framework-neutral canvas vocabulary — the consumable safelist source of truth.
+    vocab: "src/vocab.ts",
   },
   format: ["esm"],
   dts: true,

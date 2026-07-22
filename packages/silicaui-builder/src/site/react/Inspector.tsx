@@ -20,8 +20,18 @@ import { useHost } from "./host-context";
 import type { HostPropDef, InspectorPanelCtx } from "./host";
 import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
+import { unbackedClasses } from "../class-support";
+import {
+  FONT_SIZE, WEIGHT, ALIGN, PADDING, PAD_X, PAD_Y, RADIUS, WIDTH, MAX_WIDTH, POSITION,
+  SELF_ALIGN, FLEX_CHILD, DISPLAY, DIRECTION, JUSTIFY, ITEMS, GAP, WRAP, GRID_COLS,
+  BTN_VARIANT, BTN_SIZE, ANIMATE_LOAD_PRESET, ANIMATE_SCROLL_PRESET, ANIMATE_HOVER_PRESET,
+  ANIMATE_DURATION, ANIMATE_DELAY, ANIMATE_TRIGGER, ALL_ANIMATE_PRESET_CLASSES,
+} from "../canvas-vocab";
 
 // ── class-set helpers ────────────────────────────────────────────────────────
+// Classes already warned about (no backing CSS) — dedup so the console logs each
+// unresolved class once per session, not once per re-render.
+const warnedClasses = new Set<string>();
 const tokensOf = (cls: string | undefined): Set<string> => new Set((cls ?? "").split(/\s+/).filter(Boolean));
 /** Which member of `group` the class currently wears ("" = none). */
 const activeIn = (cls: string | undefined, group: readonly string[]): string =>
@@ -73,229 +83,11 @@ function btnColorOptions(theme: Theme, mode: "light" | "dark"): ColorOption[] {
   return rolesOf(theme).map((r) => ({ cls: `btn-${r}`, color: roleColor(theme, r, mode), title: titleOf(r) }));
 }
 
-// ── control vocab (LITERAL classes — this block IS the canvas safelist) ───────
-const FONT_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "text-xs", label: "XS" },
-  { cls: "text-sm", label: "SM" },
-  { cls: "text-md", label: "MD" },
-  { cls: "text-lg", label: "LG" },
-  { cls: "text-xl", label: "XL" },
-  { cls: "text-2xl", label: "2XL" },
-  { cls: "text-3xl", label: "3XL" },
-  { cls: "text-4xl", label: "4XL" },
-  { cls: "text-5xl", label: "5XL" },
-];
-const WEIGHT: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "font-normal", label: "Normal" },
-  { cls: "font-medium", label: "Medium" },
-  { cls: "font-semibold", label: "Semibold" },
-  { cls: "font-bold", label: "Bold" },
-];
-const ALIGN: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "text-left", label: "Left" },
-  { cls: "text-center", label: "Center" },
-  { cls: "text-right", label: "Right" },
-];
-// Padding: a uniform shorthand plus a per-axis pair. The three arrays MUST stay
-// index-aligned on the same scale — `setPadAxis` expands `p-4` into the opposite
-// axis by INDEX (`PADDING[i]` → `PAD_Y[i]`), which is what keeps every class a
-// literal string (the safelist can't see a composed `py-${n}`).
-const PADDING: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "p-0", label: "0" },
-  { cls: "p-2", label: "2" },
-  { cls: "p-3", label: "3" },
-  { cls: "p-4", label: "4" },
-  { cls: "p-6", label: "6" },
-  { cls: "p-8", label: "8" },
-  { cls: "p-10", label: "10" },
-  { cls: "p-12", label: "12" },
-  { cls: "p-16", label: "16" },
-];
-const PAD_X: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "px-0", label: "0" },
-  { cls: "px-2", label: "2" },
-  { cls: "px-3", label: "3" },
-  { cls: "px-4", label: "4" },
-  { cls: "px-6", label: "6" },
-  { cls: "px-8", label: "8" },
-  { cls: "px-10", label: "10" },
-  { cls: "px-12", label: "12" },
-  { cls: "px-16", label: "16" },
-];
-const PAD_Y: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "py-0", label: "0" },
-  { cls: "py-2", label: "2" },
-  { cls: "py-3", label: "3" },
-  { cls: "py-4", label: "4" },
-  { cls: "py-6", label: "6" },
-  { cls: "py-8", label: "8" },
-  { cls: "py-10", label: "10" },
-  { cls: "py-12", label: "12" },
-  { cls: "py-16", label: "16" },
-];
-const RADIUS: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "rounded-none", label: "None" },
-  { cls: "rounded-field", label: "Field" },
-  { cls: "rounded-box", label: "Box" },
-  { cls: "rounded-full", label: "Full" },
-];
-// Sizing utilities a layout object can wear. Literal strings (the canvas safelist).
-const WIDTH: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "w-full", label: "Full" },
-  { cls: "w-1/2", label: "1/2" },
-  { cls: "w-1/3", label: "1/3" },
-  { cls: "w-2/3", label: "2/3" },
-  { cls: "w-fit", label: "Fit" },
-];
-const MAX_WIDTH: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "max-w-none", label: "None" },
-  { cls: "max-w-xs", label: "XS" },
-  { cls: "max-w-sm", label: "SM" },
-  { cls: "max-w-md", label: "MD" },
-  { cls: "max-w-lg", label: "LG" },
-  { cls: "max-w-xl", label: "XL" },
-  { cls: "max-w-2xl", label: "2XL" },
-  { cls: "max-w-3xl", label: "3XL" },
-  { cls: "max-w-4xl", label: "4XL" },
-  { cls: "max-w-5xl", label: "5XL" },
-  { cls: "max-w-full", label: "Full" },
-];
-// Horizontal position via auto side margins — how a width/max-width-constrained
-// block sits in its parent (e.g. `max-w-4xl` + `mx-auto` to center a section).
-const POSITION: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "mr-auto", label: "Left" },
-  { cls: "mx-auto", label: "Center" },
-  { cls: "ml-auto", label: "Right" },
-];
-// Self-alignment on the cross axis — only meaningful when the node's parent is
-// a flex or grid container, but offered unconditionally like the rest of this vocab.
-const SELF_ALIGN: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "self-start", label: "Start" },
-  { cls: "self-center", label: "Center" },
-  { cls: "self-end", label: "End" },
-  { cls: "self-stretch", label: "Stretch" },
-];
-// Main-axis sizing for a flex CHILD — the counterpart to SELF_ALIGN's cross axis,
-// and (like it) offered unconditionally since the governing parent isn't visible
-// from here. `flex-auto` is omitted: its natural label would be "Auto", which
-// already means "clear this group" on every ChipGroup.
-const FLEX_CHILD: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "flex-1", label: "Fill" },
-  { cls: "grow", label: "Grow" },
-  { cls: "flex-none", label: "Fixed" },
-];
-// Container layout — the PARENT side of flex/grid (SELF_ALIGN above is the child
-// side). `Display` gates the rest: `justify-*` / `items-*` / `gap-*` / `flex-*`
-// are inert on a plain block, so those rows only appear once the node is a flex
-// or grid container. That's the one place this vocab differs from `self-*`, which
-// is offered unconditionally because its governing parent isn't visible here.
-const DISPLAY: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "block", label: "Block" },
-  { cls: "flex", label: "Flex" },
-  { cls: "grid", label: "Grid" },
-];
-const DIRECTION: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "flex-row", label: "Row" },
-  { cls: "flex-col", label: "Column" },
-];
-// Main-axis distribution. `justify-stretch` is deliberately absent: it's a
-// grid-track rule and a no-op on flex items with an intrinsic size, so offering
-// it would be a chip that does nothing.
-const JUSTIFY: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "justify-start", label: "Start" },
-  { cls: "justify-center", label: "Center" },
-  { cls: "justify-end", label: "End" },
-  { cls: "justify-between", label: "Between" },
-  { cls: "justify-around", label: "Around" },
-  { cls: "justify-evenly", label: "Evenly" },
-];
-const ITEMS: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "items-start", label: "Start" },
-  { cls: "items-center", label: "Center" },
-  { cls: "items-end", label: "End" },
-  { cls: "items-stretch", label: "Stretch" },
-  { cls: "items-baseline", label: "Baseline" },
-];
-const GAP: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "gap-0", label: "0" },
-  { cls: "gap-1", label: "1" },
-  { cls: "gap-2", label: "2" },
-  { cls: "gap-3", label: "3" },
-  { cls: "gap-4", label: "4" },
-  { cls: "gap-6", label: "6" },
-  { cls: "gap-8", label: "8" },
-];
-const WRAP: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "flex-wrap", label: "Wrap" },
-  { cls: "flex-nowrap", label: "No wrap" },
-];
-const GRID_COLS: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "grid-cols-1", label: "1" },
-  { cls: "grid-cols-2", label: "2" },
-  { cls: "grid-cols-3", label: "3" },
-  { cls: "grid-cols-4", label: "4" },
-];
-const BTN_VARIANT: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "btn-outline", label: "Outline" },
-  { cls: "btn-ghost", label: "Ghost" },
-  { cls: "btn-soft", label: "Soft" },
-  { cls: "btn-link", label: "Link" },
-];
-const BTN_SIZE: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "btn-xs", label: "XS" },
-  { cls: "btn-sm", label: "SM" },
-  { cls: "btn-md", label: "MD" },
-  { cls: "btn-lg", label: "LG" },
-];
-
-// Assignable animations — one preset list per trigger (packages/silicaui/src/
-// components/animations.js generates the matching `sui-animate-*`/`sui-reveal-*`/
-// `sui-hover-*` classes). Load/Scroll share the same preset NAMES under a
-// different class prefix; Hover has its own small set (interactive feedback,
-// not an entrance shape).
-const ANIMATE_LOAD_PRESET: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "sui-animate-fade-in", label: "Fade in" },
-  { cls: "sui-animate-slide-up", label: "Slide up" },
-  { cls: "sui-animate-slide-down", label: "Slide down" },
-  { cls: "sui-animate-slide-left", label: "Slide left" },
-  { cls: "sui-animate-slide-right", label: "Slide right" },
-  { cls: "sui-animate-scale-in", label: "Scale in" },
-  { cls: "sui-animate-zoom-in", label: "Zoom in" },
-];
-const ANIMATE_SCROLL_PRESET: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "sui-reveal-fade-in", label: "Fade in" },
-  { cls: "sui-reveal-slide-up", label: "Slide up" },
-  { cls: "sui-reveal-slide-down", label: "Slide down" },
-  { cls: "sui-reveal-slide-left", label: "Slide left" },
-  { cls: "sui-reveal-slide-right", label: "Slide right" },
-  { cls: "sui-reveal-scale-in", label: "Scale in" },
-  { cls: "sui-reveal-zoom-in", label: "Zoom in" },
-];
-const ANIMATE_HOVER_PRESET: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "sui-hover-lift", label: "Lift" },
-  { cls: "sui-hover-scale", label: "Scale" },
-  { cls: "sui-hover-glow", label: "Glow" },
-];
-const ANIMATE_DURATION: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "sui-duration-fast", label: "Fast" },
-  { cls: "sui-duration-normal", label: "Normal" },
-  { cls: "sui-duration-slow", label: "Slow" },
-];
-const ANIMATE_DELAY: ReadonlyArray<{ cls: string; label: string }> = [
-  { cls: "sui-delay-1", label: "1" },
-  { cls: "sui-delay-2", label: "2" },
-  { cls: "sui-delay-3", label: "3" },
-];
-const ANIMATE_TRIGGER: ReadonlyArray<{ cls: "load" | "scroll" | "hover"; label: string }> = [
-  { cls: "load", label: "Load" },
-  { cls: "scroll", label: "Scroll" },
-  { cls: "hover", label: "Hover" },
-];
-const ALL_ANIMATE_PRESET_CLASSES: readonly string[] = [
-  ...ANIMATE_LOAD_PRESET,
-  ...ANIMATE_SCROLL_PRESET,
-  ...ANIMATE_HOVER_PRESET,
-].map((o) => o.cls);
+// ── control vocab ────────────────────────────────────────────────────────────
+// The literal utility classes a node can wear now live in ONE source of truth,
+// `../canvas-vocab` (also the consumable `@wizeworks/silicaui-builder/vocab` entry),
+// so the Inspector renders exactly what a consumer safelists — no drift. See that
+// file for why each class is in or out.
 
 // ── form-control prop vocab ───────────────────────────────────────────────────
 // Which `props` each form component exposes for editing. Keyed by component name
@@ -2198,6 +1990,21 @@ function ClassField({ id, cls }: { id: string; cls: string }) {
     setDraft(cls);
     setError(undefined);
   }, [cls, id]);
+  // Classes with no backing CSS render nothing, silently — surface them so an
+  // unscannable utility (e.g. a responsive `@2xl:` variant not in the safelist)
+  // reads as a fixable problem instead of a mystery no-op. Checks the COMMITTED
+  // class, not the draft, so it reflects what's actually applied.
+  const unbacked = React.useMemo(() => unbackedClasses(cls), [cls]);
+  React.useEffect(() => {
+    for (const c of unbacked) {
+      if (warnedClasses.has(c)) continue;
+      warnedClasses.add(c);
+      console.warn(
+        `[silicaui-builder] class "${c}" has no backing CSS — it renders nothing. ` +
+          `If it's a utility, add it to your Tailwind safelist (see @wizeworks/silicaui-builder/vocab).`,
+      );
+    }
+  }, [unbacked]);
   const commit = () => {
     if (draft === cls) return;
     const result = editor.setClass(id, draft);
@@ -2226,6 +2033,18 @@ function ClassField({ id, cls }: { id: string; cls: string }) {
         <p className="mt-1 text-xs text-error">{error}</p>
       ) : (
         <p className="mt-1 text-xs text-base-content/40">The one styling surface. Chips above edit this same set.</p>
+      )}
+      {unbacked.length > 0 && (
+        <p className="mt-1 text-xs text-warning" data-testid="unbacked-classes">
+          No CSS found for{" "}
+          {unbacked.map((c, i) => (
+            <React.Fragment key={c}>
+              {i > 0 && ", "}
+              <code className="font-mono">{c}</code>
+            </React.Fragment>
+          ))}
+          {" "}— {unbacked.length === 1 ? "it renders" : "they render"} nothing. Add to your Tailwind safelist.
+        </p>
       )}
     </Group>
   );

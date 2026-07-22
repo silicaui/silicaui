@@ -101,6 +101,15 @@ try {
 } catch (err) {
   console.warn(`  ! failed to load @wizeworks/silicaui-html SCALAR_TOKENS (build it first: pnpm --filter @wizeworks/silicaui-html build): ${err.message}`);
 }
+// The type scale, imported from the plugin's single source of truth so the
+// documented ladder can never drift from what Tailwind actually emits.
+const { TYPE_SCALE } = await import(pathToFileURL(path.join(packagesRoot, "silicaui/src/type-scale.js")).href);
+const typeScale = Object.fromEntries(
+  Object.entries(TYPE_SCALE).map(([step, [size, meta]]) => [
+    step,
+    { class: `text-${step}`, fontSize: size, px: Math.round(parseFloat(size) * 16), lineHeight: meta.lineHeight },
+  ]),
+);
 writeJson("tokens.json", {
   semanticColors: SEMANTIC_COLORS,
   light: LIGHT,
@@ -108,6 +117,8 @@ writeJson("tokens.json", {
   scalarTokens,
   typography: {
     baseFontSize: "100% (≈16px) — an explicit anchor, not the UA default by accident; the whole rem-based type scale (text-md = 1rem) scales with it.",
+    scale: typeScale,
+    scaleNote: "The `text-*` size ladder — `text-md` == `text-base` == 1rem == 16px. `text-8xl`/`9xl` match Tailwind's defaults; `text-10xl` (160px) extends past them. Prefer a step over a `text-[13px]` magic number.",
     fontFamilyTokens: ["--font-sans", "--font-serif", "--font-mono"],
     note: "Every non-namespace token (see scalarTokens above, plus --duration, --ease, --focus-offset which aren't yet theme-editable) carries its default inline via var(--token, default) in each component, so an app's own :root/@theme override always wins.",
   },
@@ -156,6 +167,10 @@ for (const key of Object.keys({ ...colorUtilities(SEMANTIC_COLORS), ...softUtili
   for (const m of key.matchAll(/\.([a-zA-Z0-9_-]+)/g)) utilClasses.add(m[1]);
 }
 classesByComponent["color-utilities"] = [...utilClasses].sort();
+// The `text-*` size utilities — from the plugin's `theme.extend.fontSize` (not a
+// component module, so the loop above can't see them). Sourced from TYPE_SCALE so
+// this list matches exactly what Tailwind emits.
+classesByComponent["type-scale"] = Object.keys(TYPE_SCALE).map((step) => `text-${step}`);
 writeJson("classes.json", classesByComponent);
 
 // ── blocks.json ──────────────────────────────────────────────────────────

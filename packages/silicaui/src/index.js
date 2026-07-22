@@ -30,6 +30,7 @@ import { indicator } from "./components/indicator.js";
 import { loading } from "./components/loading.js";
 import { prose } from "./components/prose.js";
 import { typography } from "./components/typography.js";
+import { TYPE_SCALE } from "./type-scale.js";
 import { navbar } from "./components/navbar.js";
 import { footer } from "./components/footer.js";
 import { hero } from "./components/hero.js";
@@ -326,27 +327,12 @@ export default plugin.withOptions(
           field: "var(--radius-field, 0.25rem)",
           box: "var(--radius-box, 0.5rem)",
         },
-        // The type scale. Anchored to a 16px root (see buildBase): `text-md`
-        // (== `text-base`) is 1rem = 16px — the worldwide default body size — so
-        // the scale reads as a self-documenting xs → sm → MD → lg… ladder rather
-        // than leaving 16px as an accidental Tailwind default. Values match
-        // Tailwind's own defaults (nothing shifts); `md` is the named alias
-        // @wizeworks/silicaui code should reach for. Always prefer a scale step over a
+        // The type scale — `text-xs` … `text-10xl`, anchored to a 16px root (see
+        // buildBase) with `text-md` == `text-base` == 1rem. Declared in ONE place
+        // (`./type-scale.js`) so the MCP catalog documents the exact scale the
+        // plugin emits and can't drift. Always prefer a scale step over a
         // `text-[13px]`-style magic number.
-        fontSize: {
-          xs: ["0.75rem", { lineHeight: "1rem" }], // 12px
-          sm: ["0.875rem", { lineHeight: "1.25rem" }], // 14px
-          md: ["1rem", { lineHeight: "1.5rem" }], // 16px — base / world standard
-          base: ["1rem", { lineHeight: "1.5rem" }], // 16px — alias of md
-          lg: ["1.125rem", { lineHeight: "1.75rem" }], // 18px
-          xl: ["1.25rem", { lineHeight: "1.75rem" }], // 20px
-          "2xl": ["1.5rem", { lineHeight: "2rem" }], // 24px
-          "3xl": ["1.875rem", { lineHeight: "2.25rem" }], // 30px
-          "4xl": ["2.25rem", { lineHeight: "2.5rem" }], // 36px
-          "5xl": ["3rem", { lineHeight: "1" }], // 48px
-          "6xl": ["3.75rem", { lineHeight: "1" }], // 60px
-          "7xl": ["4.5rem", { lineHeight: "1" }], // 72px
-        },
+        fontSize: TYPE_SCALE,
         // Point the font utilities at the typeface tokens (defined + theme-
         // switched in buildBase), same var strategy as colors/radius — so
         // `font-sans` / `font-serif` / `font-mono` track a theme's `--font-*`

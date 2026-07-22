@@ -4,9 +4,17 @@ import { Section, Stack } from "../lib/Section";
 export function TypographyDemo() {
     return (
         <>
+            <Section title="Display · oversized hero ramp (display-1 → display-3)">
+                <Stack>
+                    <Display visualLevel={1}>Display 1</Display>
+                    <Display visualLevel={2}>Display 2</Display>
+                    <Display visualLevel={3}>Display 3</Display>
+                    <Display>Display (base · = display-3)</Display>
+                </Stack>
+            </Section>
+
             <Section title="Heading · semantic level + visual size are independent">
                 <Stack>
-                    <Display>Display</Display>
                     <Heading level={1}>Heading 1</Heading>
                     <Heading level={2}>Heading 2</Heading>
                     <Heading level={3}>Heading 3</Heading>

@@ -17,6 +17,7 @@
     ".": "./src/index.js",
     "./theme": "./src/theme-plugin.js",
     "./color-utilities": "./src/color-utilities.js",
+    "./type-scale": "./src/type-scale.js",
     "./button": "./src/components/button.js",
     "./package.json": "./package.json"
   },
@@ -27,12 +28,13 @@
   "scripts": {
     "build": "echo \"(no build step — ships as source)\"",
     "typecheck": "echo \"(js plugin — no typecheck yet)\"",
-    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale && pnpm verify:readable-ink",
+    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale && pnpm verify:type-scale && pnpm verify:readable-ink",
     "verify:layering": "node scripts/verify-layering.mjs",
     "verify:field-border": "node scripts/verify-field-border.mjs",
     "verify:icon-sizing": "node scripts/verify-icon-sizing.mjs",
     "verify:size-scale": "node scripts/verify-size-scale.mjs",
     "verify:variant-scale": "node scripts/verify-variant-scale.mjs",
+    "verify:type-scale": "node scripts/verify-type-scale.mjs",
     "verify:readable-ink": "node scripts/verify-readable-ink.mjs"
   },
   "peerDependencies": {
