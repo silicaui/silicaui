@@ -103,6 +103,34 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     }),
   },
   {
+    key: "button-outline",
+    label: "Outline button",
+    hint: "A secondary call-to-action that won't compete with the primary",
+    icon: "button",
+    make: (c = DEFAULT_EMAIL_COLORS) => ({
+      id: "x",
+      kind: "button",
+      label: "Learn more",
+      href: "",
+      variant: "outline",
+      // `bg` is still the brand color even though nothing paints with it: it's
+      // the documented fallback for `borderColor`, and it's what the button
+      // reverts to if an author switches this back to filled.
+      bg: c.primary,
+      bgAuto: true,
+      color: c.primary,
+      colorAuto: true,
+      colorRole: "primary",
+      borderColor: c.primary,
+      borderColorAuto: true,
+      borderWidth: 1,
+      radius: 8,
+      align: "center",
+      paddingX: 16,
+      paddingY: 8,
+    }),
+  },
+  {
     key: "divider",
     label: "Divider",
     hint: "A thin horizontal rule",

@@ -141,30 +141,64 @@ function rebalanceColumns(row: ColumnsNode): void {
   for (const c of row.children) c.widthPct = share;
 }
 
-/** Which literal color field(s) each node kind can live-track, and which
- *  `EmailColorDefaults` role each one follows — keep in sync with the
- *  `*Auto` fields declared on the corresponding node type in `schema.ts` and
- *  the `autoRole`s wired in `email/react/Inspector.tsx`'s `ColorField` call
- *  sites. A field only repaints when its own `<field>Auto` flag is `true` —
- *  the moment a user picks a custom color it's cleared and that field is
- *  frozen, exactly like a fresh insert's default before this ever runs. */
-const AUTO_COLOR_FIELDS: Partial<Record<EmailNode["kind"], ReadonlyArray<{
+interface AutoColorRule {
+  /** The literal hex field that gets repainted. */
   field: string;
+  /** The boolean flag gating it — repaint only while this is `true`. */
   autoField: string;
+  /**
+   * The field holding a PER-NODE role override. When the node carries a valid
+   * `EmailColorDefaults` key here, that role wins over `role` below.
+   *
+   * This is what lets one node kind track different roles on different
+   * instances — a tinted `base200` card section next to a `primary` hero band,
+   * both still live-tracking the tenant's theme. Before this existed the role
+   * was fixed per kind, so anything but the one blessed role had to be frozen
+   * to a literal hex, which is exactly the drift this system exists to prevent.
+   */
+  roleField: string;
+  /** The role used when the node carries no override — the historical default
+   *  for that kind, so an untouched document behaves exactly as it always did. */
   role: keyof EmailColorDefaults;
-}>>> = {
-  text: [{ field: "color", autoField: "colorAuto", role: "baseContent" }],
-  button: [
-    { field: "bg", autoField: "bgAuto", role: "primary" },
-    { field: "color", autoField: "colorAuto", role: "primaryContent" },
+}
+
+/** Which literal color field(s) each node kind can live-track, and which
+ *  `EmailColorDefaults` role each one follows by default — keep in sync with
+ *  the `*Auto`/`*Role` fields declared on the corresponding node type in
+ *  `schema.ts` and the `autoRole`s wired in `email/react/Inspector.tsx`'s
+ *  `ColorField` call sites. A field only repaints when its own `<field>Auto`
+ *  flag is `true` — the moment a user picks a custom color it's cleared and
+ *  that field is frozen, exactly like a fresh insert's default before this
+ *  ever runs. */
+const AUTO_COLOR_FIELDS: Partial<Record<EmailNode["kind"], ReadonlyArray<AutoColorRule>>> = {
+  text: [
+    { field: "color", autoField: "colorAuto", roleField: "colorRole", role: "baseContent" },
+    { field: "linkColor", autoField: "linkColorAuto", roleField: "linkColorRole", role: "primary" },
   ],
-  divider: [{ field: "color", autoField: "colorAuto", role: "base300" }],
-  section: [{ field: "bg", autoField: "bgAuto", role: "base100" }],
+  button: [
+    { field: "bg", autoField: "bgAuto", roleField: "bgRole", role: "primary" },
+    { field: "color", autoField: "colorAuto", roleField: "colorRole", role: "primaryContent" },
+    { field: "borderColor", autoField: "borderColorAuto", roleField: "borderColorRole", role: "primary" },
+  ],
+  divider: [{ field: "color", autoField: "colorAuto", roleField: "colorRole", role: "base300" }],
+  section: [
+    { field: "bg", autoField: "bgAuto", roleField: "bgRole", role: "base100" },
+    { field: "borderColor", autoField: "borderColorAuto", roleField: "borderColorRole", role: "base300" },
+  ],
   body: [
-    { field: "bg", autoField: "bgAuto", role: "base200" },
-    { field: "contentBg", autoField: "contentBgAuto", role: "base100" },
+    { field: "bg", autoField: "bgAuto", roleField: "bgRole", role: "base200" },
+    { field: "contentBg", autoField: "contentBgAuto", roleField: "contentBgRole", role: "base100" },
   ],
 };
+
+/** The role an auto-tracked field currently follows: the node's own override
+ *  when it names a real role, else the rule's default. An override naming a key
+ *  that isn't in `EmailColorDefaults` (a hand-edited document, a newer schema
+ *  read by an older build) falls back rather than repainting to `undefined`. */
+function roleOf(rec: Record<string, unknown>, rule: AutoColorRule, colors: EmailColorDefaults): keyof EmailColorDefaults {
+  const override = rec[rule.roleField];
+  return typeof override === "string" && override in colors ? (override as keyof EmailColorDefaults) : rule.role;
+}
 
 interface Located {
   node: EmailNode;
@@ -396,8 +430,9 @@ export class EmailEditor {
           const patch: Record<string, unknown> = {};
           for (const rule of rules) {
             if (rec[rule.autoField] === true) {
-              rec[rule.field] = next[rule.role];
-              patch[rule.field] = next[rule.role];
+              const hex = next[roleOf(rec, rule, next)];
+              rec[rule.field] = hex;
+              patch[rule.field] = hex;
             }
           }
           if (Object.keys(patch).length) touched.push({ target, nodeId: node.id, patch });

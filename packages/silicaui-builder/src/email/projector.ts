@@ -49,14 +49,38 @@ function styleAttr(rules: Record<string, string | number | undefined>): string {
   return parts.length ? ` style="${esc(parts.join(";"))}"` : "";
 }
 
+/**
+ * Paint `<a>` elements inside a text node's inline HTML.
+ *
+ * Email clients apply their own hyperlink blue to any unstyled anchor, and no
+ * `<style>` rule reliably overrides it (Gmail's app strips the block), so the
+ * color HAS to land as an inline style on each anchor. That means the one spot
+ * where this projector reads markup instead of just emitting it — justified
+ * only because `TextNode.html` is a documented, constrained inline-safe subset.
+ * `HtmlNode` — the arbitrary-markup escape hatch — is never touched.
+ *
+ * The color is PREPENDED into an existing `style`, so a later `color:` the
+ * author wrote by hand still wins on CSS ordering rules.
+ */
+export function withLinkColor(html: string, color: string): string {
+  return html.replace(/<a\b([^>]*)>/gi, (whole, attrs: string) => {
+    const styled = /\bstyle\s*=\s*(["'])[\s\S]*?\1/i;
+    if (styled.test(attrs)) {
+      return whole.replace(styled, (m) => m.replace(/=\s*(["'])/, (_e, q: string) => `=${q}color:${color};`));
+    }
+    return `<a${attrs} style="color:${esc(color)}">`;
+  });
+}
+
 function renderText(node: TextNode): string {
+  const html = node.linkColor ? withLinkColor(node.html, node.linkColor) : node.html;
   return `<div${styleAttr({
     "text-align": node.align,
     color: node.color,
     "font-size": `${node.fontSize}px`,
     "font-weight": FONT_WEIGHT_CSS[node.fontWeight],
     "line-height": `${node.lineHeight}px`,
-  })}>${node.html}</div>`;
+  })}>${html}</div>`;
 }
 
 function renderImage(node: ImageNode): string {
@@ -72,12 +96,22 @@ function renderImage(node: ImageNode): string {
 function renderButton(node: ButtonNode): string {
   // "Bulletproof" button: a table cell carries the background so Outlook (which
   // ignores border-radius/padding on <a>) still renders a solid, sized target.
+  //
+  // An OUTLINE button drops the `bgcolor` attribute entirely rather than trying
+  // to spell "transparent" in it — `bgcolor` has no transparent value, and a
+  // bogus one paints black in some clients. With the attribute gone and
+  // `background:transparent` inline, whatever is behind the button (the
+  // section's own fill) shows through in every client, Outlook included.
+  const outline = node.variant === "outline";
+  const borderWidth = node.borderWidth ?? (outline ? 1 : 0);
+  const border = borderWidth > 0 ? `${borderWidth}px solid ${node.borderColor ?? node.bg}` : undefined;
   return (
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0"${styleAttr({
       margin: node.align === "center" ? "0 auto" : node.align === "right" ? "0 0 0 auto" : "0",
-    })}><tr><td align="center" bgcolor="${node.bg}"${styleAttr({
+    })}><tr><td align="center"${outline ? "" : ` bgcolor="${node.bg}"`}${styleAttr({
       "border-radius": `${node.radius}px`,
-      background: node.bg,
+      background: outline ? "transparent" : node.bg,
+      border,
     })}>` +
     `<a href="${esc(node.href)}" target="_blank"${styleAttr({
       display: "inline-block",
@@ -231,9 +265,9 @@ function renderLayoutChild(child: LayoutChild): string {
  * `bgcolor` attribute and inside the VML fill), so a client that drops the
  * image entirely still shows a sane solid color.
  */
-function renderSectionBgImage(node: import("./schema").SectionNode, body: string): string {
+function renderSectionBgImage(node: import("./schema").SectionNode, body: string, align: string): string {
   return (
-    `<td align="center" background="${esc(node.bgImage!)}" bgcolor="${node.bg}"${styleAttr({
+    `<td align="${align}" background="${esc(node.bgImage!)}" bgcolor="${node.bg}"${styleAttr({
       background: `${node.bg} url(${node.bgImage}) center/cover no-repeat`,
       padding: "0",
     })}>` +
@@ -244,15 +278,61 @@ function renderSectionBgImage(node: import("./schema").SectionNode, body: string
   );
 }
 
+/**
+ * Project a section carrying box decoration (radius / border / margin) as a
+ * nested-table CARD.
+ *
+ * The outer `<td>` carries the margin AS PADDING — deliberate, not a shortcut:
+ * a `<td>` can't take real `margin` in Outlook's Word engine, and padding on the
+ * cell outside the card is the technique every email builder converges on.
+ * The inner table then owns the fill, border, and radius, so the margin is true
+ * outside space with the body's own background showing through it.
+ *
+ * `border-collapse:separate` is required — without it a table's `border-radius`
+ * is ignored even in clients that otherwise support it.
+ */
+function renderSectionCard(node: import("./schema").SectionNode, inner: string, marginX: number, marginY: number, radius: number, borderWidth: number): string {
+  const decorated = !node.bgImage;
+  return (
+    `<tr><td${styleAttr({ padding: `${marginY}px ${marginX}px` })}>` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${decorated ? ` bgcolor="${node.bg}"` : ""}${styleAttr({
+      // With a background image the inner <td> already paints itself (VML and
+      // all) — painting the wrapper too would draw the fill OVER the image in
+      // clients that honor both.
+      background: decorated ? node.bg : undefined,
+      "border-radius": radius > 0 ? `${radius}px` : undefined,
+      border: borderWidth > 0 ? `${borderWidth}px solid ${node.borderColor ?? node.bg}` : undefined,
+      "border-collapse": "separate",
+    })}><tr>${inner}</tr></table>` +
+    `</td></tr>`
+  );
+}
+
 function renderSection(node: import("./schema").SectionNode): string {
   const body = node.children.map(renderLayoutChild).join("\n");
-  if (node.bgImage) return `<tr>${renderSectionBgImage(node, body)}</tr>`;
-  return (
-    `<tr><td align="center" bgcolor="${node.bg}"${styleAttr({
-      background: node.bg,
-      padding: `${node.paddingY}px ${node.paddingX}px`,
-    })}>${body}</td></tr>`
-  );
+  const align = node.align ?? "center";
+  const marginX = node.marginX ?? 0;
+  const marginY = node.marginY ?? 0;
+  const radius = node.radius ?? 0;
+  const borderWidth = node.borderWidth ?? 0;
+
+  // The plain path is preserved EXACTLY as it was — a section that sets none of
+  // the box-decoration fields projects byte-for-byte the markup it always did,
+  // so adding these fields can't perturb an existing document's output.
+  if (marginX === 0 && marginY === 0 && radius === 0 && borderWidth === 0) {
+    if (node.bgImage) return `<tr>${renderSectionBgImage(node, body, align)}</tr>`;
+    return (
+      `<tr><td align="${align}" bgcolor="${node.bg}"${styleAttr({
+        background: node.bg,
+        padding: `${node.paddingY}px ${node.paddingX}px`,
+      })}>${body}</td></tr>`
+    );
+  }
+
+  const inner = node.bgImage
+    ? renderSectionBgImage(node, body, align)
+    : `<td align="${align}"${styleAttr({ padding: `${node.paddingY}px ${node.paddingX}px` })}>${body}</td>`;
+  return renderSectionCard(node, inner, marginX, marginY, radius, borderWidth);
 }
 
 const MOBILE_CSS = `
@@ -262,6 +342,115 @@ const MOBILE_CSS = `
 `.trim();
 
 /**
+ * Caller-supplied additions to the document `<head>`.
+ *
+ * This is an ESCAPE HATCH, and scoped as one on purpose. The two things almost
+ * every sender reaches for — a brand webfont and a color-scheme declaration —
+ * are NOT here: they're `EmailBody.webFonts` / `EmailBody.colorScheme`, because
+ * they're design decisions that should travel with the document and be editable
+ * in the Inspector, not invisible strings at a render call site. What's left
+ * genuinely can't be modeled: client-specific hacks (`[data-ogsc]`,
+ * `u + .body`, `@media (prefers-color-scheme: dark)` overrides, MSO
+ * conditionals) are open-ended by nature, and pretending otherwise would just
+ * force every consumer to fight the schema.
+ *
+ * Everything here is emitted VERBATIM and LAST, after the projector's own head
+ * content, so a caller can always override what we generate.
+ */
+export interface EmailHeadExtras {
+  /** CSS appended inside its own `<style>` block. */
+  css?: string;
+  /** `<meta name content>` pairs. */
+  meta?: ReadonlyArray<{ name: string; content: string }>;
+  /** Raw markup spliced into `<head>` — for anything the above can't express
+   *  (a conditional comment, a `<link>`). Never escaped or parsed. */
+  raw?: string;
+}
+
+export interface EmailRenderOptions {
+  /** Host data hooks; bound nodes are substituted before projection. */
+  resolver?: EmailResolveHost;
+  head?: EmailHeadExtras;
+}
+
+/** Quote a font family for CSS unless it's already quoted or a bare single
+ *  token (`Inter` needs no quotes; `Playfair Display` does). */
+function quoteFamily(family: string): string {
+  if (/^["'].*["']$/.test(family)) return family;
+  return /^[A-Za-z][\w-]*$/.test(family) ? family : `"${family.replace(/"/g, "")}"`;
+}
+
+/** `@font-face` rules for the document's webfonts, wrapped in `@media screen`.
+ *  That wrapper is load-bearing: Outlook's Word engine ignores the at-rule
+ *  entirely, which stops it half-seeing a webfont it can't load and falling
+ *  back to Times New Roman for the whole email. */
+export function fontFaceCss(fonts: ReadonlyArray<import("./schema").EmailWebFont>): string {
+  const faces = fonts
+    .map((f) =>
+      `  @font-face { font-family: ${quoteFamily(f.family)}; font-style: ${f.style ?? "normal"}; font-weight: ${f.weight ?? 400}; src: url(${f.src}); }`,
+    )
+    .join("\n");
+  return `@media screen {\n${faces}\n}`;
+}
+
+/** The body font stack: webfont families first, the authored `fontFamily` stack
+ *  behind them as the fallback every non-supporting client actually gets. */
+export function bodyFontStack(root: import("./schema").EmailBody): string {
+  const fonts = root.webFonts ?? [];
+  if (!fonts.length) return root.fontFamily;
+  const seen = root.fontFamily.toLowerCase();
+  const families = fonts
+    .map((f) => quoteFamily(f.family))
+    .filter((q, i, all) => all.indexOf(q) === i && !seen.includes(q.replace(/["']/g, "").toLowerCase()));
+  return families.length ? `${families.join(", ")}, ${root.fontFamily}` : root.fontFamily;
+}
+
+function renderHead(root: import("./schema").EmailBody, subject: string, extras?: EmailHeadExtras): string {
+  const fonts = root.webFonts ?? [];
+  const parts = [
+    `<meta charset="utf-8" />`,
+    `<meta name="viewport" content="width=device-width, initial-scale=1" />`,
+    `<meta http-equiv="X-UA-Compatible" content="IE=edge" />`,
+  ];
+  if (root.colorScheme) {
+    parts.push(`<meta name="color-scheme" content="${esc(root.colorScheme)}" />`);
+    parts.push(`<meta name="supported-color-schemes" content="${esc(root.colorScheme)}" />`);
+  }
+  parts.push(`<title>${esc(subject)}</title>`);
+  parts.push(
+    `<!--[if mso]>\n<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>\n<![endif]-->`,
+  );
+  const css = [
+    root.colorScheme ? `:root { color-scheme: ${root.colorScheme}; supported-color-schemes: ${root.colorScheme}; }` : "",
+    fonts.length ? fontFaceCss(fonts) : "",
+    MOBILE_CSS,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  parts.push(`<style>${css}</style>`);
+  // Caller extras go LAST so they can override anything above.
+  for (const m of extras?.meta ?? []) parts.push(`<meta name="${esc(m.name)}" content="${esc(m.content)}" />`);
+  if (extras?.css) parts.push(`<style>${extras.css}</style>`);
+  if (extras?.raw) parts.push(extras.raw);
+  return parts.join("\n");
+}
+
+/**
+ * Accept both `toEmailHtml(doc, resolver)` (the original positional form) and
+ * `toEmailHtml(doc, { resolver, head })`. An `EmailResolveHost` is identified by
+ * its hooks — the two shapes have no overlapping keys, so this can't misread
+ * one as the other, and the older call form keeps working untouched.
+ */
+function normalizeOptions(arg?: EmailResolveHost | EmailRenderOptions): EmailRenderOptions {
+  if (!arg) return {};
+  const rec = arg as Record<string, unknown>;
+  if ("resolveBinding" in rec || "resolveCollection" in rec || "onDiagnostic" in rec) {
+    return { resolver: arg as EmailResolveHost };
+  }
+  return arg as EmailRenderOptions;
+}
+
+/**
  * Project a document to a full, standalone HTML email. With a `resolver`
  * (host `resolveBinding`/`resolveCollection`), bound nodes are substituted
  * with real data FIRST — the same `resolveEmailTree` pass the Inspector's
@@ -269,8 +458,13 @@ const MOBILE_CSS = `
  * host's real send, per the Q25 resolving-projector direction: preview and
  * send stop being two code paths that can drift. Omit it and this behaves
  * exactly as before (today's static projection, zero cost).
+ *
+ * The second argument also accepts `{ resolver, head }` — see
+ * `EmailRenderOptions` — for injecting client-hack CSS/meta into the `<head>`.
+ * Passing a bare resolver positionally still works and is not deprecated.
  */
-export function toEmailHtml(doc: EmailDocument, resolver?: EmailResolveHost): string {
+export function toEmailHtml(doc: EmailDocument, options?: EmailResolveHost | EmailRenderOptions): string {
+  const { resolver, head } = normalizeOptions(options);
   const root = resolver ? resolveEmailTree(doc.root, resolver) : doc.root;
   // Subject/preheader live on the DOCUMENT, not the node tree `resolveEmailTree`
   // walks — resolved separately here via the same `{{ref}}` merge-token pass
@@ -282,16 +476,9 @@ export function toEmailHtml(doc: EmailDocument, resolver?: EmailResolveHost): st
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<title>${esc(subject)}</title>
-<!--[if mso]>
-<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
-<![endif]-->
-<style>${MOBILE_CSS}</style>
+${renderHead(root, subject, head)}
 </head>
-<body${styleAttr({ margin: "0", padding: "0", background: root.bg, "font-family": root.fontFamily })}>
+<body${styleAttr({ margin: "0", padding: "0", background: root.bg, "font-family": bodyFontStack(root) })}>
 ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>` : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${styleAttr({ background: root.bg })}>
 <tr><td align="center">

@@ -43,6 +43,7 @@ import type { TokenMatch } from "./token-query";
 import type {
   Align,
   ButtonNode,
+  ButtonVariant,
   ColumnNode,
   ColumnsNode,
   DataBinding,
@@ -51,6 +52,7 @@ import type {
   EmailBody,
   EmailColorDefaults,
   EmailNode,
+  EmailWebFont,
   FontWeight,
   HtmlNode,
   ImageNode,
@@ -311,6 +313,9 @@ function ChipGroup<T extends string | number>({
 interface ColorOption {
   hex: string;
   title: string;
+  /** The role this swatch IS — picking it makes the field track that role live
+   *  rather than freezing the hex it happens to resolve to today. */
+  role: keyof EmailColorDefaults;
 }
 
 /** The theme's full semantic-role + surface palette, resolved to hex — the
@@ -318,19 +323,19 @@ interface ColorOption {
  *  swatch vocab, not just the handful of colors new blocks seed from. */
 function colorOptionsOf(colors: EmailColorDefaults): ColorOption[] {
   return [
-    { hex: colors.primary, title: "Primary" },
-    { hex: colors.secondary, title: "Secondary" },
-    { hex: colors.accent, title: "Accent" },
-    { hex: colors.neutral, title: "Neutral" },
-    { hex: colors.info, title: "Info" },
-    { hex: colors.success, title: "Success" },
-    { hex: colors.warning, title: "Warning" },
-    { hex: colors.error, title: "Error" },
-    { hex: colors.baseContent, title: "Base content" },
-    { hex: colors.base100, title: "Base 100" },
-    { hex: colors.base200, title: "Base 200" },
-    { hex: colors.base300, title: "Base 300" },
-    { hex: colors.primaryContent, title: "Primary content" },
+    { hex: colors.primary, title: "Primary", role: "primary" },
+    { hex: colors.secondary, title: "Secondary", role: "secondary" },
+    { hex: colors.accent, title: "Accent", role: "accent" },
+    { hex: colors.neutral, title: "Neutral", role: "neutral" },
+    { hex: colors.info, title: "Info", role: "info" },
+    { hex: colors.success, title: "Success", role: "success" },
+    { hex: colors.warning, title: "Warning", role: "warning" },
+    { hex: colors.error, title: "Error", role: "error" },
+    { hex: colors.baseContent, title: "Base content", role: "baseContent" },
+    { hex: colors.base100, title: "Base 100", role: "base100" },
+    { hex: colors.base200, title: "Base 200", role: "base200" },
+    { hex: colors.base300, title: "Base 300", role: "base300" },
+    { hex: colors.primaryContent, title: "Primary content", role: "primaryContent" },
   ];
 }
 
@@ -351,7 +356,10 @@ function SwatchGroup({
 }: {
   options: ReadonlyArray<ColorOption>;
   active: string;
-  onPick: (hex: string) => void;
+  /** `role` is present only for a PRESET swatch — the custom picker below has
+   *  no role, which is exactly what distinguishes "track this role" from
+   *  "freeze this hex". */
+  onPick: (hex: string, role?: keyof EmailColorDefaults) => void;
   onAuto?: () => void;
 }) {
   const isPreset = options.some((o) => o.hex.toLowerCase() === active.toLowerCase());
@@ -372,7 +380,7 @@ function SwatchGroup({
           key={o.hex}
           type="button"
           title={o.title}
-          onClick={() => onPick(o.hex)}
+          onClick={() => onPick(o.hex, o.role)}
           style={{ backgroundColor: o.hex }}
           className={`size-6 rounded-field border border-base-300 ${
             active.toLowerCase() === o.hex.toLowerCase() ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
@@ -391,7 +399,8 @@ function SwatchGroup({
           />
         </PopoverTrigger>
         <PopoverContent className="p-2">
-          <ColorPicker variant="panel" format="hex" value={active} onValueChange={onPick} />
+          {/* No role — a one-off hex from the picker is a deliberate freeze. */}
+          <ColorPicker variant="panel" format="hex" value={active} onValueChange={(hex: string) => onPick(hex)} />
         </PopoverContent>
       </Popover>
     </div>
@@ -489,11 +498,21 @@ function ColorField({
 }: {
   label: string;
   value: string;
-  /** `auto` is true only for the "Auto" reset click — callers persist it
-   *  alongside the hex (e.g. `bgAuto`) so this field keeps tracking the
-   *  theme live; any other pick (a preset swatch or the custom picker)
-   *  passes `false`, freezing the field as a manual override. */
-  onCommit: (v: string, auto: boolean) => void;
+  /**
+   * `auto` says whether this field keeps tracking the brand theme, and `role`
+   * says WHICH role it tracks:
+   *
+   * - the "Auto" reset → `(defaultHex, true, undefined)` — back to the kind's
+   *   own default role.
+   * - a PRESET swatch → `(hex, true, thatRole)`. Picking a theme role means
+   *   "follow this role", so a tinted surface or a brand-tinted border keeps
+   *   moving with the tenant's palette. Before roles were per-node this had to
+   *   freeze, which is precisely why a non-white section fill used to rot into
+   *   a hardcoded grey.
+   * - the CUSTOM picker → `(hex, false, undefined)` — a one-off hex outside the
+   *   palette is a deliberate override, and stays frozen.
+   */
+  onCommit: (v: string, auto: boolean, role?: keyof EmailColorDefaults) => void;
   /** The `EmailColorDefaults` key this field's "Auto" resets to — the SAME
    *  value a fresh insert of this kind gets from `../palette.ts`. */
   autoRole?: keyof EmailColorDefaults;
@@ -503,10 +522,52 @@ function ColorField({
   // its `colorDefaults` can (a live theme update) — a stale memo would leave
   // these swatches showing colors the rest of the canvas has moved past.
   const options = colorOptionsOf(editor.colorDefaults);
-  const onAuto = autoRole ? () => onCommit(editor.colorDefaults[autoRole], true) : undefined;
+  const onAuto = autoRole ? () => onCommit(editor.colorDefaults[autoRole], true, undefined) : undefined;
   return (
     <Row label={label}>
-      <SwatchGroup options={options} active={value} onPick={(v) => onCommit(v, false)} onAuto={onAuto} />
+      <SwatchGroup
+        options={options}
+        active={value}
+        onPick={(v, role) => onCommit(v, role !== undefined, role)}
+        onAuto={onAuto}
+      />
+    </Row>
+  );
+}
+
+/** An optional color — a checkbox-free "set / clear" pair for fields that are
+ *  legitimately absent (a section border color, a text link color). Clearing
+ *  writes `undefined` so the projector falls back to its documented default
+ *  rather than persisting a color the author didn't choose. */
+function OptionalColorField({
+  label,
+  value,
+  onCommit,
+  onClear,
+  autoRole,
+}: {
+  label: string;
+  value: string | undefined;
+  onCommit: (v: string, auto: boolean, role?: keyof EmailColorDefaults) => void;
+  onClear: () => void;
+  autoRole?: keyof EmailColorDefaults;
+}) {
+  const editor = useEmailEditor();
+  const resolved = value ?? (autoRole ? editor.colorDefaults[autoRole] : "#000000");
+  return (
+    <Row label={label}>
+      <div className="flex flex-col gap-1.5">
+        <SwatchGroup
+          options={colorOptionsOf(editor.colorDefaults)}
+          active={resolved}
+          onPick={(v, role) => onCommit(v, role !== undefined, role)}
+        />
+        {value !== undefined && (
+          <button type="button" className="btn btn-ghost btn-xs self-start" onClick={onClear}>
+            Clear
+          </button>
+        )}
+      </div>
     </Row>
   );
 }
@@ -603,7 +664,21 @@ function AlignField({ value, onCommit, autoValue }: { value: Align; onCommit: (v
 function TextDesignFields({ node, update }: { node: TextNode; update: (patch: Partial<TextNode>) => void }) {
   return (
     <Group label="Text">
-      <ColorField label="Color" value={node.color} onCommit={(color, colorAuto) => update({ color, colorAuto })} autoRole="baseContent" />
+      <ColorField
+        label="Color"
+        value={node.color}
+        onCommit={(color, colorAuto, colorRole) => update({ color, colorAuto, colorRole })}
+        autoRole="baseContent"
+      />
+      {/* Unset by default — an unstyled `<a>` gets the client's hyperlink blue,
+          which is the long-standing behavior and still the right default. */}
+      <OptionalColorField
+        label="Link color"
+        value={node.linkColor}
+        onCommit={(linkColor, linkColorAuto, linkColorRole) => update({ linkColor, linkColorAuto, linkColorRole })}
+        onClear={() => update({ linkColor: undefined, linkColorAuto: undefined, linkColorRole: undefined })}
+        autoRole="primary"
+      />
       <SizeChipField label="Font size" value={node.fontSize} options={FONT_SIZE_PX} onCommit={(fontSize) => update({ fontSize })} autoValue={16} />
       <Row label="Weight">
         <ChipGroup
@@ -657,7 +732,39 @@ function ImageSettingsFields({ node, update }: { node: ImageNode; update: (patch
   );
 }
 
+const BUTTON_VARIANT_OPTS: ReadonlyArray<{ value: ButtonVariant; label: string }> = [
+  { value: "filled", label: "Filled" },
+  { value: "outline", label: "Outline" },
+];
+
+/**
+ * Switching variant has to move the INK too, or the toggle produces an
+ * invisible button: a filled button's label is `primaryContent` (white on the
+ * brand fill), and painting that on a transparent outline button leaves white
+ * text on a white card.
+ *
+ * So an outline button's label repoints to `primary` and back — but ONLY while
+ * the field is still theme-tracked (`colorAuto`). A hand-picked label color is
+ * the author's decision and is never overwritten, same rule the whole auto-color
+ * system runs on.
+ */
+function buttonVariantPatch(node: ButtonNode, variant: ButtonVariant, colors: EmailColorDefaults): Partial<ButtonNode> {
+  const patch: Partial<ButtonNode> = { variant };
+  if (node.colorAuto !== false) {
+    const role: keyof EmailColorDefaults = variant === "outline" ? "primary" : "primaryContent";
+    patch.color = colors[role];
+    patch.colorAuto = true;
+    patch.colorRole = role;
+  }
+  // Give a fresh outline button a border to actually draw; leave an explicit
+  // width alone in both directions.
+  if (variant === "outline" && node.borderWidth === undefined) patch.borderWidth = 1;
+  return patch;
+}
+
 function ButtonDesignFields({ node, update }: { node: ButtonNode; update: (patch: Partial<ButtonNode>) => void }) {
+  const colors = useEmailEditor().colorDefaults;
+  const outline = node.variant === "outline";
   return (
     <>
       {/* The recognized-family block — the site Inspector's Button group is
@@ -665,11 +772,41 @@ function ButtonDesignFields({ node, update }: { node: ButtonNode; update: (patch
           `btn-<role>` class); email has no such class, so Background and Text
           color are both explicit here. */}
       <Group label="Button">
-        <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto) => update({ bg, bgAuto })} autoRole="primary" />
-        <ColorField label="Text color" value={node.color} onCommit={(color, colorAuto) => update({ color, colorAuto })} autoRole="primaryContent" />
+        <Row label="Variant">
+          <ChipGroup
+            options={BUTTON_VARIANT_OPTS}
+            active={node.variant ?? "filled"}
+            onPick={(variant) => update(buttonVariantPatch(node, variant, colors))}
+            onAuto={() => update(buttonVariantPatch(node, "filled", colors))}
+          />
+        </Row>
+        <ColorField
+          label={outline ? "Border color" : "Background"}
+          value={outline ? node.borderColor ?? node.bg : node.bg}
+          onCommit={
+            outline
+              ? (borderColor, borderColorAuto, borderColorRole) => update({ borderColor, borderColorAuto, borderColorRole })
+              : (bg, bgAuto, bgRole) => update({ bg, bgAuto, bgRole })
+          }
+          autoRole="primary"
+        />
+        <ColorField
+          label={outline ? "Label color" : "Text color"}
+          value={node.color}
+          onCommit={(color, colorAuto, colorRole) => update({ color, colorAuto, colorRole })}
+          autoRole={outline ? "primary" : "primaryContent"}
+        />
       </Group>
       <Group label="Surface">
         <RadiusField label="Corner radius" value={node.radius} onCommit={(radius) => update({ radius })} autoValue={8} />
+        <NumberField
+          label="Border width (px)"
+          defaultValue={node.borderWidth ?? (outline ? 1 : 0)}
+          min={0}
+          max={8}
+          onCommit={(borderWidth) => update({ borderWidth: borderWidth || undefined })}
+          autoValue={outline ? 1 : 0}
+        />
         <SizeChipField label="Padding X" value={node.paddingX} options={PADDING_PX} onCommit={(paddingX) => update({ paddingX })} autoValue={16} />
         <SizeChipField label="Padding Y" value={node.paddingY} options={PADDING_PX} onCommit={(paddingY) => update({ paddingY })} autoValue={8} />
       </Group>
@@ -698,7 +835,12 @@ function ButtonSettingsFields({ node, update }: { node: ButtonNode; update: (pat
 function DividerDesignFields({ node, update }: { node: DividerNode; update: (patch: Partial<DividerNode>) => void }) {
   return (
     <Group label="Surface">
-      <ColorField label="Color" value={node.color} onCommit={(color, colorAuto) => update({ color, colorAuto })} autoRole="base300" />
+      <ColorField
+        label="Color"
+        value={node.color}
+        onCommit={(color, colorAuto, colorRole) => update({ color, colorAuto, colorRole })}
+        autoRole="base300"
+      />
       <NumberField label="Thickness (px)" defaultValue={node.thickness} min={1} max={12} onCommit={(thickness) => update({ thickness })} autoValue={1} />
     </Group>
   );
@@ -868,24 +1010,54 @@ function ColumnsSettingsFields({ node }: { node: ColumnsNode }) {
 
 function SectionDesignFields({ node, update }: { node: import("../schema").SectionNode; update: (patch: Record<string, unknown>) => void }) {
   return (
-    <Group label="Surface">
-      <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto) => update({ bg, bgAuto })} autoRole="base100" />
-      <Row label="Background image URL">
-        <div className="flex gap-1.5">
-          <Input
-            size="sm"
-            defaultValue={node.bgImage ?? ""}
-            onBlur={(e: React.FocusEvent<HTMLInputElement>) => update({ bgImage: e.target.value || undefined })}
-            placeholder="https://…"
-          />
-          {node.bgImage && (
-            <IconButton icon="close" label="Clear background image" onClick={() => update({ bgImage: undefined })} />
-          )}
-        </div>
-      </Row>
-      <SizeChipField label="Padding X" value={node.paddingX} options={PADDING_PX} onCommit={(paddingX) => update({ paddingX })} autoValue={24} />
-      <SizeChipField label="Padding Y" value={node.paddingY} options={PADDING_PX} onCommit={(paddingY) => update({ paddingY })} autoValue={24} />
-    </Group>
+    <>
+      <Group label="Surface">
+        {/* Picking any theme swatch here now TRACKS that role — which is what
+            makes a base200-tinted card or a primary hero band follow the
+            tenant's palette instead of freezing to a literal hex. */}
+        <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto, bgRole) => update({ bg, bgAuto, bgRole })} autoRole="base100" />
+        <Row label="Background image URL">
+          <div className="flex gap-1.5">
+            <Input
+              size="sm"
+              defaultValue={node.bgImage ?? ""}
+              onBlur={(e: React.FocusEvent<HTMLInputElement>) => update({ bgImage: e.target.value || undefined })}
+              placeholder="https://…"
+            />
+            {node.bgImage && (
+              <IconButton icon="close" label="Clear background image" onClick={() => update({ bgImage: undefined })} />
+            )}
+          </div>
+        </Row>
+        <SizeChipField label="Padding X" value={node.paddingX} options={PADDING_PX} onCommit={(paddingX) => update({ paddingX })} autoValue={24} />
+        <SizeChipField label="Padding Y" value={node.paddingY} options={PADDING_PX} onCommit={(paddingY) => update({ paddingY })} autoValue={24} />
+      </Group>
+      {/* Setting any of these turns the section into a nested-table card —
+          see `renderSectionCard`. Corners are square in Outlook desktop. */}
+      <Group label="Border">
+        <RadiusField label="Corner radius" value={node.radius ?? 0} onCommit={(radius) => update({ radius: radius || undefined })} autoValue={0} />
+        <NumberField
+          label="Border width (px)"
+          defaultValue={node.borderWidth ?? 0}
+          min={0}
+          max={8}
+          onCommit={(borderWidth) => update({ borderWidth: borderWidth || undefined })}
+          autoValue={0}
+        />
+        <OptionalColorField
+          label="Border color"
+          value={node.borderColor}
+          onCommit={(borderColor, borderColorAuto, borderColorRole) => update({ borderColor, borderColorAuto, borderColorRole })}
+          onClear={() => update({ borderColor: undefined, borderColorAuto: undefined, borderColorRole: undefined })}
+          autoRole="base300"
+        />
+      </Group>
+      <Group label="Layout">
+        <SizeChipField label="Margin X" value={node.marginX ?? 0} options={PADDING_PX} onCommit={(marginX) => update({ marginX: marginX || undefined })} autoValue={0} />
+        <SizeChipField label="Margin Y" value={node.marginY ?? 0} options={PADDING_PX} onCommit={(marginY) => update({ marginY: marginY || undefined })} autoValue={0} />
+        <AlignField value={node.align ?? "center"} onCommit={(align) => update({ align })} autoValue="center" />
+      </Group>
+    </>
   );
 }
 
@@ -899,8 +1071,86 @@ function SectionDesignFields({ node, update }: { node: import("../schema").Secti
 function BodyDesignFields({ node, update }: { node: EmailBody; update: (patch: Record<string, unknown>) => void }) {
   return (
     <Group label="Surface">
-      <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto) => update({ bg, bgAuto })} autoRole="base200" />
-      <ColorField label="Content background" value={node.contentBg} onCommit={(contentBg, contentBgAuto) => update({ contentBg, contentBgAuto })} autoRole="base100" />
+      <ColorField label="Background" value={node.bg} onCommit={(bg, bgAuto, bgRole) => update({ bg, bgAuto, bgRole })} autoRole="base200" />
+      <ColorField
+        label="Content background"
+        value={node.contentBg}
+        onCommit={(contentBg, contentBgAuto, contentBgRole) => update({ contentBg, contentBgAuto, contentBgRole })}
+        autoRole="base100"
+      />
+    </Group>
+  );
+}
+
+const COLOR_SCHEME_OPTS: ReadonlyArray<{ value: "light" | "dark" | "light dark"; label: string }> = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "light dark", label: "Both" },
+];
+
+/**
+ * `@font-face` rows. Kept in Settings rather than Design because a webfont is
+ * document plumbing (a family + a URL), not a per-block visual choice.
+ */
+function WebFontFields({ node, update }: { node: EmailBody; update: (patch: Record<string, unknown>) => void }) {
+  const fonts = node.webFonts ?? [];
+  const setFont = (i: number, patch: Partial<EmailWebFont>) =>
+    update({ webFonts: fonts.map((f, idx) => (idx === i ? { ...f, ...patch } : f)) });
+  const addFont = () => update({ webFonts: [...fonts, { family: "", src: "" }] });
+  const removeFont = (i: number) => {
+    const next = fonts.filter((_, idx) => idx !== i);
+    update({ webFonts: next.length ? next : undefined });
+  };
+  return (
+    <Group label={`Web fonts (${fonts.length})`}>
+      <Pad>
+        <div className="flex flex-col gap-3">
+          {fonts.map((f, i) => (
+            <div key={i} className="flex flex-col gap-1.5 rounded-btn border border-base-300 p-2">
+              <div className="flex items-center gap-1.5">
+                <Input
+                  size="sm"
+                  placeholder="Font family"
+                  defaultValue={f.family}
+                  onBlur={(e: React.FocusEvent<HTMLInputElement>) => setFont(i, { family: e.target.value })}
+                />
+                <IconButton icon="close" label="Remove font" onClick={() => removeFont(i)} />
+              </div>
+              <Input
+                size="sm"
+                placeholder="https://…/font.woff2"
+                defaultValue={f.src}
+                onBlur={(e: React.FocusEvent<HTMLInputElement>) => setFont(i, { src: e.target.value })}
+              />
+              <div className="flex items-center gap-1.5">
+                <Input
+                  size="sm"
+                  type="number"
+                  placeholder="400"
+                  defaultValue={f.weight ?? 400}
+                  onBlur={(e: React.FocusEvent<HTMLInputElement>) => setFont(i, { weight: Number(e.target.value) || 400 })}
+                />
+                <NativeSelect
+                  size="sm"
+                  value={f.style ?? "normal"}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFont(i, { style: e.target.value as "normal" | "italic" })}
+                >
+                  <option value="normal">Normal</option>
+                  <option value="italic">Italic</option>
+                </NativeSelect>
+              </div>
+            </div>
+          ))}
+          <button type="button" className="btn btn-outline btn-sm" onClick={addFont}>
+            <Icon name="plus" /> Add web font
+          </button>
+          <p className="text-xs text-base-content">
+            Rendered by Apple Mail, iOS Mail, Outlook for Mac and Samsung Mail. Gmail, Outlook for Windows and Yahoo fall
+            back to the font family above — keep that a complete stack. Link a hosted file rather than embedding one:
+            Gmail clips messages over ~102KB.
+          </p>
+        </div>
+      </Pad>
     </Group>
   );
 }
@@ -920,6 +1170,23 @@ function BodySettingsFields({ node, update }: { node: EmailBody; update: (patch:
       </Group>
       <Group label="Font">
         <TextField label="Font family" defaultValue={node.fontFamily} onCommit={(fontFamily) => update({ fontFamily })} />
+      </Group>
+      <WebFontFields node={node} update={update} />
+      <Group label="Color scheme">
+        <Row label="Supported">
+          <div className="flex flex-col gap-1.5">
+            <ChipGroup
+              options={COLOR_SCHEME_OPTS}
+              active={node.colorScheme ?? ""}
+              onPick={(colorScheme) => update({ colorScheme })}
+              onAuto={() => update({ colorScheme: undefined })}
+            />
+            <p className="text-xs text-base-content">
+              Declares the schemes this email is designed for. Apple Mail and Outlook for Mac honour it; Gmail and
+              Outlook.com invert colours on their own terms regardless — treat dark mode as progressive enhancement.
+            </p>
+          </div>
+        </Row>
       </Group>
     </>
   );
