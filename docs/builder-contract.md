@@ -329,6 +329,12 @@ The closed schema is enforced on **incoming** ops too: a remote `node.insert` or
 `node.move` that would nest a section inside a section is rejected, not applied.
 A peer cannot smuggle in a structure the local editing API would have refused.
 
+One shared op **does** exist in both vocabularies: `node.setLocked`, which pins a
+node against remove/move. See
+[email-frame-and-locking.md](email-frame-and-locking.md) for that and for
+`<EmailBuilder frame>` — host chrome composed around an email without ever
+entering the document the host persists.
+
 ---
 
 ## 6. Engine owns vs. host owns (the focus table)

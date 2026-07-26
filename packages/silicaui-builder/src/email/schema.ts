@@ -46,6 +46,31 @@ interface BaseNode {
    * since a leaf kind has no `children` slot to repeat. See `resolve.ts`.
    */
   data?: DataBinding;
+  /**
+   * Structural immutability + its OWNER — the same two-tier flag the site
+   * schema carries (`silicaui-html`'s `NodeBase.locked`, host-nodes spec §B),
+   * reused here rather than reinvented, so a host that pins regions in both
+   * builders reasons about one concept.
+   *
+   * A locked node cannot be removed or moved; its OWN fields stay editable
+   * (a locked footer's copy is still typo-fixable) and so do its children.
+   * Presence IS locked; the value encodes who owns the lock:
+   *   - `"author"` — the author locked it from the Inspector; the same toggle
+   *     unlocks it.
+   *   - `"host"` — the host locked it (a compliance block it stamps into a
+   *     seeded document, or a runtime `setLocked` call). The author UI shows it
+   *     locked and offers NO unlock; only the host can clear it.
+   *
+   * Authoring metadata: `toEmailHtml` never reads it, so it cannot reach sent
+   * markup.
+   *
+   * For chrome that must not live in the document at all — a brand bar or a
+   * legal footer that has to reflect the CURRENT brand on every send, and that
+   * an author must never even see as a deletable node — use `EmailFrame`
+   * (`frame.ts`) instead. A lock protects a node that IS part of the saved
+   * document; a frame is composed around it and never persisted.
+   */
+  locked?: "host" | "author";
 }
 
 export interface TextNode extends BaseNode {

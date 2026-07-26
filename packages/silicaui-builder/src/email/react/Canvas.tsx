@@ -17,6 +17,12 @@
  * node wrapper carries `data-sui-id`; the shared `SelectionOverlay` draws the
  * selection chrome.
  *
+ * A host `EmailFrame` (see `frame.ts`) renders here too — its header/footer
+ * sections go through the SAME per-kind renderers, inside the same body
+ * wrapper, but with a `readOnly` ctx: no `data-sui-id`, no selection, no drag,
+ * no inline edit. That's the whole enforcement; the frame never enters the
+ * document, so the engine has nothing to guard.
+ *
  * Drag-and-drop mirrors the site canvas's contract exactly (same `DRAG_MIME`
  * wire format from `shared/dnd`, same before/after/inside edge resolution), but
  * validity is engine-enforced: `insertRelative`/`insert`/`move` silently no-op
@@ -41,6 +47,8 @@ import type { EmailPaletteItem } from "../palette";
 import { getSavedBlockNode } from "./saved-blocks";
 import type { EmailEditor } from "../engine";
 import { FONT_WEIGHT_CSS, bodyFontStack, fontFaceCss, withLinkColor } from "../projector";
+import { frameLabel } from "../frame";
+import type { EmailFrame } from "../frame";
 import { emailScopeAt, flattenEmailSources } from "../resolve";
 import { filterTokenOptions, matchTokenQuery } from "./token-query";
 import type { TokenMatch } from "./token-query";
@@ -99,6 +107,15 @@ interface DndCtx {
 }
 
 interface RenderCtx {
+  /**
+   * Render for DISPLAY ONLY — no selection, no drag, no inline editing. This is
+   * what makes a host `EmailFrame` inert: its sections go through the exact same
+   * render functions the body does (so they can't quietly look different from
+   * what sends), but every interaction hook is withheld, and — critically — so
+   * is `data-sui-id`, since a frame node is not in the document and no id of
+   * it would resolve.
+   */
+  readOnly?: boolean;
   selectedId: string | undefined;
   hoveredId: string | undefined;
   onSelect: (id: string, e: React.MouseEvent) => void;
@@ -142,7 +159,11 @@ function DropLine() {
 }
 
 function interactionProps(info: NodeInfo, ctx: RenderCtx, editable = false) {
-  const { id, node } = info;
+  const { id } = info;
+  // A read-only render contributes NOTHING — not even `data-sui-id`. One early
+  // return here is what keeps every per-kind renderer below unaware that inert
+  // rendering exists.
+  if (ctx.readOnly) return {};
   const draggable = info.parentId !== undefined; // the root can't be moved
   return {
     "data-sui-id": id,
@@ -714,19 +735,96 @@ function RenderSection({
   );
 }
 
-function RenderBody({ node, ctx, width }: { node: EmailBody; ctx: RenderCtx; width: number }) {
+/**
+ * One inert host-chrome region (an `EmailFrame`'s header or footer), rendered
+ * INSIDE the body wrapper so it inherits the same width, content background,
+ * and font stack the sections around it get — which is also exactly where
+ * `composeEmailDocument` puts it in the sent markup.
+ *
+ * Full fidelity, deliberately: chrome an author can't edit is still chrome they
+ * have to design around, so it is not dimmed or ghosted. What marks it as
+ * host-owned is behavior — no selection, no drag target, no inline edit — plus
+ * a dashed ring and an explanatory chip on hover, the same vocabulary the
+ * editable nodes already use for their own affordances.
+ */
+function FrameRegion({
+  where,
+  sections,
+  label,
+  ctx,
+}: {
+  where: "header" | "footer";
+  sections: readonly SectionNode[];
+  label: string;
+  ctx: RenderCtx;
+}) {
+  return (
+    <div
+      className="group relative hover:outline hover:outline-1 hover:outline-dashed hover:outline-base-content/40 hover:-outline-offset-1"
+      data-sui-frame={where}
+      // Drops are refused outright rather than falling through to the canvas's
+      // margin handler — landing a block "somewhere near where I aimed" is
+      // worse than an honest no.
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "none";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <div className="pointer-events-none select-none">
+        {sections.map((s, i) => (
+          <RenderSection key={s.id || `${where}-${i}`} node={s} index={i} ctx={ctx} bodyId={`frame-${where}`} />
+        ))}
+      </div>
+      <span className="pointer-events-none absolute right-1.5 top-1.5 z-20 hidden items-center gap-1 rounded-btn border border-base-300 bg-base-100 px-1.5 py-0.5 text-xs font-medium text-base-content shadow-sm group-hover:inline-flex">
+        <Icon name="shield" /> {label}
+      </span>
+    </div>
+  );
+}
+
+function RenderBody({
+  node,
+  ctx,
+  width,
+  frame,
+}: {
+  node: EmailBody;
+  ctx: RenderCtx;
+  width: number;
+  frame?: EmailFrame;
+}) {
   const gap = ctx.lineGap && ctx.lineGap.parentId === node.id ? ctx.lineGap.index : -1;
   // The document's `@font-face` rules, injected into the canvas so an author
   // picking a brand face SEES it while composing — same generator the projector
   // emits into the sent `<head>`, and the same resolved stack on the wrapper, so
   // the canvas can't quietly show a different font than the email will.
   const fonts = node.webFonts ?? [];
+  // The frame renders through a ctx stripped of every interaction hook — see
+  // `RenderCtx.readOnly`. Built once here so both regions share it.
+  const frameCtx: RenderCtx = {
+    ...ctx,
+    readOnly: true,
+    selectedId: undefined,
+    hoveredId: undefined,
+    editingId: undefined,
+    insideId: undefined,
+    lineGap: undefined,
+  };
+  const label = frameLabel(frame);
   return (
     <div
       className="mx-auto flex flex-col divide-y divide-base-content/10 shadow-[0_12px_40px_rgba(20,20,40,0.10)]"
       style={{ width, maxWidth: "100%", background: node.contentBg, fontFamily: bodyFontStack(node) }}
     >
       {fonts.length > 0 && <style>{fontFaceCss(fonts)}</style>}
+      {frame?.header?.length ? (
+        <FrameRegion where="header" sections={frame.header} label={label} ctx={frameCtx} />
+      ) : null}
       {node.children.length === 0 ? (
         <div className="flex min-h-40 items-center justify-center">
           <EmptyHint />
@@ -740,11 +838,14 @@ function RenderBody({ node, ctx, width }: { node: EmailBody; ctx: RenderCtx; wid
         ))
       )}
       {gap === node.children.length && <DropLine />}
+      {frame?.footer?.length ? (
+        <FrameRegion where="footer" sections={frame.footer} label={label} ctx={frameCtx} />
+      ) : null}
     </div>
   );
 }
 
-export function EmailCanvas({ device = "desktop" }: { device?: string }) {
+export function EmailCanvas({ device = "desktop", frame }: { device?: string; frame?: EmailFrame }) {
   const doc = useEmailDocument();
   const editor = useEmailEditor();
   const host = useEmailHost();
@@ -867,7 +968,7 @@ export function EmailCanvas({ device = "desktop" }: { device?: string }) {
       onDrop={onCanvasDrop}
     >
       <div ref={boardRef} className="relative mx-auto" style={{ width: mobile ? 375 : doc.root.width + 40 }}>
-        <RenderBody node={doc.root} ctx={ctx} width={mobile ? 375 : doc.root.width} />
+        <RenderBody node={doc.root} ctx={ctx} width={mobile ? 375 : doc.root.width} frame={frame} />
         <SelectionOverlay
           boardRef={boardRef}
           selectedId={selectedId}
