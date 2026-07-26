@@ -40,7 +40,7 @@ import { EMAIL_PALETTE, emailPaletteItemByKey, mergeEmailCatalog } from "../pale
 import type { EmailPaletteItem } from "../palette";
 import { getSavedBlockNode } from "./saved-blocks";
 import type { EmailEditor } from "../engine";
-import { FONT_WEIGHT_CSS } from "../projector";
+import { FONT_WEIGHT_CSS, bodyFontStack, fontFaceCss, withLinkColor } from "../projector";
 import { emailScopeAt, flattenEmailSources } from "../resolve";
 import { filterTokenOptions, matchTokenQuery } from "./token-query";
 import type { TokenMatch } from "./token-query";
@@ -442,7 +442,15 @@ function RenderText({ node, info, ctx }: { node: TextNode; info: NodeInfo; ctx: 
         fontWeight: FONT_WEIGHT_CSS[node.fontWeight],
         lineHeight: `${node.lineHeight}px`,
       }}
-      dangerouslySetInnerHTML={{ __html: node.html || "<span class='opacity-40'>Empty text</span>" }}
+      dangerouslySetInnerHTML={{
+        __html: node.html
+          ? node.linkColor
+            ? // The projector's OWN rewrite, not a lookalike — an author who
+              // sets a link color has to see on canvas exactly what sends.
+              withLinkColor(node.html, node.linkColor)
+            : node.html
+          : "<span class='opacity-40'>Empty text</span>",
+      }}
       {...interactionProps(info, ctx, true)}
     />
   );
@@ -467,14 +475,19 @@ function RenderImage({ node, info, ctx }: { node: ImageNode; info: NodeInfo; ctx
 
 function RenderButton({ node, info, ctx }: { node: ButtonNode; info: NodeInfo; ctx: RenderCtx }) {
   const justify = node.align === "center" ? "center" : node.align === "right" ? "flex-end" : "flex-start";
+  // Mirrors `renderButton` in the projector: outline drops the fill so the
+  // section behind shows through, and defaults to a 1px border.
+  const outline = node.variant === "outline";
+  const borderWidth = node.borderWidth ?? (outline ? 1 : 0);
   return (
     <div className={`flex${decorations(node.id, ctx)}`} style={{ justifyContent: justify }} {...interactionProps(info, ctx)}>
       <span
         style={{
-          background: node.bg,
+          background: outline ? "transparent" : node.bg,
           color: node.color,
           borderRadius: node.radius,
           padding: `${node.paddingY}px ${node.paddingX}px`,
+          border: borderWidth > 0 ? `${borderWidth}px solid ${node.borderColor ?? node.bg}` : undefined,
         }}
         className="inline-block text-sm font-bold no-underline"
       >
@@ -672,7 +685,17 @@ function RenderSection({
 }) {
   const info: NodeInfo = { id: node.id, parentId: bodyId, index, node };
   const empty = node.children.length === 0;
-  const bgStyle: React.CSSProperties = { padding: `${node.paddingY}px ${node.paddingX}px` };
+  const borderWidth = node.borderWidth ?? 0;
+  const bgStyle: React.CSSProperties = {
+    padding: `${node.paddingY}px ${node.paddingX}px`,
+    // The projector lowers these to a nested-table card; on canvas plain CSS
+    // gets the same picture. `margin` here is the real outer inset, so the
+    // body's own background shows through it exactly as it will when sent.
+    borderRadius: node.radius || undefined,
+    border: borderWidth > 0 ? `${borderWidth}px solid ${node.borderColor ?? node.bg}` : undefined,
+    margin: node.marginX || node.marginY ? `${node.marginY ?? 0}px ${node.marginX ?? 0}px` : undefined,
+    textAlign: node.align && node.align !== "center" ? node.align : undefined,
+  };
   if (node.bgImage) {
     bgStyle.backgroundImage = `url(${node.bgImage})`;
     bgStyle.backgroundSize = "cover";
@@ -693,11 +716,17 @@ function RenderSection({
 
 function RenderBody({ node, ctx, width }: { node: EmailBody; ctx: RenderCtx; width: number }) {
   const gap = ctx.lineGap && ctx.lineGap.parentId === node.id ? ctx.lineGap.index : -1;
+  // The document's `@font-face` rules, injected into the canvas so an author
+  // picking a brand face SEES it while composing — same generator the projector
+  // emits into the sent `<head>`, and the same resolved stack on the wrapper, so
+  // the canvas can't quietly show a different font than the email will.
+  const fonts = node.webFonts ?? [];
   return (
     <div
       className="mx-auto flex flex-col divide-y divide-base-content/10 shadow-[0_12px_40px_rgba(20,20,40,0.10)]"
-      style={{ width, maxWidth: "100%", background: node.contentBg, fontFamily: node.fontFamily }}
+      style={{ width, maxWidth: "100%", background: node.contentBg, fontFamily: bodyFontStack(node) }}
     >
+      {fonts.length > 0 && <style>{fontFaceCss(fonts)}</style>}
       {node.children.length === 0 ? (
         <div className="flex min-h-40 items-center justify-center">
           <EmptyHint />

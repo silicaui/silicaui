@@ -8,12 +8,14 @@ export type { ChangeEvent, ChangeKind, HistoryDelegate, TemplateMeta, TemplatesV
 // state, and what `applyRemoteOps` accepts.
 export type { Op, OpKind, OpTarget, OpMeta } from "./ops";
 export { toEmailHtml } from "./projector";
+export type { EmailHeadExtras, EmailRenderOptions } from "./projector";
 export { resolveEmailTree, emailScopeAt } from "./resolve";
 export type { EmailResolveHost } from "./resolve";
 export { emptyEmailDocument, isContentKind } from "./schema";
 export type {
   Align,
   ButtonNode,
+  ButtonVariant,
   ColumnNode,
   ColumnsNode,
   ContentKind,
@@ -28,6 +30,7 @@ export type {
   EmailNode,
   EmailProject,
   EmailTemplate,
+  EmailWebFont,
   FontWeight,
   HtmlNode,
   ImageNode,

@@ -57,6 +57,26 @@ export interface TextNode extends BaseNode {
   /** When true, `color` tracks the brand theme's `baseContent` role live (see
    *  `EmailEditor.setColorDefaults`) instead of being a frozen manual pick. */
   colorAuto?: boolean;
+  /** Which `EmailColorDefaults` role `color` tracks while `colorAuto` — see
+   *  `AutoColorRule` in `engine.ts`. Omitted means the kind's default role
+   *  (`baseContent`). */
+  colorRole?: keyof EmailColorDefaults;
+  /**
+   * Color for `<a>` elements inside `html`. Unset (the default) leaves anchors
+   * to the client's own hyperlink blue — the historical behavior, and the one
+   * that keeps output byte-identical for documents that never set this.
+   *
+   * There is no LINK NODE and deliberately so: a link is inline INSIDE copy and
+   * this schema has no inline level to hold one. So the projector applies this
+   * by rewriting anchor tags in `html` — the one place it parses markup at all,
+   * acceptable only because a `TextNode`'s `html` is the constrained inline-safe
+   * subset documented above (arbitrary markup belongs in an `HtmlNode`, which
+   * stays untouched). An anchor that already carries its own `color:` wins.
+   */
+  linkColor?: string;
+  /** Tracks the theme's `primary` role live — see `colorAuto`. */
+  linkColorAuto?: boolean;
+  linkColorRole?: keyof EmailColorDefaults;
   fontSize: number;
   fontWeight: FontWeight;
   lineHeight: number;
@@ -72,16 +92,39 @@ export interface ImageNode extends BaseNode {
   align: Align;
 }
 
+/**
+ * `filled` (the default) paints `bg` behind the label. `outline` draws only the
+ * border and lets whatever is behind the button show through — the projector
+ * emits `background:transparent` and, critically, NO `bgcolor` attribute, since
+ * `bgcolor` has no valid transparent value. A border on a `<td>` is well
+ * supported everywhere including Outlook's Word engine, so an outline button is
+ * as "bulletproof" as a filled one.
+ */
+export type ButtonVariant = "filled" | "outline";
+
 export interface ButtonNode extends BaseNode {
   kind: "button";
   label: string;
   href: string;
+  /** Omitted means `filled` — so a document authored before variants existed
+   *  projects byte-identically. */
+  variant?: ButtonVariant;
   bg: string;
   /** See `TextNode.colorAuto` — tracks the theme's `primary` role live. */
   bgAuto?: boolean;
+  bgRole?: keyof EmailColorDefaults;
   color: string;
   /** Tracks the theme's `primaryContent` role live. */
   colorAuto?: boolean;
+  colorRole?: keyof EmailColorDefaults;
+  /** Border color; defaults to `bg` when a width is set but no color is. */
+  borderColor?: string;
+  /** Tracks the theme's `primary` role live. */
+  borderColorAuto?: boolean;
+  borderColorRole?: keyof EmailColorDefaults;
+  /** Border thickness in px. A `filled` button renders a border only when this
+   *  is set; an `outline` button falls back to 1px when it isn't. */
+  borderWidth?: number;
   radius: number;
   align: Align;
   paddingX: number;
@@ -93,6 +136,7 @@ export interface DividerNode extends BaseNode {
   color: string;
   /** Tracks the theme's `base300` role live. */
   colorAuto?: boolean;
+  colorRole?: keyof EmailColorDefaults;
   thickness: number;
 }
 
@@ -173,13 +217,83 @@ export interface SectionNode extends BaseNode {
   bg: string;
   /** Tracks the theme's `base100` role live. */
   bgAuto?: boolean;
+  /**
+   * Which `EmailColorDefaults` role `bg` tracks while `bgAuto` is on. Omitted
+   * means `base100` (the historical, hardcoded behavior). This is what makes a
+   * TINTED surface — a card or footer on `base200`/`base300`, or a brand-colored
+   * hero band on `primary` — follow each tenant's palette instead of freezing a
+   * literal neutral hex the moment you want anything but white.
+   */
+  bgRole?: keyof EmailColorDefaults;
   /** An optional background image URL. Email clients vary wildly on support
    *  (Outlook desktop needs a VML fallback, which the projector emits); `bg`
    *  always renders too, underneath, as the graceful-degradation fallback. */
   bgImage?: string;
   paddingX: number;
   paddingY: number;
+  /**
+   * Horizontal alignment of the section's `<td>` — what inline-block `columns`
+   * rows and inline content align against. Omitted means `center`, which is what
+   * the projector used to hardcode, so existing documents are unaffected.
+   */
+  align?: Align;
+  /**
+   * ── Box decoration ──────────────────────────────────────────────────────────
+   * Any of `radius`/`borderWidth`/`marginX`/`marginY` promotes the section from
+   * a bare `<tr><td>` to a nested-table "card": an outer cell carrying the
+   * margin as padding (a `<td>` can't take real margin in Outlook's Word engine)
+   * wrapping an inner table that carries the fill, border, and radius.
+   *
+   * `radius` is IGNORED by Outlook desktop — corners go square there. That's the
+   * normal, accepted degradation for rounded email cards, not a bug to work
+   * around.
+   */
+  radius?: number;
+  borderColor?: string;
+  /** Tracks the theme's `base300` role live. */
+  borderColorAuto?: boolean;
+  borderColorRole?: keyof EmailColorDefaults;
+  /** Border thickness in px; a border renders only when this is > 0. */
+  borderWidth?: number;
+  /** Outer inset, px — space OUTSIDE the section's own fill. */
+  marginX?: number;
+  marginY?: number;
   children: LayoutChild[];
+}
+
+/**
+ * One `@font-face` the projector emits into the document `<head>`.
+ *
+ * A webfont is a DOCUMENT-LEVEL DESIGN DECISION, so it lives in the schema —
+ * not in a caller-supplied CSS string. That way it travels with the document,
+ * round-trips through save/load, and is editable in the Inspector instead of
+ * being invisible code at the render call site.
+ *
+ * Two things every consumer needs to know, because neither is obvious and both
+ * bite in production:
+ *
+ * 1. **Reach is limited and that's fine.** Apple Mail, iOS Mail, Outlook for
+ *    Mac, and Samsung Mail render webfonts. Gmail (every surface), Outlook on
+ *    Windows, and Yahoo do NOT — they fall back to `EmailBody.fontFamily`.
+ *    Always keep that stack a real, self-sufficient system stack.
+ * 2. **Use a hosted URL, not a `data:` URI.** Gmail CLIPS a message past
+ *    roughly 102KB, hiding everything after the cut behind a "View entire
+ *    message" link. An embedded font blows through that on its own and will
+ *    silently truncate the email.
+ *
+ * The projector wraps the emitted `@font-face` in `@media screen` — Outlook's
+ * Word engine ignores that at-rule entirely, which stops it seeing a webfont it
+ * can't load and falling back to Times New Roman.
+ */
+export interface EmailWebFont {
+  /** The `font-family` name, e.g. `"Sohne"`. Quoted automatically when emitted. */
+  family: string;
+  /** A `url(...)`-able source. Hosted HTTPS strongly preferred — see above. */
+  src: string;
+  /** Defaults to `400`. */
+  weight?: number | string;
+  /** Defaults to `normal`. */
+  style?: "normal" | "italic";
 }
 
 export interface EmailBody extends BaseNode {
@@ -190,11 +304,28 @@ export interface EmailBody extends BaseNode {
   bg: string;
   /** Tracks the theme's `base200` role live. */
   bgAuto?: boolean;
+  bgRole?: keyof EmailColorDefaults;
   /** The body's own background. */
   contentBg: string;
   /** Tracks the theme's `base100` role live. */
   contentBgAuto?: boolean;
+  contentBgRole?: keyof EmailColorDefaults;
   fontFamily: string;
+  /** `@font-face` declarations; the families are prepended to `fontFamily` in
+   *  the emitted body font stack, so `fontFamily` stays the fallback. */
+  webFonts?: EmailWebFont[];
+  /**
+   * Declares which color schemes this email is designed for — emitted as the
+   * `color-scheme`/`supported-color-schemes` `<meta>` pair plus the matching
+   * `:root` rule.
+   *
+   * Set this and Apple Mail / Outlook for Mac will honor your own
+   * `@media (prefers-color-scheme: dark)` rules (supplied via the projector's
+   * `head.css` hook). Gmail and Outlook.com IGNORE it and forcibly invert
+   * colors on their own terms regardless — so treat dark mode as progressive
+   * enhancement for a minority of clients, never as a design you can rely on.
+   */
+  colorScheme?: "light" | "dark" | "light dark";
   children: SectionNode[];
 }
 

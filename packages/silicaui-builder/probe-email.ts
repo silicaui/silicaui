@@ -8,6 +8,7 @@ import { EmailEditor } from "./src/email/engine";
 import { toEmailHtml } from "./src/email/projector";
 import { EMAIL_PALETTE } from "./src/email/palette";
 import { resolveEmailTree } from "./src/email/resolve";
+import { DEFAULT_EMAIL_COLORS } from "./src/email/schema";
 import type { EmailResolveHost } from "./src/email/resolve";
 import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, Resolved, SectionNode, TextNode } from "./src/email/schema";
 
@@ -522,6 +523,194 @@ console.log("merge tokens");
   check("toEmailHtml(doc, resolver) resolves the PREHEADER's token, escaped exactly ONCE (not double-escaped)", resolvedEmailHtml.includes("From Acme &amp; Co &lt;Ltd&gt;"));
   check("toEmailHtml(doc, resolver) resolves the BODY text's token", resolvedEmailHtml.includes("Welcome, Jordan!"));
   check("no unresolved `{{` tokens survive the resolved export", !resolvedEmailHtml.includes("{{customer"));
+}
+
+// ── head injection, webfonts, color scheme ───────────────────────────────────
+console.log("head injection / webfonts / color scheme");
+{
+  const ed = new EmailEditor();
+  const baseline = toEmailHtml(ed.extract());
+  check("a document with no head features emits exactly one <style> block", baseline.split("<style>").length - 1 === 1);
+  check("baseline still carries the mobile stacking query", baseline.includes(".sui-col"));
+
+  const withHead = toEmailHtml(ed.extract(), {
+    head: {
+      css: "@media (prefers-color-scheme: dark) { .card { background: #111 !important; } }",
+      meta: [{ name: "x-custom", content: "yes" }],
+      raw: `<!--[if mso]><style>.mso { color: red; }</style><![endif]-->`,
+    },
+  });
+  check("head.css lands inside <head>", withHead.slice(0, withHead.indexOf("</head>")).includes("prefers-color-scheme: dark"));
+  check("head.meta emits a <meta name content> pair", withHead.includes(`<meta name="x-custom" content="yes" />`));
+  check("head.raw is spliced verbatim, unescaped", withHead.includes(`<!--[if mso]><style>.mso { color: red; }</style><![endif]-->`));
+  check(
+    "caller extras come AFTER the projector's own style block, so they can override it",
+    withHead.indexOf("prefers-color-scheme: dark") > withHead.indexOf(".sui-col"),
+  );
+
+  // The legacy positional-resolver call form must still work untouched.
+  const positional = toEmailHtml(ed.extract(), { resolveBinding: () => ({ value: "x" }) });
+  check("toEmailHtml(doc, resolver) positional form still resolves (not read as options)", positional.includes("<!doctype html>"));
+  check("an options object with neither key is not mistaken for a resolver", toEmailHtml(ed.extract(), {}).includes("<!doctype html>"));
+
+  const fontDoc = ed.extract();
+  fontDoc.root.webFonts = [{ family: "Playfair Display", src: "https://cdn.example.com/pf.woff2", weight: 700 }];
+  fontDoc.root.fontFamily = "Georgia, serif";
+  fontDoc.root.colorScheme = "light dark";
+  const fontHtml = toEmailHtml(fontDoc);
+  check("@font-face is emitted for a declared web font", fontHtml.includes("@font-face"));
+  check("a multi-word family is quoted in the @font-face", fontHtml.includes(`font-family: "Playfair Display"`));
+  check("declared weight/style reach the rule", fontHtml.includes("font-weight: 700") && fontHtml.includes("font-style: normal"));
+  check(
+    "@font-face is wrapped in @media screen so Outlook can't fall back to Times",
+    /@media screen \{[\s\S]*@font-face/.test(fontHtml),
+  );
+  check("the web font is PREPENDED to the body font stack, authored stack kept as fallback", fontHtml.includes(`font-family:&quot;Playfair Display&quot;, Georgia, serif`));
+  check("colorScheme emits the color-scheme meta", fontHtml.includes(`<meta name="color-scheme" content="light dark" />`));
+  check("colorScheme emits supported-color-schemes too", fontHtml.includes(`<meta name="supported-color-schemes" content="light dark" />`));
+  check("colorScheme emits the matching :root rule", fontHtml.includes("color-scheme: light dark;"));
+
+  // A single-token family needs no quotes, and must not be duplicated when the
+  // authored stack already names it.
+  const dupDoc = ed.extract();
+  dupDoc.root.webFonts = [{ family: "Inter", src: "https://cdn.example.com/i.woff2" }];
+  dupDoc.root.fontFamily = "Inter, Arial, sans-serif";
+  const dupHtml = toEmailHtml(dupDoc);
+  check("a single-token family is emitted unquoted", dupHtml.includes("font-family: Inter;"));
+  check("a family already in the authored stack isn't duplicated", dupHtml.includes("font-family:Inter, Arial, sans-serif"));
+}
+
+// ── section: align, border/radius/margin ─────────────────────────────────────
+console.log("section box decoration + align");
+{
+  const ed = new EmailEditor();
+  const secId = ed.root.children[0]!.id;
+  const plain = toEmailHtml(ed.extract());
+  check("an undecorated section still projects a bare <td>, not a nested table", plain.includes(`<tr><td align="center" bgcolor=`));
+
+  ed.update<SectionNode>(secId, { align: "left" });
+  check("section align reaches the td", toEmailHtml(ed.extract()).includes(`<td align="left"`));
+
+  ed.update<SectionNode>(secId, { align: "center", radius: 12, borderWidth: 1, borderColor: "#e4e4e7", marginX: 16, marginY: 8 });
+  const card = toEmailHtml(ed.extract());
+  check("a decorated section wraps in a nested table", card.includes(`<table role="presentation" width="100%"`));
+  check("margin lands as padding on the OUTER cell (a td can't take margin in Outlook)", card.includes("padding:8px 16px"));
+  check("radius lands on the inner table", card.includes("border-radius:12px"));
+  check("border lands on the inner table", card.includes("border:1px solid #e4e4e7"));
+  check("border-collapse:separate is present, without which radius is ignored", card.includes("border-collapse:separate"));
+  check("the inner table still carries the fill via bgcolor for Outlook", /<table role="presentation" width="100%"[^>]*bgcolor=/.test(card));
+
+  // Margin alone (no border/radius) must still promote to the card path.
+  const ed2 = new EmailEditor();
+  ed2.update<SectionNode>(ed2.root.children[0]!.id, { marginY: 12 });
+  check("margin alone is enough to promote a section to the card path", toEmailHtml(ed2.extract()).includes("padding:12px 0px"));
+}
+
+// ── button: outline variant ──────────────────────────────────────────────────
+console.log("button outline variant");
+{
+  const ed = new EmailEditor();
+  const secId = ed.root.children[0]!.id;
+  const btn: ButtonNode = {
+    id: "x", kind: "button", label: "Learn more", href: "https://example.com",
+    bg: "#111827", color: "#ffffff", radius: 8, align: "center", paddingX: 16, paddingY: 8,
+  };
+  const btnId = ed.insert(btn, secId)!;
+
+  const filled = toEmailHtml(ed.extract());
+  check("a filled button keeps its bgcolor attribute", filled.includes(`bgcolor="#111827"`));
+  check("a filled button draws no border by default", !filled.includes("border:1px solid"));
+
+  ed.update<ButtonNode>(btnId, { variant: "outline", color: "#111827", borderColor: "#111827" });
+  const outline = toEmailHtml(ed.extract());
+  check(
+    "an outline button DROPS the bgcolor attribute (there is no transparent bgcolor value)",
+    !outline.includes(`bgcolor="#111827"`),
+  );
+  check("an outline button paints background:transparent", outline.includes("background:transparent"));
+  check("an outline button defaults to a 1px border without an explicit width", outline.includes("border:1px solid #111827"));
+
+  ed.update<ButtonNode>(btnId, { borderWidth: 2 });
+  check("an explicit border width wins", toEmailHtml(ed.extract()).includes("border:2px solid #111827"));
+
+  ed.update<ButtonNode>(btnId, { variant: "filled", borderWidth: 3, borderColor: "#ff0000" });
+  const filledBordered = toEmailHtml(ed.extract());
+  check("a filled button CAN carry a border too", filledBordered.includes("border:3px solid #ff0000"));
+  check("...and keeps its bgcolor attribute while doing so", filledBordered.includes(`bgcolor="#111827"`));
+}
+
+// ── text: inline link color ──────────────────────────────────────────────────
+console.log("inline link color");
+{
+  const ed = new EmailEditor();
+  const introId = ed.root.children[0]!.children[0]!.id;
+  ed.update<TextNode>(introId, { html: `Read the <a href="https://x.test">docs</a> today.` });
+  check("without linkColor the anchor is untouched", toEmailHtml(ed.extract()).includes(`<a href="https://x.test">docs</a>`));
+
+  ed.update<TextNode>(introId, { linkColor: "#0ea5e9" });
+  check("linkColor is injected as an inline style on the anchor", toEmailHtml(ed.extract()).includes(`<a href="https://x.test" style="color:#0ea5e9">`));
+
+  // An anchor that already has a style gets the color PREPENDED, so the
+  // author's own later `color:` still wins on CSS ordering.
+  ed.update<TextNode>(introId, { html: `<a href="https://x.test" style="font-weight:bold">docs</a>` });
+  const merged = toEmailHtml(ed.extract());
+  check("an existing style attribute is merged, not replaced", merged.includes("font-weight:bold"));
+  check("...with the color prepended so a hand-written color still wins", merged.includes(`style="color:#0ea5e9;font-weight:bold"`));
+
+  // Single-quoted style attributes must survive too.
+  ed.update<TextNode>(introId, { html: `<a href='https://x.test' style='font-weight:bold'>docs</a>` });
+  check("a single-quoted style attribute merges too", toEmailHtml(ed.extract()).includes(`style='color:#0ea5e9;font-weight:bold'`));
+
+  // HtmlNode is the arbitrary-markup escape hatch and must NEVER be rewritten.
+  const ed2 = new EmailEditor();
+  const raw: HtmlNode = { id: "x", kind: "html", html: `<a href="https://y.test">raw</a>` };
+  ed2.insert(raw, ed2.root.children[0]!.id);
+  check("an HtmlNode's anchors are never rewritten", toEmailHtml(ed2.extract()).includes(`<a href="https://y.test">raw</a>`));
+}
+
+// ── per-node auto-color roles ────────────────────────────────────────────────
+console.log("per-node auto color roles");
+{
+  const colors: EmailColorDefaults = { ...DEFAULT_EMAIL_COLORS };
+  const ed = new EmailEditor(undefined, colors);
+  const secId = ed.root.children[0]!.id;
+
+  // A section tracking base200 rather than the kind's default base100.
+  ed.update<SectionNode>(secId, { bg: colors.base200, bgAuto: true, bgRole: "base200" });
+  const next: EmailColorDefaults = { ...colors, base100: "#101010", base200: "#202020", base300: "#303030" };
+  ed.setColorDefaults(next);
+  check("a section with bgRole repaints to ITS role, not the kind default", (ed.node(secId) as SectionNode).bg === "#202020");
+
+  // Without an override the historical default still applies.
+  const ed2 = new EmailEditor(undefined, colors);
+  ed2.setColorDefaults(next);
+  check("a section with no bgRole still tracks base100 (unchanged behavior)", (ed2.root.children[0] as SectionNode).bg === "#101010");
+
+  // A frozen field is never repainted regardless of role.
+  const ed3 = new EmailEditor(undefined, colors);
+  ed3.update<SectionNode>(ed3.root.children[0]!.id, { bg: "#abcdef", bgAuto: false, bgRole: "base200" });
+  ed3.setColorDefaults(next);
+  check("a manually-picked color stays frozen even with a role set", (ed3.root.children[0] as SectionNode).bg === "#abcdef");
+
+  // A bogus role (hand-edited doc / newer schema) falls back rather than
+  // repainting the field to undefined.
+  const ed4 = new EmailEditor(undefined, colors);
+  ed4.update<SectionNode>(ed4.root.children[0]!.id, { bg: colors.base100, bgAuto: true, bgRole: "nonsense" as keyof EmailColorDefaults });
+  ed4.setColorDefaults(next);
+  check("an unknown role falls back to the kind default instead of undefined", (ed4.root.children[0] as SectionNode).bg === "#101010");
+
+  // Section border color tracks its own role.
+  const ed5 = new EmailEditor(undefined, colors);
+  ed5.update<SectionNode>(ed5.root.children[0]!.id, { borderWidth: 1, borderColor: colors.base300, borderColorAuto: true });
+  ed5.setColorDefaults(next);
+  check("a section's border color live-tracks base300", (ed5.root.children[0] as SectionNode).borderColor === "#303030");
+
+  // A text node's link color tracks primary.
+  const ed6 = new EmailEditor(undefined, colors);
+  const tId = ed6.root.children[0]!.children[0]!.id;
+  ed6.update<TextNode>(tId, { linkColor: colors.primary, linkColorAuto: true });
+  ed6.setColorDefaults({ ...next, primary: "#ff00ff" });
+  check("a text node's link color live-tracks primary", (ed6.node(tId) as TextNode).linkColor === "#ff00ff");
 }
 
 console.log(`\n${failures === 0 ? "✅ email engine: all checks passed" : `❌ ${failures} check(s) failed`}`);
