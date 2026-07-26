@@ -197,6 +197,9 @@ importers:
       '@wizeworks/silicaui-react':
         specifier: workspace:*
         version: link:../silicaui-react
+      esbuild:
+        specifier: ^0.27.7
+        version: 0.27.7
       lucide-static:
         specifier: ^1.23.0
         version: 1.23.0
