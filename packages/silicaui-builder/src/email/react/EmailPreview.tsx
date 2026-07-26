@@ -13,14 +13,16 @@ import * as React from "react";
 import { useEmailDocument } from "./editor-context";
 import { useEmailHost } from "./host-context";
 import { toEmailHtml } from "../projector";
+import type { EmailFrame } from "../frame";
 
-export function EmailPreview({ device = "desktop" }: { device?: string }) {
+export function EmailPreview({ device = "desktop", frame }: { device?: string; frame?: EmailFrame }) {
   const doc = useEmailDocument();
   const host = useEmailHost();
-  // Resolved through the SAME host as Export/Send (Q25) — this iframe shows
-  // exactly what a real recipient with real data would get, not a static
-  // approximation with unresolved bindings.
-  const html = React.useMemo(() => toEmailHtml(doc, host), [doc, host]);
+  // Resolved through the SAME host as Export/Send (Q25), and composed with the
+  // SAME frame the canvas shows — this iframe shows exactly what a real
+  // recipient with real data would get, not a static approximation with
+  // unresolved bindings or missing chrome.
+  const html = React.useMemo(() => toEmailHtml(doc, { resolver: host, frame }), [doc, host, frame]);
   const width = device === "mobile" ? 375 : doc.root.width + 40;
 
   return (

@@ -27,6 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   Textarea,
+  Toggle,
   ToggleGroup,
   ToggleGroupItem,
 } from "@wizeworks/silicaui-react";
@@ -1206,6 +1207,11 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
   // no-ops move/duplicate/remove on it, but the buttons should read as
   // disabled rather than silently doing nothing when clicked.
   const isRoot = node.kind === "body";
+  // A locked node can't be removed or moved (the engine refuses either way —
+  // these disables are so the buttons READ as unavailable instead of silently
+  // doing nothing). It can still be duplicated: the copy is the author's own,
+  // and `duplicate` clears its lock.
+  const locked = node.locked !== undefined;
   const duplicate = () => (isColumn ? editor.duplicateColumn(selectedId) : editor.duplicate(selectedId));
   const remove = () => (isColumn ? editor.removeColumn(selectedId) : editor.remove(selectedId));
   const saveAsBlock = () => {
@@ -1233,13 +1239,13 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
         <IconButton
           icon="chevronUp"
           label="Move up"
-          disabled={!sibling || sibling.index <= 0}
+          disabled={locked || !sibling || sibling.index <= 0}
           onClick={() => editor.moveUp(selectedId)}
         />
         <IconButton
           icon="chevronDown"
           label="Move down"
-          disabled={!sibling || sibling.index >= sibling.count - 1}
+          disabled={locked || !sibling || sibling.index >= sibling.count - 1}
           onClick={() => editor.moveDown(selectedId)}
         />
         <IconButton
@@ -1254,7 +1260,7 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
           icon="trash"
           label="Delete"
           tone="error"
-          disabled={isRoot || (isColumn && (sibling?.count ?? 0) <= 1)}
+          disabled={locked || isRoot || (isColumn && (sibling?.count ?? 0) <= 1)}
           onClick={remove}
         />
       </div>
@@ -1526,6 +1532,51 @@ function EmailDataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind:
  *  — ADDITIVE only, rendered after the built-in Settings sections, writing
  *  through the SAME mutation primitives the built-ins use. Absent
  *  `host.inspectorPanels` → renders nothing (a static host needs none of this). */
+/**
+ * The structural lock (host-nodes spec §B), shown in Settings for every node
+ * but the document root (the root can't be removed or moved anyway, so a lock
+ * on it would protect nothing).
+ *
+ * Two tiers, and the difference is the whole point: an AUTHOR lock is the
+ * author's own "don't let me fat-finger this", so the same toggle clears it.
+ * A HOST lock belongs to whoever mounted the builder — a compliance block
+ * stamped into the seeded document — so it's shown, explained, and offers no
+ * unlock. (Chrome that must not be in the document at all is an `EmailFrame`
+ * instead; see the `frame` prop.)
+ */
+function LockSection({ id, node }: { id: string; node: EmailNode }) {
+  const editor = useEmailEditor();
+  if (node.kind === "body") return null;
+  const locked = node.locked;
+  return (
+    <Group label="Structure">
+      <Row label="Lock">
+        {locked === "host" ? (
+          <span
+            className="flex items-center gap-2 text-xs text-base-content"
+            title="Locked by the host — only the host can unlock this block"
+            data-testid="email-lock-host"
+          >
+            <Icon name="shield" /> Locked by host
+          </span>
+        ) : (
+          <label className="flex items-center gap-2 text-xs text-base-content">
+            <Toggle
+              size="sm"
+              data-testid="email-lock"
+              checked={locked === "author"}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                editor.setLocked(id, e.target.checked ? "author" : undefined)
+              }
+            />
+            <Icon name={locked === "author" ? "lock" : "lockOpen"} /> {locked === "author" ? "Locked" : "Unlocked"}
+          </label>
+        )}
+      </Row>
+    </Group>
+  );
+}
+
 function EmailHostPanels({ id, node }: { id: string; node: EmailNode }) {
   const editor = useEmailEditor();
   const host = useEmailHost();
@@ -1612,6 +1663,7 @@ export function EmailInspector() {
         ) : (
           <>
             {settings ?? <EmptyTab text="No settings for this element." />}
+            <LockSection id={selectedId} node={node} />
             <EmailDataSection id={selectedId} node={node} />
             <EmailHostPanels id={selectedId} node={node} />
           </>

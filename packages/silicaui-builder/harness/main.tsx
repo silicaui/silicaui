@@ -4,7 +4,9 @@ import { createRoot } from "react-dom/client";
 import { Builder, useEditor } from "@wizeworks/silicaui-builder/react";
 import type { BuilderHandle, BuilderHost, Editor, Op, OpMeta } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
-import type { EmailBuilderHandle, EmailBuilderHost } from "@wizeworks/silicaui-builder/email/react";
+import type { EmailBuilderHandle, EmailBuilderHost, EmailFrame } from "@wizeworks/silicaui-builder/email/react";
+import { emptyEmailDocument } from "@wizeworks/silicaui-builder/email";
+import type { EmailProject, SectionNode, TextNode } from "@wizeworks/silicaui-builder/email";
 import { stamp, el } from "@wizeworks/silicaui-html";
 import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
 
@@ -206,6 +208,50 @@ const demoEmailHost: EmailBuilderHost = {
   },
 };
 
+/**
+ * A demo `EmailFrame` + a host-locked seed, mounted under `?frame=1` — the
+ * shape a platform that brands every tenant's mail actually has: chrome
+ * composed around the body (never inside it), plus one block that IS part of
+ * the document but must survive the author.
+ *
+ * A frame section is an ordinary `SectionNode`; nothing special is needed to
+ * author one.
+ */
+function frameSection(id: string, html: string, bg: string, color: string): SectionNode {
+  return {
+    id,
+    kind: "section",
+    bg,
+    paddingX: 24,
+    paddingY: 14,
+    children: [
+      { id: `${id}-text`, kind: "text", html, align: "center", color, fontSize: 12, fontWeight: "normal", lineHeight: 18 },
+    ],
+  };
+}
+
+const demoEmailFrame: EmailFrame = {
+  label: "Brand frame",
+  header: [frameSection("demo-brand-bar", "<b>ACME</b>", "#111827", "#ffffff")],
+  footer: [
+    frameSection("demo-legal", "123 Main St · <a href=\"#\">Unsubscribe</a> · Sent by ACME", "#f4f4f5", "#3f3f46"),
+  ],
+};
+
+/** A seed whose FIRST section is host-locked — the other half of the story:
+ *  content that lives in the saved document but can't be deleted or moved. */
+function lockedSeedProject(): EmailProject {
+  let n = 0;
+  const document = emptyEmailDocument(() => `seed-${n++}`);
+  const pinned: SectionNode = {
+    ...frameSection("seed-pinned", "Your order is confirmed.", "#eef2ff", "#1e1b4b"),
+    locked: "host",
+  };
+  (pinned.children[0] as TextNode).fontSize = 18;
+  document.root.children.unshift(pinned);
+  return { version: "1", templates: [{ id: "seed-template", name: "Email 1", document }] };
+}
+
 // The editable DOCUMENT theme — a complete "lightsilica" palette (every surface +
 // role) so the Theme editor's tile grid and the component board are fully
 // populated. A nested `[data-theme]` island, distinct from the chrome's studio
@@ -303,6 +349,10 @@ const editorMode = params.get("editor");
 // `demoEmailHost` twin when `?editor=email` is also set.
 const host = params.get("host") === "demo" ? demoHost : undefined;
 const emailHost = params.get("host") === "demo" ? demoEmailHost : undefined;
+// `?frame=1` mounts the email builder with host chrome AND a host-locked
+// section in the seed — the two ways a host keeps content out of an author's
+// hands, exercised together.
+const framed = params.get("frame") === "1";
 
 const root = createRoot(document.getElementById("app") as HTMLElement);
 if (editorMode === "email") {
@@ -314,6 +364,8 @@ if (editorMode === "email") {
         }}
         theme={theme}
         host={emailHost}
+        frame={framed ? demoEmailFrame : undefined}
+        project={framed ? lockedSeedProject() : undefined}
         persistKey={persist ? "silicaui-designer-email" : null}
         onChange={(project, ops, meta) => {
           bus.__lastChange = project;

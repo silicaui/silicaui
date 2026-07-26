@@ -30,6 +30,8 @@ import type {
 import { SOCIAL_PLATFORM } from "./node-display";
 import { resolveEmailTree, resolveTokens } from "./resolve";
 import type { EmailResolveHost } from "./resolve";
+import { composeEmailDocument } from "./frame";
+import type { EmailFrame } from "./frame";
 
 export const FONT_WEIGHT_CSS: Record<TextNode["fontWeight"], number> = {
   normal: 400,
@@ -371,6 +373,16 @@ export interface EmailRenderOptions {
   /** Host data hooks; bound nodes are substituted before projection. */
   resolver?: EmailResolveHost;
   head?: EmailHeadExtras;
+  /**
+   * Fixed host chrome composed AROUND the authored body — a brand bar, a legal
+   * footer (see `EmailFrame`). Composed BEFORE resolution, so frame sections
+   * get the same data bindings and `{{merge}}` tokens the body does.
+   *
+   * This is the one composition step, shared by the builder's canvas/preview
+   * and a host's own send path, so the framed email a user previews and the
+   * one a recipient opens can't drift apart.
+   */
+  frame?: EmailFrame;
 }
 
 /** Quote a font family for CSS unless it's already quoted or a bare single
@@ -459,13 +471,20 @@ function normalizeOptions(arg?: EmailResolveHost | EmailRenderOptions): EmailRen
  * send stop being two code paths that can drift. Omit it and this behaves
  * exactly as before (today's static projection, zero cost).
  *
- * The second argument also accepts `{ resolver, head }` — see
- * `EmailRenderOptions` — for injecting client-hack CSS/meta into the `<head>`.
- * Passing a bare resolver positionally still works and is not deprecated.
+ * The second argument also accepts `{ resolver, head, frame }` — see
+ * `EmailRenderOptions` — for injecting client-hack CSS/meta into the `<head>`
+ * and for composing host chrome (a brand bar, a legal footer) around the
+ * authored body. Passing a bare resolver positionally still works and is not
+ * deprecated.
  */
 export function toEmailHtml(doc: EmailDocument, options?: EmailResolveHost | EmailRenderOptions): string {
-  const { resolver, head } = normalizeOptions(options);
-  const root = resolver ? resolveEmailTree(doc.root, resolver) : doc.root;
+  const { resolver, head, frame } = normalizeOptions(options);
+  // The frame composes FIRST, so its sections go through the same resolution
+  // pass the body does — a brand bar can bind its wordmark exactly the way a
+  // body image would. Composition is pure: `doc` is never mutated, and with no
+  // frame this returns `doc` itself.
+  const framed = composeEmailDocument(doc, frame);
+  const root = resolver ? resolveEmailTree(framed.root, resolver) : framed.root;
   // Subject/preheader live on the DOCUMENT, not the node tree `resolveEmailTree`
   // walks — resolved separately here via the same `{{ref}}` merge-token pass
   // (raw, unescaped: `esc()` below is the one escape, same as every other

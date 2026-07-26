@@ -9,6 +9,10 @@ export type { ChangeEvent, ChangeKind, HistoryDelegate, TemplateMeta, TemplatesV
 export type { Op, OpKind, OpTarget, OpMeta } from "./ops";
 export { toEmailHtml } from "./projector";
 export type { EmailHeadExtras, EmailRenderOptions } from "./projector";
+// Host-owned chrome composed AROUND an authored email — never persisted. A
+// host's send path composes with the SAME function the builder previews with.
+export { composeEmailDocument, isEmptyFrame, frameLabel } from "./frame";
+export type { EmailFrame } from "./frame";
 export { resolveEmailTree, emailScopeAt } from "./resolve";
 export type { EmailResolveHost } from "./resolve";
 export { emptyEmailDocument, isContentKind } from "./schema";

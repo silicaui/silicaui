@@ -12,8 +12,11 @@
  * The vocabulary is SMALLER than the site's, and deliberately so. Email nodes
  * carry typed fields instead of a class string and a props bag, so there is one
  * `node.update` where the site needs `setClass` / `setProps` / `setAttrs` /
- * `setTag`. There are no symbols, no frame, and no pages — an email is one
- * canvas, so those scopes don't exist here rather than being stubbed out.
+ * `setTag`. There are no symbols and no pages — an email is one canvas, so
+ * those scopes don't exist here rather than being stubbed out. There is no
+ * frame op either, for a different reason: an `EmailFrame` is host-owned and
+ * never persisted (see `frame.ts`), so it is never edited and has nothing to
+ * relay — the host already has it.
  *
  * The same rule governs payloads: anything randomly minted must travel, anything
  * computable must not. `node.insert` and `template.create` carry their subtrees
@@ -77,6 +80,20 @@ export interface NodeSetBindingOp extends OpBase {
   kind: "node.setBinding";
   nodeId: string;
   binding: DataBinding | null;
+}
+
+/**
+ * Set or clear a node's structural lock + its owner (`null` unlocks) — the
+ * twin of the site's `node.setLocked`.
+ *
+ * Not folded into `node.update`: the lock is policy, not a design field, and
+ * every remove/move path consults it. A distinct op means a host can recognize
+ * "someone pinned a region" without pattern-matching a patch bag.
+ */
+export interface NodeSetLockedOp extends OpBase {
+  kind: "node.setLocked";
+  nodeId: string;
+  locked: "host" | "author" | null;
 }
 
 /**
@@ -162,6 +179,7 @@ export type Op =
   | NodeMoveOp
   | NodeUpdateOp
   | NodeSetBindingOp
+  | NodeSetLockedOp
   | ColumnsRebalanceOp
   | TemplateCreateOp
   | TemplateDeleteOp

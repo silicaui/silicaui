@@ -9,6 +9,10 @@ export type { EmailBuilderProps, EmailBuilderHandle } from "./EmailBuilder";
 // email builder doesn't have to reach into the framework-neutral entry.
 export type { Op, OpKind, OpTarget, OpMeta } from "../ops";
 export type { HistoryDelegate } from "../engine";
+// Host chrome composed around the authored email — the `frame` prop's type,
+// plus the composition a host's own send path should reuse.
+export { composeEmailDocument, isEmptyFrame, frameLabel } from "../frame";
+export type { EmailFrame } from "../frame";
 export {
   EmailEditorProvider,
   useEmailEditor,

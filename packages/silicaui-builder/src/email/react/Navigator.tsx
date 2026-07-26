@@ -22,7 +22,15 @@ function toTreeNode(node: EmailNode): TreeNode {
   return {
     id: node.id,
     icon: <Icon name={nodeIcon(node)} className="text-base-content/55" />,
-    label: <span className="truncate">{nodeName(node)}</span>,
+    label: (
+      <span className="inline-flex items-center gap-1.5 truncate">
+        <span className="truncate">{nodeName(node)}</span>
+        {/* A locked node carries a trailing glyph — a padlock for an author
+            lock, a shield for a host lock the author can't clear. Same
+            vocabulary as the site Navigator (host-nodes spec §B.3). */}
+        {node.locked && <Icon name={node.locked === "host" ? "shield" : "lock"} className="text-base-content/55" />}
+      </span>
+    ),
     children: kids.length ? kids.map(toTreeNode) : undefined,
   };
 }

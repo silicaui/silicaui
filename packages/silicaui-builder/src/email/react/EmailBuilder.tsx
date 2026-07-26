@@ -2,8 +2,10 @@
  * The EmailBuilder shell — the embeddable email editor chrome, structurally a
  * peer of the site `Builder` (header + left rail + canvas + right rail) but
  * over the closed email schema: no Page/Layout/Component mode switch (an email
- * has no pages, frame, or symbols), no Theme mode (colors are per-node, not a
- * site-wide token set) — just Insert (left) + Canvas (center) + Design (right).
+ * has no pages or symbols, and its `frame` is host-owned rather than an
+ * editable surface — see the `frame` prop), no Theme mode (colors are per-node,
+ * not a site-wide token set) — just Insert (left) + Canvas (center) + Design
+ * (right).
  *
  * STYLING RULE (hard): every visual is a Tailwind utility or a @wizeworks/silicaui component
  * class, and every glyph is a baked `<Icon>`. The shell is its own
@@ -28,6 +30,7 @@ import type { HistoryDelegate } from "../engine";
 import type { Op, OpMeta } from "../ops";
 import type { EmailDocument, EmailProject } from "../schema";
 import { toEmailHtml } from "../projector";
+import type { EmailFrame } from "../frame";
 import { EmailEditorProvider, useEmailDocument, useEmailEditor, useEmailHistory } from "./editor-context";
 import { EmailHostProvider, useEmailHost } from "./host-context";
 import type { EmailBuilderHost } from "./host";
@@ -88,8 +91,8 @@ function ChromeErrorFallback({ error, reset }: { error: Error; reset: () => void
  *  downloaded file carries real data too, same as the host's own copy — the
  *  Q25 "one projector" guarantee applies to every export path, not just the
  *  callback. */
-function downloadHtml(doc: EmailDocument, resolver?: EmailBuilderHost): void {
-  const html = toEmailHtml(doc, resolver);
+function downloadHtml(doc: EmailDocument, resolver?: EmailBuilderHost, frame?: EmailFrame): void {
+  const html = toEmailHtml(doc, { resolver, frame });
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -113,9 +116,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function SendTestButton({
   studioTheme,
   onSendTest,
+  frame,
 }: {
   studioTheme: string;
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
+  frame?: EmailFrame;
 }) {
   const doc = useEmailDocument();
   const host = useEmailHost();
@@ -127,9 +132,10 @@ function SendTestButton({
     if (!onSendTest || !EMAIL_RE.test(to)) return;
     setStatus("sending");
     try {
-      // Resolved through the SAME projector + host as Export HTML (Q25) — a
-      // test send shows exactly what a real recipient with real data would get.
-      await onSendTest({ to, html: toEmailHtml(doc, host), subject: doc.subject });
+      // Resolved through the SAME projector + host + frame as Export HTML
+      // (Q25) — a test send shows exactly what a real recipient with real data
+      // would get, chrome included.
+      await onSendTest({ to, html: toEmailHtml(doc, { resolver: host, frame }), subject: doc.subject });
       setStatus("sent");
       setTimeout(() => setOpen(false), 900);
     } catch {
@@ -187,11 +193,13 @@ function Chrome({
   onExport,
   onSendTest,
   toolbarSlot,
+  frame,
 }: {
   studioTheme: string;
   onExport?: (html: string) => void;
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
+  frame?: EmailFrame;
 }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
@@ -204,8 +212,8 @@ function Chrome({
   useEmailEditorShortcuts();
 
   const exportHtml = () => {
-    downloadHtml(doc, host);
-    onExport?.(toEmailHtml(doc, host));
+    downloadHtml(doc, host, frame);
+    onExport?.(toEmailHtml(doc, { resolver: host, frame }));
   };
 
   return (
@@ -263,7 +271,7 @@ function Chrome({
           onBlur={(e: React.FocusEvent<HTMLInputElement>) => editor.setPreheader(e.target.value)}
         />
         {toolbarSlot}
-        <SendTestButton studioTheme={studioTheme} onSendTest={onSendTest} />
+        <SendTestButton studioTheme={studioTheme} onSendTest={onSendTest} frame={frame} />
         <Button color="primary" size="sm" onClick={exportHtml}>
           <Icon name="download" /> Export HTML
         </Button>
@@ -307,7 +315,7 @@ function Chrome({
 
           <ResizablePanel defaultSize={64} minSize={30} className="flex flex-col min-w-0 min-h-0 overflow-hidden">
             <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
-              <EmailCanvas device={device} />
+              <EmailCanvas device={device} frame={frame} />
             </ErrorBoundary>
           </ResizablePanel>
           <ResizeHandle />
@@ -327,7 +335,7 @@ function Chrome({
       ) : (
         <section className="flex flex-col min-w-0 min-h-0 flex-1">
           <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
-            <EmailPreview device={device} />
+            <EmailPreview device={device} frame={frame} />
           </ErrorBoundary>
         </section>
       )}
@@ -374,6 +382,29 @@ export interface EmailBuilderProps {
    * `dataSources()` for a real binding picker, `inspectorPanels()` for
    * host-contributed panels like a merge-tag picker).
    */
+  /**
+   * Fixed host chrome composed AROUND the authored email — a brand bar above,
+   * a legal footer below (see `EmailFrame`).
+   *
+   * It is NOT part of the document and never becomes part of it: it isn't
+   * persisted, isn't in `onChange`, isn't on the undo stack, and the engine is
+   * never told it exists. On the canvas it renders at full fidelity but inert —
+   * no selection, no drag, no inline edit — so an author designs against the
+   * real thing without being able to delete or reorder it. Preview, Export HTML
+   * and Send test all project through it, via the same `composeEmailDocument`
+   * a host should use in its own send path.
+   *
+   * Two guarantees follow from it living outside the document, and both are the
+   * reason it isn't just a locked section:
+   *   1. A compliance footer can't be removed, because there is no node to
+   *      remove.
+   *   2. The chrome always reflects the CURRENT brand — it's re-supplied on
+   *      every mount and every send, never frozen into a six-month-old draft.
+   *
+   * Use `EmailNode.locked` instead for content that genuinely belongs to the
+   * saved document but must not be deleted or moved.
+   */
+  frame?: EmailFrame;
   host?: EmailBuilderHost;
   studioTheme?: string;
   /**
@@ -467,6 +498,7 @@ export interface EmailBuilderHandle {
 export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderProps>(function EmailBuilder({
   document,
   project,
+  frame,
   host,
   studioTheme = "studio",
   theme,
@@ -586,7 +618,13 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
             {current.recoveredAt !== null && (
               <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
             )}
-            <Chrome studioTheme={studioTheme} onExport={onExport} onSendTest={onSendTest} toolbarSlot={toolbarSlot} />
+            <Chrome
+              studioTheme={studioTheme}
+              onExport={onExport}
+              onSendTest={onSendTest}
+              toolbarSlot={toolbarSlot}
+              frame={frame}
+            />
           </ErrorBoundary>
         </div>
       </EmailEditorProvider>

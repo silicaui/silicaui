@@ -2,8 +2,11 @@
  * The email editor engine — framework-neutral document state + a tiny
  * subscription model, mirroring the site engine's shape (`commit`/history,
  * `locate`, `insertRelative`, undo/redo) but over the CLOSED email schema
- * instead of an open element tree. No pages, no frame, no symbols — an email is
- * one canvas, not a multi-page site, so those site concepts don't apply here.
+ * instead of an open element tree. No pages, no symbols — an email is one
+ * canvas, not a multi-page site, so those site concepts don't apply here. Nor
+ * does the engine know about the `EmailFrame`: host chrome is composed around a
+ * document at projection time and never enters it (see `frame.ts`), so there is
+ * nothing here to edit, guard, or persist.
  */
 import { defaultMakeId, generateKeyBetween } from "@wizeworks/silicaui-html";
 import type { DataBinding } from "@wizeworks/silicaui-html";
@@ -799,6 +802,27 @@ export class EmailEditor {
     });
   }
 
+  // ── locking ────────────────────────────────────────────────────────────────
+  /**
+   * Set (or clear, with `undefined`) a node's structural lock + its owner —
+   * the twin of the site engine's `setLocked` (host-nodes spec §B.2), and the
+   * same deliberately UNGUARDED primitive: it always succeeds, because the
+   * tier policy (an author may clear an `"author"` lock, never a `"host"` one)
+   * belongs to the UI that calls it, so a host is never boxed out of unpinning
+   * its own region. Undoable. No-op on a missing node.
+   */
+  setLocked(id: string, owner: "host" | "author" | undefined): void {
+    const found = locate(this.doc.root, id);
+    if (!found) return;
+    const node = found.node;
+    if (node.locked === owner) return;
+    this.commit("props", () => {
+      if (owner) node.locked = owner;
+      else delete node.locked;
+      this.record({ target: this.activeTarget(), kind: "node.setLocked", nodeId: id, locked: owner ?? null });
+    });
+  }
+
   // ── node edits ─────────────────────────────────────────────────────────────
   /** Shallow-patch a node's typed fields (the sole editing surface — email nodes
    *  carry typed props, not a class string). No-op if the patch would change `id`
@@ -872,10 +896,13 @@ export class EmailEditor {
     return fallback();
   }
 
-  /** Remove a node (never the root). Selects its parent if it was selected. */
+  /** Remove a node (never the root, never a locked node). Selects its parent if
+   *  it was selected. The lock is checked HERE rather than in each caller, so
+   *  every remove path — Inspector, keyboard shortcut, host — honors it at once. */
   remove(id: string): void {
     const found = locate(this.doc.root, id);
     if (!found || !found.parent) return;
+    if (found.node.locked) return; // locked — non-deletable (host-nodes spec §B.2)
     const parentId = found.parent.id;
     this.transact(["structure"], true, () => {
       const children = childrenOf(found.parent as Container) as EmailNode[];
@@ -885,12 +912,15 @@ export class EmailEditor {
     });
   }
 
-  /** Move a node under `parentId` at `index`. Refuses cycles or a kind mismatch. */
+  /** Move a node under `parentId` at `index`. Refuses cycles, a kind mismatch,
+   *  or a locked node (a pinned region keeps its position, not just its
+   *  existence — a legal footer dragged to the top is as broken as a deleted one). */
   move(id: string, parentId: string, index: number): void {
     if (id === parentId) return;
     const found = locate(this.doc.root, id);
     const parentLoc = locate(this.doc.root, parentId);
     if (!found || !found.parent || !parentLoc || !isContainer(parentLoc.node)) return;
+    if (found.node.locked) return; // locked — non-movable (host-nodes spec §B.2)
     if (!canHold(parentLoc.node, found.node)) return;
     if (contains(this.doc.root, id, parentId)) return;
     this.commit("structure", () => {
@@ -931,6 +961,7 @@ export class EmailEditor {
   removeColumn(columnId: string): void {
     const found = locate(this.doc.root, columnId);
     if (!found || !found.parent || found.parent.kind !== "columns") return;
+    if (found.node.locked) return; // locked — non-deletable, same rule as `remove`
     const row = found.parent;
     if (row.children.length <= 1) return;
     this.transact(["structure"], true, () => {
@@ -951,6 +982,7 @@ export class EmailEditor {
     const row = found.parent;
     if (row.children.length >= 6) return undefined;
     const copy = stampIds(found.node, defaultMakeId) as ColumnNode;
+    delete copy.locked; // the copy is author-owned — see `duplicate`
     return this.transact(["structure"], true, () => {
       copy.ord = ordAt(row.children, found.index + 1);
       row.children.splice(found.index + 1, 0, copy);
@@ -972,10 +1004,17 @@ export class EmailEditor {
     return { index: found.index, count };
   }
 
-  /** Swap a node with its previous sibling. No-op if it's already first (or root). */
+  /**
+   * Swap a node with its previous sibling. No-op if it's already first (or root),
+   * or if EITHER node in the swap is locked — a swap moves both, so a locked
+   * sibling blocks it just as a locked subject does. (`move` only ever has one
+   * node to check; this is the one path where two positions change at once.)
+   */
   moveUp(id: string): void {
     const found = locate(this.doc.root, id);
     if (!found || !found.parent || found.index <= 0) return;
+    if (found.node.locked) return;
+    if ((childrenOf(found.parent) as EmailNode[])[found.index - 1]?.locked) return;
     this.commit("structure", () => {
       const children = childrenOf(found.parent as Container) as EmailNode[];
       const i = found.index;
@@ -984,13 +1023,15 @@ export class EmailEditor {
     });
   }
 
-  /** Swap a node with its next sibling. No-op if it's already last (or root). */
+  /** Swap a node with its next sibling. No-op if it's already last (or root),
+   *  or if either node in the swap is locked — see `moveUp`. */
   moveDown(id: string): void {
     const found = locate(this.doc.root, id);
     if (!found || !found.parent) return;
     const children = childrenOf(found.parent) as EmailNode[];
     const i = found.index;
     if (i >= children.length - 1) return;
+    if (found.node.locked || children[i + 1]?.locked) return;
     this.commit("structure", () => {
       const kids = childrenOf(found.parent as Container) as EmailNode[];
       [kids[i], kids[i + 1]] = [kids[i + 1]!, kids[i]!];
@@ -998,11 +1039,15 @@ export class EmailEditor {
     });
   }
 
-  /** Duplicate a node in place (fresh ids), inserting the copy right after it. */
+  /** Duplicate a node in place (fresh ids), inserting the copy right after it.
+   *  A locked node CAN be duplicated; the copy is the author's own content, so
+   *  its lock is cleared (host-nodes spec §B.2) — otherwise duplicating a pinned
+   *  block would mint a second undeletable one the author can never get rid of. */
   duplicate(id: string): string | undefined {
     const found = locate(this.doc.root, id);
     if (!found || !found.parent) return undefined;
     const copy = stampIds(found.node, defaultMakeId);
+    delete copy.locked;
     const parent = found.parent;
     const at = found.index + 1;
     return this.transact(["structure"], true, () => {
@@ -1129,6 +1174,11 @@ export class EmailEditor {
 
     switch (op.kind) {
       case "node.remove":
+        // Deliberately does NOT consult `locked` — same as the site engine.
+        // Locks are an AUTHORING policy the originating peer already enforced;
+        // re-adjudicating a remote op here would leave the two documents
+        // permanently different, which is worse than honoring an edit whose
+        // lock state this client may simply not have received yet.
         if (!found.parent) return false; // never the body root
         (childrenOf(found.parent) as EmailNode[]).splice(found.index, 1);
         return true;
@@ -1155,6 +1205,10 @@ export class EmailEditor {
       case "node.setBinding":
         if (op.binding) found.node.data = structuredClone(op.binding);
         else delete found.node.data;
+        return true;
+      case "node.setLocked":
+        if (op.locked) found.node.locked = op.locked;
+        else delete found.node.locked;
         return true;
       default:
         return false;
