@@ -57,7 +57,7 @@ test("the frame renders on the canvas, above and below the editable body", async
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("frame nodes are inert: no ids, no selection, and a hover chip explains why", async ({ page }) => {
+test("frame nodes are inert: no ids, no selection, and a tag explains why", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
@@ -72,9 +72,35 @@ test("frame nodes are inert: no ids, no selection, and a hover chip explains why
   await header.click();
   await expect(page.getByText("No selection", { exact: true })).toBeVisible();
 
-  // Hovering explains the region rather than leaving it a mystery.
-  await header.hover();
-  await expect(header.getByText("Brand frame")).toBeVisible();
+  // The region names itself WITHOUT being hovered — an author who never hovers
+  // still has to be able to tell host chrome from their own content.
+  await expect(page.getByTestId("email-frame-tag-header")).toBeVisible();
+  await expect(page.getByTestId("email-frame-tag-header")).toHaveText("Brand frame");
+  await expect(page.getByTestId("email-frame-tag-footer")).toBeVisible();
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("a frame region wears NO body-editor chrome — a real footer can't read as a placeholder", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  const canvas = page.locator(".sui-email-canvas");
+  const footer = canvas.locator('[data-sui-frame="footer"]');
+
+  // The host's raw-HTML footer block renders as finished output…
+  await expect(footer).toContainText("ACME Inc. is a registered trader.");
+  // …and NOT wearing the editor's raw-HTML affordance. This is the regression:
+  // the chip made a composed legal footer read as an unfilled developer
+  // placeholder for two days.
+  await expect(footer.getByText("Custom HTML")).toHaveCount(0);
+  await expect(canvas.locator('[data-sui-frame] .border-dashed')).toHaveCount(0);
+
+  // The same chip IS still the affordance for an author's own HTML block — the
+  // fix is scoped to the frame, not a removal of the feature.
+  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.locator('[data-insert-key="html"]').click();
+  await expect(canvas.getByText("Custom HTML", { exact: true }).first()).toBeVisible();
 
   expect(errors, errors.join("\n")).toHaveLength(0);
 });

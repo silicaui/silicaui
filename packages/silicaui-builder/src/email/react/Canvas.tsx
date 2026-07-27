@@ -20,8 +20,9 @@
  * A host `EmailFrame` (see `frame.ts`) renders here too — its header/footer
  * sections go through the SAME per-kind renderers, inside the same body
  * wrapper, but with a `readOnly` ctx: no `data-sui-id`, no selection, no drag,
- * no inline edit. That's the whole enforcement; the frame never enters the
- * document, so the engine has nothing to guard.
+ * no inline edit, and no authoring chrome (see `RenderCtx.readOnly`). That's
+ * the whole enforcement; the frame never enters the document, so the engine has
+ * nothing to guard.
  *
  * Drag-and-drop mirrors the site canvas's contract exactly (same `DRAG_MIME`
  * wire format from `shared/dnd`, same before/after/inside edge resolution), but
@@ -114,6 +115,17 @@ interface RenderCtx {
    * what sends), but every interaction hook is withheld, and — critically — so
    * is `data-sui-id`, since a frame node is not in the document and no id of
    * it would resolve.
+   *
+   * It also withholds AUTHORING CHROME, which is the subtler half. Several
+   * renderers draw marks that are about the editor rather than the email — the
+   * raw-HTML block's "Custom HTML" label, the empty-container "insert
+   * something" prompt and its tinted drop well, the image placeholder gradient,
+   * the spacer's visibility band. Every one of those is a stand-in for work an
+   * author still has to do; painted over host chrome that is already finished,
+   * they misreport it as unfinished. (A real report: a composed legal footer
+   * read for two days as an empty developer placeholder because the HTML chip
+   * sat on top of it.) The rule is therefore general, not per-kind: nothing in
+   * a frame region wears body-editor chrome. Each site is marked below.
    */
   readOnly?: boolean;
   selectedId: string | undefined;
@@ -146,6 +158,10 @@ function computeEdge(clientY: number, rect: DOMRect, node: EmailNode): DropEdge 
 
 /** The hover/selection decoration suffix for a node's wrapper class. */
 function decorations(id: string, ctx: RenderCtx): string {
+  // Inert rendering wears no decoration, ever. `frameCtx` already clears every
+  // id this reads, so this is belt-and-braces — but it's the one place the rule
+  // can be stated once, next to `interactionProps`'s matching early return.
+  if (ctx.readOnly) return "";
   let s = "";
   if (id === ctx.dnd.draggingId) s += " opacity-40";
   if (id === ctx.insideId) return s + " outline outline-2 outline-dashed outline-accent -outline-offset-2";
@@ -470,7 +486,11 @@ function RenderText({ node, info, ctx }: { node: TextNode; info: NodeInfo; ctx: 
               // sets a link color has to see on canvas exactly what sends.
               withLinkColor(node.html, node.linkColor)
             : node.html
-          : "<span class='opacity-40'>Empty text</span>",
+          : // "Empty text" is an authoring prompt, not content. Inert chrome has
+            // no author to prompt, and the projector emits nothing here either.
+            ctx.readOnly
+            ? ""
+            : "<span class='opacity-40'>Empty text</span>",
       }}
       {...interactionProps(info, ctx, true)}
     />
@@ -485,7 +505,10 @@ function RenderImage({ node, info, ctx }: { node: ImageNode; info: NodeInfo; ctx
   return (
     <div className={`flex${decorations(node.id, ctx)}`} style={{ justifyContent: justify }} {...interactionProps(info, ctx)}>
       <img
-        src={node.src || PLACEHOLDER_IMG}
+        // The gradient placeholder is an authoring stand-in for "you haven't
+        // picked an image yet". Inert chrome shows the projector's own truth:
+        // whatever `src` the host gave, even if that's nothing.
+        src={ctx.readOnly ? node.src : node.src || PLACEHOLDER_IMG}
         alt={node.alt}
         style={{ width: node.width, maxWidth: "100%", display: "block" }}
         className="rounded-none"
@@ -527,9 +550,12 @@ function RenderDivider({ node, info, ctx }: { node: DividerNode; info: NodeInfo;
 }
 
 function RenderSpacer({ node, info, ctx }: { node: SpacerNode; info: NodeInfo; ctx: RenderCtx }) {
+  // The faint band is how an author SEES an otherwise invisible block well
+  // enough to click it. Nothing in inert chrome is clickable, and the projector
+  // emits a transparent gap — so inert renders the gap, not the band.
   return (
     <div
-      className={`bg-base-content/5${decorations(node.id, ctx)}`}
+      className={ctx.readOnly ? "" : `bg-base-content/5${decorations(node.id, ctx)}`}
       style={{ height: node.height }}
       {...interactionProps(info, ctx)}
     />
@@ -560,6 +586,13 @@ function RenderSocial({ node, info, ctx }: { node: SocialNode; info: NodeInfo; c
 }
 
 function RenderHtml({ node, info, ctx }: { node: HtmlNode; info: NodeInfo; ctx: RenderCtx }) {
+  // The dashed box and the "Custom HTML" label are the AUTHORING affordance for
+  // a block whose rendered output gives a pointer nothing to aim at — they mark
+  // "there is an editable raw-HTML node here". In inert host chrome there is no
+  // such node to mark, and painting the label over a real, fully-composed legal
+  // footer reads it as an unfilled developer placeholder. So inert renders the
+  // markup and nothing else — exactly what `renderHtml` passes through.
+  if (ctx.readOnly) return <div dangerouslySetInnerHTML={{ __html: node.html }} />;
   return (
     <div
       className={`rounded-field border border-dashed border-base-300 p-2${decorations(node.id, ctx)}`}
@@ -656,7 +689,10 @@ function RenderColumn({
   ctx: RenderCtx;
 }) {
   const info: NodeInfo = { id: node.id, parentId, index, node };
-  const empty = node.children.length === 0;
+  // `empty` drives DROP-TARGET scaffolding (a minimum height and a tinted well
+  // so there's something to aim at) plus the "insert something" prompt. Inert
+  // chrome takes neither: an empty frame column is simply empty, as it sends.
+  const empty = node.children.length === 0 && !ctx.readOnly;
   return (
     <div
       className={`flex flex-col gap-2${empty ? " min-h-14 items-center justify-center bg-base-content/5" : ""}${decorations(node.id, ctx)}`}
@@ -705,7 +741,8 @@ function RenderSection({
   bodyId: string;
 }) {
   const info: NodeInfo = { id: node.id, parentId: bodyId, index, node };
-  const empty = node.children.length === 0;
+  // Same rule as `RenderColumn` — empty-state scaffolding is authoring chrome.
+  const empty = node.children.length === 0 && !ctx.readOnly;
   const borderWidth = node.borderWidth ?? 0;
   const bgStyle: React.CSSProperties = {
     padding: `${node.paddingY}px ${node.paddingX}px`,
@@ -742,10 +779,16 @@ function RenderSection({
  * `composeEmailDocument` puts it in the sent markup.
  *
  * Full fidelity, deliberately: chrome an author can't edit is still chrome they
- * have to design around, so it is not dimmed or ghosted. What marks it as
- * host-owned is behavior — no selection, no drag target, no inline edit — plus
- * a dashed ring and an explanatory chip on hover, the same vocabulary the
- * editable nodes already use for their own affordances.
+ * have to design around, so it is not dimmed or ghosted. Dimming would say
+ * "unfinished"; the true message is "real, and not yours to edit here".
+ *
+ * So the region is marked POSITIVELY and PERSISTENTLY: a hairline dashed
+ * boundary plus a locked tag carrying the host's own `frame.label`, pinned to
+ * the composed email's outer edge (top for the header, bottom for the footer)
+ * rather than the seam against the body. Both are always visible — an
+ * affordance that only exists on hover can't answer "what is this?" for an
+ * author who never hovers — and the boundary strengthens on hover to tie the
+ * tag to the region it names.
  */
 function FrameRegion({
   where,
@@ -760,7 +803,7 @@ function FrameRegion({
 }) {
   return (
     <div
-      className="group relative hover:outline hover:outline-1 hover:outline-dashed hover:outline-base-content/40 hover:-outline-offset-1"
+      className="group relative outline outline-1 outline-dashed outline-base-content/15 -outline-offset-1 hover:outline-base-content/40"
       data-sui-frame={where}
       // Drops are refused outright rather than falling through to the canvas's
       // margin handler — landing a block "somewhere near where I aimed" is
@@ -780,8 +823,18 @@ function FrameRegion({
           <RenderSection key={s.id || `${where}-${i}`} node={s} index={i} ctx={ctx} bodyId={`frame-${where}`} />
         ))}
       </div>
-      <span className="pointer-events-none absolute right-1.5 top-1.5 z-20 hidden items-center gap-1 rounded-btn border border-base-300 bg-base-100 px-1.5 py-0.5 text-xs font-medium text-base-content shadow-sm group-hover:inline-flex">
-        <Icon name="shield" /> {label}
+      {/* Full ink on a real surface, not a faded overlay — this is text meant to
+          be READ. Both position variants are spelled out as whole literal class
+          strings so the harness's `@source` scan safelists them. */}
+      <span
+        className={
+          where === "header"
+            ? "pointer-events-none absolute right-1.5 top-1.5 z-20 inline-flex items-center gap-1 rounded-btn border border-base-300 bg-base-100 px-1.5 py-0.5 text-xs font-medium text-base-content shadow-sm"
+            : "pointer-events-none absolute bottom-1.5 right-1.5 z-20 inline-flex items-center gap-1 rounded-btn border border-base-300 bg-base-100 px-1.5 py-0.5 text-xs font-medium text-base-content shadow-sm"
+        }
+        data-testid={`email-frame-tag-${where}`}
+      >
+        <Icon name="lock" /> {label}
       </span>
     </div>
   );
