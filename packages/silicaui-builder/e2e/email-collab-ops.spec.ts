@@ -49,11 +49,22 @@ async function target(page: Page) {
   });
 }
 
+/** Subject lives on the document root's Settings tab — the toolbar carries no
+ *  duplicate. Select "Email" (its `.tree-node` is always first in document
+ *  order), switch to Settings, hand back the input. Idempotent, so it's safe to
+ *  call again after a remote `replaceState` has reset the selection. */
+async function subjectField(page: Page) {
+  await page.locator(".tree-node").first().click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  return page.locator("label", { hasText: "Subject" }).locator("input");
+}
+
 /** Make one real edit so `__lastChange` is populated (the harness only records
  *  it on change, and we need node ids from the live project). */
 async function seedAnEdit(page: Page): Promise<void> {
-  await page.getByLabel("Subject").fill("Seeded subject");
-  await page.getByLabel("Subject").blur();
+  const subject = await subjectField(page);
+  await subject.fill("Seeded subject");
+  await subject.blur();
   await page.waitForFunction(() => ((window as Bus).__changeCount ?? 0) > 0);
 }
 
@@ -147,8 +158,9 @@ test("replaceState resyncs the canvas and records the sequence", async ({ page }
   await expect(page.getByText("Server truth").first()).toBeVisible();
 
   // The next outbound batch carries the server's sequence.
-  await page.getByLabel("Subject").fill("After resync");
-  await page.getByLabel("Subject").blur();
+  const subject = await subjectField(page);
+  await subject.fill("After resync");
+  await subject.blur();
   await page.waitForFunction(() => (window as Bus).__lastMeta?.baseSeq === 99);
   expect(await page.evaluate(() => (window as Bus).__lastMeta)).toEqual({ baseSeq: 99 });
 });

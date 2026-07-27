@@ -38,6 +38,7 @@ export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
           <Input
             autoFocus
             className="input-sm flex-1"
+            aria-label="Template name"
             value={draft}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
             onBlur={commitRename}
