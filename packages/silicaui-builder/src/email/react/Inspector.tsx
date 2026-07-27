@@ -378,7 +378,10 @@ function SwatchGroup({
       )}
       {options.map((o) => (
         <button
-          key={o.hex}
+          // Keyed by ROLE, not hex — two roles legitimately resolve to the same
+          // hex in a real theme (e.g. `neutral` and `baseContent` both #0f172a),
+          // and a hex key makes those a React duplicate-key collision.
+          key={o.role}
           type="button"
           title={o.title}
           onClick={() => onPick(o.hex, o.role)}
