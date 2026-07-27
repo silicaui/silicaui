@@ -235,6 +235,24 @@ const demoEmailFrame: EmailFrame = {
   header: [frameSection("demo-brand-bar", "<b>ACME</b>", "#111827", "#ffffff")],
   footer: [
     frameSection("demo-legal", "123 Main St · <a href=\"#\">Unsubscribe</a> · Sent by ACME", "#f4f4f5", "#3f3f46"),
+    // A raw-HTML footer block — the shape a real compliance footer takes when
+    // the host already owns the markup. It's here because it's the node kind
+    // that used to leak authoring chrome (a "Custom HTML" label painted over
+    // finished host content), so the frame demo has to carry one.
+    {
+      id: "demo-legal-html",
+      kind: "section",
+      bg: "#f4f4f5",
+      paddingX: 24,
+      paddingY: 10,
+      children: [
+        {
+          id: "demo-legal-html-body",
+          kind: "html",
+          html: '<p style="margin:0;text-align:center;font-size:11px;color:#71717a">ACME Inc. is a registered trader. <a href="#">Privacy</a></p>',
+        },
+      ],
+    },
   ],
 };
 

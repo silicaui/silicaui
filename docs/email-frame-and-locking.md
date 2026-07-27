@@ -26,7 +26,7 @@ import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
 import type { EmailFrame } from "@wizeworks/silicaui-builder/email/react";
 
 const frame: EmailFrame = {
-  label: "Brand frame",              // shown on the canvas when you hover the region
+  label: "Brand frame",              // names the region on the canvas
   header: [brandBarSection(site)],   // ordinary SectionNodes
   footer: [legalFooterSection(site)],
 };
@@ -42,8 +42,26 @@ so nothing new has to be rendered, projected, or resolved for them.
 - **Canvas** — renders both regions inside the body wrapper (same width, same
   content background, same font stack), at full fidelity, but inert: no
   `data-sui-id`, no selection, no drag, no inline edit, and drops over the
-  region are refused rather than falling through. Hovering shows a dashed ring
-  and a chip naming the owner.
+  region are refused rather than falling through.
+
+  Inert also means **no authoring chrome**. Several block renderers draw marks
+  that belong to the editor rather than to the email — the raw-HTML block's
+  "Custom HTML" label and dashed box, the empty-container "insert something"
+  prompt and its tinted drop well, the image placeholder gradient, the spacer's
+  visibility band. Each is a stand-in for work an author still has to do, so
+  painting one over finished host chrome misreports it as unfinished. Inside a
+  frame region none of them render: a frame node draws exactly what it will
+  draw in the inbox. (Content-legitimate marks stay — a Video block still shows
+  its play overlay, because the projector emits one.)
+
+  What marks the region instead is a **persistent hairline dashed boundary and
+  a locked tag carrying `frame.label`**, pinned to the composed email's outer
+  edge — top for the header, bottom for the footer. Both are always visible; an
+  affordance that only appears on hover can't answer "what is this?" for an
+  author who never hovers. The boundary strengthens on hover to tie the tag to
+  the region it names. The region is deliberately **not** dimmed or ghosted:
+  fading it would say "unfinished", when the true message is "real, and not
+  yours to edit here".
 - **Preview / Export HTML / Send test** — all project through
   `composeEmailDocument`, so every path a user can reach shows the framed
   email. The Preview button stops being the only framed view.
