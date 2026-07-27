@@ -219,6 +219,20 @@ function Chrome({
   return (
     <>
       <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
+        {/* Same left-cluster order as the site builder's toolbar: the mode
+            switcher leads (and carries `toggle-group-primary`, since it's the
+            one control that changes what everything else means), then history,
+            then canvas width. */}
+        <ToggleGroup
+          className="toggle-group-sm toggle-group-primary"
+          aria-label="Edit or preview"
+          value={[mode]}
+          onValueChange={(v: string[]) => v.length && setMode(v[v.length - 1] as "edit" | "preview")}
+        >
+          <IconItem value="edit" icon="pencil">Edit</IconItem>
+          <IconItem value="preview" icon="eye">Preview</IconItem>
+        </ToggleGroup>
+
         <Button variant="ghost" size="sm" aria-label="Undo" disabled={!canUndo} onClick={() => editor.undo()}>
           <Icon name="undo" />
         </Button>
@@ -236,40 +250,14 @@ function Chrome({
           <IconItem value="mobile" icon="smartphone">Mobile</IconItem>
         </ToggleGroup>
 
-        <ToggleGroup
-          className="toggle-group-sm"
-          aria-label="Edit or preview"
-          value={[mode]}
-          onValueChange={(v: string[]) => v.length && setMode(v[v.length - 1] as "edit" | "preview")}
-        >
-          <IconItem value="edit" icon="pencil">Edit</IconItem>
-          <IconItem value="preview" icon="eye">Preview</IconItem>
-        </ToggleGroup>
-
         <div className="flex-1" />
 
-        {/* Subject/preview text live here (not just buried in the Settings
-            tab) since every ESP treats them as the two things you set first —
-            keyed on their own current value so a template switch or an undo
-            refreshes the field without fighting the user's typing. */}
-        <Input
-          key={doc.subject}
-          size="sm"
-          className="w-36"
-          placeholder="Subject"
-          aria-label="Email subject"
-          defaultValue={doc.subject}
-          onBlur={(e: React.FocusEvent<HTMLInputElement>) => editor.setSubject(e.target.value)}
-        />
-        <Input
-          key={doc.preheader}
-          size="sm"
-          className="w-36"
-          placeholder="Preview text"
-          aria-label="Email preview text"
-          defaultValue={doc.preheader}
-          onBlur={(e: React.FocusEvent<HTMLInputElement>) => editor.setPreheader(e.target.value)}
-        />
+        {/* Subject and preview text are document fields, not toolbar controls:
+            they live on the root's Settings tab (Inspector → Email → Settings →
+            Content) where they're `TokenTextField`s with merge-token
+            autocomplete. A second, token-less copy up here duplicated the field
+            in its WORSE form and ate ~300px of a bar that also has to fit the
+            host's own `toolbarSlot`. */}
         {toolbarSlot}
         <SendTestButton studioTheme={studioTheme} onSendTest={onSendTest} frame={frame} />
         <Button color="primary" size="sm" onClick={exportHtml}>

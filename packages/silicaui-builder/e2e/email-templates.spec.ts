@@ -109,10 +109,7 @@ test("rename and delete act on the current template, and the roster can't drop b
   const trigger = page.getByRole("combobox", { name: "Current template" });
 
   await page.getByLabel("Rename template").click();
-  // `.last()`, not `.first()`: the header's Subject/Preview text fields are
-  // textboxes that sit earlier in the DOM and are always mounted — the rename
-  // input is the one that just appeared, swapped in for the template Select.
-  const renameInput = page.getByRole("textbox").last();
+  const renameInput = page.getByLabel("Template name");
   await renameInput.fill("October newsletter");
   await renameInput.press("Enter");
   await expect(trigger).toHaveText(/October newsletter/);
