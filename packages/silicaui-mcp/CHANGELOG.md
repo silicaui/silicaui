@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-mcp
 
+## 0.35.0
+
 ## 0.34.2
 
 ## 0.34.1
