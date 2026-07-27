@@ -378,7 +378,10 @@ function SwatchGroup({
       )}
       {options.map((o) => (
         <button
-          key={o.hex}
+          // Keyed by ROLE, not hex — two roles legitimately resolve to the same
+          // hex in a real theme (e.g. `neutral` and `baseContent` both #0f172a),
+          // and a hex key makes those a React duplicate-key collision.
+          key={o.role}
           type="button"
           title={o.title}
           onClick={() => onPick(o.hex, o.role)}
@@ -1197,7 +1200,7 @@ function BodySettingsFields({ node, update }: { node: EmailBody; update: (patch:
 function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
-  const { save: saveBlock } = useSavedBlocks();
+  const { save: saveBlock, readOnly: blocksReadOnly } = useSavedBlocks();
   const path = ancestorPath(doc.root, selectedId) ?? [];
   const sibling = editor.siblingInfo(selectedId);
   // A column's `widthPct`s must keep summing to 100 — duplicate/delete route
@@ -1254,7 +1257,7 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
           disabled={isRoot || (isColumn && (sibling?.count ?? 0) >= 6)}
           onClick={duplicate}
         />
-        {!isRoot && <IconButton icon="saved" label="Save as block" onClick={saveAsBlock} />}
+        {!isRoot && !blocksReadOnly && <IconButton icon="saved" label="Save as block" onClick={saveAsBlock} />}
         <div className="flex-1" />
         <IconButton
           icon="trash"

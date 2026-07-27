@@ -4,7 +4,13 @@ import { createRoot } from "react-dom/client";
 import { Builder, useEditor } from "@wizeworks/silicaui-builder/react";
 import type { BuilderHandle, BuilderHost, Editor, Op, OpMeta } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
-import type { EmailBuilderHandle, EmailBuilderHost, EmailFrame } from "@wizeworks/silicaui-builder/email/react";
+import type {
+  EmailBuilderHandle,
+  EmailBuilderHost,
+  EmailFrame,
+  SavedBlock,
+  SavedBlockChange,
+} from "@wizeworks/silicaui-builder/email/react";
 import { emptyEmailDocument } from "@wizeworks/silicaui-builder/email";
 import type { EmailProject, SectionNode, TextNode } from "@wizeworks/silicaui-builder/email";
 import { stamp, el } from "@wizeworks/silicaui-html";
@@ -324,9 +330,14 @@ const bus = window as unknown as {
   __lastMeta?: OpMeta;
   __handle?: BuilderHandle;
   __emailHandle?: EmailBuilderHandle;
+  // The host-owned saved-block library (`?savedBlocks=host`): what the "server"
+  // currently holds, and every intent the builder reported.
+  __savedBlocks?: readonly SavedBlock[];
+  __savedBlockChanges: SavedBlockChange[];
 };
 bus.__changeCount = 0;
 bus.__ops = [];
+bus.__savedBlockChanges = [];
 
 /**
  * The host's toolbar UI — and the harness's handle on the editor. `toolbarSlot`
@@ -347,6 +358,67 @@ function ToolbarSlot() {
       Demo host UI
     </span>
   );
+}
+
+/**
+ * A demo account-level saved-block library — the host side of the controlled
+ * `savedBlocks`/`onSavedBlocksChange` seam, mounted under `?savedBlocks=host`.
+ *
+ * Deliberately behaves like a real backend rather than a synchronous stub: it
+ * ACKs after a round trip and re-ids the block server-side, which is the whole
+ * reason the seam is a controlled prop instead of fire-and-forget write hooks —
+ * the palette can only show the account's real id if the account's list is what
+ * it renders. `?savedBlocks=readonly` mounts the other supported shape: a
+ * curated, insert-only library (no `onSavedBlocksChange`).
+ */
+const CURATED_BLOCK: SavedBlock = {
+  id: "sb_account_promo",
+  name: "Account promo",
+  node: {
+    id: "sbn_account_promo",
+    kind: "text",
+    html: "Saved to the account, not this browser.",
+    align: "left",
+    color: "#1f2937",
+  } as TextNode,
+  savedAt: 0,
+};
+
+function useHostSavedBlocks(mode: string | null): {
+  savedBlocks?: readonly SavedBlock[];
+  onSavedBlocksChange?: (next: SavedBlock[], change: SavedBlockChange) => void;
+} {
+  const [blocks, setBlocks] = React.useState<readonly SavedBlock[]>(
+    mode === "readonly" ? [CURATED_BLOCK] : [],
+  );
+  React.useEffect(() => {
+    bus.__savedBlocks = blocks;
+  }, [blocks]);
+
+  const onChange = React.useCallback((next: SavedBlock[], change: SavedBlockChange) => {
+    bus.__savedBlockChanges.push(change);
+    // The server round trip. A save comes back with the id the ACCOUNT assigned,
+    // not the one the builder proposed — a host swapping ids underneath is the
+    // case a shadow copy inside the builder could not survive.
+    window.setTimeout(() => {
+      setBlocks(
+        change.type === "save"
+          ? next.map((b) => (b.id === change.block.id ? { ...b, id: `srv_${b.id}` } : b))
+          : next,
+      );
+    }, 80);
+  }, []);
+
+  if (mode === "host") return { savedBlocks: blocks, onSavedBlocksChange: onChange };
+  if (mode === "readonly") return { savedBlocks: blocks };
+  return {};
+}
+
+/** The email builder plus whatever host-owned state it needs — a component, not
+ *  a bare `root.render`, because a controlled prop needs a state owner above it. */
+function EmailHarness(props: React.ComponentProps<typeof EmailBuilder>) {
+  const library = useHostSavedBlocks(new URLSearchParams(location.search).get("savedBlocks"));
+  return <EmailBuilder {...props} {...library} />;
 }
 
 // Local crash-recovery: ON for the real designer, OFF under test automation (so
@@ -376,7 +448,7 @@ const root = createRoot(document.getElementById("app") as HTMLElement);
 if (editorMode === "email") {
   root.render(
     <React.StrictMode>
-      <EmailBuilder
+      <EmailHarness
         ref={(h) => {
           bus.__emailHandle = h ?? undefined;
         }}

@@ -29,7 +29,15 @@ export { EmailInspector } from "./Inspector";
 export { Navigator as EmailNavigator } from "./Navigator";
 export { TemplatesPanel as EmailTemplatesPanel } from "./TemplatesPanel";
 export { resolveEmailColorDefaults } from "./theme-defaults";
-export { useSavedBlocks, getSavedBlockNode } from "./saved-blocks";
-export type { SavedBlock } from "./saved-blocks";
+// The saved-block library. `readLocalSavedBlocks`/`clearLocalSavedBlocks` are the
+// migration seam a host uses once when it takes ownership of the library via the
+// `savedBlocks`/`onSavedBlocksChange` props.
+export {
+  useSavedBlocks,
+  getSavedBlockNode,
+  readLocalSavedBlocks,
+  clearLocalSavedBlocks,
+} from "./saved-blocks";
+export type { SavedBlock, SavedBlockChange, SavedBlocksApi } from "./saved-blocks";
 export { EmailHostProvider, useEmailHost } from "./host-context";
 export type { EmailBuilderHost, EmailInspectorPanel, EmailInspectorPanelCtx } from "./host";

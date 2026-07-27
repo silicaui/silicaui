@@ -48,7 +48,7 @@ function ItemRow({ item }: { item: EmailPaletteItem }) {
  *  Drag drops it at a precise canvas spot; hover reveals rename/delete. */
 function SavedBlockRow({ block }: { block: SavedBlock }) {
   const editor = useEmailEditor();
-  const { remove, rename } = useSavedBlocks();
+  const { remove, rename, readOnly } = useSavedBlocks();
   return (
     <div className="group flex items-center gap-0.5 rounded-btn hover:bg-base-200">
       <button
@@ -66,25 +66,29 @@ function SavedBlockRow({ block }: { block: SavedBlock }) {
         <Icon name="saved" className="text-secondary" />
         <span className="truncate">{block.name}</span>
       </button>
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
-        title="Rename"
-        onClick={() => {
-          const name = window.prompt("Rename saved block", block.name);
-          if (name) rename(block.id, name);
-        }}
-      >
-        <Icon name="pencil" />
-      </button>
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
-        title="Delete saved block"
-        onClick={() => remove(block.id)}
-      >
-        <Icon name="trash" />
-      </button>
+      {!readOnly && (
+        <>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
+            title="Rename"
+            onClick={() => {
+              const name = window.prompt("Rename saved block", block.name);
+              if (name) rename(block.id, name);
+            }}
+          >
+            <Icon name="pencil" />
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
+            title="Delete saved block"
+            onClick={() => remove(block.id)}
+          >
+            <Icon name="trash" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
