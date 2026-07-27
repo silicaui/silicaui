@@ -281,6 +281,104 @@ test("saving a block adds it to the palette, inserts a copy, and can be deleted"
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
+/** The email builder with a HOST-OWNED (controlled) saved-block library —
+ *  `?savedBlocks=host` in the harness, whose demo "server" ACKs after a round
+ *  trip and re-ids saves. */
+async function readyWithHostBlocks(page: Page, mode: "host" | "readonly"): Promise<void> {
+  await page.goto(`/?editor=email&persist=0&savedBlocks=${mode}`);
+  await page.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true);
+  await page.waitForSelector(".sui-email-canvas");
+}
+
+type BlocksBus = {
+  __savedBlocks?: { id: string; name: string }[];
+  __savedBlockChanges: { type: string }[];
+};
+
+test("a host-owned saved-block library round-trips through the controlled seam", async ({ page }) => {
+  const errors = trackErrors(page);
+  await readyWithHostBlocks(page, "host");
+
+  // A local block from an earlier run must NOT leak into a host-owned library:
+  // the presence of the `savedBlocks` prop, not its emptiness, hands over ownership.
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "silicaui-email-saved-blocks",
+      JSON.stringify([{ id: "sb_local", name: "Local leftover", node: {}, savedAt: 0 }]),
+    ),
+  );
+  await page.reload();
+  await page.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true);
+  await openInsert(page);
+  await expect(page.locator('[data-insert-key^="saved:"]')).toHaveCount(0);
+
+  const canvas = page.locator(".sui-email-canvas");
+  await canvas.getByText("Start writing your email…").first().click();
+
+  // Save → the builder reports intent, the host persists, the palette shows the
+  // host's list (with the SERVER's id, not the one the builder proposed).
+  page.once("dialog", (d) => d.accept("Account Intro"));
+  await page.getByLabel("Save as block").click();
+
+  const savedRow = page.locator('[data-insert-key^="saved:"]');
+  await expect(savedRow).toContainText("Account Intro");
+  await expect(savedRow).toHaveAttribute("data-insert-key", /^saved:srv_/);
+  expect(await page.evaluate(() => (window as unknown as BlocksBus).__savedBlockChanges.map((c) => c.type))).toEqual([
+    "save",
+  ]);
+  // Nothing was written to browser storage — the account owns the library.
+  expect(await page.evaluate(() => localStorage.getItem("silicaui-email-saved-blocks"))).toBe(
+    JSON.stringify([{ id: "sb_local", name: "Local leftover", node: {}, savedAt: 0 }]),
+  );
+
+  // Insert from the host list — the drag/click path resolves `saved:<server id>`
+  // against the controlled list, not the local store.
+  const before = await canvas.locator("[data-sui-id]").count();
+  await savedRow.click();
+  await expect.poll(() => canvas.locator("[data-sui-id]").count()).toBeGreaterThan(before);
+
+  // Rename + delete travel the same seam.
+  page.once("dialog", (d) => d.accept("Renamed Intro"));
+  await savedRow.hover();
+  await page.getByTitle("Rename").click();
+  await expect(page.locator('[data-insert-key^="saved:"]')).toContainText("Renamed Intro");
+
+  await page.locator('[data-insert-key^="saved:"]').hover();
+  await page.getByTitle("Delete saved block").click();
+  await expect(page.locator('[data-insert-key^="saved:"]')).toHaveCount(0);
+
+  expect(await page.evaluate(() => (window as unknown as BlocksBus).__savedBlockChanges.map((c) => c.type))).toEqual([
+    "save",
+    "rename",
+    "delete",
+  ]);
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
+test("a curated (read-only) host library inserts but offers no Save/rename/delete", async ({ page }) => {
+  const errors = trackErrors(page);
+  await readyWithHostBlocks(page, "readonly");
+  await openInsert(page);
+
+  const savedRow = page.locator('[data-insert-key="saved:sb_account_promo"]');
+  await expect(savedRow).toContainText("Account promo");
+
+  // Insert still works…
+  const canvas = page.locator(".sui-email-canvas");
+  const before = await canvas.locator("[data-sui-id]").count();
+  await savedRow.click();
+  await expect.poll(() => canvas.locator("[data-sui-id]").count()).toBeGreaterThan(before);
+
+  // …but the mutating affordances are absent rather than silently inert.
+  await savedRow.hover();
+  await expect(page.getByTitle("Rename")).toHaveCount(0);
+  await expect(page.getByTitle("Delete saved block")).toHaveCount(0);
+  await canvas.getByText("Start writing your email…").first().click();
+  await expect(page.getByLabel("Save as block")).toHaveCount(0);
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
 test("Preview mode renders the real projected HTML in an iframe, and rails hide", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);

@@ -34,6 +34,8 @@ import type { EmailFrame } from "../frame";
 import { EmailEditorProvider, useEmailDocument, useEmailEditor, useEmailHistory } from "./editor-context";
 import { EmailHostProvider, useEmailHost } from "./host-context";
 import type { EmailBuilderHost } from "./host";
+import { SavedBlocksProvider } from "./saved-blocks";
+import type { SavedBlock, SavedBlockChange } from "./saved-blocks";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
 import { RecoveryBanner } from "../../shared/react/RecoveryBanner";
 import { DraftStore } from "../../shared/persistence";
@@ -448,6 +450,40 @@ export interface EmailBuilderProps {
    */
   persistKey?: string | null;
   /**
+   * The author's saved-block library (the Insert palette's "Saved" section),
+   * host-owned. Supply it and the builder becomes CONTROLLED: it renders exactly
+   * this array and writes nothing to browser storage, so the library can be an
+   * account-level, server-backed one that follows a user across devices and can
+   * be shared between them. Omit it (the default) and saved blocks stay in this
+   * browser's `localStorage` — durable across reloads and documents, but not
+   * across a device or user change.
+   *
+   * Controlled means controlled: pair it with `onSavedBlocksChange` and render
+   * the result back down, exactly as with an `<input value>`. Supplying
+   * `savedBlocks` without `onSavedBlocksChange` gives a read-only library — the
+   * palette still inserts from it, but Save/rename/delete go nowhere.
+   *
+   * To adopt this without orphaning blocks an author already saved locally, call
+   * `readLocalSavedBlocks()` once, upload what it returns, then
+   * `clearLocalSavedBlocks()`.
+   */
+  savedBlocks?: readonly SavedBlock[];
+  /**
+   * Fires when the author saves, renames, or deletes a saved block — only in
+   * controlled mode (with `savedBlocks` supplied).
+   *
+   *  - `next` — the resulting list. Apply it to your own state immediately to
+   *    keep the palette responsive while the server call is in flight; the
+   *    builder holds no copy of its own, so until the prop updates the palette
+   *    still shows the previous list.
+   *  - `change` — what the author actually DID, so a host can persist one row
+   *    instead of diffing two arrays.
+   *
+   * A failed save needs no special handling: don't apply `next`, and the palette
+   * simply never showed the block.
+   */
+  onSavedBlocksChange?: (next: SavedBlock[], change: SavedBlockChange) => void;
+  /**
    * Arbitrary host UI rendered in the header, immediately before the Send
    * test/Export HTML buttons — e.g. a save-status badge, a "last saved"
    * timestamp, or (per the site `<Builder toolbarSlot>` this mirrors) a
@@ -494,6 +530,8 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
   onExport,
   onSendTest,
   persistKey = DEFAULT_PERSIST_KEY,
+  savedBlocks,
+  onSavedBlocksChange,
   toolbarSlot,
 }: EmailBuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
@@ -590,6 +628,15 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
 
   const dismissBanner = React.useCallback(() => setCurrent((c) => (c ? { ...c, recoveredAt: null } : c)), []);
 
+  // Controlled saved blocks. `null` (no `savedBlocks` prop) leaves the browser-
+  // local store live — the presence of the prop, not its emptiness, is what
+  // hands the library to the host, so a host with an empty account library
+  // correctly shows an empty Saved section rather than falling back to local.
+  const savedBlocksController = React.useMemo(
+    () => (savedBlocks ? { blocks: savedBlocks, onChange: onSavedBlocksChange } : null),
+    [savedBlocks, onSavedBlocksChange],
+  );
+
   if (!editor || !current) {
     return (
       <div className="grid h-full place-items-center bg-base-100 text-base-content" data-theme={studioTheme}>
@@ -600,22 +647,24 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
 
   return (
     <EmailHostProvider host={host}>
-      <EmailEditorProvider key={current.gen} editor={editor}>
-        <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
-          <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
-            {current.recoveredAt !== null && (
-              <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
-            )}
-            <Chrome
-              studioTheme={studioTheme}
-              onExport={onExport}
-              onSendTest={onSendTest}
-              toolbarSlot={toolbarSlot}
-              frame={frame}
-            />
-          </ErrorBoundary>
-        </div>
-      </EmailEditorProvider>
+      <SavedBlocksProvider value={savedBlocksController}>
+        <EmailEditorProvider key={current.gen} editor={editor}>
+          <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
+            <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
+              {current.recoveredAt !== null && (
+                <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
+              )}
+              <Chrome
+                studioTheme={studioTheme}
+                onExport={onExport}
+                onSendTest={onSendTest}
+                toolbarSlot={toolbarSlot}
+                frame={frame}
+              />
+            </ErrorBoundary>
+          </div>
+        </EmailEditorProvider>
+      </SavedBlocksProvider>
     </EmailHostProvider>
   );
 });

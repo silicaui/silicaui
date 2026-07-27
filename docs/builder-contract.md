@@ -335,6 +335,54 @@ node against remove/move. See
 `<EmailBuilder frame>` — host chrome composed around an email without ever
 entering the document the host persists.
 
+### The saved-block library — a controlled prop, not host write hooks
+
+The Insert palette's **Saved** section (blocks an author saved with "Save as
+block") defaults to this browser's `localStorage`: durable across reloads and
+across every email document opened here, but not across a device or a user, and
+not shareable. A host lifts that ceiling by owning the list:
+
+```ts
+savedBlocks?: readonly SavedBlock[];
+onSavedBlocksChange?(next: SavedBlock[], change: SavedBlockChange): void;
+// change: {type:'save', block} | {type:'rename', id, name} | {type:'delete', id}
+```
+
+Supplying `savedBlocks` makes the library **controlled** in the ordinary React
+sense: the builder renders exactly that array, writes nothing to browser storage,
+and keeps no copy of its own. That is the whole reason this is a value/onChange
+pair rather than the `catalog()`-style read plus three fire-and-forget write
+callbacks it superficially resembles. Those callbacks would leave the builder
+holding an optimistic shadow list with no defined reconciliation: a
+server-assigned id, a rejected save, or another user's concurrent edit would each
+drift the palette away from the account with nothing to correct it. Here the
+host's persisted list *is* the rendered list, so all three reconcile by
+re-rendering.
+
+The corollary a host must implement: apply `next` to your own state immediately
+to keep the palette responsive while the request is in flight, since until the
+prop updates the palette still shows the previous list. A failed save then needs
+no special handling — don't apply `next`, and the block simply never appeared.
+
+Two other shapes fall out of the same prop pair. `savedBlocks` **without**
+`onSavedBlocksChange` is an insert-only curated library — the builder hides
+Save/rename/delete rather than offering controls that silently do nothing. And an
+**empty** `savedBlocks` array is a real empty account library, not a fallback to
+local: presence of the prop, not its contents, is what transfers ownership.
+
+Migrating an existing install: `readLocalSavedBlocks()` returns whatever this
+browser accumulated before the host took over (key
+`silicaui-email-saved-blocks`), and `clearLocalSavedBlocks()` drops it once the
+account has durably stored the upload. Skip that and an author's existing blocks
+vanish from the palette the moment `savedBlocks` is first supplied.
+
+This is deliberately NOT how the site builder's reusable components work: symbols
+live on `Site.symbols`, inside the document, and reach the host through the
+ordinary `onChange`. That's right for symbols (a symbol is scoped to the site
+that instantiates it, and instances must resolve against the same document) and
+wrong for saved blocks, which are an account-level library spanning every project
+a user opens.
+
 ---
 
 ## 6. Engine owns vs. host owns (the focus table)

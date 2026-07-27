@@ -21,7 +21,7 @@
   },
   {
     "name": "@wizeworks/silicaui-builder",
-    "purpose": "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react` (its own `EmailBuilderHost` seam, plus a host-owned `frame` for fixed chrome composed around — never into — the authored email, and `locked` nodes for undeletable in-document blocks).",
+    "purpose": "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react` (its own `EmailBuilderHost` seam, plus a host-owned `frame` for fixed chrome composed around — never into — the authored email, `locked` nodes for undeletable in-document blocks, and a controlled `savedBlocks`/`onSavedBlocksChange` pair so the reusable-block library can live on the account instead of one browser).",
     "install": "pnpm add @wizeworks/silicaui-builder @wizeworks/silicaui-react"
   },
   {
