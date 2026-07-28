@@ -58,7 +58,14 @@ function metaAttrs(node: ElementNode | ComponentNode | HostNode, opts: ToHtmlOpt
     if (d.kind === "value") out += attr("data-sui-bind", d.ref);
     else if (d.kind === "html") out += attr("data-sui-html", d.ref);
     else if (d.kind === "collection") out += attr("data-sui-repeat", d.ref);
-    else {
+    else if (d.kind === "visible") {
+      // An UNRESOLVED tree reaching `toHtml` keeps the marker, like every other
+      // kind, so a downstream runtime can still make the call. A resolved tree
+      // never gets here: `resolveTree` has already dropped the node or consumed
+      // the marker.
+      out += attr("data-sui-visible", d.ref);
+      if (d.negate) out += attr("data-sui-visible-negate", "true");
+    } else {
       out += attr("data-sui-action", d.ref);
       if (d.href != null) out += attr("href", d.href);
     }

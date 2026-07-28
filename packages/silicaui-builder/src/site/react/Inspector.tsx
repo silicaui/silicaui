@@ -17,14 +17,17 @@ import { rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/s
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useTheme } from "./editor-context";
 import { useHost } from "./host-context";
-import type { HostPropDef, InspectorPanelCtx } from "./host";
+import type { AssetRef, HostPropDef, InspectorPanelCtx } from "./host";
+import { BREAKPOINT_CHOICES, useBreakpoint } from "./breakpoint-context";
+import { tokenStateAt } from "../class-tokens";
+import type { TokenState } from "../class-tokens";
 import { Icon } from "../../shared/react/Icon";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 import { unbackedClasses } from "../class-support";
 import {
   FONT_SIZE, WEIGHT, ALIGN, PADDING, PAD_X, PAD_Y, RADIUS, WIDTH, MAX_WIDTH, POSITION,
   SELF_ALIGN, FLEX_CHILD, DISPLAY, DIRECTION, JUSTIFY, ITEMS, GAP, WRAP, GRID_COLS,
-  BTN_VARIANT, BTN_SIZE, ANIMATE_LOAD_PRESET, ANIMATE_SCROLL_PRESET, ANIMATE_HOVER_PRESET,
+  BTN_VARIANT, BTN_SIZE, OBJECT_FIT, OBJECT_POSITION, ANIMATE_LOAD_PRESET, ANIMATE_SCROLL_PRESET, ANIMATE_HOVER_PRESET,
   ANIMATE_DURATION, ANIMATE_DELAY, ANIMATE_TRIGGER, ALL_ANIMATE_PRESET_CLASSES,
 } from "../canvas-vocab";
 
@@ -33,9 +36,6 @@ import {
 // unresolved class once per session, not once per re-render.
 const warnedClasses = new Set<string>();
 const tokensOf = (cls: string | undefined): Set<string> => new Set((cls ?? "").split(/\s+/).filter(Boolean));
-/** Which member of `group` the class currently wears ("" = none). */
-const activeIn = (cls: string | undefined, group: readonly string[]): string =>
-  group.find((c) => tokensOf(cls).has(c)) ?? "";
 
 /** Title-case a color role name for a swatch tooltip ("base-content" → "Base content"). */
 const titleOf = (name: string): string => name.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
@@ -103,6 +103,9 @@ interface PropField {
   placeholder?: string;
 }
 const INPUT_TYPES = ["text", "email", "password", "number", "tel", "url", "search"] as const;
+/** Image `ratio` prop — the aspect box its ComponentDef maps to a utility.
+ *  Empty = no aspect box (the image keeps its intrinsic ratio). */
+const IMAGE_RATIOS = ["", "wide", "square", "portrait"] as const;
 const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
   Input: [
     { key: "type", label: "Type", control: "select", options: INPUT_TYPES },
@@ -158,6 +161,18 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
     { key: "title", label: "Title", control: "text" },
     { key: "value", label: "Value", control: "text" },
     { key: "desc", label: "Description", control: "text" },
+  ],
+  // Image — the source, its alt, and the aspect box. `srcset`/`sizes` are the
+  // responsive variants: a host's `pickAsset` fills them automatically, and the
+  // fields stay editable so a host WITHOUT an asset picker can still paste a set
+  // it generated elsewhere. Both are `text`, not `asset` — they're descriptor
+  // lists, not a single URL to browse for.
+  Image: [
+    { key: "src", label: "Image URL", control: "asset" },
+    { key: "alt", label: "Alt text", control: "text" },
+    { key: "ratio", label: "Aspect", control: "select", options: IMAGE_RATIOS },
+    { key: "srcset", label: "Responsive set", control: "text", placeholder: "/img-640.jpg 640w, /img-1280.jpg 1280w" },
+    { key: "sizes", label: "Rendered size", control: "text", placeholder: "(min-width: 60rem) 50vw, 100vw" },
   ],
   Avatar: [
     { key: "src", label: "Image URL", control: "asset" },
@@ -216,10 +231,26 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 
 /** One labeled control row. `testid` scopes it for tests — several rows share
  *  chip labels ("Start", "3"), so a bare label lookup is ambiguous. */
-function Row({ label, testid, children }: { label: string; testid?: string; children: React.ReactNode }) {
+function Row({
+  label,
+  testid,
+  state,
+  children,
+}: {
+  label: string;
+  testid?: string;
+  /** When given, the row shows whether its value is inherited from a smaller
+   *  breakpoint — see `Inherited`. Rows whose control isn't breakpoint-scoped
+   *  (content, links, attributes) omit it. */
+  state?: TokenState;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mb-2 last:mb-0" data-testid={testid}>
-      <div className="mb-1 text-xs text-base-content/55">{label}</div>
+      <div className="mb-1 flex items-baseline gap-2 text-xs text-base-content">
+        <span>{label}</span>
+        {state && <Inherited state={state} />}
+      </div>
       {children}
     </div>
   );
@@ -248,6 +279,100 @@ function ChipGroup({
           onClick={() => onPick(o.cls)}
         >
           {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Which SIZE the Design controls below are editing. Sits at the top of the tab,
+ * above everything it governs, because it changes what every control beneath it
+ * means — an author who misses it is authoring at the wrong breakpoint and has
+ * no way to tell.
+ *
+ * "All sizes" is the base value everything inherits, and the default. Picking a
+ * larger one writes a container variant that adds from that width up; it never
+ * removes the base, so the small screen keeps working whatever happens here.
+ */
+function BreakpointBar() {
+  const { prefix, setPrefix, choices } = useBreakpoint();
+  return (
+    <div
+      className="sticky top-0 z-10 flex items-center gap-2 border-b border-base-300 bg-base-100 px-3 py-2"
+      data-testid="breakpoint-bar"
+    >
+      <span className="text-xs font-medium text-base-content">Editing</span>
+      <div className="flex flex-wrap gap-1">
+        {choices.map((c) => (
+          <button
+            key={c.prefix || "base"}
+            type="button"
+            title={c.hint}
+            aria-pressed={prefix === c.prefix}
+            data-testid={`breakpoint-${c.prefix || "base"}`}
+            className={`btn btn-xs ${prefix === c.prefix ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setPrefix(c.prefix)}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Marks a control whose value came from a SMALLER breakpoint rather than from
+ * this one. Without it the cascade is invisible: a chip reading "3 columns" at
+ * Desktop looks identical whether that was set here or inherited from base, and
+ * the author can't tell whether changing it will affect mobile too.
+ *
+ * Nothing renders at base — there is nothing below it to inherit from.
+ */
+function Inherited({ state }: { state: TokenState }) {
+  if (!state.inherited || !state.value) return null;
+  const from = BREAKPOINT_CHOICES.find((c) => c.prefix === state.setAt);
+  return (
+    <span
+      className="text-xs text-base-content"
+      title={`Inherited from ${from?.label ?? "a smaller size"} — changing it here overrides only this size and up`}
+      data-testid="token-inherited"
+    >
+      ↳ from {from?.label ?? "smaller"}
+    </span>
+  );
+}
+
+/** Is this node an image — the raw element or the `Image` atom that lowers to
+ *  one? Both wear `object-*` on the same rendered `<img>`. */
+function isImageNode(node: Node): boolean {
+  if (node.kind === "element") return node.tag === "img";
+  return node.kind === "component" && (node.component === "Image" || node.component === "Avatar");
+}
+
+/**
+ * The focal point as a literal 3×3 grid — where the subject sits once the image
+ * is cropped. Rendered as the shape it describes rather than nine chips in a
+ * row, because "top left" is a position and a list of positions is a worse way
+ * to show positions. Centre doubles as the reset (it IS the CSS default), so
+ * there's no separate Auto that means the same thing.
+ */
+function FocalGrid({ active, onPick }: { active: string; onPick: (cls: string) => void }) {
+  return (
+    <div className="grid w-fit grid-cols-3 gap-1" data-testid="focal-grid">
+      {OBJECT_POSITION.map((o) => (
+        <button
+          key={o.cls}
+          type="button"
+          title={o.label}
+          aria-label={o.label}
+          aria-pressed={active === o.cls}
+          data-testid={`focal-${o.cls}`}
+          className={`btn btn-xs btn-square ${active === o.cls ? "btn-primary" : "btn-ghost"}`}
+          onClick={() => onPick(active === o.cls ? "" : o.cls)}
+        >
+          <span className="size-1.5 rounded-full bg-current" />
         </button>
       ))}
     </div>
@@ -409,6 +534,11 @@ export function Inspector() {
  */
 function DesignTab({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
+  // Every semantic control below reads AND writes at this breakpoint. Reading at
+  // one and writing at another is the failure mode to avoid: the chip would show
+  // the base value while the click landed on `@5xl:`, so the control would look
+  // like it did nothing.
+  const { prefix } = useBreakpoint();
   const theme = useTheme();
   const mode = theme.mode ?? "light";
   const textColors = React.useMemo(() => textColorOptions(theme, mode), [theme, mode]);
@@ -427,68 +557,84 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   );
 
   const cls = node.kind !== "outlet" ? node.class ?? "" : "";
+
+  /**
+   * Write one member of a group AT THE ACTIVE BREAKPOINT. Delegates to the
+   * engine's `setClassToken`, which owns the prefix arithmetic and the
+   * container guarantee — the Inspector doesn't re-implement either, and
+   * neither does any other host.
+   */
   const setToken = (group: readonly string[], value: string) => {
-    const t = tokensOf(cls);
-    for (const c of group) t.delete(c);
-    if (value) t.add(value);
-    editor.setClass(id, [...t].join(" "));
+    editor.setClassToken(id, group, value, prefix);
   };
+  /** Several groups in ONE action — a display switch that also clears the
+   *  classes the new display can't honor, or a padding shorthand expanding onto
+   *  the axis it's leaving. Chained through the same engine seam (each call
+   *  re-reads the node, so the edits compose) inside one batch, so it's a single
+   *  undo step and a single ops emission. */
+  const commitTokens = (edits: readonly (readonly [readonly string[], string])[]) =>
+    editor.batch(() => {
+      for (const [group, value] of edits) editor.setClassToken(id, group, value, prefix);
+    });
+  /** What a group resolves to HERE, and whether it was set here or inherited
+   *  from a smaller size. */
+  const tokenAt = (group: readonly string[]): TokenState => tokenStateAt(cls, group, prefix);
+  const activeAt = (group: readonly string[]): string => tokenAt(group).value;
 
   // Padding: `p-4` is a shorthand for both axes, so editing ONE axis must expand
   // it rather than drop it — picking a new X on a `p-4` node has to leave the
   // vertical padding standing at 4 (as `py-4`), not silently zero it. The opposite
   // axis is looked up BY INDEX across the aligned scales, keeping it a literal.
-  const padAll = activeIn(cls, PADDING.map((o) => o.cls));
-  const padX = activeIn(cls, PAD_X.map((o) => o.cls));
-  const padY = activeIn(cls, PAD_Y.map((o) => o.cls));
-  const setPadAll = (value: string) => {
-    const t = tokensOf(cls);
-    for (const c of [...PADDING, ...PAD_X, ...PAD_Y].map((o) => o.cls)) t.delete(c);
-    if (value) t.add(value);
-    editor.setClass(id, [...t].join(" "));
-  };
+  const padAll = activeAt(PADDING.map((o) => o.cls));
+  const padX = activeAt(PAD_X.map((o) => o.cls));
+  const padY = activeAt(PAD_Y.map((o) => o.cls));
+  const setPadAll = (value: string) =>
+    commitTokens([
+      [PAD_X.map((o) => o.cls), ""],
+      [PAD_Y.map((o) => o.cls), ""],
+      [PADDING.map((o) => o.cls), value],
+    ]);
   const setPadAxis = (axis: "x" | "y", value: string) => {
-    const t = tokensOf(cls);
-    const own = axis === "x" ? PAD_X : PAD_Y;
+    const own = (axis === "x" ? PAD_X : PAD_Y).map((o) => o.cls);
     const other = axis === "x" ? PAD_Y : PAD_X;
     const otherWorn = axis === "x" ? padY : padX;
     // Expand the shorthand onto the axis we're NOT editing before dropping it.
     const i = PADDING.findIndex((o) => o.cls === padAll);
-    if (i !== -1) {
-      t.delete(padAll);
-      if (!otherWorn) t.add(other[i]!.cls);
-    }
-    for (const c of own.map((o) => o.cls)) t.delete(c);
-    if (value) t.add(value);
-    editor.setClass(id, [...t].join(" "));
+    commitTokens([
+      ...(i !== -1 && !otherWorn ? ([[other.map((o) => o.cls), other[i]!.cls]] as const) : []),
+      ...(i !== -1 ? ([[PADDING.map((o) => o.cls), ""]] as const) : []),
+      [own, value],
+    ]);
   };
 
   // Container layout: which display the node wears drives which child-arrangement
   // rows are meaningful. Switching display drops the classes the new display can't
   // honor (a `flex-col` left on a grid, a `grid-cols-3` left on a flex row) so the
   // class set never carries inert leftovers — same hygiene as setAnimateTrigger.
-  const display = activeIn(cls, DISPLAY.map((o) => o.cls));
+  const display = activeAt(DISPLAY.map((o) => o.cls));
   const FLEX_ONLY = [...DIRECTION, ...WRAP].map((o) => o.cls);
   const GRID_ONLY = GRID_COLS.map((o) => o.cls);
   const SHARED_AXIS = [...JUSTIFY, ...ITEMS, ...GAP].map((o) => o.cls);
   const setDisplay = (next: string) => {
-    const t = tokensOf(cls);
-    for (const c of DISPLAY.map((o) => o.cls)) t.delete(c);
     const drop = next === "flex" ? GRID_ONLY : next === "grid" ? FLEX_ONLY : [...FLEX_ONLY, ...GRID_ONLY, ...SHARED_AXIS];
-    for (const c of drop) t.delete(c);
-    if (next) t.add(next);
-    editor.setClass(id, [...t].join(" "));
+    commitTokens([
+      // Each dropped class is its own one-member group: clearing at THIS
+      // breakpoint only, so switching display on tablet doesn't silently strip
+      // the flex settings the base still needs.
+      ...drop.map((c) => [[c], ""] as [readonly string[], string]),
+      [DISPLAY.map((o) => o.cls), next],
+    ]);
   };
 
   // Animate: which trigger (if any) is active, derived from which preset
   // family's class is currently worn — same "read state back out of the class
   // string" approach as every other group here.
   const existingBehavior = node.kind !== "outlet" ? node.behavior : undefined;
-  const animateTrigger: "" | "load" | "scroll" | "hover" = activeIn(cls, ANIMATE_LOAD_PRESET.map((o) => o.cls))
+  const animateTrigger: "" | "load" | "scroll" | "hover" = activeAt(ANIMATE_LOAD_PRESET.map((o) => o.cls))
     ? "load"
-    : activeIn(cls, ANIMATE_SCROLL_PRESET.map((o) => o.cls))
+    : activeAt(ANIMATE_SCROLL_PRESET.map((o) => o.cls))
       ? "scroll"
-      : activeIn(cls, ANIMATE_HOVER_PRESET.map((o) => o.cls))
+      : activeAt(ANIMATE_HOVER_PRESET.map((o) => o.cls))
         ? "hover"
         : "";
   const animatePresetList =
@@ -498,56 +644,54 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   // it's disabled rather than silently stealing the slot.
   const behaviorConflict = !!existingBehavior && existingBehavior.type !== "reveal";
   const setAnimateTrigger = (next: "" | "load" | "scroll" | "hover") => {
-    const t = tokensOf(cls);
-    for (const c of ALL_ANIMATE_PRESET_CLASSES) t.delete(c);
-    if (next) {
-      const defaults = next === "load" ? ANIMATE_LOAD_PRESET : next === "scroll" ? ANIMATE_SCROLL_PRESET : ANIMATE_HOVER_PRESET;
-      t.add(defaults[0]!.cls);
-    }
-    editor.setClass(id, [...t].join(" "));
-    // Only ever touch OUR OWN "reveal" marker — never clobber an unrelated
-    // behavior root (Tabs, Carousel, …) the Scroll button is disabled for.
-    if (!existingBehavior || existingBehavior.type === "reveal") {
-      editor.setBehavior(id, next === "scroll" ? { type: "reveal", params: { once: true } } : undefined);
-    }
+    const defaults = next === "load" ? ANIMATE_LOAD_PRESET : next === "scroll" ? ANIMATE_SCROLL_PRESET : ANIMATE_HOVER_PRESET;
+    editor.batch(() => {
+      commitTokens([[ALL_ANIMATE_PRESET_CLASSES, next ? defaults[0]!.cls : ""]]);
+      // Only ever touch OUR OWN "reveal" marker — never clobber an unrelated
+      // behavior root (Tabs, Carousel, …) the Scroll button is disabled for.
+      if (!existingBehavior || existingBehavior.type === "reveal") {
+        editor.setBehavior(id, next === "scroll" ? { type: "reveal", params: { once: true } } : undefined);
+      }
+    });
   };
 
   return (
     <>
+      <BreakpointBar />
       {node.kind === "component" && node.component === "Button" && (
         <Group label="Button">
           <Row label="Color">
-            <SwatchGroup options={btnColors} active={activeIn(cls, btnColors.map((o) => o.cls))} onPick={(v) => setToken(btnColors.map((o) => o.cls), v)} />
+            <SwatchGroup options={btnColors} active={activeAt(btnColors.map((o) => o.cls))} onPick={(v) => setToken(btnColors.map((o) => o.cls), v)} />
           </Row>
           <Row label="Style">
-            <ChipGroup options={BTN_VARIANT} active={activeIn(cls, BTN_VARIANT.map((o) => o.cls))} onPick={(v) => setToken(BTN_VARIANT.map((o) => o.cls), v)} />
+            <ChipGroup options={BTN_VARIANT} active={activeAt(BTN_VARIANT.map((o) => o.cls))} onPick={(v) => setToken(BTN_VARIANT.map((o) => o.cls), v)} />
           </Row>
           <Row label="Size">
-            <ChipGroup options={BTN_SIZE} active={activeIn(cls, BTN_SIZE.map((o) => o.cls))} onPick={(v) => setToken(BTN_SIZE.map((o) => o.cls), v)} />
+            <ChipGroup options={BTN_SIZE} active={activeAt(BTN_SIZE.map((o) => o.cls))} onPick={(v) => setToken(BTN_SIZE.map((o) => o.cls), v)} />
           </Row>
         </Group>
       )}
 
       <Group label="Text">
         <Row label="Color">
-          <SwatchGroup options={textColors} active={activeIn(cls, textColors.map((o) => o.cls))} onPick={(v) => setToken(textColors.map((o) => o.cls), v)} />
+          <SwatchGroup options={textColors} active={activeAt(textColors.map((o) => o.cls))} onPick={(v) => setToken(textColors.map((o) => o.cls), v)} />
         </Row>
         <Row label="Size">
-          <ChipGroup options={FONT_SIZE} active={activeIn(cls, FONT_SIZE.map((o) => o.cls))} onPick={(v) => setToken(FONT_SIZE.map((o) => o.cls), v)} />
+          <ChipGroup options={FONT_SIZE} active={activeAt(FONT_SIZE.map((o) => o.cls))} onPick={(v) => setToken(FONT_SIZE.map((o) => o.cls), v)} />
         </Row>
         <Row label="Weight">
-          <ChipGroup options={WEIGHT} active={activeIn(cls, WEIGHT.map((o) => o.cls))} onPick={(v) => setToken(WEIGHT.map((o) => o.cls), v)} />
+          <ChipGroup options={WEIGHT} active={activeAt(WEIGHT.map((o) => o.cls))} onPick={(v) => setToken(WEIGHT.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Align" testid="row-text-align">
-          <ChipGroup options={ALIGN} active={activeIn(cls, ALIGN.map((o) => o.cls))} onPick={(v) => setToken(ALIGN.map((o) => o.cls), v)} />
+        <Row label="Align" testid="row-text-align" state={tokenAt(ALIGN.map((o) => o.cls))}>
+          <ChipGroup options={ALIGN} active={activeAt(ALIGN.map((o) => o.cls))} onPick={(v) => setToken(ALIGN.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
       <Group label="Surface">
         <Row label="Background">
-          <SwatchGroup options={bgColors} active={activeIn(cls, bgColors.map((o) => o.cls))} onPick={(v) => setToken(bgColors.map((o) => o.cls), v)} />
+          <SwatchGroup options={bgColors} active={activeAt(bgColors.map((o) => o.cls))} onPick={(v) => setToken(bgColors.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Padding" testid="row-padding">
+        <Row label="Padding" testid="row-padding" state={tokenAt(PADDING.map((o) => o.cls))}>
           <ChipGroup options={PADDING} active={padAll} onPick={setPadAll} />
         </Row>
         <Row label="Padding X" testid="row-padding-x">
@@ -557,9 +701,20 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
           <ChipGroup options={PAD_Y} active={padY} onPick={(v) => setPadAxis("y", v)} />
         </Row>
         <Row label="Corners">
-          <RadiusSwatchGroup options={radiusOpts} active={activeIn(cls, RADIUS.map((o) => o.cls))} onPick={(v) => setToken(RADIUS.map((o) => o.cls), v)} />
+          <RadiusSwatchGroup options={radiusOpts} active={activeAt(RADIUS.map((o) => o.cls))} onPick={(v) => setToken(RADIUS.map((o) => o.cls), v)} />
         </Row>
       </Group>
+
+      {isImageNode(node) && (
+        <Group label="Image">
+          <Row label="Fit">
+            <ChipGroup options={OBJECT_FIT} active={activeAt(OBJECT_FIT.map((o) => o.cls))} onPick={(v) => setToken(OBJECT_FIT.map((o) => o.cls), v)} />
+          </Row>
+          <Row label="Focal point">
+            <FocalGrid active={activeAt(OBJECT_POSITION.map((o) => o.cls))} onPick={(v) => setToken(OBJECT_POSITION.map((o) => o.cls), v)} />
+          </Row>
+        </Group>
+      )}
 
       <Group label="Layout">
         <Row label="Display">
@@ -587,48 +742,48 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         </Row>
 
         {display === "flex" && (
-          <Row label="Direction" testid="row-direction">
-            <ChipGroup options={DIRECTION} active={activeIn(cls, DIRECTION.map((o) => o.cls))} onPick={(v) => setToken(DIRECTION.map((o) => o.cls), v)} />
+          <Row label="Direction" testid="row-direction" state={tokenAt(DIRECTION.map((o) => o.cls))}>
+            <ChipGroup options={DIRECTION} active={activeAt(DIRECTION.map((o) => o.cls))} onPick={(v) => setToken(DIRECTION.map((o) => o.cls), v)} />
           </Row>
         )}
         {display === "grid" && (
-          <Row label="Columns" testid="row-columns">
-            <ChipGroup options={GRID_COLS} active={activeIn(cls, GRID_COLS.map((o) => o.cls))} onPick={(v) => setToken(GRID_COLS.map((o) => o.cls), v)} />
+          <Row label="Columns" testid="row-columns" state={tokenAt(GRID_COLS.map((o) => o.cls))}>
+            <ChipGroup options={GRID_COLS} active={activeAt(GRID_COLS.map((o) => o.cls))} onPick={(v) => setToken(GRID_COLS.map((o) => o.cls), v)} />
           </Row>
         )}
         {(display === "flex" || display === "grid") && (
           <>
-            <Row label="Justify" testid="row-justify">
-              <ChipGroup options={JUSTIFY} active={activeIn(cls, JUSTIFY.map((o) => o.cls))} onPick={(v) => setToken(JUSTIFY.map((o) => o.cls), v)} />
+            <Row label="Justify" testid="row-justify" state={tokenAt(JUSTIFY.map((o) => o.cls))}>
+              <ChipGroup options={JUSTIFY} active={activeAt(JUSTIFY.map((o) => o.cls))} onPick={(v) => setToken(JUSTIFY.map((o) => o.cls), v)} />
             </Row>
-            <Row label="Align" testid="row-align">
-              <ChipGroup options={ITEMS} active={activeIn(cls, ITEMS.map((o) => o.cls))} onPick={(v) => setToken(ITEMS.map((o) => o.cls), v)} />
+            <Row label="Align" testid="row-align" state={tokenAt(ITEMS.map((o) => o.cls))}>
+              <ChipGroup options={ITEMS} active={activeAt(ITEMS.map((o) => o.cls))} onPick={(v) => setToken(ITEMS.map((o) => o.cls), v)} />
             </Row>
-            <Row label="Gap" testid="row-gap">
-              <ChipGroup options={GAP} active={activeIn(cls, GAP.map((o) => o.cls))} onPick={(v) => setToken(GAP.map((o) => o.cls), v)} />
+            <Row label="Gap" testid="row-gap" state={tokenAt(GAP.map((o) => o.cls))}>
+              <ChipGroup options={GAP} active={activeAt(GAP.map((o) => o.cls))} onPick={(v) => setToken(GAP.map((o) => o.cls), v)} />
             </Row>
           </>
         )}
         {display === "flex" && (
           <Row label="Wrap" testid="row-wrap">
-            <ChipGroup options={WRAP} active={activeIn(cls, WRAP.map((o) => o.cls))} onPick={(v) => setToken(WRAP.map((o) => o.cls), v)} />
+            <ChipGroup options={WRAP} active={activeAt(WRAP.map((o) => o.cls))} onPick={(v) => setToken(WRAP.map((o) => o.cls), v)} />
           </Row>
         )}
 
-        <Row label="Width">
-          <ChipGroup options={WIDTH} active={activeIn(cls, WIDTH.map((o) => o.cls))} onPick={(v) => setToken(WIDTH.map((o) => o.cls), v)} />
+        <Row label="Width" state={tokenAt(WIDTH.map((o) => o.cls))}>
+          <ChipGroup options={WIDTH} active={activeAt(WIDTH.map((o) => o.cls))} onPick={(v) => setToken(WIDTH.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Max width">
-          <ChipGroup options={MAX_WIDTH} active={activeIn(cls, MAX_WIDTH.map((o) => o.cls))} onPick={(v) => setToken(MAX_WIDTH.map((o) => o.cls), v)} />
+        <Row label="Max width" state={tokenAt(MAX_WIDTH.map((o) => o.cls))}>
+          <ChipGroup options={MAX_WIDTH} active={activeAt(MAX_WIDTH.map((o) => o.cls))} onPick={(v) => setToken(MAX_WIDTH.map((o) => o.cls), v)} />
         </Row>
         <Row label="Position">
-          <ChipGroup options={POSITION} active={activeIn(cls, POSITION.map((o) => o.cls))} onPick={(v) => setToken(POSITION.map((o) => o.cls), v)} />
+          <ChipGroup options={POSITION} active={activeAt(POSITION.map((o) => o.cls))} onPick={(v) => setToken(POSITION.map((o) => o.cls), v)} />
         </Row>
         <Row label="Self align" testid="row-self-align">
-          <ChipGroup options={SELF_ALIGN} active={activeIn(cls, SELF_ALIGN.map((o) => o.cls))} onPick={(v) => setToken(SELF_ALIGN.map((o) => o.cls), v)} />
+          <ChipGroup options={SELF_ALIGN} active={activeAt(SELF_ALIGN.map((o) => o.cls))} onPick={(v) => setToken(SELF_ALIGN.map((o) => o.cls), v)} />
         </Row>
         <Row label="Self size" testid="row-self-size">
-          <ChipGroup options={FLEX_CHILD} active={activeIn(cls, FLEX_CHILD.map((o) => o.cls))} onPick={(v) => setToken(FLEX_CHILD.map((o) => o.cls), v)} />
+          <ChipGroup options={FLEX_CHILD} active={activeAt(FLEX_CHILD.map((o) => o.cls))} onPick={(v) => setToken(FLEX_CHILD.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
@@ -667,21 +822,21 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
             <Row label="Preset">
               <ChipGroup
                 options={animatePresetList}
-                active={activeIn(cls, animatePresetList.map((o) => o.cls))}
+                active={activeAt(animatePresetList.map((o) => o.cls))}
                 onPick={(v) => setToken(animatePresetList.map((o) => o.cls), v)}
               />
             </Row>
             <Row label="Speed">
               <ChipGroup
                 options={ANIMATE_DURATION}
-                active={activeIn(cls, ANIMATE_DURATION.map((o) => o.cls))}
+                active={activeAt(ANIMATE_DURATION.map((o) => o.cls))}
                 onPick={(v) => setToken(ANIMATE_DURATION.map((o) => o.cls), v)}
               />
             </Row>
             <Row label="Delay">
               <ChipGroup
                 options={ANIMATE_DELAY}
-                active={activeIn(cls, ANIMATE_DELAY.map((o) => o.cls))}
+                active={activeAt(ANIMATE_DELAY.map((o) => o.cls))}
                 onPick={(v) => setToken(ANIMATE_DELAY.map((o) => o.cls), v)}
               />
             </Row>
@@ -953,6 +1108,7 @@ const DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "value", label: "Value (fill this node)" },
   { value: "html", label: "Rich text / HTML (trusted)" },
   { value: "collection", label: "Collection (repeat children)" },
+  { value: "visible", label: "Visible when… (show/hide this node)" },
   { value: "action", label: "Action (host handler)" },
 ];
 
@@ -982,28 +1138,43 @@ function DataSection({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
   const host = useHost();
   const data = node.kind !== "outlet" ? node.data : undefined;
-  const kind = data?.kind ?? "";
-  const ref = data?.ref ?? "";
-  const href = data?.kind === "action" ? data.href ?? "" : "";
-  const attr = data?.kind === "value" ? data.attr ?? "" : "";
-  const omitWhenEmpty = data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false;
-  const write = (k: string, r: string, h: string, a: string, omit = omitWhenEmpty) => {
-    if (!k) return editor.setData(id, undefined);
-    if (k === "action") {
-      const b: DataBinding = { kind: "action", ref: r };
-      if (h) b.href = h;
-      editor.setData(id, b);
-    } else if (k === "value") {
-      const b: DataBinding = { kind: "value", ref: r };
-      if (a) b.attr = a;
-      editor.setData(id, b);
-    } else if (k === "html") {
-      editor.setData(id, { kind: "html", ref: r });
-    } else {
-      const b: DataBinding = { kind: "collection", ref: r };
-      if (omit) b.omitWhenEmpty = true;
-      editor.setData(id, b);
+
+  // Current state as one bag. Every per-kind field reads from here, so switching
+  // kinds keeps what still applies (the ref, above all) instead of resetting.
+  const current = {
+    kind: data?.kind ?? "",
+    ref: data?.ref ?? "",
+    href: data?.kind === "action" ? data.href ?? "" : "",
+    attr: data?.kind === "value" ? data.attr ?? "" : "",
+    omitWhenEmpty: data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false,
+    negate: data?.kind === "visible" ? (data.negate ?? false) : false,
+  };
+  const { kind, ref, href, attr, omitWhenEmpty, negate } = current;
+
+  /** Commit a PATCH over the current binding — a bag, not six positional args,
+   *  so adding a per-kind field doesn't rewrite every call site. */
+  const write = (patch: Partial<typeof current>) => {
+    const next = { ...current, ...patch };
+    if (!next.kind) return editor.setData(id, undefined);
+    if (next.kind === "action") {
+      const b: DataBinding = { kind: "action", ref: next.ref };
+      if (next.href) b.href = next.href;
+      return editor.setData(id, b);
     }
+    if (next.kind === "value") {
+      const b: DataBinding = { kind: "value", ref: next.ref };
+      if (next.attr) b.attr = next.attr;
+      return editor.setData(id, b);
+    }
+    if (next.kind === "html") return editor.setData(id, { kind: "html", ref: next.ref });
+    if (next.kind === "visible") {
+      const b: DataBinding = { kind: "visible", ref: next.ref };
+      if (next.negate) b.negate = true;
+      return editor.setData(id, b);
+    }
+    const b: DataBinding = { kind: "collection", ref: next.ref };
+    if (next.omitWhenEmpty) b.omitWhenEmpty = true;
+    return editor.setData(id, b);
   };
   const options = React.useMemo(() => {
     if (!host?.dataSources) return undefined;
@@ -1015,7 +1186,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
   return (
     <Group label="Data binding">
       <Row label="Bind">
-        <NativeSelect data-testid="data-kind" size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href, attr)}>
+        <NativeSelect data-testid="data-kind" size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write({ kind: e.target.value })}>
           {DATA_KINDS.map((k) => (
             <option key={k.value} value={k.value}>
               {k.label}
@@ -1026,7 +1197,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       {kind && (
         <Row label="Reference">
           {options ? (
-            <NativeSelect data-testid="data-ref-picker" size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(kind, e.target.value, href, attr)}>
+            <NativeSelect data-testid="data-ref-picker" size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write({ ref: e.target.value })}>
               <option value="">Choose a field…</option>
               {options.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -1035,25 +1206,33 @@ function DataSection({ id, node }: { id: string; node: Node }) {
               ))}
             </NativeSelect>
           ) : (
-            <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write(kind, v, href, attr)} />
+            <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write({ ref: v })} />
           )}
         </Row>
       )}
       {kind === "collection" && (
         <Row label="Omit when empty">
-          <label className="flex items-center gap-2 text-xs text-base-content/60">
+          <label className="flex items-center gap-2 text-xs text-base-content">
             <Toggle
               size="sm"
               checked={omitWhenEmpty}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => write(kind, ref, href, attr, e.target.checked)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => write({ omitWhenEmpty: e.target.checked })}
             />
             {omitWhenEmpty ? "Node is dropped" : "Renders a placeholder"}
           </label>
         </Row>
       )}
+      {kind === "visible" && (
+        <Row label="Condition">
+          <label className="flex items-center gap-2 text-xs text-base-content" data-testid="data-visible-negate">
+            <Toggle size="sm" checked={negate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => write({ negate: e.target.checked })} />
+            {negate ? "Shown when EMPTY" : "Shown when it has a value"}
+          </label>
+        </Row>
+      )}
       {kind === "action" && (
         <Row label="Fallback href">
-          <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write(kind, ref, v, attr)} />
+          <CommitInput value={href} reseed={id} placeholder="optional link fallback" onCommit={(v) => write({ href: v })} />
         </Row>
       )}
       {kind === "value" && (
@@ -1063,11 +1242,13 @@ function DataSection({ id, node }: { id: string; node: Node }) {
             reseed={id}
             placeholder="auto-detected (e.g. leave blank for text/src)"
             mono
-            onCommit={(v) => write(kind, ref, href, v)}
+            onCommit={(v) => write({ attr: v })}
           />
         </Row>
       )}
-      {kind && kind !== "action" && ref && <DataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} />}
+      {kind && kind !== "action" && ref && (
+        <DataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} negate={negate} />
+      )}
     </Group>
   );
 }
@@ -1097,7 +1278,19 @@ function UnknownRef({ ref_ }: { ref_: string }) {
  * top-level scope (`{}`); a bind nested under a `repeat` ancestor has no single
  * representative item to preview, so it says so rather than guessing one.
  */
-function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: string; ref_: string; omitWhenEmpty?: boolean }) {
+function DataPreview({
+  id,
+  kind,
+  ref_,
+  omitWhenEmpty,
+  negate,
+}: {
+  id: string;
+  kind: string;
+  ref_: string;
+  omitWhenEmpty?: boolean;
+  negate?: boolean;
+}) {
   const editor = useEditor();
   const host = useHost();
   const nestedUnderRepeat = React.useMemo(
@@ -1146,6 +1339,25 @@ function DataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: stri
       </Row>
     );
   }
+  if (kind === "visible") {
+    if (!host?.resolveBinding) return null;
+    const resolved = host.resolveBinding(ref_, {});
+    if (!resolved) return <UnknownRef ref_={ref_} />;
+    // Mirrors `isPresent` in the resolver. Kept in step by the shared rule being
+    // short and stated: nothing / "" / false / [] is absent, everything else —
+    // including 0 — is present.
+    const v = resolved.value;
+    const present =
+      resolved.visible === false ? false : Array.isArray(v) ? v.length > 0 : !(v == null || v === false || v === "");
+    const shown = negate ? !present : present;
+    return (
+      <Row label="Preview">
+        <p className="text-xs text-base-content" data-testid="data-preview">
+          {shown ? "Shown — the node renders" : "Hidden — the node and its children are dropped"}
+        </p>
+      </Row>
+    );
+  }
   if (kind === "collection") {
     if (!host?.resolveCollection) return null;
     const items = host.resolveCollection(ref_, {});
@@ -1179,7 +1391,16 @@ function AccessibilitySection({ id, node, isImg }: { id: string; node: ElementNo
           id={id}
           field={{ key: "src", label: "Source", control: "asset" }}
           value={val("src")}
-          onPick={set("src")}
+          onPick={(asset) =>
+            // One action, so a picked image lands as a single undo step — and so
+            // the variants can never persist without the src they describe.
+            editor.batch(() => {
+              editor.setAttr(id, "src", asset.url || undefined);
+              editor.setAttr(id, "srcset", asset.srcset || undefined);
+              editor.setAttr(id, "sizes", asset.sizes || undefined);
+              if (asset.alt) editor.setAttr(id, "alt", asset.alt);
+            })
+          }
         />
       )}
       {isImg && (
@@ -1687,7 +1908,18 @@ function PropRow({ id, node, field }: { id: string; node: ComponentNode; field: 
     return (
       <AssetProp
         value={raw != null ? String(raw) : ""}
-        onPick={(url) => editor.setProp(id, field.key, url || undefined)}
+        onPick={(asset) =>
+          editor.batch(() => {
+            editor.setProp(id, field.key, asset.url || undefined);
+            // Only the PRIMARY source field carries responsive variants — a
+            // component's secondary asset props (a poster, a fallback) have no
+            // `srcset` in their expansion to receive them.
+            if (field.key === "src") {
+              editor.setProp(id, "srcset", asset.srcset || undefined);
+              editor.setProp(id, "sizes", asset.sizes || undefined);
+            }
+          })
+        }
         field={field}
         id={id}
       />
@@ -1696,20 +1928,37 @@ function PropRow({ id, node, field }: { id: string; node: ComponentNode; field: 
   return <TextProp id={id} field={field} value={raw != null ? String(raw) : ""} />;
 }
 
-/** A URL field with an optional "Browse" button when the host supplies
- *  `pickAsset` — without a host, it's a plain text field (paste a URL). */
-function AssetProp({ id, field, value, onPick }: { id: string; field: PropField; value: string; onPick: (url: string) => void }) {
+/**
+ * A URL field with an optional "Browse" button when the host supplies
+ * `pickAsset` — without a host, it's a plain text field (paste a URL).
+ *
+ * `onPick` receives the whole picked asset, not just its URL, because a host's
+ * picker can hand back the responsive variants it already generated
+ * (`srcset`/`sizes`). Typing a URL by hand yields `{ url }` alone — and clears
+ * any variants that were there, since they described a different image.
+ */
+function AssetProp({
+  id,
+  field,
+  value,
+  onPick,
+}: {
+  id: string;
+  field: PropField;
+  value: string;
+  onPick: (asset: AssetRef) => void;
+}) {
   const host = useHost();
   const [draft, setDraft] = React.useState(value);
   React.useEffect(() => setDraft(value), [value, id]);
   const commit = () => {
-    if (draft !== value) onPick(draft);
+    if (draft !== value) onPick({ url: draft });
   };
   const browse = async () => {
     const asset = await host?.pickAsset?.("image");
     if (asset) {
       setDraft(asset.url);
-      onPick(asset.url);
+      onPick(asset);
     }
   };
   return (

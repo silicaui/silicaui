@@ -580,6 +580,35 @@ variants** (`md:`/`lg:`) — in an element canvas they'd read the host viewport,
 canvas, and break device preview. (The base component library stays
 viewport-agnostic; this is a blocks/builder commitment only — §1.)
 
+**Authoring per breakpoint.** `Editor.setClassToken(id, group, value, prefix)` sets
+one member of a mutually-exclusive class group AT one breakpoint, leaving the same
+group at every other breakpoint alone; `classTokenAt` reads it back with the
+mobile-first cascade resolved, so a control can show a value as **inherited** from a
+smaller size rather than pretending it was set here. The Inspector's breakpoint
+selector starts at **base** and follows the device toggle once the author moves it —
+deriving it from the device alone defaults wrong, because the canvas opens on Desktop
+and every first edit would land on `@5xl:`.
+
+Three rungs are offered (base / `@3xl:` / `@5xl:`), one per device position, so what
+you edit is always something the canvas can show you. The full container ladder stays
+reachable through the raw Classes field.
+
+**The container guarantee.** A container variant only does anything if an ancestor
+establishes a container context, so `setClassToken` calls `ensureContainer`, which
+adds `@container` to the **active tree root** if nothing above the node already has
+one. The root, not the parent: a query measures its nearest container ancestor, so a
+container on the parent would make a node inside a half-width grid cell measure the
+cell — and `@3xl:` would never match at a 768px canvas. `lintTree` reports any
+container variant that still has no container above it (a paste, an import); it is
+the one check a host's `ClassValidator` provably cannot do, since that sees the class
+string and not the tree.
+
+**Live documents.** Viewport variants are rejected by default at write time too —
+`EditorOptions.viewportVariants`, defaulting to `"reject"`. It is a **policy, not the
+security floor**: a viewport variant is valid CSS, merely dishonest in an element
+canvas, so a host whose output really is viewport-sized can lift it. The floor
+(`validateClassString`) stays un-liftable and holds only what is never legitimate.
+
 ### 9.5 Theme editing
 
 A theme panel edits `theme.tokens` (+ the `dark` overrides); `setThemeMode` previews
@@ -622,6 +651,24 @@ edit the layout *as* the root).
 ```ts
 interface Frame { root: Node; /* contains exactly one Outlet */ editable: boolean }
 ```
+
+**Per-page layouts.** `Site.frame` is the DEFAULT shell; `Site.frames` holds
+additional named ones, and a page picks with `Page.frameId` — a **tri-state** where
+the two falsy-looking values mean opposite things:
+
+| `frameId` | meaning |
+| --- | --- |
+| absent | the site default (`Site.frame`) — what every page did before this existed |
+| `null` | **no frame**: the page renders bare, header and footer included |
+| a string | the named frame at `Site.frames[frameId]` |
+
+`null` is the feature: a campaign or landing page with no site chrome was
+unrepresentable while every page took the one site frame. It's a single field rather
+than `frameId` + a `frameless` flag so `{ frameId: "docs", frameless: true }` can't be
+written at all. `frameFor(site, page)` is the one resolution every projection goes
+through, and a **dangling** `frameId` resolves to no frame rather than falling back to
+the default — the author moved this page off it deliberately, and quietly restoring
+the default header is the worse answer. `frameDiagnostic` reports it instead.
 
 ### 9.8 Behavior preview
 

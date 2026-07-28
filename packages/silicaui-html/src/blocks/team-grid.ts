@@ -11,7 +11,7 @@ const member = (name: string, role: string) =>
       el("div", undefined, {
         children: [
           el("p", "font-semibold text-base-content", { text: name }),
-          el("p", "text-sm text-base-content/60", { text: role }),
+          el("p", "text-sm text-base-content", { text: role }),
         ],
       }),
     ],

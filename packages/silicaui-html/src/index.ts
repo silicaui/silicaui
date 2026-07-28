@@ -46,11 +46,11 @@ export type { MakeId } from "./stamp";
 export { generateKeyBetween, compareOrd, ordNeighbors, ordAt, assignOrds, stripOrds } from "./ord";
 
 // The multi-page site container (§3): pages sharing one theme + frame.
-export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage, renderSite } from "./site";
+export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage, renderSite, frameFor, frameDiagnostic } from "./site";
 export type { RenderedPage } from "./site";
 
 // The block linter (§6.3).
-export { lintBlock, assertBlockClean, deniedToken } from "./lint";
+export { lintBlock, lintTree, assertBlockClean, deniedToken } from "./lint";
 export type { LintIssue, ClassDenial } from "./lint";
 
 // The raw-element/attribute security floor (builder-contract.md §9) — enforced
@@ -61,7 +61,7 @@ export type { ElementGroup, RawElementMeta, SanitizedElement } from "./element";
 
 // The runtime class-string policy floor (builder-contract.md §9, §5) — a live
 // builder's `setClass` composes this with an optional host validator.
-export { validateClassString, buildClassValidator, composeValidators } from "./class-policy";
+export { validateClassString, buildClassValidator, composeValidators, rejectViewportVariants } from "./class-policy";
 export type { ClassValidator, AllowlistRule } from "./class-policy";
 
 // The binding-picker scope model (builder-contract.md §5, §3).
@@ -112,5 +112,22 @@ export {
   rolesOf,
   colorValue,
   presetByName,
+  resolveThemeTokens,
+  contrastWarnings,
 } from "./themes";
 export type { SurfaceToken, SemanticRole } from "./themes";
+
+// Contrast-derived foreground ink (§5). A theme's `-content` tokens are chosen
+// by MEASURED contrast, not a lightness threshold — CSS cannot do the former, so
+// the decision lives here and `resolveThemeTokens` applies it. Exported whole so
+// a host's own compiler derives identically instead of reinventing it.
+export {
+  AA_NORMAL,
+  contrastRatio,
+  deriveContent,
+  oklchToSrgb,
+  parseColor,
+  relativeLuminance,
+  srgbToOklch,
+} from "./contrast";
+export type { DerivedContent, Oklch } from "./contrast";

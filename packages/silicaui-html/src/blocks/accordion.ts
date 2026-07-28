@@ -18,7 +18,7 @@ const row = (title: string, body: string, open = false) =>
         "trigger",
       ),
       part(
-        el("div", "p-4 pt-0 text-base-content/70", {
+        el("div", "p-4 pt-0 text-base-content", {
           text: body,
           attrs: open ? undefined : { hidden: true },
         }),

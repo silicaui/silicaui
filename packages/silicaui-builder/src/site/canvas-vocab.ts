@@ -92,6 +92,42 @@ export const RADIUS: readonly VocabItem[] = [
   { cls: "rounded-box", label: "Box" },
   { cls: "rounded-full", label: "Full" },
 ];
+// ── media ──────────────────────────────────────────────────────────────────
+/** How an image fills its box. `cover` is what makes a focal point mean anything
+ *  — with `contain` the whole image is visible and there is nothing to crop. */
+export const OBJECT_FIT: readonly VocabItem[] = [
+  { cls: "object-cover", label: "Cover" },
+  { cls: "object-contain", label: "Contain" },
+  { cls: "object-fill", label: "Fill" },
+  { cls: "object-none", label: "None" },
+];
+
+/**
+ * FOCAL POINT, quantized to the nine `object-position` utilities.
+ *
+ * Nine positions rather than a draggable percentage on purpose. A continuous
+ * focal point has to be stored somewhere, and the only places are an inline
+ * `style` (banned outright by the element allowlist and the block linter) or an
+ * arbitrary-value class the `@source` scan can never see, so it would paint in
+ * the canvas and vanish on publish. These are real utilities that compile, and
+ * "keep the subject in the top-left of the crop" is the decision an author is
+ * actually making — pixel-precise re-centering is a job for the crop, upstream
+ * in the asset pipeline the host already owns.
+ *
+ * Ordered as a 3×3 reading grid so the control can lay them out as one.
+ */
+export const OBJECT_POSITION: readonly VocabItem[] = [
+  { cls: "object-left-top", label: "Top left" },
+  { cls: "object-top", label: "Top" },
+  { cls: "object-right-top", label: "Top right" },
+  { cls: "object-left", label: "Left" },
+  { cls: "object-center", label: "Center" },
+  { cls: "object-right", label: "Right" },
+  { cls: "object-left-bottom", label: "Bottom left" },
+  { cls: "object-bottom", label: "Bottom" },
+  { cls: "object-right-bottom", label: "Bottom right" },
+];
+
 // ── sizing ─────────────────────────────────────────────────────────────────
 export const WIDTH: readonly VocabItem[] = [
   { cls: "w-full", label: "Full" },
@@ -258,6 +294,8 @@ export const CANVAS_VOCAB_GROUPS: readonly (readonly VocabItem[])[] = [
   PAD_X,
   PAD_Y,
   RADIUS,
+  OBJECT_FIT,
+  OBJECT_POSITION,
   WIDTH,
   MAX_WIDTH,
   POSITION,

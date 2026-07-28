@@ -7,7 +7,7 @@
 import { atom, block, el, slot } from "../kit";
 
 const feature = (label: string) =>
-  el("li", "flex items-center gap-2 text-sm text-base-content/70", {
+  el("li", "flex items-center gap-2 text-sm text-base-content", {
     children: [
       el("span", "inline-block size-1.5 rounded-full bg-primary", {}),
       el("span", undefined, { text: label }),
@@ -35,7 +35,7 @@ const tier = (
             el("div", "flex items-baseline gap-1", {
               children: [
                 el("span", "text-4xl font-semibold text-base-content", { text: price }),
-                el("span", "text-sm text-base-content/60", { text: cadence }),
+                el("span", "text-sm text-base-content", { text: cadence }),
               ],
             }),
           ],
@@ -56,7 +56,7 @@ export const pricingTiers = block({
   colors: ["base-100", "base-200", "base-content", "primary"],
   behaviors: [],
   emailEligible: false,
-  root: el("section", "@container bg-base-200/40", {
+  root: el("section", "@container bg-base-200", {
     children: [
       el("div", "mx-auto w-full max-w-6xl px-6 py-16", {
         children: [
@@ -67,7 +67,7 @@ export const pricingTiers = block({
                 { name: "heading", type: "text", label: "Heading" },
               ),
               slot(
-                el("p", "max-w-xl text-base-content/70", {
+                el("p", "max-w-xl text-base-content", {
                   text: "Start free, then pick the plan that grows with you. Cancel anytime.",
                 }),
                 { name: "subhead", type: "text", label: "Subheadline" },

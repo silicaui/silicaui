@@ -17,7 +17,7 @@ const card = el("div", "flex flex-col gap-3 p-6 bg-base-200 rounded-box", {
       "feature.title",
     ),
     bind(
-      el("p", "text-base-content/70", {
+      el("p", "text-base-content", {
         text: "Every page ships lean, so your store feels instant.",
       }),
       "feature.body",

@@ -15,7 +15,7 @@ const item = (q: string, a: string, open = false) =>
         "trigger",
       ),
       part(
-        el("div", "p-4 pt-0 text-base-content/70", {
+        el("div", "p-4 pt-0 text-base-content", {
           text: a,
           attrs: open ? undefined : { hidden: true },
         }),

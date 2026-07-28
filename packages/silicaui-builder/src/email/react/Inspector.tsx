@@ -1361,6 +1361,7 @@ const EMAIL_DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "", label: "None" },
   { value: "value", label: "Value (fill this node)" },
   { value: "collection", label: "Collection (repeat children)" },
+  { value: "visible", label: "Visible when… (show/hide this node)" },
   { value: "action", label: "Action (host handler)" },
 ];
 
@@ -1382,23 +1383,34 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
   const href = data?.kind === "action" ? data.href ?? "" : "";
   const attr = data?.kind === "value" ? data.attr ?? "" : "";
   const omitWhenEmpty = data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false;
+  const negate = data?.kind === "visible" ? (data.negate ?? false) : false;
   const canRepeat = "children" in node;
   const kinds = canRepeat ? EMAIL_DATA_KINDS : EMAIL_DATA_KINDS.filter((k) => k.value !== "collection");
-  const write = (k: string, r: string, h: string, a: string, omit = omitWhenEmpty) => {
-    if (!k) return editor.setData(id, undefined);
-    if (k === "action") {
-      const b: DataBinding = { kind: "action", ref: r };
-      if (h) b.href = h;
-      editor.setData(id, b);
-    } else if (k === "value") {
-      const b: DataBinding = { kind: "value", ref: r };
-      if (a) b.attr = a;
-      editor.setData(id, b);
-    } else {
-      const b: DataBinding = { kind: "collection", ref: r };
-      if (omit) b.omitWhenEmpty = true;
-      editor.setData(id, b);
+
+  const current = { kind, ref, href, attr, omitWhenEmpty, negate };
+  /** Commit a PATCH over the current binding (see the site Inspector — same
+   *  shape, same reason: per-kind fields shouldn't be positional args). */
+  const write = (patch: Partial<typeof current>) => {
+    const next = { ...current, ...patch };
+    if (!next.kind) return editor.setData(id, undefined);
+    if (next.kind === "action") {
+      const b: DataBinding = { kind: "action", ref: next.ref };
+      if (next.href) b.href = next.href;
+      return editor.setData(id, b);
     }
+    if (next.kind === "value") {
+      const b: DataBinding = { kind: "value", ref: next.ref };
+      if (next.attr) b.attr = next.attr;
+      return editor.setData(id, b);
+    }
+    if (next.kind === "visible") {
+      const b: DataBinding = { kind: "visible", ref: next.ref };
+      if (next.negate) b.negate = true;
+      return editor.setData(id, b);
+    }
+    const b: DataBinding = { kind: "collection", ref: next.ref };
+    if (next.omitWhenEmpty) b.omitWhenEmpty = true;
+    return editor.setData(id, b);
   };
   const options = React.useMemo(() => {
     if (!host?.dataSources) return undefined;
@@ -1410,7 +1422,7 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
   return (
     <Group label="Data binding">
       <Row label="Bind">
-        <NativeSelect size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(e.target.value, ref, href, attr)}>
+        <NativeSelect size="sm" value={kind} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write({ kind: e.target.value })}>
           {kinds.map((k) => (
             <option key={k.value} value={k.value}>
               {k.label}
@@ -1421,7 +1433,7 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
       {kind && (
         <Row label="Reference">
           {options ? (
-            <NativeSelect size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write(kind, e.target.value, href, attr)}>
+            <NativeSelect size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write({ ref: e.target.value })}>
               <option value="">Choose a field…</option>
               {options.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -1430,18 +1442,18 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
               ))}
             </NativeSelect>
           ) : (
-            <Input size="sm" className="w-full font-mono text-xs" defaultValue={ref} placeholder="host data reference" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, e.target.value, href, attr)} />
+            <Input size="sm" className="w-full font-mono text-xs" defaultValue={ref} placeholder="host data reference" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write({ ref: e.target.value })} />
           )}
         </Row>
       )}
       {kind === "action" && (
         <Row label="Fallback href">
-          <Input size="sm" className="w-full" defaultValue={href} placeholder="optional link fallback" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, ref, e.target.value, attr)} />
+          <Input size="sm" className="w-full" defaultValue={href} placeholder="optional link fallback" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write({ href: e.target.value })} />
         </Row>
       )}
       {kind === "value" && (
         <Row label="Target field">
-          <Input size="sm" className="w-full font-mono text-xs" defaultValue={attr} placeholder="auto-detected (leave blank)" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write(kind, ref, href, e.target.value)} />
+          <Input size="sm" className="w-full font-mono text-xs" defaultValue={attr} placeholder="auto-detected (leave blank)" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write({ attr: e.target.value })} />
         </Row>
       )}
       {kind === "collection" && (
@@ -1450,14 +1462,29 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
             className="toggle-group-sm"
             aria-label="Omit when empty"
             value={[omitWhenEmpty ? "on" : "off"]}
-            onValueChange={(v: string[]) => v.length && write(kind, ref, href, attr, v[v.length - 1] === "on")}
+            onValueChange={(v: string[]) => v.length && write({ omitWhenEmpty: v[v.length - 1] === "on" })}
           >
             <ToggleGroupItem value="off">No</ToggleGroupItem>
             <ToggleGroupItem value="on">Yes</ToggleGroupItem>
           </ToggleGroup>
         </Row>
       )}
-      {kind && kind !== "action" && ref && <EmailDataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} />}
+      {kind === "visible" && (
+        <Row label="Condition">
+          <ToggleGroup
+            className="toggle-group-sm"
+            aria-label="Visibility condition"
+            value={[negate ? "empty" : "present"]}
+            onValueChange={(v: string[]) => v.length && write({ negate: v[v.length - 1] === "empty" })}
+          >
+            <ToggleGroupItem value="present">Has a value</ToggleGroupItem>
+            <ToggleGroupItem value="empty">Is empty</ToggleGroupItem>
+          </ToggleGroup>
+        </Row>
+      )}
+      {kind && kind !== "action" && ref && (
+        <EmailDataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} negate={negate} />
+      )}
     </Group>
   );
 }
@@ -1482,7 +1509,19 @@ function UnknownRef({ ref_ }: { ref_: string }) {
  *  realistic data while editing, without leaving the canvas. Only meaningful
  *  at top-level scope; a bind nested under a collection ancestor has no
  *  single representative item to preview. */
-function EmailDataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind: string; ref_: string; omitWhenEmpty?: boolean }) {
+function EmailDataPreview({
+  id,
+  kind,
+  ref_,
+  omitWhenEmpty,
+  negate,
+}: {
+  id: string;
+  kind: string;
+  ref_: string;
+  omitWhenEmpty?: boolean;
+  negate?: boolean;
+}) {
   const editor = useEmailEditor();
   const host = useEmailHost();
   const nestedUnderCollection = React.useMemo(
@@ -1512,13 +1551,28 @@ function EmailDataPreview({ id, kind, ref_, omitWhenEmpty }: { id: string; kind:
       </Row>
     );
   }
+  if (kind === "visible") {
+    if (!host?.resolveBinding) return null;
+    const resolved = host.resolveBinding(ref_, {});
+    if (!resolved) return <UnknownRef ref_={ref_} />;
+    const v = resolved.value;
+    const present =
+      resolved.visible === false ? false : Array.isArray(v) ? v.length > 0 : !(v == null || v === false || v === "");
+    return (
+      <Row label="Preview">
+        <p className="text-xs text-base-content">
+          {(negate ? !present : present) ? "Shown — the node renders" : "Hidden — the node and its children are dropped"}
+        </p>
+      </Row>
+    );
+  }
   if (kind === "collection") {
     if (!host?.resolveCollection) return null;
     const items = host.resolveCollection(ref_, {});
     if (!items) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
-        <p className="text-xs text-base-content/70">
+        <p className="text-xs text-base-content">
           {items.length === 0
             ? omitWhenEmpty
               ? "0 items — the node is omitted entirely"

@@ -9,7 +9,7 @@
 import { atom, behave, block, el, part, slot } from "../kit";
 
 const link = (label: string) =>
-    el("a", "text-sm font-medium text-base-content/70 hover:text-base-content", {
+    el("a", "text-sm font-medium text-base-content hover:text-primary", {
         text: label,
         attrs: { href: "#" },
     });
@@ -17,7 +17,7 @@ const link = (label: string) =>
 const mobileLink = (label: string) =>
     el(
         "a",
-        "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+        "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
         { text: label, attrs: { href: "#" } },
     );
 
@@ -61,7 +61,7 @@ export const navbar = block({
                                 slot(
                                     el(
                                         "a",
-                                        "hidden text-sm font-medium text-base-content/70 hover:text-base-content @sm:inline",
+                                        "hidden text-sm font-medium text-base-content hover:text-primary @sm:inline",
                                         { text: "Sign in", attrs: { href: "#" } },
                                     ),
                                     { name: "secondary", type: "link", label: "Secondary link" },

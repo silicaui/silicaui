@@ -655,6 +655,16 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       const full = [n.class, ratioClass].filter(Boolean).join(" ");
       const attrs: NonNullable<ElementNode["attrs"]> = {};
       if (n.props?.src != null) attrs.src = n.props.src as string;
+      // RESPONSIVE SOURCES. The host generates the variants (it owns the asset
+      // pipeline) and hands them over as a ready `srcset`/`sizes` pair; this
+      // just carries them into the markup. Emitted from the projector both the
+      // canvas and the published page go through, so a responsive image can't
+      // be a thing that only works in production.
+      //
+      // `srcset` without `sizes` is valid and useful (the `2x`/`1x` density
+      // form takes no `sizes`), so they're independent rather than a unit.
+      if (n.props?.srcset != null) attrs.srcset = n.props.srcset as string;
+      if (n.props?.sizes != null) attrs.sizes = n.props.sizes as string;
       attrs.alt = (n.props?.alt ?? "") as string;
       attrs.loading = "lazy";
       return lower(n, "img", { class: full, attrs });

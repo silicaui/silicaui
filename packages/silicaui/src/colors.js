@@ -53,7 +53,11 @@ export const LIGHT = {
   warning: "oklch(80% 0.11 85)",
   "warning-content": "oklch(24% 0.04 85)",
   error: "oklch(58% 0.17 25)",
-  "error-content": "oklch(97% 0.01 25)",
+  // Pure white, not the 97%/0.01 tint the other light inks use: this red sits
+  // right at the margin, and the tint costs the 0.4 of a ratio that decides it
+  // (4.26:1 tinted vs 4.66:1 pure). Legibility outranks palette tidiness — see
+  // `deriveContent` in @wizeworks/silicaui-html, which makes the same call.
+  "error-content": "oklch(100% 0 0)",
 };
 
 /** Dark theme — overrides applied under `[data-theme="dark"]`. */

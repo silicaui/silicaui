@@ -157,6 +157,36 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
     return applyTokens(withChildren as EmailNode, host, scope);
   }
 
+  // CONDITIONAL VISIBILITY — the email twin of the site resolver's `visible`
+  // kind (they share the `DataBinding` type, so they must share the semantics).
+  // The canonical email case is the one the site's pagination case is for
+  // marketing: a discount block that must not render when there is no discount.
+  //
+  // No `editing` policy here, unlike the site walk: this resolver runs at
+  // PROJECTION time (preview / send), never over the editing canvas, which
+  // edits the authored tree directly. There is no author to strand.
+  if (node.data?.kind === "visible" && host.resolveBinding) {
+    const { ref, negate } = node.data;
+    const resolved = host.resolveBinding(ref, scope);
+    // An unknown ref keeps the node — hiding content because a resolver has a
+    // typo is the one failure mode with no visible trace.
+    if (!resolved) {
+      host.onDiagnostic?.({ code: "unknown-ref", ref, nodeId: node.id, kind: "visible" });
+      return applyTokens(node, host, scope);
+    }
+    const v = resolved.value;
+    const present =
+      resolved.visible === false ? false : Array.isArray(v) ? v.length > 0 : !(v == null || v === false || v === "");
+    if ((negate ? !present : present) === false) return undefined;
+
+    const { data: _data, ...rest } = node as EmailNode & { data?: unknown };
+    const kept =
+      "children" in rest
+        ? { ...rest, children: resolveChildren((rest as { children: EmailNode[] }).children, host, scope) }
+        : rest;
+    return applyTokens(kept as EmailNode, host, scope);
+  }
+
   if (node.data?.kind === "collection" && host.resolveCollection && "children" in node) {
     const items = host.resolveCollection(node.data.ref, scope);
     if (!items) {

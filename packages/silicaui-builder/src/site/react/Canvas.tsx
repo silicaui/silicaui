@@ -24,7 +24,7 @@ import { useHost } from "./host-context";
 import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
-import { customColorCss } from "../color-cascade";
+import { customColorCss, themeVars } from "../color-cascade";
 import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
 import type { DropEdge } from "../../shared/dnd";
 import { paletteGroups, paletteItemByKey, catalogForHost } from "../palette";
@@ -67,13 +67,8 @@ function masterNodeOf(editor: Editor, key: string): Node | undefined {
   return hit;
 }
 
-/** Document theme tokens → inline CSS vars for the island (mirrors the board). */
-function themeVars(theme: Theme): React.CSSProperties {
-  const tokens: Record<string, string> = { ...theme.tokens, ...(theme.mode === "dark" ? theme.dark : undefined) };
-  const style: Record<string, string> = {};
-  for (const [k, v] of Object.entries(tokens)) if (k.startsWith("--")) style[k] = String(v);
-  return style as React.CSSProperties;
-}
+/** Document theme tokens → inline CSS vars for the island (shared with the board). */
+const themeStyle = (theme: Theme): React.CSSProperties => themeVars(theme) as React.CSSProperties;
 
 /** Canvas frame width per device — the container the block's `@`-queries read. */
 const DEVICE_WIDTH: Record<string, string> = {
@@ -975,7 +970,7 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
     <div
       className="sui-canvas flex-1 min-h-0 overflow-auto p-8 bg-base-200 text-base-content"
       data-theme={theme.name}
-      style={themeVars(theme)}
+      style={themeStyle(theme)}
       onClick={() => editor.select(undefined)}
       onMouseLeave={() => setHoveredId(undefined)}
       onDragOver={(e) => e.preventDefault()}

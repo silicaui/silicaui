@@ -137,6 +137,21 @@ function unknownRef<T extends ElementNode | ComponentNode>(
   return node;
 }
 
+/**
+ * Is a resolved value "present" for the purposes of a `visible` binding?
+ *
+ * The list is deliberately short and boring, because an author has to be able
+ * to predict it from the ref name alone: nothing, the empty string, `false`,
+ * and an empty collection are absent; everything else — including `0` — is
+ * present. `0` in particular is a real value an author means to show (a count,
+ * a price, a rating), and treating it as absent is the classic falsy-check bug.
+ */
+function isPresent(value: unknown): boolean {
+  if (value == null || value === false || value === "") return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
 /** Returns `undefined` when the node should be dropped (a `visible: false` bind
  *  under production policy; an `editing` walk never drops). */
 function resolveNode(node: Node, host: ResolveHost, scope: DataScope, opts: ResolveOptions): Node | undefined {
@@ -155,7 +170,20 @@ function resolveNode(node: Node, host: ResolveHost, scope: DataScope, opts: Reso
     }
     const filled = fillValue(node, resolved.value, node.data.attr);
     const { data: _data, ...rest } = filled; // consumed — the resolved output carries no residual marker
-    return { ...rest } as Node;
+    // Filling a node does NOT end the walk. `fillValue` only replaces children
+    // when the value IS the node's content (an element's text); with an explicit
+    // `attr` — a card's `<a>` binding `href` — or a component whose primary is a
+    // prop, the authored children survive untouched and still contain binds of
+    // their own. Skipping them left a bound card unable to contain anything
+    // bound, which is most of what a bound card is for.
+    //
+    // Where children WERE replaced this is a no-op: the walk passes strings
+    // through, so the cost is one array copy and the branch stays uniform.
+    const out = { ...rest } as Node;
+    if (out.kind !== "outlet" && out.children) {
+      out.children = resolveChildren(out.children, host, scope, opts);
+    }
+    return out;
   }
 
   // A TRUSTED-HTML bind (rich text / CMS long-form). The resolved value — which
@@ -175,6 +203,40 @@ function resolveNode(node: Node, host: ResolveHost, scope: DataScope, opts: Reso
     }
     const { data: _data, children: _children, ...rest } = node;
     return { ...rest, rawHtml: String(resolved.value ?? "") } as Node;
+  }
+
+  // CONDITIONAL VISIBILITY (`{ kind: "visible" }`). Decides whether this node
+  // survives, and touches nothing else — so the subtree still resolves normally
+  // when it does.
+  if (node.data?.kind === "visible" && host.resolveBinding) {
+    const { ref, negate } = node.data;
+    const resolved = host.resolveBinding(ref, scope);
+
+    // An UNKNOWN ref keeps the node, exactly like every other kind. This one
+    // matters most: hiding a section because a resolver has a typo is the worst
+    // possible failure mode — the author sees content silently missing, with no
+    // marker left to explain it. Absent is a state a host must CLAIM.
+    if (!resolved) return unknownRef(node, host, ref, "visible");
+
+    // A host may still veto outright; otherwise the engine decides on presence,
+    // so the condition belongs to the AUTHOR (who chose the ref and the sense)
+    // rather than being smuggled into what the ref means.
+    const present = resolved.visible === false ? false : isPresent(resolved.value);
+    const keep = negate ? !present : present;
+
+    if (!keep) {
+      if (!opts.editing) return undefined;
+      // Editing never drops: a vanished node cannot be selected, inspected, or
+      // un-bound. Report instead, so the canvas can ghost it in place.
+      host.onDiagnostic?.({ code: "hidden", ref, nodeId: node.id, kind: "visible" });
+    }
+
+    const { data: _data, ...rest } = node;
+    const kept = { ...rest } as Node;
+    if (kept.kind !== "outlet" && kept.children) {
+      kept.children = resolveChildren(kept.children, host, scope, opts);
+    }
+    return kept;
   }
 
   if (node.data?.kind === "collection" && host.resolveCollection) {

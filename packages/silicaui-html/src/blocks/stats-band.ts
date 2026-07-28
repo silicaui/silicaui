@@ -9,7 +9,7 @@ const stat = (value: string, label: string) =>
   el("div", "flex flex-col items-center gap-1 text-center", {
     children: [
       el("span", "text-4xl font-semibold text-base-content @2xl:text-5xl", { text: value }),
-      el("span", "text-sm text-base-content/60", { text: label }),
+      el("span", "text-sm text-base-content", { text: label }),
     ],
   });
 

@@ -12,7 +12,7 @@
  */
 import { buttonColorVars } from "@wizeworks/silicaui/button";
 import { colorUtilityRules } from "@wizeworks/silicaui/color-utilities";
-import { rolesOf, SEMANTIC_ROLES } from "@wizeworks/silicaui-html";
+import { resolveThemeTokens, rolesOf, SEMANTIC_ROLES } from "@wizeworks/silicaui-html";
 import type { Theme, SemanticRole } from "@wizeworks/silicaui-html";
 
 type RuleMap = Record<string, Record<string, string>>;
@@ -44,4 +44,21 @@ export function customColorCss(theme: Theme, scope = ".sui-canvas"): string {
     ...buttonColorVars(custom),
   };
   return serialize(rules, scope);
+}
+
+/**
+ * A theme's tokens as inline CSS custom properties for a theme island — the ONE
+ * place the builder turns a `Theme` into paint. Both the canvas and the
+ * component board mount an island, and they must agree token-for-token.
+ *
+ * Goes through `resolveThemeTokens`, so every role carries a contrast-MEASURED
+ * `-content` foreground. A color the author invents in the theme editor is
+ * measured the same way a shipped preset is, and neither reaches @wizeworks/
+ * silicaui's CSS threshold fallback.
+ */
+export function themeVars(theme: Theme): Record<string, string> {
+  const tokens = resolveThemeTokens(theme, theme.mode === "dark" ? "dark" : "light");
+  const style: Record<string, string> = {};
+  for (const [k, v] of Object.entries(tokens)) if (k.startsWith("--")) style[k] = String(v);
+  return style;
 }

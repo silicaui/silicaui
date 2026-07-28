@@ -4,7 +4,12 @@ import {
   atom,
   block,
   el,
+  frameDiagnostic,
+  frameFor,
   iconSvg,
+  outlet,
+  pageDocument,
+  renderSite,
   resolveTree,
   stamp,
   stampTree,
@@ -317,6 +322,92 @@ check(
     "no `primary` declared — falls back to text as before",
     toHtml(resolveTree(t, { resolveBinding: () => ({ value: "resolved copy" }) })).includes("resolved copy"),
   );
+}
+
+// ── responsive images (doc 139 §6) ───────────────────────────────────────────
+// `srcset`/`sizes` were allowlisted attributes with nothing generating them, so
+// every published image shipped at one resolution. The HOST owns making the
+// variants; the projector both surfaces share owns emitting them, so a
+// responsive image can't be a thing that only works in production.
+{
+  const img = atom("Image", "w-full", {
+    src: "/hero-1280.jpg",
+    srcset: "/hero-640.jpg 640w, /hero-1280.jpg 1280w",
+    sizes: "(min-width: 60rem) 50vw, 100vw",
+    alt: "Hero",
+  });
+  const html = toHtml(img);
+  check("Image emits srcset", html.includes('srcset="/hero-640.jpg 640w, /hero-1280.jpg 1280w"'));
+  check("Image emits sizes", html.includes('sizes="(min-width: 60rem) 50vw, 100vw"'));
+  check("...alongside the plain src, so a non-supporting client still loads one", html.includes('src="/hero-1280.jpg"'));
+  check("...and keeps lazy loading", html.includes('loading="lazy"'));
+
+  const plain = atom("Image", "w-full", { src: "/hero.jpg", alt: "Hero" });
+  check("an Image with no variants emits neither attribute (unchanged)", !toHtml(plain).includes("srcset") && !toHtml(plain).includes("sizes"));
+
+  // The density form is a complete srcset that takes no sizes — so they're
+  // independent, not a unit that has to be supplied together.
+  const density = atom("Image", "", { src: "/logo.png", srcset: "/logo.png 1x, /logo@2x.png 2x", alt: "" });
+  check("srcset without sizes is emitted as-is", toHtml(density).includes('srcset="/logo.png 1x, /logo@2x.png 2x"'));
+  check("...and no empty sizes is invented", !toHtml(density).includes("sizes="));
+
+  // A hand-authored <img> element takes the same attributes (they were already
+  // allowlisted) — the component path just stopped being the exception.
+  const raw = el("img", "w-full", { attrs: { src: "/a.jpg", srcset: "/a-2x.jpg 2x", alt: "" } });
+  check("a raw <img> element carries srcset too", toHtml(raw).includes('srcset="/a-2x.jpg 2x"'));
+}
+
+// ── per-page frames (doc 139 §5) ─────────────────────────────────────────────
+// The tri-state is the whole risk surface: ABSENT ("the site default") and
+// `null` ("no frame") look alike in every falsy check and mean opposite things.
+{
+  const shell = (label) => ({
+    root: el("div", "shell", { children: [el("header", "hdr", { text: label }), outlet()] }),
+    editable: true,
+  });
+  const site = {
+    version: "1",
+    theme: { name: "t", tokens: {} },
+    frame: shell("DEFAULT"),
+    frames: { docs: shell("DOCS") },
+    pages: [
+      { id: "p1", name: "Home", slug: "/", root: el("div", "body", { text: "home" }) },
+      { id: "p2", name: "Campaign", slug: "/lp", frameId: null, root: el("div", "body", { text: "lp" }) },
+      { id: "p3", name: "Docs", slug: "/docs", frameId: "docs", root: el("div", "body", { text: "docs" }) },
+      { id: "p4", name: "Broken", slug: "/x", frameId: "ghost", root: el("div", "body", { text: "x" }) },
+    ],
+  };
+
+  const html = Object.fromEntries(renderSite(site).map((p) => [p.id, p.html]));
+  check("a page with NO frameId takes the site default", html.p1.includes("DEFAULT") && html.p1.includes("home"));
+  check("frameId:null renders BARE — no header at all", !html.p2.includes("DEFAULT") && !html.p2.includes("DOCS"));
+  check("...but still renders its own body", html.p2.includes("lp"));
+  check("...and is exactly the page tree, nothing wrapped around it", html.p2 === toHtml(site.pages[1].root));
+  check("a named frameId takes THAT frame", html.p3.includes("DOCS") && !html.p3.includes("DEFAULT"));
+  check("a DANGLING frameId renders bare, never silently falling back to the default", !html.p4.includes("DEFAULT"));
+  check("...and is reported rather than guessed at", (frameDiagnostic(site, site.pages[3]) ?? "").includes("ghost"));
+  check("a resolving page reports no diagnostic", frameDiagnostic(site, site.pages[2]) === undefined);
+  check("nor does a default-framed one", frameDiagnostic(site, site.pages[0]) === undefined);
+  check("nor a deliberately bare one", frameDiagnostic(site, site.pages[1]) === undefined);
+
+  check("frameFor: absent → the default", frameFor(site, site.pages[0]) === site.frame);
+  check("frameFor: null → nothing", frameFor(site, site.pages[1]) === undefined);
+  check("frameFor: named → that frame", frameFor(site, site.pages[2]) === site.frames.docs);
+
+  // pageDocument must agree with renderPage — the canvas reads one, publish the
+  // other, and a disagreement is a preview that lies.
+  check("pageDocument omits the frame for a bare page", pageDocument(site, "p2").frame === undefined);
+  check("pageDocument carries the named frame", pageDocument(site, "p3").frame === site.frames.docs);
+  check("pageDocument carries the default", pageDocument(site, "p1").frame === site.frame);
+
+  // Back-compat: a site that never heard of any of this is untouched.
+  const legacy = {
+    version: "1",
+    theme: { name: "t", tokens: {} },
+    frame: shell("DEFAULT"),
+    pages: [{ id: "a", name: "A", slug: "/", root: el("div", "body", { text: "a" }) }],
+  };
+  check("a site with no frames map renders exactly as before", renderSite(legacy)[0].html.includes("DEFAULT"));
 }
 
 console.log(

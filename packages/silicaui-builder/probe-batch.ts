@@ -260,5 +260,66 @@ console.log("undo/redo emit one event");
   check("…and the selection is actually cleared", ed.selection === undefined);
 }
 
+// ── public `batch()` — the multi-node seam (doc 139 §3) ──────────────────────
+// Every mutation is single-id by design, so a multi-node gesture is N calls.
+// `batch` is what makes those N calls ONE user action: one undo step, one
+// event, one ops batch. Without it a host building multi-select gives the
+// author a gesture that takes six presses of undo to reverse.
+console.log("\npublic batch()");
+{
+  const ed = freshEditor();
+  const ids = [sectionId(ed), pageId(ed)];
+
+  const events = record(ed, () =>
+    ed.batch(() => {
+      for (const id of ids) ed.setClass(id, "text-2xl");
+    }),
+  );
+  check("N edits inside batch() emit exactly ONE event", events.length === 1, show(events));
+  check("...carrying the class kind", events[0]?.kinds.includes("class") === true, show(events));
+  check("...and both nodes actually changed", ids.every((id) => ed.node(id)?.kind !== "outlet" && (ed.node(id) as { class?: string }).class === "text-2xl"));
+
+  // The point of the whole exercise: ONE undo takes the whole gesture back.
+  ed.undo();
+  check("ONE undo reverses the whole batch", ids.every((id) => (ed.node(id) as { class?: string }).class !== "text-2xl"));
+  check("...and no second undo step is left behind", !ed.canUndo);
+}
+{
+  // Mixed kinds in one gesture still collapse to a single action.
+  const ed = freshEditor();
+  const sec = sectionId(ed);
+  const events = record(ed, () =>
+    ed.batch(() => {
+      ed.setClass(sec, "p-2");
+      ed.setText(sec, "replaced");
+      ed.duplicate(sec);
+    }),
+  );
+  check("a mixed-kind batch is still one event", events.length === 1, show(events));
+  check("...reporting every kind it touched", (events[0]?.kinds.length ?? 0) >= 2, show(events));
+  ed.undo();
+  check("...and one undo reverses all of it", !ed.canUndo);
+}
+{
+  // Nesting collapses, so a helper that batches internally stays composable.
+  const ed = freshEditor();
+  const sec = sectionId(ed);
+  const events = record(ed, () => ed.batch(() => ed.batch(() => ed.setClass(sec, "p-8"))));
+  check("nested batch() collapses into the outer action", events.length === 1, show(events));
+}
+{
+  // An empty batch must not leave a phantom step for the author to press through.
+  const ed = freshEditor();
+  const events = record(ed, () => ed.batch(() => {}));
+  check("an empty batch emits nothing", events.length === 0, show(events));
+  check("...and takes no history step", !ed.canUndo);
+}
+{
+  // It returns the body's value, so a batch can compute as well as mutate.
+  const ed = freshEditor();
+  const returned = ed.batch(() => ed.duplicate(sectionId(ed)));
+  check("batch() returns the body's value", typeof returned === "string" && returned.length > 0);
+}
+
 console.log(failures === 0 ? "\nALL BATCH PROBES PASSED" : `\n${failures} BATCH PROBE(S) FAILED`);
 if (failures) process.exit(1);

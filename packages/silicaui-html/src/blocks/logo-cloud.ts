@@ -1,12 +1,15 @@
 /**
- * Logo cloud — a "trusted by" strip. A caption over a row of muted wordmarks
- * (plain text stand-ins the author swaps for real logos). Container-query
- * responsive: wraps to fewer per row on a narrow container.
+ * Logo cloud — a "trusted by" strip. A caption over a row of wordmarks (plain
+ * text stand-ins the author swaps for real logos). Container-query responsive:
+ * wraps to fewer per row on a narrow container.
+ *
+ * The marks carry full ink, not a faded one: recognizing them IS the point of
+ * the block (house RULE #3), and a real logo would be full-contrast too.
  */
 import { block, el, slot } from "../kit";
 
 const mark = (name: string) =>
-  el("span", "text-lg font-semibold tracking-tight text-base-content/50", { text: name });
+  el("span", "text-lg font-semibold tracking-tight text-base-content", { text: name });
 
 export const logoCloud = block({
   key: "logo_cloud",
@@ -23,7 +26,7 @@ export const logoCloud = block({
       el("div", "mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-6 py-14", {
         children: [
           slot(
-            el("p", "text-sm font-medium uppercase tracking-wide text-base-content/50", {
+            el("p", "text-sm font-medium text-base-content", {
               text: "Trusted by teams at",
             }),
             { name: "caption", type: "text", label: "Caption" },

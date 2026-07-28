@@ -13,15 +13,33 @@
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
 import type { BehaviorMarker, Child, ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, HostNode, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
-import { applyOverrides, assignOrds, composeValidators, defaultMakeId, el, flattenSymbols, listComponents, makePage, ordAt, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, stripOrds, walk } from "@wizeworks/silicaui-html";
+import { applyOverrides, assignOrds, composeValidators, rejectViewportVariants, defaultMakeId, el, flattenSymbols, listComponents, makePage, ordAt, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, stripOrds, walk } from "@wizeworks/silicaui-html";
 import { defaultFrameRoot } from "./frame";
+import { declaredBreakpoints, declaresContainer, isContainerPrefix, setTokenAt, tokenStateAt } from "./class-tokens";
+import type { TokenState } from "./class-tokens";
+import { invertOp } from "./invert";
 import type { Op, OpTarget, SymbolDetachment } from "./ops";
 
-/** Constructor-time options — currently just the host's class policy (§9 of
+/** Constructor-time options — the host's class policy (§9 of
  *  builder-contract.md). Composed with the engine's built-in denylist floor;
  *  see `composeValidators`. */
 export interface EditorOptions {
   validateClass?: ClassValidator;
+  /**
+   * Whether viewport variants (`md:`) may be written into a live document.
+   * Defaults to `"reject"`, because the canvas is an ELEMENT whose width the
+   * device toggle sets: a viewport variant resolves against the browser window
+   * instead, so it never reflows with the device and the canvas quietly lies
+   * about what mobile looks like. The container variant `@md:` is the honest
+   * equivalent, and what the Inspector writes.
+   *
+   * Set `"allow"` for a host whose output really is viewport-sized. This is a
+   * POLICY, not part of the security floor — a viewport variant is valid CSS,
+   * just dishonest here, and the un-liftable set should hold only what is never
+   * legitimate. Every host previously had to rediscover this and re-implement
+   * it through `validateClass`; now it's the default and stays overridable.
+   */
+  viewportVariants?: "reject" | "allow";
 }
 
 /** A node that carries an id — selectable/locatable. Everything except an outlet
@@ -65,6 +83,10 @@ export interface PageMeta {
   id: string;
   name: string;
   slug: string;
+  /** Which shell wraps this page — `undefined` = the site default, `null` = no
+   *  frame, a string = a named one. Carried on the meta (not just the `Page`) so
+   *  the switcher can show and change it without cloning the whole site. */
+  frameId?: string | null;
 }
 
 /** The current page roster + which one is active — a referentially-stable view
@@ -313,7 +335,18 @@ export class Editor {
   /** Accepts a legacy single-page `Document` (wrapped as a one-page site) or a
    *  full multi-page `Site`. */
   constructor(input: Document | Site, options: EditorOptions = {}) {
-    this.validateClass = composeValidators(options.validateClass);
+    // floor → viewport policy → the host's own. Each can only ADD rejections.
+    const host = options.validateClass;
+    const rejectViewport = (options.viewportVariants ?? "reject") === "reject";
+    this.validateClass = composeValidators(
+      !rejectViewport
+        ? host
+        : (cls) => {
+            const viewport = rejectViewportVariants(cls);
+            if (!viewport.ok) return viewport;
+            return host ? host(cls) : { ok: true };
+          },
+    );
     this.site = "pages" in input ? structuredClone(input) : siteFromDocument(input);
     // A site always has a layout — a page renders *within* the shared shell, it is
     // never layout-less. So materialize a default frame up front (rather than
@@ -412,7 +445,14 @@ export class Editor {
    *  change and after undo/redo, so `pagesView` swaps only when it truly changes. */
   private syncPages(): void {
     this.pagesViewCache = {
-      pages: this.site.pages.map((p) => ({ id: p.id, name: p.name, slug: p.slug })),
+      // Spread `frameId` only when the page actually carries it, so `"frameId" in
+      // meta` still distinguishes "the site default" from an explicit `null`.
+      pages: this.site.pages.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        ...("frameId" in p ? { frameId: p.frameId } : {}),
+      })),
       activeId: this.activePageId,
     };
   }
@@ -484,6 +524,40 @@ export class Editor {
    */
   private commit(kind: ChangeKind, mutate: () => void): void {
     this.transact([kind], true, mutate);
+  }
+
+  /**
+   * Run `body` as ONE user action: one undo step, one change event, one `ops`
+   * batch out to the host — however many edits it makes, to however many nodes.
+   *
+   * This is `transact`'s public face, and it is what multi-node editing is built
+   * on. Every mutation is single-id by design (`setClass(id, …)`, `remove(id)`),
+   * so "set six selected headings to `text-2xl`" is six calls — and without this
+   * it is six undo steps, six change events, and six round trips to a host's
+   * store. The author who made one gesture then has to press undo six times to
+   * take it back, which reads as the editor losing track.
+   *
+   * A host builds a selection SET on top of this without the engine having to
+   * carry one:
+   *
+   *   editor.batch(() => { for (const id of selected) editor.setClass(id, next) })
+   *
+   * Nested calls collapse into the outer one, so a helper that batches
+   * internally stays composable. The return value is `body`'s, so a batch can
+   * compute something (a list of new ids, say) as well as mutate.
+   *
+   * Not a transaction in the rollback sense: if `body` throws, the edits it
+   * already made stand, and the single history snapshot taken at the start is
+   * what undo returns to. That is the honest description of a snapshot-based
+   * history, not a limitation worth hiding behind an atomic-sounding name.
+   *
+   * Declares `history: false` and lets the ops inside ask: `transact` takes the
+   * snapshot the first time any level wants one, so a batch that mutates gets
+   * exactly one — and a batch that turns out to mutate nothing leaves no empty
+   * step on the undo stack for the author to press through.
+   */
+  batch<T>(body: () => T): T {
+    return this.transact([], false, body);
   }
 
   // ── selection ──────────────────────────────────────────────────────────────
@@ -778,6 +852,94 @@ export class Editor {
     });
   }
 
+  /**
+   * The ops that UNDO `ops`, in the order to apply them — or `null` if the batch
+   * cannot be faithfully inverted (better a refused undo than a wrong one, which
+   * silently rewrites the document into a state the author never had).
+   *
+   * `before` is the document as it stood immediately BEFORE the batch. Ops state
+   * intent and never carry ambient state, so undoing `setClass` needs the class
+   * that was there, and only the prior document has it.
+   *
+   * This exists because the engine published `HistoryDelegate` — inviting a host
+   * to own undo — while two ops could not be inverted from outside it:
+   * `symbol.set` that creates (its inverse needs a detach cascade of ids only
+   * the engine can mint) and `node.setText` (which flattens `children`, so the
+   * structure isn't in the op; it now inverts into `node.setChildren`).
+   *
+   * The result is REVERSED — undoing `[a, b, c]` is undo-c, undo-b, undo-a — and
+   * safe to hand straight to `applyRemoteOps`.
+   *
+   * NOT a rollback of concurrent work: if another author edited in between,
+   * these apply on top of that, which is what undo in a shared document should
+   * do. Faithful in the round-trip sense on an otherwise-untouched document.
+   */
+  inverseOf(ops: readonly Op[], before: Site): Op[] | null {
+    if (!ops.length) return [];
+    // A scratch engine walks the cursor forward between ops, so each is inverted
+    // against the state it actually saw — two edits to one node in one action
+    // would otherwise both invert to the same original value, and the undo would
+    // land on the wrong one.
+    //
+    // Its site is overwritten with a faithful clone rather than left as the
+    // constructor produced it: the constructor NORMALIZES (materializing a
+    // default frame, backfilling `ord`s), and inverting against a normalized
+    // document would restore values the author never had.
+    const scratch = new Editor(structuredClone(before));
+    scratch.site = structuredClone(before);
+    const out: Op[][] = [];
+    for (const op of ops) {
+      const inverse = invertOp(op, scratch.site);
+      if (!inverse) return null;
+      out.push(inverse);
+      if (!scratch.applyOp(op)) return null;
+    }
+    // Reverse the ACTIONS, not the ops within one: a multi-op inverse (undoing a
+    // symbol delete restores the master, then swaps each instance back) is
+    // already in the order it must run.
+    return out.reverse().flat();
+  }
+
+  /**
+   * Build the `symbol.delete` op for `symbolId` — including its full detach
+   * cascade, with freshly-minted ids — WITHOUT applying it.
+   *
+   * This is the piece a host cannot produce for itself, and the reason "undo
+   * save-as-component" was the one action a host-owned history had to drop.
+   * Deleting a symbol replaces every instance with an independent clone, and
+   * those clones need node ids; ids are minted by whoever creates them, so a
+   * peer replaying "detach every instance" independently mints DIFFERENT ones
+   * and the documents diverge while looking identical. Only the engine can mint
+   * a cascade everyone will agree on.
+   *
+   * Returns `undefined` for an unknown symbol.
+   *
+   * Deliberately PURE — it plans, it does not delete. That's what lets it be
+   * used as an inverse: a host holding a `symbol.set` that created something can
+   * ask for its undo and hold onto it, then apply it later through
+   * `applyRemoteOps` like any other op.
+   */
+  planSymbolDelete(symbolId: string): Op | undefined {
+    const sym = this.site.symbols?.[symbolId];
+    if (!sym) return undefined;
+    const master = sym.root;
+    const detach: SymbolDetachment[] = [];
+    this.forEachTree((root, target) =>
+      walk(root, (n) => {
+        const kids = n.kind !== "outlet" ? n.children : undefined;
+        if (!kids) return;
+        for (const c of kids) {
+          if (c && typeof c !== "string" && c.kind !== "outlet" && c.instanceOf === symbolId && c.id) {
+            const detached = stampTree(applyOverrides(structuredClone(master), c.overrides));
+            if (detached.kind !== "outlet") detached.ord = c.ord;
+            detach.push({ target, nodeId: c.id, node: detached });
+          }
+        }
+      }),
+    );
+    return { target: { scope: "site" }, kind: "symbol.delete", symbolId, detach };
+  }
+
   /** Run a fn over every editable tree in the site (pages, frame, symbol masters). */
   private forEachTree(fn: (root: Node, target: OpTarget) => void): void {
     for (const p of this.site.pages) fn(p.root, { scope: "page", id: p.id });
@@ -928,6 +1090,17 @@ export class Editor {
         page.slug = op.slug;
         return true;
       }
+      case "page.setFrame": {
+        const page = this.site.pages.find((p) => p.id === op.pageId);
+        if (!page) return false;
+        // The tri-state matters: ABSENT means "the site default", which is not
+        // the same as `null` ("no frame"). Deleting the key is the only way to
+        // express the former, so a remote "back to default" doesn't leave the
+        // page pinned to nothing.
+        if (op.frameId === undefined) delete page.frameId;
+        else page.frameId = op.frameId;
+        return true;
+      }
       case "page.reorder": {
         const byId = new Map(this.site.pages.map((p) => [p.id, p]));
         const next: Page[] = [];
@@ -989,7 +1162,11 @@ export class Editor {
           if (v === null) delete props[k];
           else props[k] = v;
         }
-        node.props = props;
+        // Same rule as `setAttrs` below: an emptied bag is deleted, not left as
+        // `{}`, so a restored node serializes identically to one that never had
+        // props.
+        if (Object.keys(props).length) node.props = props;
+        else delete node.props;
         return true;
       }
       case "node.setAttrs": {
@@ -999,9 +1176,19 @@ export class Editor {
           if (v === null) delete attrs[k];
           else attrs[k] = v;
         }
-        node.attrs = attrs;
+        // An emptied bag is DELETED, not left as `{}`. A node that never had
+        // attrs and a node whose last attr was just removed have to serialize
+        // identically, or undo produces a document that differs from the one it
+        // restored only in a way nobody can see — which then shows up as a
+        // spurious diff in a host's store and as a failed round-trip here.
+        if (Object.keys(attrs).length) node.attrs = attrs;
+        else delete node.attrs;
         return true;
       }
+      case "node.setChildren":
+        if (node.kind === "host") return false; // a host node is a leaf
+        node.children = structuredClone(op.children) as Child[];
+        return true;
       case "node.setText":
         // Same resolution the local `setText` performs — the op states intent,
         // the receiver decides where the text physically lands.
@@ -1262,6 +1449,42 @@ export class Editor {
   }
 
   /**
+   * Choose which shell wraps a page. Undoable.
+   *
+   *   `undefined` → the site default (`Site.frame`)
+   *   `null`      → NO frame: the page renders bare, header and footer included
+   *   a string    → the named frame at `Site.frames[frameId]`
+   *
+   * The middle one is the feature: a campaign or landing page with no site
+   * chrome was unrepresentable while every page took the single site frame.
+   *
+   * Note `undefined` and `null` are DIFFERENT answers here, so this deliberately
+   * doesn't take an optional argument — `setPageFrame(id)` and
+   * `setPageFrame(id, null)` would read alike and mean opposite things.
+   */
+  setPageFrame(id: string, frameId: string | null | undefined): void {
+    const page = this.site.pages.find((p) => p.id === id);
+    if (!page) return;
+    const current = "frameId" in page ? page.frameId : undefined;
+    if (current === frameId) return;
+    this.transact(["page"], true, () => {
+      if (frameId === undefined) delete page.frameId;
+      else page.frameId = frameId;
+      this.syncPages();
+      this.record({ target: { scope: "site" }, kind: "page.setFrame", pageId: id, frameId });
+    });
+  }
+
+  /** The frames a page can be pointed at: the site default plus every named
+   *  frame in `Site.frames`. What a page-settings picker lists. */
+  get frameChoices(): { id: string | undefined; name: string }[] {
+    return [
+      { id: undefined, name: "Default" },
+      ...Object.keys(this.site.frames ?? {}).map((id) => ({ id, name: id })),
+    ];
+  }
+
+  /**
    * Reorder the page roster to `pageIds` (authoring order — what the switcher
    * lists). Ids not named keep their relative order at the end; unknown ids are
    * ignored. Undoable.
@@ -1320,6 +1543,95 @@ export class Editor {
       this.record({ target: this.activeTarget(), kind: "node.setClass", nodeId: id, class: value || null });
     });
     return { ok: true };
+  }
+
+  /**
+   * Set one member of a mutually-exclusive class GROUP at one BREAKPOINT — the
+   * responsive-authoring seam (doc 139 §1).
+   *
+   * `setClass` takes a whole replacement string, which makes "columns = 3 at
+   * `@md`" host-side string surgery: tokenize, match the prefix, remove the
+   * other members of the group at that prefix only, leave every other
+   * breakpoint alone, re-join. Every host would re-implement it, and the
+   * mobile-first cascade makes a subtly wrong version look right.
+   *
+   *   editor.setClassToken(id, ["grid-cols-1","grid-cols-2","grid-cols-3"], "grid-cols-3", "@md:")
+   *
+   * `value: ""` clears the group at that breakpoint (falling back to whatever a
+   * smaller one declares), which is deliberately NOT the same as writing the
+   * inherited value in place.
+   *
+   * THE CONTAINER GUARANTEE. A container variant only does anything if some
+   * ancestor establishes a container context, and a correct-looking
+   * `@2xl:grid-cols-2` under no container silently does nothing — the failure a
+   * host validator can never catch, because it sees the class string and not
+   * the tree. So writing a container-prefixed token also ensures one exists, in
+   * the same action.
+   *
+   * It lands on the ACTIVE TREE ROOT, not the node's parent, and that choice is
+   * load-bearing. A container query measures its nearest container ancestor, so
+   * putting one on the parent would make a node inside a half-width grid cell
+   * query the cell — and `@3xl:` (768px) would then never match at a 768px
+   * canvas, which is exactly the invisible no-op this is meant to prevent. On
+   * the tree root, every node without a closer container measures the page,
+   * which is the width the device toggle sets. Predictable, and it matches what
+   * the author is looking at.
+   */
+  setClassToken(
+    id: string,
+    group: readonly string[],
+    value: string,
+    prefix = "",
+  ): { ok: true } | { ok: false; reason: string } {
+    const found = locate(this.activeRoot(), id);
+    if (!found) return { ok: true };
+    const next = setTokenAt(found.node.class, group, value, prefix);
+    if (next === (found.node.class ?? "")) return { ok: true };
+    return this.batch(() => {
+      const result = this.setClass(id, next);
+      if (result.ok && value && isContainerPrefix(prefix)) this.ensureContainer(id);
+      return result;
+    });
+  }
+
+  /**
+   * Guarantee that some ancestor of `id` establishes a container-query context,
+   * adding `@container` to the ACTIVE TREE ROOT if none does. Idempotent, and a
+   * no-op whenever any ancestor already declares one — including the `@container`
+   * the shipped blocks put on their own `<section>`.
+   *
+   * Public because a host pasting or importing a subtree needs the same
+   * guarantee, and because `lintTree` reporting the problem is only half an
+   * answer if nothing can fix it.
+   */
+  ensureContainer(id: string): void {
+    const root = this.activeRoot();
+    if (root.kind === "outlet") return;
+    const chain = [...ancestorPath(root, id), this.node(id)].filter(Boolean) as Node[];
+    if (chain.some((n) => declaresContainer(n.kind === "outlet" ? undefined : n.class))) return;
+    const rootId = root.id;
+    if (!rootId) return;
+    // A literal token: the harness `@source` scan is the canvas safelist.
+    this.setClass(rootId, [root.class, "@container"].filter(Boolean).join(" "));
+  }
+
+  /**
+   * What a class GROUP resolves to at `prefix` for this node — the read half of
+   * `setClassToken`, and what lets a control show that a value is INHERITED
+   * from a smaller breakpoint rather than set here. Without it an Inspector can
+   * only render the base value and silently hide the cascade.
+   */
+  classTokenAt(id: string, group: readonly string[], prefix = ""): TokenState {
+    const node = this.node(id);
+    return tokenStateAt(node && node.kind !== "outlet" ? node.class : undefined, group, prefix);
+  }
+
+  /** Every breakpoint at which `group` is explicitly declared on this node,
+   *  ascending — so a control can say "also set at 2 other sizes" instead of
+   *  leaving the author to discover it by switching device. */
+  classTokenBreakpoints(id: string, group: readonly string[]): string[] {
+    const node = this.node(id);
+    return declaredBreakpoints(node && node.kind !== "outlet" ? node.class : undefined, group);
   }
 
   /** The path from (excl.) root to (excl.) `id` within the ACTIVE tree — for a
@@ -1390,6 +1702,30 @@ export class Editor {
       // vs a label/text prop) is the receiver's business — the op states the
       // intent, and the receiver resolves it the same way the engine just did.
       this.record({ target: this.activeTarget(), kind: "node.setText", nodeId: id, text });
+    });
+  }
+
+  /**
+   * Replace a node's children wholesale — the structural counterpart to
+   * `setText`, and what makes a text edit reversible.
+   *
+   * `setText` collapses children to one string, so `<p>Call <a>us</a></p>`
+   * flattens and no amount of `setText` puts the link back. Restoring it
+   * previously meant re-inserting the whole node, which works and throws away
+   * any concurrent edit inside it. This restores exactly the children.
+   *
+   * Children arrive as authored and are STAMPED here, so ids are minted on the
+   * engine that owns them and travel with the op — the same rule `insert`
+   * follows, and the reason a peer replaying the op can't diverge.
+   */
+  setChildren(id: string, children: readonly Child[]): void {
+    const found = locate(this.activeRoot(), id);
+    if (!found || found.node.kind === "host") return; // a host node is a leaf
+    const node = found.node;
+    const stamped = children.map((c) => (typeof c === "string" ? c : stampTree(c)));
+    this.commit("props", () => {
+      node.children = stamped;
+      this.record({ target: this.activeTarget(), kind: "node.setChildren", nodeId: id, children: stamped });
     });
   }
 

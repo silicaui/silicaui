@@ -16,6 +16,29 @@ export type { DataScope, ResolveDiagnostic, Resolved } from "@wizeworks/silicaui
 export interface AssetRef {
   url: string;
   alt?: string;
+  /**
+   * A ready `srcset` for the picked asset — the responsive variants the HOST
+   * generated, e.g. `"/img/hero-640.jpg 640w, /img/hero-1280.jpg 1280w"`.
+   *
+   * The host owns this because the host owns the asset pipeline: only it knows
+   * which derivatives exist, at what URLs, and whether making more is cheap.
+   * The builder's job is to carry the string into the markup, which it does
+   * through the shared projector — so the canvas and the published page get the
+   * same one.
+   *
+   * Omit it and the image ships as a single resolution, exactly as before.
+   */
+  srcset?: string;
+  /**
+   * The `sizes` hint that tells the browser how wide the image will RENDER, e.g.
+   * `"(min-width: 60rem) 50vw, 100vw"`. Without it a `w`-descriptor `srcset`
+   * makes the browser assume full viewport width and over-fetch.
+   *
+   * Independent of `srcset` rather than bundled with it: the density form
+   * (`"… 1x, … 2x"`) is a complete, correct `srcset` that takes no `sizes` at
+   * all, and requiring one would invite a meaningless value.
+   */
+  sizes?: string;
 }
 
 /** A host component the builder may place as a `HostNode` (spec §A.5). Drives the
@@ -102,6 +125,18 @@ export interface BuilderHost extends ResolveHost {
   /** The class-string policy. Composes with the engine's built-in denylist floor
    *  (§9) — this can only ADD restrictions, never lift it. */
   validateClass?: ClassValidator;
+  /**
+   * Whether viewport variants (`md:`) may be written into a live document.
+   * Defaults to `"reject"`: the canvas is an element whose width the device
+   * toggle sets, so a viewport variant never reflows with it and the preview
+   * quietly stops matching production. `@md:` is the honest equivalent, and
+   * what the Inspector writes.
+   *
+   * Set `"allow"` if this host's output really is viewport-sized. Unlike the
+   * denylist floor, this one is a POLICY and is meant to be overridable — a
+   * viewport variant is valid CSS, just dishonest in an element canvas.
+   */
+  viewportVariants?: "reject" | "allow";
   /** Host-contributed inspector panels for specific node types (SEO, product-pin,
    *  a per-module editor) — additive only, rendered beside the built-in panels. */
   inspectorPanels?(node: Node): InspectorPanel[];
