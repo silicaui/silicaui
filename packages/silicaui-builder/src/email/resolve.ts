@@ -17,7 +17,7 @@
  * site version does (there's no `attrs`/`children` uniformity); it works off
  * an explicit per-kind field table instead.
  */
-import { applyCollectionLimit } from "@wizeworks/silicaui-html";
+import { applyCollectionLimit, findSource } from "@wizeworks/silicaui-html";
 import type { DataScope, DataSource, EmailNode, ResolveDiagnostic, Resolved } from "./schema";
 
 /** Twin of `@wizeworks/silicaui-html`'s `ResolveHost`, including its
@@ -266,26 +266,18 @@ export function emailScopeAt(sources: readonly DataSource[], ancestors: readonly
   return scoped;
 }
 
-function findSource(sources: readonly DataSource[], ref: string): DataSource | undefined {
-  for (const s of sources) {
-    if (s.key === ref) return s;
-    if (s.fields) {
-      const nested = findSource(s.fields, ref);
-      if (nested) return nested;
-    }
-  }
-  return undefined;
-}
-
-/** Flatten a `DataSource` tree into pickable options, deepest-first label
- *  path ("Products > Price") — shared by the Inspector's Reference picker and
- *  the merge-token autocomplete (`email/react/token-query.ts`'s consumers):
- *  both need "what scalar fields can I pick from here" as a flat list. */
-export function flattenEmailSources(sources: readonly DataSource[], pathLabel = ""): Array<{ value: string; label: string }> {
-  return sources.flatMap((s) => {
-    const label = pathLabel ? `${pathLabel} > ${s.label}` : s.label;
-    const own = s.cardinality === "scalar" ? [{ value: s.key, label }] : [];
-    const nested = s.fields ? flattenEmailSources(s.fields, label) : [];
-    return [...own, ...nested];
-  });
-}
+/**
+ * Flatten a `DataSource` tree into pickable options, deepest-first label path
+ * ("Products > Price") — shared by the Inspector's Reference picker and the
+ * merge-token autocomplete (`email/react/token-query.ts`'s consumers): both
+ * need "what scalar fields can I pick from here" as a flat list.
+ *
+ * A RE-EXPORT, not a port. This and `findSource` were hand-copied from their
+ * site twins, so both inherited the same unbounded recursion: a host catalog
+ * that referred back to itself overflowed the stack mid-render, and one that
+ * merely SHARED sub-shapes between content types went exponential without any
+ * cycle at all. Email is the hotter of the two paths — the autocomplete
+ * flattens while the author types — so it takes the bounded walker by
+ * construction rather than by a second fix free to drift again.
+ */
+export { flattenSources as flattenEmailSources } from "@wizeworks/silicaui-html";

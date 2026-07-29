@@ -12,8 +12,8 @@
  * utility a node can WEAR is a LITERAL string here so the harness safelists it.
  */
 import * as React from "react";
-import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { applyCollectionLimit, rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/silicaui-html";
+import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, SourceTruncation, Theme } from "@wizeworks/silicaui-html";
+import { applyCollectionLimit, rolesOf, colorValue, SURFACE_TOKENS, scopeAt, flattenSources, truncationMessage, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
 import { setClassTokenMany } from "../commands";
@@ -1134,17 +1134,6 @@ const DATA_KINDS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "action", label: "Action (host handler)" },
 ];
 
-/** Flatten a `DataSource` tree into pickable options, deepest-first label path
- *  (`"Products > Price"`) — presentation-only, so it stays local to the picker. */
-function flattenSources(sources: readonly DataSource[], pathLabel = ""): Array<{ value: string; label: string }> {
-  return sources.flatMap((s) => {
-    const label = pathLabel ? `${pathLabel} > ${s.label}` : s.label;
-    const own = s.cardinality === "scalar" ? [{ value: s.key, label }] : [];
-    const nested = s.fields ? flattenSources(s.fields, label) : [];
-    return [...own, ...nested];
-  });
-}
-
 /** Dynamic content — the node's single `DataBinding`. A kind selector plus an
  *  opaque `ref` (@wizeworks/silicaui never parses it; the host interprets it), an
  *  optional href for the action kind, and (for `value`) an optional target
@@ -1209,13 +1198,23 @@ function DataSection({ id, node }: { id: string; node: Node }) {
     if (next.limit.trim() !== "" && Number.isInteger(n) && n >= 1) b.limit = n;
     return editor.setData(id, b);
   };
-  const options = React.useMemo(() => {
+  // `dataSources()` has exactly ONE call site in the site builder — here — so
+  // this memo is the only thing that ever walks a host's catalog. It is also
+  // the only place a pathological catalog could stall the editor, which is why
+  // `flattenSources` is bounded and reports what it dropped rather than
+  // silently returning a short list (see `data-sources.ts`).
+  const picker = React.useMemo(() => {
     if (!host?.dataSources) return undefined;
     const scoped = scopeAt(host.dataSources(), editor.ancestorsOf(id));
-    return kind === "collection"
-      ? scoped.filter((s) => s.cardinality !== "scalar").map((s) => ({ value: s.key, label: s.label }))
-      : flattenSources(scoped);
+    // A collection picks a source, not a field, so it's one flat level — no
+    // recursion to bound.
+    if (kind === "collection") {
+      const options = scoped.filter((s) => s.cardinality !== "scalar").map((s) => ({ value: s.key, label: s.label }));
+      return { options, truncated: [] as readonly SourceTruncation[] };
+    }
+    return flattenSources(scoped);
   }, [host, editor, id, kind]);
+  const incomplete = picker && truncationMessage(picker.truncated);
   return (
     <Group label="Data binding">
       <Row label="Bind">
@@ -1229,10 +1228,10 @@ function DataSection({ id, node }: { id: string; node: Node }) {
       </Row>
       {kind && (
         <Row label="Reference">
-          {options ? (
+          {picker ? (
             <NativeSelect data-testid="data-ref-picker" size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write({ ref: e.target.value })}>
               <option value="">Choose a field…</option>
-              {options.map((o) => (
+              {picker.options.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -1241,6 +1240,19 @@ function DataSection({ id, node }: { id: string; node: Node }) {
           ) : (
             <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write({ ref: v })} />
           )}
+        </Row>
+      )}
+      {/* The picker is normally the WHOLE story, so when it can't be, say so and
+          hand back the escape hatch it replaced — otherwise a missing field is
+          indistinguishable from a field the host never offered. */}
+      {kind && incomplete && (
+        <Row label="Or type it">
+          <div className="flex flex-col gap-1">
+            <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write({ ref: v })} />
+            <p className="text-xs text-warning" data-testid="data-sources-truncated">
+              {incomplete}
+            </p>
+          </div>
         </Row>
       )}
       {kind === "collection" && (

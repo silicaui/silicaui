@@ -38,7 +38,8 @@ import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
 import { useSavedBlocks } from "./saved-blocks";
-import { applyCollectionLimit } from "@wizeworks/silicaui-html";
+import { applyCollectionLimit, truncationMessage } from "@wizeworks/silicaui-html";
+import type { SourceTruncation } from "@wizeworks/silicaui-html";
 import { emailScopeAt, flattenEmailSources } from "../resolve";
 import { filterTokenOptions, matchTokenQuery } from "./token-query";
 import type { TokenMatch } from "./token-query";
@@ -132,7 +133,7 @@ function TokenTextField({
   const [text, setText] = React.useState(defaultValue);
   const [match, setMatch] = React.useState<TokenMatch | undefined>(undefined);
   const [activeIndex, setActiveIndex] = React.useState(0);
-  const flatSources = React.useMemo(() => (sources ? flattenEmailSources(sources) : []), [sources]);
+  const flatSources = React.useMemo(() => (sources ? flattenEmailSources(sources).options : []), [sources]);
   const options = match ? filterTokenOptions(flatSources, match.query) : [];
 
   const sync = () => {
@@ -1444,13 +1445,18 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
     if (next.limit.trim() !== "" && Number.isInteger(n) && n >= 1) b.limit = n;
     return editor.setData(id, b);
   };
-  const options = React.useMemo(() => {
+  const picker = React.useMemo(() => {
     if (!host?.dataSources) return undefined;
     const scoped = emailScopeAt(host.dataSources(), editor.ancestorsOf(id));
-    return kind === "collection"
-      ? scoped.filter((s) => s.cardinality !== "scalar").map((s) => ({ value: s.key, label: s.label }))
-      : flattenEmailSources(scoped);
+    // A collection picks a source, not a field — one flat level, no recursion
+    // to bound. Everything else goes through the bounded flatten.
+    if (kind === "collection") {
+      const options = scoped.filter((s) => s.cardinality !== "scalar").map((s) => ({ value: s.key, label: s.label }));
+      return { options, truncated: [] as readonly SourceTruncation[] };
+    }
+    return flattenEmailSources(scoped);
   }, [host, editor, id, kind]);
+  const incomplete = picker && truncationMessage(picker.truncated);
   return (
     <Group label="Data binding">
       <Row label="Bind">
@@ -1464,10 +1470,10 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
       </Row>
       {kind && (
         <Row label="Reference">
-          {options ? (
+          {picker ? (
             <NativeSelect size="sm" value={ref} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => write({ ref: e.target.value })}>
               <option value="">Choose a field…</option>
-              {options.map((o) => (
+              {picker.options.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -1476,6 +1482,19 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
           ) : (
             <Input size="sm" className="w-full font-mono text-xs" defaultValue={ref} placeholder="host data reference" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write({ ref: e.target.value })} />
           )}
+        </Row>
+      )}
+      {/* When the picker can't be the whole story, say so and hand back the raw
+          field it replaced — a missing option must never read as a field the
+          host never offered. */}
+      {kind && incomplete && (
+        <Row label="Or type it">
+          <div className="flex flex-col gap-1">
+            <Input size="sm" className="w-full font-mono text-xs" defaultValue={ref} placeholder="host data reference" onBlur={(e: React.FocusEvent<HTMLInputElement>) => write({ ref: e.target.value })} />
+            <p className="text-xs text-warning" data-testid="data-sources-truncated">
+              {incomplete}
+            </p>
+          </div>
         </Row>
       )}
       {kind === "action" && (
