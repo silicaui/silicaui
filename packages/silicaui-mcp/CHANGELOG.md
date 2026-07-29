@@ -1,5 +1,93 @@
 # @wizeworks/silicaui-mcp
 
+## 0.38.0
+
+### Minor Changes
+
+- e81303c: Per-item links inside an email `collection` repeat — a `link` group node — and MCP
+  coverage for the email schema.
+
+  **`{ kind: "link"; href; children: ContentNode[] }`.** Every email node carries at most
+  one `data` marker, so inside a repeat an `image` could bind its `src` **or** its `href`,
+  never both, and a `text` node has no `href` at all — a link inside copy is inline `<a>`
+  markup, a literal string identical on every item. A rail of product cards was therefore
+  either unclickable images or one CTA sending everyone to the same page. One marker per
+  node stays the rule; the fix is composition, the same move the site engine makes with its
+  link box: the group holds the destination, so its `href` binds per item while each child
+  keeps its own marker for its own field.
+
+  `href` is the kind's only field and its default bind target, so a whole rail is three
+  markers: `collection` on the section, `value → item.url` on the group, and each child's
+  own. It holds content only — a nested `link` would mean nested anchors, and a nested
+  `columns` row would put table markup inside a group whose job is to lower into inline
+  anchors. Both are type errors, and `canHold` mirrors them.
+
+  **It does not project as one `<a>`.** An anchor around block-level content is invalid in
+  the HTML dialect Outlook's Word engine parses, and Outlook drops it: the card renders,
+  looks clickable, and does nothing, with no symptom in the markup or a webmail preview. So
+  the group emits no element at all and distributes the destination onto each child's own
+  inline anchor — an image becomes `<a><img></a>`, a text block's copy is wrapped with
+  `color:inherit;text-decoration:none` (a card title that happens to be clickable is not a
+  link inside a sentence). Both forms are bulletproof everywhere. The trade is stated rather
+  than hidden: the card's content is clickable, the padding around it is not. Explicit beats
+  inherited in both directions — a child with its own `href` keeps it, and copy that already
+  contains an `<a>` is never re-wrapped. An empty `href` distributes nothing, never
+  `<a href="">`.
+
+  Insert → **Linked card** drops a group already holding image + title + price; **Link
+  group** is the empty one. On canvas a group draws a persistent boundary and link glyph,
+  because it is invisible in the output and "children inside it" versus "siblings after it"
+  otherwise looks identical — the one mistake that produces a silently unlinked card.
+  `canHold` and `EMAIL_BINDABLE_FIELDS` are now exported: both are contracts a host
+  building its own drag layer or binding UI would otherwise have to re-derive, differently.
+
+  **MCP: `list_email_nodes` / `get_email_node`.** The catalog covered the three delivery
+  paths and said nothing about the email builder's document schema — the one surface with no
+  other source of truth, where an invented kind or an illegal nesting is dropped silently
+  with no error to read. Both tools are generated, never described: fields and doc comments
+  from the TypeScript AST, the nesting matrix by calling the real `canHold` on every
+  (parent, child) pair, the bind allowlist from `EMAIL_BINDABLE_FIELDS`, the presets from
+  `EMAIL_PALETTE` with each `make()` actually invoked. `search_docs` reaches node kinds and
+  the document envelope, and the routing preamble now says email is a separate surface
+  rather than a fourth path.
+
+- 7e57761: `get_node_schema` — the MCP now describes path 3's document schema, not just what goes in it.
+
+  The catalog could answer "what components and blocks exist" and nothing at all about the
+  shape of the tree they go into. So the **data-binding vocabulary** — how a generated
+  document draws live content, repeats over a collection, or hides itself when there is
+  nothing to show — lived in the source and in two hand-written docs and **nowhere an agent
+  could look it up**. The gap was found the honest way: a per-instance `limit` was added to
+  a collection binding, and the question "is the MCP updated?" had no mechanism behind it.
+
+  The new tool returns, all extracted from `@wizeworks/silicaui-html`'s own source:
+
+  - the four node kinds and their fields, and **which of them carry the shared metadata
+    band** (an outlet does not, which is the kind of thing that is only ever learned by
+    something not working);
+  - the typed system-metadata band itself — `data` / `slot` / `behavior` / `part` /
+    `locked` / `instanceOf`;
+  - the full `DataBinding` union with every field and its real doc comment;
+  - the resolution contract a host implements, including the unknown-vs-empty rule the
+    whole thing hangs on (`undefined` means "never heard of this ref" and keeps the
+    authored content; `{ value: undefined }` means "known and empty" and renders empty);
+  - the raw-element/attribute allowlist `toHtml` enforces, per tag, read from the exported
+    `RAW_ELEMENTS` map at generation time.
+
+  Path 3 fails **silently** where the other two fail loudly — an unlisted tag becomes a
+  `<div>`, an unlisted attribute is dropped, an invented binding field is not persisted,
+  and the output still looks plausible. The routing instructions now say so and point at
+  this tool first, and `search_docs` reaches bindings, node kinds and allowed attributes,
+  so "limit", "repeat" and "srcset" stop returning nothing.
+
+  Kept honest by construction: `verify.mjs` re-parses the real `DataBinding` union out of
+  `silicaui-html/src/schema.ts` and compares it field by field against what the server
+  publishes, both directions. Adding a binding option and forgetting the catalog now fails
+  the build instead of shipping a server that describes last release's schema. That check
+  earned its keep immediately — it caught the generator publishing `ResolveHost` as an
+  empty member list, because the parser only walked property signatures and every hook on
+  that interface is a method signature.
+
 ## 0.37.0
 
 ### Minor Changes
