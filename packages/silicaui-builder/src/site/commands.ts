@@ -21,7 +21,7 @@ import type { Editor } from "./engine";
 export const childNodes = (node: Node | undefined): Node[] =>
   node && node.kind !== "outlet" ? (node.children ?? []).filter((c): c is Node => typeof c !== "string") : [];
 
-const idOf = (node: Node | undefined): string | undefined => (node && node.kind !== "outlet" ? node.id : undefined);
+export const idOf = (node: Node | undefined): string | undefined => (node && node.kind !== "outlet" ? node.id : undefined);
 
 /** Where `id` sits: its parent, that parent's selectable children, and `id`'s
  *  index among them. `undefined` for the root, which has no parent. */
@@ -110,4 +110,78 @@ export function cutNode(editor: Editor, id: string): void {
     editor.copy(id);
     editor.remove(id);
   });
+}
+
+// ── set-aware verbs ──────────────────────────────────────────────────────────
+// Every engine mutation is single-id by design (that's what makes ops commute),
+// so a multi-node gesture is N calls. These wrap the N in one `batch`, which is
+// what makes it ONE user action: one undo step, one change event, one ops batch.
+// Without that, deleting six selected nodes costs the author six presses of undo
+// to take back — the editor looks like it lost track of what they did.
+
+/** Remove every selected node, as one action. Removes deepest-first so removing
+ *  a parent can't strand a child id mid-batch. */
+export function removeMany(editor: Editor, ids: readonly string[]): void {
+  if (ids.length === 0) return;
+  editor.batch(() => {
+    for (const id of orderByDepth(editor, ids)) editor.remove(id);
+  });
+}
+
+/** Duplicate every selected node, as one action; the copies become the new
+ *  selection, so the obvious next gesture (drag them, restyle them) works. */
+export function duplicateMany(editor: Editor, ids: readonly string[]): string[] {
+  if (ids.length === 0) return [];
+  return editor.batch(() => {
+    const copies: string[] = [];
+    for (const id of ids) {
+      const copy = editor.duplicate(id);
+      if (copy) copies.push(copy);
+    }
+    if (copies.length) editor.selectMany(copies);
+    return copies;
+  });
+}
+
+/** Set a class token across a whole selection at one breakpoint, as one action.
+ *  What the Inspector calls when more than one node is selected. */
+export function setClassTokenMany(
+  editor: Editor,
+  ids: readonly string[],
+  group: readonly string[],
+  value: string,
+  prefix = "",
+): void {
+  if (ids.length === 0) return;
+  editor.batch(() => {
+    for (const id of ids) editor.setClassToken(id, group, value, prefix);
+  });
+}
+
+/**
+ * "Select all" — every SIBLING of the current selection, i.e. everything at the
+ * same level of the tree.
+ *
+ * Not every node in the document: a flat select-all in a nested tree hands back
+ * a set whose members are each other's ancestors, and every structural verb on
+ * it (delete, duplicate, group) then has to decide what that means. Siblings are
+ * the level the author is looking at, and match what a canvas tool means by
+ * select-all.
+ *
+ * With nothing selected it takes the tree root's children — the top level, which
+ * is the same rule with the same answer.
+ */
+export function selectSiblings(editor: Editor): boolean {
+  const sel = editor.selection;
+  const parent = sel ? placeOf(editor, sel)?.parent : editor.activeRootNode;
+  const ids = childNodes(parent).map(idOf).filter((x): x is string => Boolean(x));
+  if (ids.length === 0) return false;
+  editor.selectMany(ids);
+  return true;
+}
+
+/** Deepest-first, so a parent is never removed while a descendant of it is still
+ *  queued — the queued id would already be gone and the call would no-op. */
+function orderByDepth(editor: Editor, ids: readonly string[]): string[] {
+  return [...ids].sort((a, b) => editor.ancestorsOf(b).length - editor.ancestorsOf(a).length);
 }

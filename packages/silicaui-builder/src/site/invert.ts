@@ -38,7 +38,10 @@ import type { Op, OpTarget, SymbolDetachment } from "./ops";
 /** The tree an op targets, within `site`. */
 function treeFor(site: Site, target: OpTarget): Node | undefined {
   if (target.scope === "page") return site.pages.find((p) => p.id === target.id)?.root;
-  if (target.scope === "frame") return site.frame?.root;
+  // A named layout when the target carries an id, else the default shell — the
+  // same resolution `Editor.rootFor` does, and it has to match or an edit to a
+  // named layout inverts against the wrong tree.
+  if (target.scope === "frame") return (target.id ? site.frames?.[target.id] : site.frame)?.root;
   if (target.scope === "symbol") return site.symbols?.[target.id]?.root;
   return undefined;
 }
@@ -270,10 +273,30 @@ function invertOne(op: Op, before: Site): Op | Op[] | undefined {
       return { target: t, kind: "theme.set", theme: structuredClone(before.theme) };
     case "savedThemes.set":
       return { target: t, kind: "savedThemes.set", savedThemes: structuredClone(before.savedThemes ?? []) };
-    case "frame.setEditable":
-      return before.frame
-        ? { target: t, kind: "frame.setEditable", editable: before.frame.editable }
-        : undefined;
+    case "frame.setEditable": {
+      const frame = t.scope === "frame" && t.id ? before.frames?.[t.id] : before.frame;
+      return frame ? { target: t, kind: "frame.setEditable", editable: frame.editable } : undefined;
+    }
+    case "frame.create":
+      return { target: t, kind: "frame.delete", frameId: op.frameId, reassign: [] };
+    case "frame.rename": {
+      const frame = before.frames?.[op.frameId];
+      if (!frame) return undefined;
+      return { target: t, kind: "frame.rename", frameId: op.frameId, name: frame.name ?? op.frameId };
+    }
+    case "frame.delete": {
+      const frame = before.frames?.[op.frameId];
+      if (!frame) return undefined;
+      // Restore the layout AND re-point every page the delete reassigned. The op
+      // carries that list precisely so the undo doesn't have to guess which
+      // pages used to use it — after the delete, nothing records that.
+      return [
+        { target: t, kind: "frame.create", frameId: op.frameId, frame: structuredClone(frame) },
+        ...op.reassign.map(
+          (pageId): Op => ({ target: { scope: "site" }, kind: "page.setFrame", pageId, frameId: op.frameId }),
+        ),
+      ];
+    }
     case "site.replace":
       return {
         target: t,

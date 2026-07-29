@@ -326,6 +326,13 @@ export interface Theme {
 export interface Frame {
   root: Node;
   editable: boolean;
+  /** Human label for a NAMED frame (one held in `Site.frames`) — what the layout
+   *  switcher and a page's layout picker show. The default `Site.frame` needs
+   *  none; it's "Default" by position, not by name.
+   *
+   *  Separate from the key it's stored under so renaming a layout doesn't break
+   *  every `Page.frameId` pointing at it. */
+  name?: string;
 }
 
 /** A live, editable, themed document — one page's tree in its theme/frame context.

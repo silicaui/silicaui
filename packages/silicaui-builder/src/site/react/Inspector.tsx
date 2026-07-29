@@ -15,7 +15,8 @@ import * as React from "react";
 import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
 import { rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
-import { useEditor, useSelectedNode, useTheme } from "./editor-context";
+import { useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
+import { setClassTokenMany } from "../commands";
 import { useHost } from "./host-context";
 import type { AssetRef, HostPropDef, InspectorPanelCtx } from "./host";
 import { BREAKPOINT_CHOICES, useBreakpoint } from "./breakpoint-context";
@@ -539,6 +540,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   // the base value while the click landed on `@5xl:`, so the control would look
   // like it did nothing.
   const { prefix } = useBreakpoint();
+  const selection = useSelectionSet();
   const theme = useTheme();
   const mode = theme.mode ?? "light";
   const textColors = React.useMemo(() => textColorOptions(theme, mode), [theme, mode]);
@@ -564,17 +566,24 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
    * container guarantee — the Inspector doesn't re-implement either, and
    * neither does any other host.
    */
+  // Design edits apply to the WHOLE selection. `id` (the primary) is what the
+  // controls READ, because a panel has to show one node's values — but writing
+  // to only the primary would make a multi-select look like it did nothing to
+  // the other five nodes the author had highlighted.
+  const targets = selection.length > 1 ? selection : [id];
   const setToken = (group: readonly string[], value: string) => {
-    editor.setClassToken(id, group, value, prefix);
+    setClassTokenMany(editor, targets, group, value, prefix);
   };
   /** Several groups in ONE action — a display switch that also clears the
    *  classes the new display can't honor, or a padding shorthand expanding onto
    *  the axis it's leaving. Chained through the same engine seam (each call
    *  re-reads the node, so the edits compose) inside one batch, so it's a single
-   *  undo step and a single ops emission. */
+   *  undo step and a single ops emission, across every selected node. */
   const commitTokens = (edits: readonly (readonly [readonly string[], string])[]) =>
     editor.batch(() => {
-      for (const [group, value] of edits) editor.setClassToken(id, group, value, prefix);
+      for (const target of targets) {
+        for (const [group, value] of edits) editor.setClassToken(target, group, value, prefix);
+      }
     });
   /** What a group resolves to HERE, and whether it was set here or inherited
    *  from a smaller size. */
@@ -658,6 +667,14 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   return (
     <>
       <BreakpointBar />
+      {selection.length > 1 && (
+        <div className="flex items-center gap-2 border-b border-base-300 bg-base-200 px-3 py-2" data-testid="multi-select-note">
+          <span className="text-xs font-medium text-base-content">{selection.length} selected</span>
+          {/* Say which node the VALUES belong to. Without this, a control reading
+              the primary's value looks like it's describing all of them. */}
+          <span className="text-xs text-base-content">— values shown for the last; changes apply to all</span>
+        </div>
+      )}
       {node.kind === "component" && node.component === "Button" && (
         <Group label="Button">
           <Row label="Color">

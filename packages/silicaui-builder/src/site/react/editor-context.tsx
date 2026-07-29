@@ -135,10 +135,17 @@ export function useActiveRoot(): Node {
   const editor = useEditor();
   const doc = useDocument(); // subscribe so a re-render fires on every commit
   const which = useActiveTree();
-  // Symbol masters live on the site (not in the page Document); read the live one
-  // straight from the engine. `useDocument` above still drives the re-render.
-  if (which === "symbol") return editor.activeRootNode;
-  return which === "frame" && doc.frame ? doc.frame.root : doc.root;
+  // Symbol masters and named LAYOUTS both live on the site rather than in the
+  // page `Document`, so read the live tree straight from the engine; the
+  // `useDocument` subscription above still drives the re-render.
+  //
+  // The frame case matters as much as the symbol one now: `doc.frame` is the
+  // layout resolved for the ACTIVE PAGE, which stopped being the same thing as
+  // "the layout being edited" the moment a site could have more than one. Using
+  // it meant Layout mode rendered — and let you click — a tree the Inspector
+  // wasn't writing to.
+  if (which === "symbol" || which === "frame") return editor.activeRootNode;
+  return doc.root;
 }
 
 /** The selected node's id (undefined when nothing is selected). */
@@ -147,6 +154,25 @@ export function useSelection(): string | undefined {
   return React.useSyncExternalStore(
     React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
     () => editor.selection,
+  );
+}
+
+/**
+ * The FULL selection, for chrome that has to reflect every selected node — the
+ * canvas outlines, the Navigator's highlighted rows, the Inspector's "3
+ * selected" header.
+ *
+ * Separate from `useSelection` (the primary) so a component that only ever
+ * describes one node doesn't re-render every time the set changes around it.
+ * The engine hands back the same array identity until the set actually changes,
+ * which `useSyncExternalStore` requires — it compares snapshots by reference and
+ * would loop forever on a fresh array each read.
+ */
+export function useSelectionSet(): readonly string[] {
+  const editor = useEditor();
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    () => editor.selectedIds,
   );
 }
 

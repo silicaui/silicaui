@@ -19,7 +19,7 @@
 import * as React from "react";
 import type { Child, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
 import { applyOverrides, expandComponent, iconSvg, resolveTree, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
-import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection } from "./editor-context";
+import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection, useSelectionSet } from "./editor-context";
 import { useHost } from "./host-context";
 import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
@@ -221,6 +221,8 @@ interface DndCtx {
 
 interface RenderCtx {
   selectedId: string | undefined;
+  /** The whole selection, for the secondary outlines (see `decorations`). */
+  selectedIds?: ReadonlySet<string>;
   hoveredId: string | undefined;
   onSelect: (id: string, e: React.MouseEvent) => void;
   onHover: (id: string | undefined, e: React.MouseEvent) => void;
@@ -293,6 +295,13 @@ function ring(id: string | undefined, ctx: RenderCtx): string {
 function decorations(id: string | undefined, ctx: RenderCtx): string {
   let s = "";
   if (id && id === ctx.dnd.draggingId) s += " opacity-40";
+  // SECONDARY selection. The `SelectionOverlay` draws one measured ring for the
+  // primary node; the rest of the set gets an inline outline instead of N more
+  // overlays, which would each need their own geometry subscription for no
+  // extra information. Literal classes — the `@source` scan is the safelist.
+  if (id && id !== ctx.selectedId && ctx.selectedIds?.has(id)) {
+    s += " outline outline-2 outline-primary/70 -outline-offset-2";
+  }
   // Production would drop this node (visible:false / omitWhenEmpty at zero
   // items). The canvas keeps it — you can't select what isn't rendered — but
   // shows it ghosted so "won't ship" is legible at a glance.
@@ -788,6 +797,8 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
   const host = useHost();
   const catalogGroups = React.useMemo(() => catalogForHost(DEFAULT_GROUPS, host), [host]);
   const selectedId = useSelection();
+  const selectionSet = useSelectionSet();
+  const selectedIds = React.useMemo(() => new Set(selectionSet), [selectionSet]);
   const selectedNode = useSelectedNode();
   const activeTree = useActiveTree();
   const root = useActiveRoot();
@@ -808,7 +819,12 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
   // composition) — it's a component in isolation, not a page. `root` is the live
   // master (via useActiveRoot). Otherwise render the composed site as before.
   const symbolEditing = activeTree === "symbol";
-  const frameRoot = symbolEditing ? undefined : doc.frame?.root;
+  // In LAYOUT mode the shell is the layout being EDITED, which is not always the
+  // one wrapping the active page: with named layouts, `doc.frame` is whatever
+  // THIS PAGE resolved to, while the author may have the docs shell open. Taking
+  // the active-tree root instead keeps the canvas showing what the Inspector is
+  // writing to — otherwise edits land on a tree that isn't on screen.
+  const frameRoot = symbolEditing ? undefined : activeTree === "frame" ? root : doc.frame?.root;
   const authoredShell = symbolEditing ? root : frameRoot ?? doc.root;
   const editingPage = activeTree === "page";
   const shellPreview = frameRoot ? editingPage : false;
@@ -917,11 +933,16 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
 
   const ctx: RenderCtx = {
     selectedId,
+    selectedIds,
     hoveredId,
     onSelect: (id, e) => {
       e.preventDefault();
       e.stopPropagation();
-      editor.select(id);
+      // Shift / Cmd / Ctrl extends the selection instead of replacing it — the
+      // universal gesture, and TOGGLE rather than add-only so a mis-click is
+      // correctable without starting the whole selection over.
+      if (e.shiftKey || e.metaKey || e.ctrlKey) editor.toggleSelect(id);
+      else editor.select(id);
     },
     onHover: (id, e) => {
       e.stopPropagation();
