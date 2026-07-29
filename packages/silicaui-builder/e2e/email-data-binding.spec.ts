@@ -136,6 +136,16 @@ test("toolbarSlot renders host UI in the header, next to Send test/Export HTML",
   await expect(page.getByTestId("email-toolbar-slot")).toBeVisible();
   await expect(page.getByRole("button", { name: "Export HTML", exact: true })).toBeVisible();
 
+  // The status/action split the site builder makes, mirrored here: status leads
+  // the right-hand cluster, actions stay grouped with Send test/Export.
+  const status = page.getByTestId("email-toolbar-status-slot");
+  await expect(status).toBeVisible();
+  const beforeActions = await status.evaluate((el) => {
+    const other = document.querySelector('[data-testid="email-toolbar-slot"]');
+    return other ? Boolean(el.compareDocumentPosition(other) & 4) : null;
+  });
+  expect(beforeActions).toBe(true);
+
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 

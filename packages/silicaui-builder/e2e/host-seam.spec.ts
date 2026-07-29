@@ -172,6 +172,34 @@ test("toolbarSlot renders host UI in the header, next to Publish", async ({ page
   await expect(page.getByRole("button", { name: "Publish" })).toBeVisible();
 });
 
+test("toolbarStatusSlot renders status ahead of the theme toggle and of toolbarSlot's actions", async ({ page }) => {
+  await ready(page);
+  const status = page.getByTestId("toolbar-status-slot");
+  await expect(status).toBeVisible();
+
+  // ORDER is the whole point of the second slot: status leads the right-hand
+  // cluster with no control beside it, actions stay grouped with Publish. And
+  // it has to be DOM order, not CSS — a host faking the position with `order`
+  // would leave focus order following the visual one (WCAG 2.4.3).
+  const positions = await status.evaluate((el) => {
+    const FOLLOWING = 4; // Node.DOCUMENT_POSITION_FOLLOWING
+    const after = (sel: string) => {
+      const other = document.querySelector(sel);
+      return other ? Boolean(el.compareDocumentPosition(other) & FOLLOWING) : null;
+    };
+    return {
+      beforeTheme: after('[aria-label="Appearance"]'),
+      beforeActions: after('[data-testid="toolbar-slot"]'),
+      // …and after the engine's own left-hand controls, i.e. past the spacer.
+      afterModes: (() => {
+        const modes = document.querySelector('[aria-label="Editor mode"]');
+        return modes ? Boolean(modes.compareDocumentPosition(el) & FOLLOWING) : null;
+      })(),
+    };
+  });
+  expect(positions).toEqual({ beforeTheme: true, beforeActions: true, afterModes: true });
+});
+
 test("a collection bind's 'Omit when empty' toggle drops the node from the resolved output at zero items", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");
