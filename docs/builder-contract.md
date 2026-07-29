@@ -105,12 +105,14 @@ This is the single most important decision in the whole contract. A site builder
 // A node's props may carry AT MOST one of these markers:
 
 props.bind?:   { ref: string };              // resolve a VALUE for this node (text, image, price…)
-props.repeat?: { ref: string; omitWhenEmpty?: boolean };  // resolve a COLLECTION; render children once per item (or drop the node entirely if empty and opted in)
+props.repeat?: { ref: string; omitWhenEmpty?: boolean; limit?: number };  // resolve a COLLECTION; render children once per item (or drop the node entirely if empty and opted in), at most `limit` of them
 props.action?: { ref: string; href?: string };  // this node TRIGGERS a host action on interaction
 ```
 
 - **`bind`** — "fill this node from data." Engine asks `host.resolveBinding(ref, scope)` → `{ value, label, visible? }`, shows the value, paints a "bound" chip with the label. Absent host resolver → the node's static placeholder content renders (so a **static-site builder needs no host data at all**). `visible: false` drops the node (and its subtree) from resolved output entirely — the one conditional-visibility primitive the engine supports, with no expression language attached (see the roadmap doc §1 for why this is the whole surface, deliberately).
 - **`repeat`** — "this container repeats." Engine asks the host to resolve the collection ref → an array, renders `children` once per item, and passes the **resolved item itself** back down (not a path — see `DataScope` below) so inner `bind`s resolve per item. The engine owns the *repetition*; the host owns the *data*. Zero items renders the authored `children` **once, as a placeholder** by default (so an empty-but-not-yet-loaded collection still shows its template in the editor); `repeat.omitWhenEmpty: true` opts a specific node out of that convention, dropping it entirely instead — same effect as a `bind`'s `visible: false`, for a host whose live site should render nothing rather than an empty shell (e.g. a "related products" block with no matches).
+
+  `repeat.limit` is the **per-instance** count: at most that many items render. It exists because the ref and the count are different questions and the ref cannot answer both — a `DataSource.key` says what a source *is*, and `scopeAt` narrows a descendant's bindable fields by matching an ancestor's ref against that key, so a ref carrying an options suffix (`products|limit=4`) matches nothing and silently empties the inner field list. One catalog wanting a strip of 4 above the fold, a full grid at `/shop` and a rail of 12 on the product page is **one source and three counts**; without `limit` the count is whatever the host chose when it fetched, uniform per source across the whole site. It caps how many items **load**, not how many are visible at a time — a carousel showing 4 of 12 is layout (`basis-1/4` on a snap rail), and keeping those two numbers apart is deliberate. Must be a positive integer; anything else is ignored, so a malformed limit renders the whole collection rather than nothing. A host doing its own pre-fetch walk reads `limit` off the tree and narrows the query, and can share the engine's clamp via the exported `applyCollectionLimit(items, limit)`.
 - **`action`** — "this is a trigger" (a button that adds to cart, submits, navigates). Inert in the editor; the host wires it on the live site by attaching one delegated listener (click/submit) at its app root keyed on `[data-sui-action]`, reading the ref off the DOM node. No package owns this wiring — it's a five-line host pattern, not engine or `silicaui-behaviors` code.
 
 The host maps its own vocabulary onto these three. sparx's four-kind spine (field / entity / collection / action) collapses cleanly: field + entity → `bind`, collection → `repeat`, action → `action`. **A different host with a different data model implements the same three callbacks and gets the same builder.** That opacity is what keeps the engine focused and reusable.
@@ -334,6 +336,15 @@ node against remove/move. See
 [email-frame-and-locking.md](email-frame-and-locking.md) for that and for
 `<EmailBuilder frame>` — host chrome composed around an email without ever
 entering the document the host persists.
+
+The email schema also carries a node the site tree doesn't need, because the
+site tree can express it with an `<a>` element: a **`link` group**, which holds
+one destination for the blocks inside it. That is how a card inside a
+`collection` repeat deep-links to its own record — the group binds `href` per
+item while each child keeps its own marker for its own field. It projects by
+distributing the link onto each child's own inline anchor rather than wrapping
+the card in one, because an anchor around block-level content is dropped by
+Outlook's Word engine. See [email-link-groups.md](email-link-groups.md).
 
 ### The saved-block library — a controlled prop, not host write hooks
 

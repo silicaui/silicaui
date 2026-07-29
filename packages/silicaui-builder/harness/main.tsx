@@ -56,6 +56,19 @@ const demoHost: BuilderHost = {
         { key: "product.price", label: "Price", cardinality: "scalar" },
       ],
     },
+    // Deliberately LONGER than anything you'd put above the fold — this is the
+    // source the collection binding's "How many" (`limit`) field exists for:
+    // one catalog, and a different count per instance (a strip of 4 on the
+    // landing page, a full grid at /shop, a rail of 12 on the product page).
+    {
+      key: "catalog",
+      label: "Full catalog",
+      cardinality: "array",
+      fields: [
+        { key: "product.title", label: "Title", cardinality: "scalar" },
+        { key: "product.price", label: "Price", cardinality: "scalar" },
+      ],
+    },
     // Always resolves to zero items — exercises the `repeat.omitWhenEmpty`
     // toggle end-to-end (as opposed to `products`, which never hits the
     // zero-item case in this demo host).
@@ -146,6 +159,10 @@ const demoHost: BuilderHost = {
         { title: "Gadget", price: "$24" },
         { title: "Gizmo", price: "$36" },
       ];
+    // 12 rows — enough that "how many of these do I want HERE" is a real
+    // question, which is what the binding's `limit` answers.
+    if (ref === "catalog")
+      return Array.from({ length: 12 }, (_, i) => ({ title: `Catalog item ${i + 1}`, price: `$${(i + 1) * 6}` }));
     // A KNOWN collection that legitimately has no items — the `omitWhenEmpty`
     // path. Unknown refs deliberately never reach it.
     if (ref === "empty-collection") return [];
@@ -189,6 +206,11 @@ const demoEmailHost: EmailBuilderHost = {
       fields: [
         { key: "product.title", label: "Title", cardinality: "scalar" },
         { key: "product.price", label: "Price", cardinality: "scalar" },
+        // The two extra fields a CLICKABLE product card needs per item: its own
+        // image and its own destination (the latter bound onto a `link` group's
+        // `href` — the whole reason that node kind exists).
+        { key: "product.image", label: "Image", cardinality: "scalar" },
+        { key: "product.url", label: "Link URL", cardinality: "scalar" },
       ],
     },
     // Always resolves to zero items — exercises the `repeat.omitWhenEmpty`
@@ -200,13 +222,20 @@ const demoEmailHost: EmailBuilderHost = {
   // up front, into a closure this reads from.
   resolveBinding: (ref, scope) => {
     if (ref === "customer.firstName") return { value: "Jordan" };
-    if (ref === "product.title") return { value: (scope.item as { title: string } | undefined)?.title };
-    if (ref === "product.price") return { value: (scope.item as { price: string } | undefined)?.price };
+    const item = scope.item as { title: string; price: string; image: string; url: string } | undefined;
+    if (ref === "product.title") return { value: item?.title };
+    if (ref === "product.price") return { value: item?.price };
+    if (ref === "product.image") return { value: item?.image };
+    if (ref === "product.url") return { value: item?.url };
     return undefined; // unknown ref — see the note on `demoHost.resolveBinding`
   },
   resolveCollection: (ref) => {
     if (ref === "products")
-      return [{ title: "Widget", price: "$12" }, { title: "Gadget", price: "$24" }, { title: "Gizmo", price: "$36" }];
+      return [
+        { title: "Widget", price: "$12", image: "https://cdn.example.com/widget.jpg", url: "https://shop.example.com/p/widget" },
+        { title: "Gadget", price: "$24", image: "https://cdn.example.com/gadget.jpg", url: "https://shop.example.com/p/gadget" },
+        { title: "Gizmo", price: "$36", image: "https://cdn.example.com/gizmo.jpg", url: "https://shop.example.com/p/gizmo" },
+      ];
     // A KNOWN collection that legitimately has no items — exercises the
     // `omitWhenEmpty` path, which unknown refs deliberately never reach.
     if (ref === "empty-collection") return [];

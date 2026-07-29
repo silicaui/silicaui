@@ -3,9 +3,11 @@
  * entry is a pure factory returning a fresh `EmailNode` (the `id` is a
  * placeholder; `EmailEditor.insert` stamps a real one). Unlike the site
  * palette, this catalog is small and CLOSED — it mirrors `schema.ts`'s fixed
- * vocabulary exactly, one entry per insertable kind (plus 2/3/4-column
- * presets, since a bare "columns" block with zero columns isn't useful to
- * insert). `make` takes the current brand color defaults (`editor.colorDefaults`)
+ * vocabulary exactly, one entry per insertable kind, plus the few presets where
+ * the bare kind isn't useful to insert on its own: 2/3/4 columns (a "columns"
+ * block with zero columns), the outline button, and the linked card (a `link`
+ * group already holding the image/title/price it exists to link).
+ * `make` takes the current brand color defaults (`editor.colorDefaults`)
  * so a newly-inserted Button/Text/Divider lands on-brand rather than on a
  * generic neutral gray.
  */
@@ -57,6 +59,54 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
     hint: "An even four-column row",
     icon: "columns",
     make: () => columns([25, 25, 25, 25]),
+  },
+  {
+    key: "link",
+    label: "Link group",
+    hint: "One destination for the blocks inside — bind it per item to link a repeated card",
+    icon: "link",
+    make: () => ({ id: "x", kind: "link", href: "", children: [] }),
+  },
+  {
+    key: "link-card",
+    label: "Linked card",
+    hint: "Image + title + price, all pointing at one URL — the product/article card",
+    icon: "link",
+    // The shape a `link` group exists for, pre-assembled. Inserting the bare
+    // group and then three children in the right order is the same document,
+    // four steps later — and getting the nesting wrong (children as SIBLINGS of
+    // the link rather than inside it) is the one mistake that produces an
+    // unlinked card with no visible symptom on canvas.
+    make: (c = DEFAULT_EMAIL_COLORS) => ({
+      id: "x",
+      kind: "link",
+      href: "",
+      children: [
+        { id: "x", kind: "image", src: "", alt: "", width: 240, align: "left" },
+        {
+          id: "x",
+          kind: "text",
+          html: "Product name",
+          align: "left",
+          color: c.baseContent,
+          colorAuto: true,
+          fontSize: 16,
+          fontWeight: "semibold",
+          lineHeight: 24,
+        },
+        {
+          id: "x",
+          kind: "text",
+          html: "$00.00",
+          align: "left",
+          color: c.baseContent,
+          colorAuto: true,
+          fontSize: 14,
+          fontWeight: "normal",
+          lineHeight: 20,
+        },
+      ],
+    }),
   },
   {
     key: "text",
@@ -184,8 +234,8 @@ export function emailPaletteItemByKey(key: string, items: readonly EmailPaletteI
 
 /**
  * Merge a host's catalog additions/hides (`EmailBuilderHost.catalog()`) over
- * the default 8-block index — additive, never a flat replace, mirroring the
- * site palette's `mergeCatalog`. A host item whose key matches a default
+ * the default `EMAIL_PALETTE` index — additive, never a flat replace, mirroring
+ * the site palette's `mergeCatalog`. A host item whose key matches a default
  * one REPLACES it (the default is dropped, the host's version is appended);
  * any other host item is simply appended as a new entry.
  */

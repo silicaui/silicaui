@@ -2,7 +2,7 @@
  * @wizeworks/silicaui-builder (Email) — the framework-neutral email document engine +
  * projector. The React chrome lives at `@wizeworks/silicaui-builder/email/react`.
  */
-export { EmailEditor } from "./engine";
+export { EmailEditor, canHold } from "./engine";
 export type { ChangeEvent, ChangeKind, HistoryDelegate, TemplateMeta, TemplatesView } from "./engine";
 // The semantic operation vocabulary — what `onChange` hands back alongside the
 // state, and what `applyRemoteOps` accepts.
@@ -13,7 +13,7 @@ export type { EmailHeadExtras, EmailRenderOptions } from "./projector";
 // host's send path composes with the SAME function the builder previews with.
 export { composeEmailDocument, isEmptyFrame, frameLabel } from "./frame";
 export type { EmailFrame } from "./frame";
-export { resolveEmailTree, emailScopeAt } from "./resolve";
+export { resolveEmailTree, emailScopeAt, EMAIL_BINDABLE_FIELDS } from "./resolve";
 export type { EmailResolveHost } from "./resolve";
 export { emptyEmailDocument, isContentKind } from "./schema";
 export type {
@@ -39,6 +39,7 @@ export type {
   HtmlNode,
   ImageNode,
   LayoutChild,
+  LinkNode,
   Resolved,
   SectionNode,
   SocialLink,

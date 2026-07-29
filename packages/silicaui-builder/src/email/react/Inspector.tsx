@@ -38,6 +38,7 @@ import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
 import { useSavedBlocks } from "./saved-blocks";
+import { applyCollectionLimit } from "@wizeworks/silicaui-html";
 import { emailScopeAt, flattenEmailSources } from "../resolve";
 import { filterTokenOptions, matchTokenQuery } from "./token-query";
 import type { TokenMatch } from "./token-query";
@@ -57,6 +58,7 @@ import type {
   FontWeight,
   HtmlNode,
   ImageNode,
+  LinkNode,
   SocialLink,
   SocialNode,
   SocialPlatform,
@@ -963,6 +965,28 @@ function VideoSettingsFields({ node, update }: { node: VideoNode; update: (patch
   );
 }
 
+/**
+ * A `link` group has exactly one field and no visual properties of its own —
+ * it emits no element (see the projector's `renderLink`), so there is nothing
+ * to style. The note carries the two things an author can't read off the
+ * canvas: that the destination is per-item bindable (the reason this node
+ * exists), and where the click target actually ends up.
+ */
+function LinkSettingsFields({ node, update }: { node: LinkNode; update: (patch: Partial<LinkNode>) => void }) {
+  return (
+    <Group label="Link">
+      <TextField label="Link URL" defaultValue={node.href} onCommit={(href) => update({ href })} />
+      <Pad>
+        <p className="text-xs text-base-content">
+          Every block inside points here. Inside a repeat, bind this field (Data binding → Value) to give each item its
+          own URL. The blocks themselves are the click target — the spacing around them isn&rsquo;t, which is the most a
+          link can do in Outlook.
+        </p>
+      </Pad>
+    </Group>
+  );
+}
+
 function ColumnDesignFields({ node, update }: { node: ColumnNode; update: (patch: Partial<ColumnNode>) => void }) {
   return (
     <Group label="Layout">
@@ -1345,6 +1369,8 @@ function settingsFieldsFor(node: EmailNode, update: (patch: Record<string, unkno
       return <SocialSettingsFields node={node} update={update} />;
     case "html":
       return <HtmlSettingsFields node={node} update={update} />;
+    case "link":
+      return <LinkSettingsFields node={node} update={update} />;
     case "video":
       return <VideoSettingsFields node={node} update={update} />;
     case "columns":
@@ -1383,11 +1409,14 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
   const href = data?.kind === "action" ? data.href ?? "" : "";
   const attr = data?.kind === "value" ? data.attr ?? "" : "";
   const omitWhenEmpty = data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false;
+  // Raw field text, not a number — an empty box means "no limit", which `0` and
+  // `NaN` can't express (site Inspector carries the same note).
+  const limit = data?.kind === "collection" && data.limit != null ? String(data.limit) : "";
   const negate = data?.kind === "visible" ? (data.negate ?? false) : false;
   const canRepeat = "children" in node;
   const kinds = canRepeat ? EMAIL_DATA_KINDS : EMAIL_DATA_KINDS.filter((k) => k.value !== "collection");
 
-  const current = { kind, ref, href, attr, omitWhenEmpty, negate };
+  const current = { kind, ref, href, attr, omitWhenEmpty, limit, negate };
   /** Commit a PATCH over the current binding (see the site Inspector — same
    *  shape, same reason: per-kind fields shouldn't be positional args). */
   const write = (patch: Partial<typeof current>) => {
@@ -1410,6 +1439,9 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
     }
     const b: DataBinding = { kind: "collection", ref: next.ref };
     if (next.omitWhenEmpty) b.omitWhenEmpty = true;
+    // Positive integers only; blank / 0 / junk leave the key off entirely.
+    const n = Number(next.limit);
+    if (next.limit.trim() !== "" && Number.isInteger(n) && n >= 1) b.limit = n;
     return editor.setData(id, b);
   };
   const options = React.useMemo(() => {
@@ -1457,6 +1489,22 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
         </Row>
       )}
       {kind === "collection" && (
+        <Row label="How many">
+          <Input
+            // Remount per selected node — an uncontrolled field otherwise keeps
+            // the previous node's value when the selection moves.
+            key={id}
+            size="sm"
+            className="w-full"
+            type="number"
+            min={1}
+            defaultValue={limit}
+            placeholder="All"
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => write({ limit: e.target.value })}
+          />
+        </Row>
+      )}
+      {kind === "collection" && (
         <Row label="Omit when empty">
           <ToggleGroup
             className="toggle-group-sm"
@@ -1483,7 +1531,7 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
         </Row>
       )}
       {kind && kind !== "action" && ref && (
-        <EmailDataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} negate={negate} />
+        <EmailDataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} limit={limit} negate={negate} />
       )}
     </Group>
   );
@@ -1514,12 +1562,15 @@ function EmailDataPreview({
   kind,
   ref_,
   omitWhenEmpty,
+  limit,
   negate,
 }: {
   id: string;
   kind: string;
   ref_: string;
   omitWhenEmpty?: boolean;
+  /** The raw field value — parsed here through the SAME clamp the resolver uses. */
+  limit?: string;
   negate?: boolean;
 }) {
   const editor = useEmailEditor();
@@ -1568,8 +1619,11 @@ function EmailDataPreview({
   }
   if (kind === "collection") {
     if (!host?.resolveCollection) return null;
-    const items = host.resolveCollection(ref_, {});
-    if (!items) return <UnknownRef ref_={ref_} />;
+    const all = host.resolveCollection(ref_, {});
+    if (!all) return <UnknownRef ref_={ref_} />;
+    // Through the resolver's own clamp, so this row can't claim a count the
+    // sent email contradicts.
+    const items = applyCollectionLimit(all, Number(limit));
     return (
       <Row label="Preview">
         <p className="text-xs text-base-content">
@@ -1577,7 +1631,9 @@ function EmailDataPreview({
             ? omitWhenEmpty
               ? "0 items — the node is omitted entirely"
               : "0 items — the template renders once as a placeholder"
-            : `${items.length} item${items.length === 1 ? "" : "s"}`}
+            : items.length < all.length
+              ? `${items.length} of ${all.length} items — limited`
+              : `${items.length} item${items.length === 1 ? "" : "s"}`}
         </p>
       </Row>
     );

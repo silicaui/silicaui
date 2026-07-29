@@ -145,7 +145,27 @@ export interface HostNode extends NodeBase {
 export type DataBinding =
   | { kind: "value"; ref: string; attr?: string } // fill this node from a resolved value; `attr` targets a specific attribute/prop (e.g. "href") instead of the auto-detected primary slot
   | { kind: "html"; ref: string } // fill this node's inner content from a resolved TRUSTED HTML string (rich text / CMS long-form) — the host sanitizes the value; emitted unescaped via `rawHtml`. The one raw-HTML content path.
-  | { kind: "collection"; ref: string; omitWhenEmpty?: boolean } // render `children` once per item; `omitWhenEmpty` drops the node entirely (like `visible: false`) instead of the default one-placeholder-item convention when the collection resolves to zero items
+  /**
+   * Render `children` once per resolved item. `omitWhenEmpty` drops the node
+   * entirely (like `visible: false`) instead of the default one-placeholder-item
+   * convention when the collection resolves to zero items.
+   *
+   * `limit` is a PER-INSTANCE cap: at most this many items render. It exists
+   * because the ref and the count are different questions and the ref cannot
+   * answer both — a catalog `key` says what a source IS, and `scopeAt` matches
+   * an ancestor's `data.ref` against that key to narrow what a descendant can
+   * bind, so a ref carrying an options suffix (`products|limit=4`) silently
+   * empties the inner field list. One tenant wanting a strip of 4 above the
+   * fold, a full grid at /shop and a rail of 12 on the product page is one
+   * source and three counts; without this the count is whatever the host chose
+   * when it fetched, uniform per source across the whole site.
+   *
+   * How many items LOAD, not how many are visible at a time: a carousel showing
+   * 4 of 12 is layout (`basis-1/4` on a snap rail), which the class model
+   * already does. Must be a positive integer — anything else is ignored, so a
+   * malformed value renders the whole collection rather than nothing.
+   */
+  | { kind: "collection"; ref: string; omitWhenEmpty?: boolean; limit?: number }
   | { kind: "action"; ref: string; href?: string } // triggers a host action
   /**
    * CONDITIONAL VISIBILITY. Keep this node (and its subtree) only when `ref`
