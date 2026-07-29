@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-charts
 
+## 0.39.0
+
 ## 0.38.0
 
 ## 0.37.0
