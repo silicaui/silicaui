@@ -1,6 +1,6 @@
 // Runnable proof of resolveTree (§3, the Q3/Q19 keystone). Run against the
 // built output: `pnpm --filter @wizeworks/silicaui-html build && node verify-resolve.mjs`.
-import { el, atom, toHtml, resolveTree } from "./dist/index.js";
+import { el, atom, toHtml, resolveTree, applyCollectionLimit } from "./dist/index.js";
 
 let failures = 0;
 function check(name, cond) {
@@ -90,6 +90,97 @@ function check(name, cond) {
   const host = { resolveCollection: () => ["A", "B"] };
   const out = resolveTree(list, host);
   check("omitWhenEmpty only changes behavior at ZERO items — non-empty still repeats normally", out.children.length === 2);
+}
+
+// ── collection `limit`: a PER-INSTANCE cap on how many items render ───────
+// The ref says what the source IS; `limit` says how much of it THIS instance
+// wants. Same source, three counts, one document.
+{
+  const list = (limit) => {
+    const n = el("ul", "list", { children: [el("li", "row", { text: "placeholder" })] });
+    n.data = { kind: "collection", ref: "products", ...(limit === undefined ? {} : { limit }) };
+    return n;
+  };
+  const host = { resolveCollection: () => ["A", "B", "C", "D", "E", "F"] };
+  check("no limit renders every item (unchanged)", resolveTree(list(), host).children.length === 6);
+  check("limit 4 renders the first 4", resolveTree(list(4), host).children.length === 4);
+  check("limit larger than the collection is a no-op", resolveTree(list(99), host).children.length === 6);
+  check("limit consumes the marker like any other binding", resolveTree(list(4), host).data === undefined);
+  // Two nodes, one ref, different counts — the whole point of the ask.
+  const strip = list(2);
+  const grid = list(6);
+  const page = el("div", "page", { children: [strip, grid] });
+  const out = resolveTree(page, host);
+  check("two instances of ONE ref render different counts", out.children[0].children.length === 2 && out.children[1].children.length === 6);
+}
+
+// ── `limit` is applied per ITEM SCOPE, not once per document ──────────────
+// A nested repeat resolves against its parent's item, so the cap is re-applied
+// on each expansion rather than being consumed by the first one.
+{
+  const inner = el("ul", "tags", { children: [el("li", "tag", { text: "tag" })] });
+  inner.data = { kind: "collection", ref: "item.tags", limit: 2 };
+  const row = el("li", "row", { children: [inner] });
+  const outer = el("ul", "list", { children: [row] });
+  outer.data = { kind: "collection", ref: "products" };
+  const out = resolveTree(outer, {
+    resolveCollection: (ref, scope) => (ref === "products" ? [{ tags: ["a", "b", "c"] }, { tags: ["d", "e", "f", "g"] }] : scope.item?.tags),
+  });
+  check("nested repeat expands per outer item", out.children.length === 2);
+  check("...and the inner limit applies to EACH of them", out.children[0].children[0].children.length === 2 && out.children[1].children[0].children.length === 2);
+}
+
+// ── a malformed `limit` renders everything, never nothing ─────────────────
+// The failure mode of a bad limit has to be "you see too much and notice", not
+// "your section is empty and you don't".
+{
+  const list = (limit) => {
+    const n = el("ul", "list", { children: [el("li", "row", { text: "x" })] });
+    n.data = { kind: "collection", ref: "products", limit };
+    return n;
+  };
+  const host = { resolveCollection: () => ["A", "B", "C"] };
+  for (const bad of [0, -3, 1.5, NaN, Infinity, "2", null]) {
+    check(`limit ${String(bad)} is ignored — all 3 items render`, resolveTree(list(bad), host).children.length === 3);
+  }
+  check("applyCollectionLimit is exported and agrees", applyCollectionLimit(["A", "B", "C"], 2).length === 2);
+  check("...and returns the SAME array when there's nothing to cap (no copy)", applyCollectionLimit(host.resolveCollection(), undefined).length === 3);
+}
+
+// ── `limit` cannot manufacture an empty collection ────────────────────────
+// It's applied before anything reads the length, so `omitWhenEmpty` and the
+// placeholder convention both see the count that will really render — and a
+// valid limit (>= 1) can never turn a non-empty source into a dropped node.
+{
+  const build = () => {
+    const list = el("ul", "list", { children: [el("li", "row", { text: "x" })] });
+    list.data = { kind: "collection", ref: "products", limit: 1, omitWhenEmpty: true };
+    return el("div", "wrap", { children: [list] });
+  };
+  const kept = resolveTree(build(), { resolveCollection: () => ["A", "B"] });
+  check("limit 1 + omitWhenEmpty on a non-empty source still renders one item", kept.children[0].children.length === 1);
+  const dropped = resolveTree(build(), { resolveCollection: () => [] });
+  check("...and an EMPTY source still drops the node, limit or not", dropped.children.length === 0);
+}
+
+// ── an UNRESOLVED repeat carries its modifiers into the markup ────────────
+// A marker that carried only the ref would let a downstream runtime render all
+// 30 items where the author asked for 4, with nothing in the HTML to explain it.
+{
+  const n = el("ul", "list", { children: [el("li", "row", { text: "x" })] });
+  n.data = { kind: "collection", ref: "products", limit: 4, omitWhenEmpty: true };
+  const html = toHtml(n);
+  check("toHtml emits data-sui-repeat for an unresolved tree", html.includes('data-sui-repeat="products"'));
+  check("...and carries the limit", html.includes('data-sui-repeat-limit="4"'));
+  check("...and the omit-when-empty flag", html.includes('data-sui-repeat-omit-empty="true"'));
+  const plain = el("ul", "list", { children: [] });
+  plain.data = { kind: "collection", ref: "products" };
+  const plainHtml = toHtml(plain);
+  check("a repeat with no modifiers emits none of them", !plainHtml.includes("data-sui-repeat-"));
+  // A RESOLVED tree consumed the marker — the modifiers must not survive either.
+  const resolvedHtml = toHtml(resolveTree(n, { resolveCollection: () => ["A", "B", "C", "D", "E"] }));
+  check("a resolved repeat carries no marker at all", !resolvedHtml.includes("data-sui-repeat"));
+  check("...having expanded to exactly `limit` rows", (resolvedHtml.match(/<li/g) ?? []).length === 4);
 }
 
 // ── collection, no resolver supplied: placeholder renders unchanged ────────

@@ -4,9 +4,9 @@
  * nesting (it has to survive Outlook's Word rendering engine and Gmail stripping
  * `<style>` blocks), so the vocabulary mirrors what every mainstream email
  * builder converges on: a body of sections, sections and columns both holding
- * `LayoutChild` (a nested columns row OR bare content — one level of
- * column-in-column nesting is allowed, the common "2x2 grid" pattern), content
- * being the leaf kinds.
+ * `LayoutChild` (a nested columns row, a clickable `link` group, OR bare
+ * content — one level of column-in-column nesting is allowed, the common "2x2
+ * grid" pattern), content being the leaf kinds.
  *
  * Structural nesting is enforced by TYPES, not runtime validation: a
  * `LayoutChild` can't hold a `ColumnNode` directly (only via `ColumnsNode`), a
@@ -41,9 +41,16 @@ interface BaseNode {
    * type, not reinvented) — an opaque `{ kind, ref, attr? }` the engine never
    * parses. `value`/`action` are meaningful on any node; `collection` (repeat
    * children once per item) is only meaningful on a node that actually HAS
-   * `children` (body/section/columns/column) — email's schema can't express a
+   * `children` (body/section/columns/column/link) — email's schema can't express a
    * repeat on a leaf content node the way the site's uniform `Node` shape can,
    * since a leaf kind has no `children` slot to repeat. See `resolve.ts`.
+   *
+   * ONE marker per node is the rule, not an oversight — it is what keeps a
+   * binding readable ("this node comes from that field") and what every
+   * consumer of `node.data` is written against. A card that needs two per-item
+   * values (an image `src` AND a destination) COMPOSES instead of stacking
+   * markers: a `LinkNode` binds the `href`, its `ImageNode` child binds the
+   * `src`.
    */
   data?: DataBinding;
   /**
@@ -219,10 +226,61 @@ export function isContentKind(kind: EmailNode["kind"]): kind is ContentKind {
   return CONTENT_KINDS.has(kind as ContentKind);
 }
 
-/** What a section OR a column can hold directly — either a nested multi-column
- *  row (one level of column-in-column nesting, the common "2x2 grid" pattern
- *  most email builders support), or bare content. */
-export type LayoutChild = ColumnsNode | ContentNode;
+/**
+ * A CLICKABLE GROUP of content — one destination shared by an image, a title,
+ * and a price, so a repeated card can deep-link to its own record.
+ *
+ * ── Why this node exists ──────────────────────────────────────────────────────
+ * Every node carries at most ONE `data` marker, so an `ImageNode` inside a
+ * `collection` repeat can bind its `src` from `item.imageUrl` OR its `href`
+ * from `item.url` — never both. And a `TextNode` has no `href` field at all: a
+ * link inside copy is authored as inline `<a>` markup, which is a literal
+ * string and therefore identical on every repeated item. That left a product
+ * rail with no way to send each card to its own PDP. This node is the missing
+ * composition step: it holds the `href`, so `data: { kind: 'value', ref: 'url',
+ * attr: 'href' }` on it binds per item while each child keeps its own marker
+ * for its own field.
+ *
+ * ── How it projects, and why NOT as one `<a>` ─────────────────────────────────
+ * The obvious lowering — wrap the card's markup in a single anchor — is exactly
+ * what does NOT work in email. An `<a>` around block-level content (a table, a
+ * `<div>`) is invalid in the HTML dialect Outlook's Word engine parses, and it
+ * drops the link there: the card renders, looks clickable, and silently isn't,
+ * for the one audience most likely to be reading a transactional email on a
+ * desktop client. So the projector DISTRIBUTES the link down onto each child
+ * that can carry one instead (see `renderLink`): an image becomes
+ * `<a><img></a>`, a text block's copy is wrapped in an anchor. Both are plain
+ * inline anchors — bulletproof in every client, Outlook included.
+ *
+ * The consequence, stated plainly because it is a real difference from the
+ * site engine's link box: the CONTENT of the card is clickable, the padding
+ * and gaps around it are not. That is the honest ceiling of email link
+ * support, and it beats a whole-card hit area that evaporates in Outlook.
+ *
+ * A child that carries its OWN destination keeps it — an explicit link beats
+ * an inherited one, so a "Buy now" button inside a card still goes wherever
+ * its own `href` says. Same for `video`/`social`, which are links already.
+ */
+export interface LinkNode extends BaseNode {
+  kind: "link";
+  /** Where the group points. Bindable per item inside a `collection` repeat via
+   *  `data: { kind: 'value', ref: '<field>', attr: 'href' }` (it is also the
+   *  default target, so a bare `value` bind with no `attr` fills it). Empty
+   *  means "no link yet" — children render exactly as if they weren't grouped. */
+  href: string;
+  /**
+   * Content only — no nested `columns`, and no nested `link`. Both are type
+   * errors rather than runtime guards, and the second is load-bearing: nested
+   * anchors are invalid HTML, and "which of the two destinations wins" has no
+   * answer an author would predict.
+   */
+  children: ContentNode[];
+}
+
+/** What a section OR a column can hold directly — a nested multi-column row
+ *  (one level of column-in-column nesting, the common "2x2 grid" pattern most
+ *  email builders support), a clickable group, or bare content. */
+export type LayoutChild = ColumnsNode | LinkNode | ContentNode;
 
 export interface ColumnNode extends BaseNode {
   kind: "column";
@@ -354,7 +412,7 @@ export interface EmailBody extends BaseNode {
   children: SectionNode[];
 }
 
-export type EmailNode = EmailBody | SectionNode | ColumnsNode | ColumnNode | ContentNode;
+export type EmailNode = EmailBody | SectionNode | ColumnsNode | ColumnNode | LinkNode | ContentNode;
 
 export interface EmailDocument {
   version: "1";

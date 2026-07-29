@@ -23,7 +23,16 @@ const transport = new StdioClientTransport({
 await client.connect(transport);
 
 const tools = await client.listTools();
-check("server registers all 10 tools", tools.tools.length === 10);
+// Counted from the source rather than hardcoded — the same lesson the
+// BehaviorType check below already learned the hard way: a literal number
+// fails the moment a tool is added, reporting a stale test as a broken server
+// and giving a genuinely unreachable tool nowhere to show up distinctly. What
+// this actually proves is that every REGISTERED tool is reachable over stdio.
+const registered = (readFileSync("src/server.ts", "utf8").match(/server\.registerTool\(/g) ?? []).length;
+check(
+  `every registered tool is reachable over stdio (${registered})`,
+  registered > 0 && tools.tools.length === registered,
+);
 
 const packages = JSON.parse(text(await client.callTool({ name: "list_packages", arguments: {} })));
 check("list_packages returns the family", packages.some((p) => p.name === "@wizeworks/silicaui-react"));
@@ -165,6 +174,153 @@ check("search_docs finds cross-domain matches", search.some((r) => r.kind === "b
 
 const classSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "soft" } })));
 check("search_docs finds literal class names", classSearch.some((r) => r.kind === "class" && r.class === "bg-soft"));
+
+// ── the email document schema ───────────────────────────────────────────────
+// A separate surface from the three paths, and the one with no other source of
+// truth an agent could fall back on: an invented kind or an illegal nesting is
+// dropped by the engine SILENTLY. These assert the catalog is actually derived
+// from the engine rather than describing it — the failure mode being a matrix
+// that reads plausibly and disagrees with what `insert` accepts.
+const emailNodes = JSON.parse(text(await client.callTool({ name: "list_email_nodes", arguments: {} })));
+const kindNames = new Set(emailNodes.kinds.map((k) => k.kind));
+// Compare against the schema's own EmailNode union rather than a hardcoded
+// count — same anti-drift reasoning as the BehaviorType check above.
+const schemaKinds = new Set(
+  [...readFileSync("../silicaui-builder/src/email/schema.ts", "utf8").matchAll(/^\s+kind: "([a-z]+)";$/gm)].map(
+    (m) => m[1],
+  ),
+);
+const missingKinds = [...schemaKinds].filter((k) => !kindNames.has(k));
+check(
+  `list_email_nodes returns every kind in the schema (${schemaKinds.size})`,
+  schemaKinds.size > 0 && missingKinds.length === 0,
+);
+if (missingKinds.length) console.log(`      missingKinds: ${missingKinds.join(", ")}`);
+check(
+  "nesting rules come from the engine: a section holds content, a columns row holds only columns",
+  emailNodes.kinds.find((k) => k.kind === "section")?.holds.includes("text") &&
+    emailNodes.kinds.find((k) => k.kind === "columns")?.holds.join() === "column",
+);
+check(
+  "a link group holds content but never another link (nested anchors)",
+  emailNodes.kinds.find((k) => k.kind === "link")?.holds.includes("image") &&
+    !emailNodes.kinds.find((k) => k.kind === "link")?.holds.includes("link"),
+);
+check(
+  "palette presets resolve to a real kind",
+  emailNodes.palette.length > 0 && emailNodes.palette.every((p) => kindNames.has(p.kind)),
+);
+
+const linkNode = JSON.parse(text(await client.callTool({ name: "get_email_node", arguments: { kind: "link" } })));
+check(
+  "get_email_node returns real typed fields with their source docs",
+  linkNode.fields.some((f) => f.name === "href" && f.type === "string" && f.doc.length > 0),
+);
+check("get_email_node returns the shared BaseNode fields once", linkNode.sharedFields.some((f) => f.name === "data"));
+check(
+  "get_email_node returns the bind contract (which attr, and the default)",
+  linkNode.binding?.default === "href" && "href" in linkNode.binding.fields,
+);
+check(
+  "get_email_node reports where the kind may be placed",
+  linkNode.allowedParents.includes("section") && linkNode.allowedParents.includes("column"),
+);
+
+const badKind = await client.callTool({ name: "get_email_node", arguments: { kind: "carousel" } });
+check("get_email_node reports isError for a kind that doesn't exist", badKind.isError === true);
+
+check(
+  "list_email_nodes carries the document envelope, not just the nodes",
+  emailNodes.documentTypes?.some((t) => t.typeName === "EmailDocument" && t.fields.some((f) => f.name === "subject")),
+);
+
+const fieldSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "thumbnail" } })));
+check("search_docs reaches email node fields", fieldSearch.some((r) => r.kind === "email-node" && r.node === "video"));
+
+const envelopeSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "preheader" } })));
+check(
+  "search_docs reaches the document envelope too",
+  envelopeSearch.some((r) => r.kind === "email-type" && r.typeName === "EmailDocument"),
+);
+
+// ── the node-tree (path 3) schema ───────────────────────────────────────────
+// The catalog used to answer "what can I put in a silica tree" and nothing at
+// all about the tree's own shape — so the data-binding vocabulary, which is how
+// a generated document draws live content, existed in the source and in two
+// hand-written docs and NOWHERE an agent could look it up. These checks are
+// less about the tool answering and more about it staying TRUE: the union is
+// re-read from silicaui-html's source and compared field by field, so adding a
+// binding option and forgetting the catalog fails here instead of shipping a
+// server that quietly describes last release's schema.
+const nodeSchema = JSON.parse(text(await client.callTool({ name: "get_node_schema", arguments: {} })));
+check(
+  "get_node_schema returns all four node kinds",
+  ["element", "component", "outlet", "host"].every((k) => nodeSchema.kinds.some((n) => n.kind === k)),
+);
+check(
+  "...and says which of them carry the shared metadata band (an outlet does not)",
+  nodeSchema.kinds.find((k) => k.kind === "element")?.sharedFields === true &&
+    nodeSchema.kinds.find((k) => k.kind === "outlet")?.sharedFields === false,
+);
+check(
+  "...and the shared band names the typed system metadata, not just ids",
+  ["data", "slot", "behavior", "part", "locked"].every((f) => nodeSchema.nodeBase.some((m) => m.name === f)),
+);
+
+// The load-bearing one: the REAL union, re-parsed, versus what we publish.
+const bindingSource = new Map(
+  [
+    ...readFileSync("../silicaui-html/src/schema.ts", "utf8").matchAll(/\|\s*\{\s*kind:\s*"(\w+)";([^}]*)\}/g),
+  ].map(([, kind, body]) => [kind, [...body.matchAll(/(\w+)\??:/g)].map((m) => m[1]).sort().join(",")]),
+);
+check(
+  `every DataBinding kind in the source is published (${bindingSource.size})`,
+  bindingSource.size >= 5 && [...bindingSource.keys()].every((k) => nodeSchema.dataBindings.some((b) => b.kind === k)),
+);
+check(
+  "...with the exact field set the source declares, on every one of them",
+  nodeSchema.dataBindings.every(
+    (b) => b.fields.map((f) => f.name).sort().join(",") === bindingSource.get(b.kind),
+  ),
+);
+check(
+  "...and each one carries its real source doc, not a placeholder",
+  nodeSchema.dataBindings.every((b) => b.doc.length > 20 && !b.doc.startsWith("//") && !b.doc.startsWith("*")),
+);
+check(
+  "the resolution contract carries the unknown-vs-empty rule the hooks depend on",
+  /undefined/.test(nodeSchema.resolution.honesty) &&
+    nodeSchema.resolution.host.some((m) => m.name === "resolveCollection") &&
+    nodeSchema.resolution.resolved.some((m) => m.name === "visible"),
+);
+check(
+  "the element floor is the real allowlist, with per-tag attrs",
+  nodeSchema.elementFloor.tags.length > 50 &&
+    nodeSchema.elementFloor.tags.find((t) => t.tag === "img")?.attrs.includes("srcset") &&
+    !nodeSchema.elementFloor.tags.some((t) => t.tag === "iframe"),
+);
+
+const sectioned = JSON.parse(
+  text(await client.callTool({ name: "get_node_schema", arguments: { section: "bindings" } })),
+);
+check(
+  "get_node_schema(section) narrows the answer",
+  sectioned.dataBindings.length === nodeSchema.dataBindings.length && sectioned.elementFloor === undefined,
+);
+
+// The concrete regression that prompted all of this: a per-instance `limit` was
+// added to a collection binding and the catalog said nothing about it, so an
+// agent reading this server would have kept authoring uncapped repeats.
+const limitSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "limit" } })));
+check(
+  "search_docs reaches the binding vocabulary (the gap that started this)",
+  limitSearch.some((r) => r.kind === "data-binding" && r.binding === "collection"),
+);
+const attrSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "srcset" } })));
+check(
+  "search_docs reaches an allowlisted attribute by name",
+  attrSearch.some((r) => r.kind === "element-tag" && r.tag === "img"),
+);
 
 await client.close();
 

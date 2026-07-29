@@ -1,7 +1,7 @@
 /**
  * The email Insert palette (left rail). Unlike the site palette, the email
- * catalog is small and closed (8 fixed block kinds — a few, like columns, get
- * more than one preset), so there's no search box — but it IS both a click
+ * catalog is small and closed (the schema's fixed block kinds — a few, like
+ * columns and link, get more than one preset), so there's no search box — but it IS both a click
  * target (inserts relative to the current selection, same placement rule as
  * the site engine's `insertRelative`) and a drag source (drop precisely onto
  * the canvas), matching the site palette's interaction model. A Saved section

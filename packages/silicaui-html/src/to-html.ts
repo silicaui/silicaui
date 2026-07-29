@@ -57,7 +57,18 @@ function metaAttrs(node: ElementNode | ComponentNode | HostNode, opts: ToHtmlOpt
   if (d) {
     if (d.kind === "value") out += attr("data-sui-bind", d.ref);
     else if (d.kind === "html") out += attr("data-sui-html", d.ref);
-    else if (d.kind === "collection") out += attr("data-sui-repeat", d.ref);
+    else if (d.kind === "collection") {
+      out += attr("data-sui-repeat", d.ref);
+      // The repeat's MODIFIERS travel with it, for the same reason `visible`
+      // carries its `negate`: an unresolved tree reaching `toHtml` is one a
+      // downstream runtime still has to resolve, and a marker that carried only
+      // the ref would silently render all 30 items where the author asked for
+      // 4 — a divergence between the two resolutions with nothing in the markup
+      // to explain it. A resolved tree never gets here; `resolveTree` has
+      // already expanded the node and consumed the marker.
+      if (d.limit != null) out += attr("data-sui-repeat-limit", String(d.limit));
+      if (d.omitWhenEmpty) out += attr("data-sui-repeat-omit-empty", "true");
+    }
     else if (d.kind === "visible") {
       // An UNRESOLVED tree reaching `toHtml` keeps the marker, like every other
       // kind, so a downstream runtime can still make the call. A resolved tree

@@ -66,6 +66,7 @@ import type {
   HtmlNode,
   ImageNode,
   LayoutChild,
+  LinkNode,
   SectionNode,
   SocialNode,
   SpacerNode,
@@ -76,7 +77,13 @@ import type {
 /** True for any node that can hold children — mirrors `engine.ts`'s `isContainer`
  *  (kept local since the render tree already switches on kind everywhere). */
 function isContainer(node: EmailNode): boolean {
-  return node.kind === "body" || node.kind === "section" || node.kind === "columns" || node.kind === "column";
+  return (
+    node.kind === "body" ||
+    node.kind === "section" ||
+    node.kind === "columns" ||
+    node.kind === "column" ||
+    node.kind === "link"
+  );
 }
 
 /** Resolve a palette drag key to the node to insert, on-brand — a `saved:<id>`
@@ -658,8 +665,65 @@ function RenderContent({
   }
 }
 
-/** Render a list of content/columns children (a Section's or a Column's) with
- *  drop-line gaps interleaved. */
+/**
+ * A clickable group (`LinkNode`). The projector emits NO element for this — it
+ * distributes the group's `href` onto each child's own anchor (see
+ * `renderLink`) — so the canvas emits no visual box either: children stack
+ * exactly where they will when sent.
+ *
+ * What it DOES draw is authoring chrome, and it earns it. A group is invisible
+ * in the rendered result, which makes the one mistake that matters —
+ * children left as SIBLINGS of the group instead of inside it — look
+ * identical to the correct tree. That produces a card that quietly doesn't
+ * link, discovered in a test send if at all. So the boundary and a link glyph
+ * are drawn ALWAYS, not on hover: an author who never hovers is exactly the
+ * one who needs to see it. The hairline is cancelled by `-m-px` so it costs no
+ * layout, and (like every other affordance here) it is withheld from a
+ * read-only frame render, which has no author to inform.
+ */
+function RenderLink({
+  node,
+  parentId,
+  index,
+  ctx,
+}: {
+  node: LinkNode;
+  parentId: string;
+  index: number;
+  ctx: RenderCtx;
+}) {
+  const info: NodeInfo = { id: node.id, parentId, index, node };
+  if (ctx.readOnly) {
+    return (
+      <div className="flex flex-col gap-2">
+        {node.children.map((c, i) => (
+          <RenderContent key={c.id} node={c} parentId={node.id} index={i} ctx={ctx} />
+        ))}
+      </div>
+    );
+  }
+  // Same empty-state scaffolding a Column gets: something to aim a drop at, and
+  // a prompt saying what's missing.
+  const empty = node.children.length === 0;
+  return (
+    <div
+      className={`relative -m-px flex flex-col gap-2 border border-dashed border-base-content/20${empty ? " min-h-14 items-center justify-center bg-base-content/5" : ""}${decorations(node.id, ctx)}`}
+      {...interactionProps(info, ctx)}
+    >
+      {empty ? <EmptyHint /> : renderChildren(node.children, node.id, ctx)}
+      <span
+        className="pointer-events-none absolute right-0.5 top-0.5 z-10 inline-flex items-center rounded-btn bg-base-100 px-1 text-base-content shadow-sm"
+        title={node.href ? `Everything inside links to ${node.href}` : "Everything inside shares one link — set the URL in Settings"}
+        data-testid="email-link-group-mark"
+      >
+        <Icon name="link" />
+      </span>
+    </div>
+  );
+}
+
+/** Render a list of content/columns/link children (a Section's or a Column's)
+ *  with drop-line gaps interleaved. */
 function renderChildren(children: LayoutChild[], parentId: string, ctx: RenderCtx): React.ReactNode {
   const gap = ctx.lineGap && ctx.lineGap.parentId === parentId ? ctx.lineGap.index : -1;
   const out: React.ReactNode[] = [];
@@ -668,6 +732,8 @@ function renderChildren(children: LayoutChild[], parentId: string, ctx: RenderCt
     out.push(
       c.kind === "columns" ? (
         <RenderColumns key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
+      ) : c.kind === "link" ? (
+        <RenderLink key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
       ) : (
         <RenderContent key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
       ),

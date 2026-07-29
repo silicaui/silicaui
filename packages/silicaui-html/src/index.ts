@@ -71,7 +71,7 @@ export type { DataSource } from "./data-sources";
 // The data-resolution layer (builder-contract.md §3, the Q3/Q19 keystone) — ONE
 // synchronous walker owning bind + repeat, shared by the canvas and a host's
 // live-render path so preview == production is structural.
-export { resolveTree } from "./resolve";
+export { applyCollectionLimit, resolveTree } from "./resolve";
 export type {
   DataScope,
   Resolved,

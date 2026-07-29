@@ -21,6 +21,7 @@ import type {
   EmailNode,
   EmailProject,
   EmailTemplate,
+  LinkNode,
   SectionNode,
 } from "./schema";
 import { DEFAULT_EMAIL_COLORS, emptyEmailDocument, isContentKind } from "./schema";
@@ -108,27 +109,48 @@ export interface HistoryDelegate {
 }
 
 /** A node that can hold children — everything but the leaf content kinds. */
-type Container = EmailBody | SectionNode | ColumnsNode | ColumnNode;
+type Container = EmailBody | SectionNode | ColumnsNode | ColumnNode | LinkNode;
 
 function isContainer(node: EmailNode): node is Container {
-  return node.kind === "body" || node.kind === "section" || node.kind === "columns" || node.kind === "column";
+  return (
+    node.kind === "body" ||
+    node.kind === "section" ||
+    node.kind === "columns" ||
+    node.kind === "column" ||
+    node.kind === "link"
+  );
 }
 
-/** The structural rule table (keep in sync with schema.ts's type comments). */
+/**
+ * The structural rule table — which kinds each container may hold (keep in
+ * sync with schema.ts's type comments).
+ *
+ * PUBLIC (re-exported from `/email`): every insert/move path, local and
+ * remote, is adjudicated here, so a host building its own drag layer, palette,
+ * or op validator needs the same answer — and a second implementation of it
+ * would be a second, differently-wrong answer. Reads only `kind` on both
+ * arguments.
+ */
 function canHold(parent: EmailNode, child: EmailNode): boolean {
   switch (parent.kind) {
     case "body":
       return child.kind === "section";
     case "section":
-      return child.kind === "columns" || isContentKind(child.kind);
+      return child.kind === "columns" || child.kind === "link" || isContentKind(child.kind);
     case "columns":
       return child.kind === "column";
     case "column":
-      // A column holds bare content OR a nested columns row (the "2x2 grid"
-      // pattern) — `LayoutChild`. Nesting depth is unbounded by the schema
-      // (real email tables nest fine); the Palette just has no reason to
-      // encourage going deeper than one level in practice.
-      return child.kind === "columns" || isContentKind(child.kind);
+      // A column holds bare content, a clickable `link` group, OR a nested
+      // columns row (the "2x2 grid" pattern) — `LayoutChild`. Nesting depth is
+      // unbounded by the schema (real email tables nest fine); the Palette just
+      // has no reason to encourage going deeper than one level in practice.
+      return child.kind === "columns" || child.kind === "link" || isContentKind(child.kind);
+    case "link":
+      // Content only. A nested `link` would mean nested anchors (invalid HTML,
+      // and no predictable answer to which destination wins), and a nested
+      // `columns` row would put block-level table markup inside a group whose
+      // whole job is to lower into inline anchors — see `LinkNode` in schema.ts.
+      return isContentKind(child.kind);
     default:
       return false;
   }

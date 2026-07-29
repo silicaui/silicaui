@@ -203,6 +203,43 @@ test("the Data binding Preview row calls host.resolveBinding/resolveCollection l
   await expect(page.getByText("3 items")).toBeVisible();
 });
 
+test("a collection's 'How many' caps the instance, and the canvas draws that count", async ({ page }) => {
+  await ready(page);
+  const canvas = page.locator(".sui-canvas");
+
+  // Bind the CONTAINER that holds the hero copy (Navigator row 3: Page →
+  // section → div → div) to the 12-row demo catalog. A repeat clones the
+  // node's children per item, so a container is what makes the count legible;
+  // the canvas renders the authored template once plus a ghost per further
+  // item, so the count the author lays out against is the count that ships.
+  const HEADLINE = "Ship your store in an afternoon";
+  await page.locator(".tree-node").nth(3).click();
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByTestId("data-kind").selectOption("collection");
+  await page.getByTestId("data-ref-picker").selectOption("catalog");
+
+  await expect(page.getByTestId("data-collection-preview")).toHaveText("12 items");
+  // 12 copies of the authored template on the canvas — 1 real + 11 ghosts.
+  await expect(canvas.getByText(HEADLINE)).toHaveCount(12);
+
+  // Cap it. Same ref, a different count — the thing a catalog `key` alone
+  // cannot express, since `scopeAt` matches the ref against that key.
+  await page.getByTestId("data-limit").fill("4");
+  await page.getByTestId("data-limit").press("Enter");
+  await expect(page.getByTestId("data-collection-preview")).toHaveText("4 of 12 items — limited");
+  await expect(canvas.getByText(HEADLINE)).toHaveCount(4);
+
+  // Exactly ONE of them is the authored, selectable node — the ghosts carry no
+  // id and no wiring, so nothing about selection identity changed.
+  await expect(canvas.locator("h1[data-sui-id]")).toHaveCount(1);
+
+  // A blank field means "all of it" again, and never means zero.
+  await page.getByTestId("data-limit").fill("");
+  await page.getByTestId("data-limit").press("Enter");
+  await expect(page.getByTestId("data-collection-preview")).toHaveText("12 items");
+  await expect(canvas.getByText(HEADLINE)).toHaveCount(12);
+});
+
 test("a ref the host cannot resolve fails LOUDLY — it never blanks the node silently", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");

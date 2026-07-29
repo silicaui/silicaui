@@ -1,0 +1,1131 @@
+{
+  "entrypoint": "@wizeworks/silicaui-builder/email",
+  "reactEntrypoint": "@wizeworks/silicaui-builder/email/react",
+  "note": "The CLOSED node schema of the email builder — NOT one of the three delivery paths. An email document is body → section → (columns → column)* → content, projected to table-based, fully inline-styled HTML by `toEmailHtml`. Only these kinds exist and only these nestings are accepted: `EmailEditor.insert` returns undefined for anything else, silently. Fields are typed props on the node itself (not classes) and colors are literal hex (email clients can't resolve CSS custom properties or OKLCH).",
+  "sharedFields": [
+    {
+      "name": "id",
+      "optional": false,
+      "type": "string",
+      "doc": ""
+    },
+    {
+      "name": "ord",
+      "optional": true,
+      "type": "string",
+      "doc": "Fractional ORDERING KEY among siblings — a string chosen to sort strictly between its neighbors (`generateKeyBetween` in `@wizeworks/silicaui-html`). The same mechanism, and the same reasoning, as the site schema's `Node.ord`. `children` order still drives rendering; `ord` is what makes a position transportable in an op. An array index is not a stable address — \"insert at 2\" resolves differently depending on what else landed first — so two authors inserting into one section would produce a result neither saw. Authoring metadata: `toEmailHtml` never reads it, so it cannot reach sent markup. Backfilled at load by the engine for documents authored before it existed."
+    },
+    {
+      "name": "data",
+      "optional": true,
+      "type": "DataBinding",
+      "doc": "The SAME dynamic-content marker the site engine's `Node` carries (reused type, not reinvented) — an opaque `{ kind, ref, attr? }` the engine never parses. `value`/`action` are meaningful on any node; `collection` (repeat children once per item) is only meaningful on a node that actually HAS `children` (body/section/columns/column/link) — email's schema can't express a repeat on a leaf content node the way the site's uniform `Node` shape can, since a leaf kind has no `children` slot to repeat. See `resolve.ts`. ONE marker per node is the rule, not an oversight — it is what keeps a binding readable (\"this node comes from that field\") and what every consumer of `node.data` is written against. A card that needs two per-item values (an image `src` AND a destination) COMPOSES instead of stacking markers: a `LinkNode` binds the `href`, its `ImageNode` child binds the `src`."
+    },
+    {
+      "name": "locked",
+      "optional": true,
+      "type": "\"host\" | \"author\"",
+      "doc": "Structural immutability + its OWNER — the same two-tier flag the site schema carries (`silicaui-html`'s `NodeBase.locked`, host-nodes spec §B), reused here rather than reinvented, so a host that pins regions in both builders reasons about one concept. A locked node cannot be removed or moved; its OWN fields stay editable (a locked footer's copy is still typo-fixable) and so do its children. Presence IS locked; the value encodes who owns the lock: - `\"author\"` — the author locked it from the Inspector; the same toggle unlocks it. - `\"host\"` — the host locked it (a compliance block it stamps into a seeded document, or a runtime `setLocked` call). The author UI shows it locked and offers NO unlock; only the host can clear it. Authoring metadata: `toEmailHtml` never reads it, so it cannot reach sent markup. For chrome that must not live in the document at all — a brand bar or a legal footer that has to reflect the CURRENT brand on every send, and that an author must never even see as a deletable node — use `EmailFrame` (`frame.ts`) instead. A lock protects a node that IS part of the saved document; a frame is composed around it and never persisted."
+    }
+  ],
+  "bindingNote": "A node carries AT MOST ONE `data` marker. `value` fills one field (`attr` picks which — see each kind's `binding.fields`; omitting it targets `binding.default`); `collection` repeats a node's children once per item and is only meaningful on a kind with children; `visible` keeps or drops the subtree; `action` is an inert marker the host wires. Two per-item values on one card is COMPOSITION, not two markers: a `link` group binds the href while each child binds its own field.",
+  "documentTypes": [
+    {
+      "typeName": "SocialLink",
+      "doc": "",
+      "fields": [
+        {
+          "name": "platform",
+          "optional": false,
+          "type": "SocialPlatform",
+          "doc": ""
+        },
+        {
+          "name": "url",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "typeName": "EmailWebFont",
+      "doc": "One `@font-face` the projector emits into the document `<head>`. A webfont is a DOCUMENT-LEVEL DESIGN DECISION, so it lives in the schema — not in a caller-supplied CSS string. That way it travels with the document, round-trips through save/load, and is editable in the Inspector instead of being invisible code at the render call site. Two things every consumer needs to know, because neither is obvious and both bite in production: 1. **Reach is limited and that's fine.** Apple Mail, iOS Mail, Outlook for Mac, and Samsung Mail render webfonts. Gmail (every surface), Outlook on Windows, and Yahoo do NOT — they fall back to `EmailBody.fontFamily`. Always keep that stack a real, self-sufficient system stack. 2. **Use a hosted URL, not a `data:` URI.** Gmail CLIPS a message past roughly 102KB, hiding everything after the cut behind a \"View entire message\" link. An embedded font blows through that on its own and will silently truncate the email. The projector wraps the emitted `@font-face` in `@media screen` — Outlook's Word engine ignores that at-rule entirely, which stops it seeing a webfont it can't load and falling back to Times New Roman.",
+      "fields": [
+        {
+          "name": "family",
+          "optional": false,
+          "type": "string",
+          "doc": "The `font-family` name, e.g. `\"Sohne\"`. Quoted automatically when emitted."
+        },
+        {
+          "name": "src",
+          "optional": false,
+          "type": "string",
+          "doc": "A `url(...)`-able source. Hosted HTTPS strongly preferred — see above."
+        },
+        {
+          "name": "weight",
+          "optional": true,
+          "type": "number | string",
+          "doc": "Defaults to `400`."
+        },
+        {
+          "name": "style",
+          "optional": true,
+          "type": "\"normal\" | \"italic\"",
+          "doc": "Defaults to `normal`."
+        }
+      ]
+    },
+    {
+      "typeName": "EmailDocument",
+      "doc": "",
+      "fields": [
+        {
+          "name": "version",
+          "optional": false,
+          "type": "\"1\"",
+          "doc": ""
+        },
+        {
+          "name": "subject",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "preheader",
+          "optional": false,
+          "type": "string",
+          "doc": "Preview text shown next to the subject in an inbox list."
+        },
+        {
+          "name": "root",
+          "optional": false,
+          "type": "EmailBody",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "typeName": "EmailTemplate",
+      "doc": "One named email in a project — the unit the template switcher lists, adds, renames, and deletes. Mirrors the site engine's `Page` (name + its own tree), minus a route `slug` — a template has no URL to route.",
+      "fields": [
+        {
+          "name": "id",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "name",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "document",
+          "optional": false,
+          "type": "EmailDocument",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "typeName": "EmailProject",
+      "doc": "A project is one or more independent templates sharing nothing but the brand color defaults they were seeded with — mirrors the site engine's `Site` (pages sharing one theme + frame), scaled down: an email has no shared frame or theme tokens to hold at the project level, so a project is JUST the roster. `EmailEditor` edits one template at a time (its `activeTemplateId`).",
+      "fields": [
+        {
+          "name": "version",
+          "optional": false,
+          "type": "\"1\"",
+          "doc": ""
+        },
+        {
+          "name": "templates",
+          "optional": false,
+          "type": "EmailTemplate[]",
+          "doc": ""
+        }
+      ]
+    },
+    {
+      "typeName": "EmailColorDefaults",
+      "doc": "Hex color defaults new blocks / a fresh document seed with. Plain hex — no `Theme`/OKLCH knowledge here, so the engine stays framework-neutral; the React layer (`email/react/theme-defaults.ts`) resolves an actual brand `Theme` down to this shape before constructing an `EmailEditor`, since email HTML can't ship OKLCH (Outlook and most clients don't support CSS color functions) — every stored color must already be a literal hex string.",
+      "fields": [
+        {
+          "name": "primary",
+          "optional": false,
+          "type": "string",
+          "doc": "Button background / links / accents."
+        },
+        {
+          "name": "primaryContent",
+          "optional": false,
+          "type": "string",
+          "doc": "Text color that reads on top of `primary`."
+        },
+        {
+          "name": "baseContent",
+          "optional": false,
+          "type": "string",
+          "doc": "Body copy color."
+        },
+        {
+          "name": "base100",
+          "optional": false,
+          "type": "string",
+          "doc": "Section / content background."
+        },
+        {
+          "name": "base200",
+          "optional": false,
+          "type": "string",
+          "doc": "Outer canvas background."
+        },
+        {
+          "name": "base300",
+          "optional": false,
+          "type": "string",
+          "doc": "Divider color."
+        },
+        {
+          "name": "secondary",
+          "optional": false,
+          "type": "string",
+          "doc": "The rest of the theme's semantic roles (`rolesOf`'s `SEMANTIC_ROLES`, minus `primary` above) — resolved purely so the Inspector's color swatches offer the SAME palette breadth as the site builder's, not used to seed any block default (only `primary`/`base*` are — see the block `make()` functions in `../palette.ts`)."
+        },
+        {
+          "name": "accent",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "neutral",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "info",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "success",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "warning",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "error",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        }
+      ]
+    }
+  ],
+  "kinds": [
+    {
+      "kind": "text",
+      "typeName": "TextNode",
+      "doc": "",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "html",
+          "optional": false,
+          "type": "string",
+          "doc": "Minimal inline-safe HTML: `<b>`, `<i>`, `<a href>`, `<br>` — nothing block-level."
+        },
+        {
+          "name": "align",
+          "optional": false,
+          "type": "Align",
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "colorAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "When true, `color` tracks the brand theme's `baseContent` role live (see `EmailEditor.setColorDefaults`) instead of being a frozen manual pick."
+        },
+        {
+          "name": "colorRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": "Which `EmailColorDefaults` role `color` tracks while `colorAuto` — see `AutoColorRule` in `engine.ts`. Omitted means the kind's default role (`baseContent`)."
+        },
+        {
+          "name": "linkColor",
+          "optional": true,
+          "type": "string",
+          "doc": "Color for `<a>` elements inside `html`. Unset (the default) leaves anchors to the client's own hyperlink blue — the historical behavior, and the one that keeps output byte-identical for documents that never set this. There is no LINK NODE and deliberately so: a link is inline INSIDE copy and this schema has no inline level to hold one. So the projector applies this by rewriting anchor tags in `html` — the one place it parses markup at all, acceptable only because a `TextNode`'s `html` is the constrained inline-safe subset documented above (arbitrary markup belongs in an `HtmlNode`, which stays untouched). An anchor that already carries its own `color:` wins."
+        },
+        {
+          "name": "linkColorAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `primary` role live — see `colorAuto`."
+        },
+        {
+          "name": "linkColorRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "fontSize",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "fontWeight",
+          "optional": false,
+          "type": "FontWeight",
+          "doc": ""
+        },
+        {
+          "name": "lineHeight",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "default": "html",
+        "fields": {
+          "html": "string"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "image",
+      "typeName": "ImageNode",
+      "doc": "",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "src",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "alt",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "href",
+          "optional": true,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "optional": false,
+          "type": "number",
+          "doc": "Pixels; the projector clamps it to the body width."
+        },
+        {
+          "name": "align",
+          "optional": false,
+          "type": "Align",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "default": "src",
+        "fields": {
+          "src": "string",
+          "alt": "string",
+          "href": "string",
+          "width": "number"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "button",
+      "typeName": "ButtonNode",
+      "doc": "",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "label",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "href",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "variant",
+          "optional": true,
+          "type": "ButtonVariant",
+          "doc": "Omitted means `filled` — so a document authored before variants existed projects byte-identically."
+        },
+        {
+          "name": "bg",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "bgAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "See `TextNode.colorAuto` — tracks the theme's `primary` role live."
+        },
+        {
+          "name": "bgRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "color",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "colorAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `primaryContent` role live."
+        },
+        {
+          "name": "colorRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "borderColor",
+          "optional": true,
+          "type": "string",
+          "doc": "Border color; defaults to `bg` when a width is set but no color is."
+        },
+        {
+          "name": "borderColorAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `primary` role live."
+        },
+        {
+          "name": "borderColorRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "borderWidth",
+          "optional": true,
+          "type": "number",
+          "doc": "Border thickness in px. A `filled` button renders a border only when this is set; an `outline` button falls back to 1px when it isn't."
+        },
+        {
+          "name": "radius",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "align",
+          "optional": false,
+          "type": "Align",
+          "doc": ""
+        },
+        {
+          "name": "paddingX",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "paddingY",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "default": "label",
+        "fields": {
+          "label": "string",
+          "href": "string",
+          "bg": "string",
+          "color": "string"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "divider",
+      "typeName": "DividerNode",
+      "doc": "",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "color",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "colorAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `base300` role live."
+        },
+        {
+          "name": "colorRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "thickness",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "fields": {
+          "color": "string",
+          "thickness": "number"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "spacer",
+      "typeName": "SpacerNode",
+      "doc": "",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "height",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "fields": {
+          "height": "number"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "social",
+      "typeName": "SocialNode",
+      "doc": "",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "links",
+          "optional": false,
+          "type": "SocialLink[]",
+          "doc": ""
+        },
+        {
+          "name": "align",
+          "optional": false,
+          "type": "Align",
+          "doc": ""
+        },
+        {
+          "name": "iconSize",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "gap",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        }
+      ],
+      "binding": null,
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "html",
+      "typeName": "HtmlNode",
+      "doc": "Raw HTML passthrough for power users — merge tags (`{{first_name}}`, an ESP's own syntax) pass through untouched since the projector never parses this string, just emits it verbatim.",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "html",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "default": "html",
+        "fields": {
+          "html": "string"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "video",
+      "typeName": "VideoNode",
+      "doc": "A video: email clients can't embed/autoplay `<video>` reliably (most strip it), so the universal technique is a linked thumbnail image that opens the video's real URL — this node IS that, not a video embed.",
+      "isContent": true,
+      "container": false,
+      "holds": [],
+      "allowedParents": [
+        "link",
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "href",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "thumbnail",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "width",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "align",
+          "optional": false,
+          "type": "Align",
+          "doc": ""
+        },
+        {
+          "name": "showPlayButton",
+          "optional": false,
+          "type": "boolean",
+          "doc": "A centered play-glyph overlay drawn over the thumbnail."
+        }
+      ],
+      "binding": {
+        "default": "href",
+        "fields": {
+          "href": "string",
+          "thumbnail": "string",
+          "width": "number"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "link",
+      "typeName": "LinkNode",
+      "doc": "A CLICKABLE GROUP of content — one destination shared by an image, a title, and a price, so a repeated card can deep-link to its own record. ── Why this node exists ────────────────────────────────────────────────────── Every node carries at most ONE `data` marker, so an `ImageNode` inside a `collection` repeat can bind its `src` from `item.imageUrl` OR its `href` from `item.url` — never both. And a `TextNode` has no `href` field at all: a link inside copy is authored as inline `<a>` markup, which is a literal string and therefore identical on every repeated item. That left a product rail with no way to send each card to its own PDP. This node is the missing composition step: it holds the `href`, so `data: { kind: 'value', ref: 'url', attr: 'href' }` on it binds per item while each child keeps its own marker for its own field. ── How it projects, and why NOT as one `<a>` ───────────────────────────────── The obvious lowering — wrap the card's markup in a single anchor — is exactly what does NOT work in email. An `<a>` around block-level content (a table, a `<div>`) is invalid in the HTML dialect Outlook's Word engine parses, and it drops the link there: the card renders, looks clickable, and silently isn't, for the one audience most likely to be reading a transactional email on a desktop client. So the projector DISTRIBUTES the link down onto each child that can carry one instead (see `renderLink`): an image becomes `<a><img></a>`, a text block's copy is wrapped in an anchor. Both are plain inline anchors — bulletproof in every client, Outlook included. The consequence, stated plainly because it is a real difference from the site engine's link box: the CONTENT of the card is clickable, the padding and gaps around it are not. That is the honest ceiling of email link support, and it beats a whole-card hit area that evaporates in Outlook. A child that carries its OWN destination keeps it — an explicit link beats an inherited one, so a \"Buy now\" button inside a card still goes wherever its own `href` says. Same for `video`/`social`, which are links already.",
+      "isContent": false,
+      "container": true,
+      "holds": [
+        "text",
+        "image",
+        "button",
+        "divider",
+        "spacer",
+        "social",
+        "html",
+        "video"
+      ],
+      "allowedParents": [
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "href",
+          "optional": false,
+          "type": "string",
+          "doc": "Where the group points. Bindable per item inside a `collection` repeat via `data: { kind: 'value', ref: '<field>', attr: 'href' }` (it is also the default target, so a bare `value` bind with no `attr` fills it). Empty means \"no link yet\" — children render exactly as if they weren't grouped."
+        },
+        {
+          "name": "children",
+          "optional": false,
+          "type": "ContentNode[]",
+          "doc": "Content only — no nested `columns`, and no nested `link`. Both are type errors rather than runtime guards, and the second is load-bearing: nested anchors are invalid HTML, and \"which of the two destinations wins\" has no answer an author would predict."
+        }
+      ],
+      "binding": {
+        "default": "href",
+        "fields": {
+          "href": "string"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "column",
+      "typeName": "ColumnNode",
+      "doc": "",
+      "isContent": false,
+      "container": true,
+      "holds": [
+        "text",
+        "image",
+        "button",
+        "divider",
+        "spacer",
+        "social",
+        "html",
+        "video",
+        "link",
+        "columns"
+      ],
+      "allowedParents": [
+        "columns"
+      ],
+      "fields": [
+        {
+          "name": "widthPct",
+          "optional": false,
+          "type": "number",
+          "doc": "This column's share of the row; a row's columns should sum to 100."
+        },
+        {
+          "name": "children",
+          "optional": false,
+          "type": "LayoutChild[]",
+          "doc": ""
+        }
+      ],
+      "binding": null,
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "columns",
+      "typeName": "ColumnsNode",
+      "doc": "",
+      "isContent": false,
+      "container": true,
+      "holds": [
+        "column"
+      ],
+      "allowedParents": [
+        "column",
+        "section"
+      ],
+      "fields": [
+        {
+          "name": "children",
+          "optional": false,
+          "type": "ColumnNode[]",
+          "doc": ""
+        },
+        {
+          "name": "stackOnMobile",
+          "optional": false,
+          "type": "boolean",
+          "doc": ""
+        }
+      ],
+      "binding": null,
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "section",
+      "typeName": "SectionNode",
+      "doc": "",
+      "isContent": false,
+      "container": true,
+      "holds": [
+        "text",
+        "image",
+        "button",
+        "divider",
+        "spacer",
+        "social",
+        "html",
+        "video",
+        "link",
+        "columns"
+      ],
+      "allowedParents": [
+        "body"
+      ],
+      "fields": [
+        {
+          "name": "bg",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "bgAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `base100` role live."
+        },
+        {
+          "name": "bgRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": "Which `EmailColorDefaults` role `bg` tracks while `bgAuto` is on. Omitted means `base100` (the historical, hardcoded behavior). This is what makes a TINTED surface — a card or footer on `base200`/`base300`, or a brand-colored hero band on `primary` — follow each tenant's palette instead of freezing a literal neutral hex the moment you want anything but white."
+        },
+        {
+          "name": "bgImage",
+          "optional": true,
+          "type": "string",
+          "doc": "An optional background image URL. Email clients vary wildly on support (Outlook desktop needs a VML fallback, which the projector emits); `bg` always renders too, underneath, as the graceful-degradation fallback."
+        },
+        {
+          "name": "paddingX",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "paddingY",
+          "optional": false,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "align",
+          "optional": true,
+          "type": "Align",
+          "doc": "Horizontal alignment of the section's `<td>` — what inline-block `columns` rows and inline content align against. Omitted means `center`, which is what the projector used to hardcode, so existing documents are unaffected."
+        },
+        {
+          "name": "radius",
+          "optional": true,
+          "type": "number",
+          "doc": "── Box decoration ────────────────────────────────────────────────────────── Any of `radius`/`borderWidth`/`marginX`/`marginY` promotes the section from a bare `<tr><td>` to a nested-table \"card\": an outer cell carrying the margin as padding (a `<td>` can't take real margin in Outlook's Word engine) wrapping an inner table that carries the fill, border, and radius. `radius` is IGNORED by Outlook desktop — corners go square there. That's the normal, accepted degradation for rounded email cards, not a bug to work around."
+        },
+        {
+          "name": "borderColor",
+          "optional": true,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "borderColorAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `base300` role live."
+        },
+        {
+          "name": "borderColorRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "borderWidth",
+          "optional": true,
+          "type": "number",
+          "doc": "Border thickness in px; a border renders only when this is > 0."
+        },
+        {
+          "name": "marginX",
+          "optional": true,
+          "type": "number",
+          "doc": "Outer inset, px — space OUTSIDE the section's own fill."
+        },
+        {
+          "name": "marginY",
+          "optional": true,
+          "type": "number",
+          "doc": ""
+        },
+        {
+          "name": "children",
+          "optional": false,
+          "type": "LayoutChild[]",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "fields": {
+          "bg": "string",
+          "bgImage": "string"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    },
+    {
+      "kind": "body",
+      "typeName": "EmailBody",
+      "doc": "",
+      "isContent": false,
+      "container": true,
+      "holds": [
+        "section"
+      ],
+      "allowedParents": [],
+      "fields": [
+        {
+          "name": "width",
+          "optional": false,
+          "type": "number",
+          "doc": "The email's canvas width in px (classic email default: 600)."
+        },
+        {
+          "name": "bg",
+          "optional": false,
+          "type": "string",
+          "doc": "Background behind the body (visible as side \"wallpaper\" in wide clients)."
+        },
+        {
+          "name": "bgAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `base200` role live."
+        },
+        {
+          "name": "bgRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "contentBg",
+          "optional": false,
+          "type": "string",
+          "doc": "The body's own background."
+        },
+        {
+          "name": "contentBgAuto",
+          "optional": true,
+          "type": "boolean",
+          "doc": "Tracks the theme's `base100` role live."
+        },
+        {
+          "name": "contentBgRole",
+          "optional": true,
+          "type": "keyof EmailColorDefaults",
+          "doc": ""
+        },
+        {
+          "name": "fontFamily",
+          "optional": false,
+          "type": "string",
+          "doc": ""
+        },
+        {
+          "name": "webFonts",
+          "optional": true,
+          "type": "EmailWebFont[]",
+          "doc": "`@font-face` declarations; the families are prepended to `fontFamily` in the emitted body font stack, so `fontFamily` stays the fallback."
+        },
+        {
+          "name": "colorScheme",
+          "optional": true,
+          "type": "\"light\" | \"dark\" | \"light dark\"",
+          "doc": "Declares which color schemes this email is designed for — emitted as the `color-scheme`/`supported-color-schemes` `<meta>` pair plus the matching `:root` rule. Set this and Apple Mail / Outlook for Mac will honor your own `@media (prefers-color-scheme: dark)` rules (supplied via the projector's `head.css` hook). Gmail and Outlook.com IGNORE it and forcibly invert colors on their own terms regardless — so treat dark mode as progressive enhancement for a minority of clients, never as a design you can rely on."
+        },
+        {
+          "name": "children",
+          "optional": false,
+          "type": "SectionNode[]",
+          "doc": ""
+        }
+      ],
+      "binding": {
+        "fields": {
+          "bg": "string",
+          "contentBg": "string",
+          "fontFamily": "string"
+        }
+      },
+      "sourceFile": "silicaui-builder/src/email/schema.ts"
+    }
+  ],
+  "palette": [
+    {
+      "key": "section",
+      "label": "Section",
+      "hint": "A full-width row — the top-level building block",
+      "icon": "section",
+      "kind": "section"
+    },
+    {
+      "key": "columns-2",
+      "label": "2 columns",
+      "hint": "An even two-column row",
+      "icon": "columns",
+      "kind": "columns"
+    },
+    {
+      "key": "columns-3",
+      "label": "3 columns",
+      "hint": "An even three-column row",
+      "icon": "columns",
+      "kind": "columns"
+    },
+    {
+      "key": "columns-4",
+      "label": "4 columns",
+      "hint": "An even four-column row",
+      "icon": "columns",
+      "kind": "columns"
+    },
+    {
+      "key": "link",
+      "label": "Link group",
+      "hint": "One destination for the blocks inside — bind it per item to link a repeated card",
+      "icon": "link",
+      "kind": "link"
+    },
+    {
+      "key": "link-card",
+      "label": "Linked card",
+      "hint": "Image + title + price, all pointing at one URL — the product/article card",
+      "icon": "link",
+      "kind": "link"
+    },
+    {
+      "key": "text",
+      "label": "Text",
+      "hint": "A paragraph of copy",
+      "icon": "text",
+      "kind": "text"
+    },
+    {
+      "key": "image",
+      "label": "Image",
+      "hint": "A hosted image, optionally linked",
+      "icon": "image",
+      "kind": "image"
+    },
+    {
+      "key": "button",
+      "label": "Button",
+      "hint": "A bulletproof call-to-action link",
+      "icon": "button",
+      "kind": "button"
+    },
+    {
+      "key": "button-outline",
+      "label": "Outline button",
+      "hint": "A secondary call-to-action that won't compete with the primary",
+      "icon": "button",
+      "kind": "button"
+    },
+    {
+      "key": "divider",
+      "label": "Divider",
+      "hint": "A thin horizontal rule",
+      "icon": "divider",
+      "kind": "divider"
+    },
+    {
+      "key": "spacer",
+      "label": "Spacer",
+      "hint": "Vertical breathing room",
+      "icon": "spacer",
+      "kind": "spacer"
+    },
+    {
+      "key": "social",
+      "label": "Social icons",
+      "hint": "A row of linked platform badges",
+      "icon": "share",
+      "kind": "social"
+    },
+    {
+      "key": "video",
+      "label": "Video",
+      "hint": "A linked thumbnail — email clients can't embed real video",
+      "icon": "video",
+      "kind": "video"
+    },
+    {
+      "key": "html",
+      "label": "Custom HTML",
+      "hint": "Raw HTML passthrough — for merge tags or hand-authored markup",
+      "icon": "code",
+      "kind": "html"
+    }
+  ]
+}

@@ -150,7 +150,7 @@ interface ComponentNode extends NodeBase {
 /** Dynamic-content primitives — three, and only three (§8). */
 type DataBinding =
   | { kind: 'value'; ref: string; attr?: string } // fill this node from a resolved value; `attr` targets a specific attribute/prop instead of the auto-detected primary slot
-  | { kind: 'collection'; ref: string }          // render `children` once per item
+  | { kind: 'collection'; ref: string; omitWhenEmpty?: boolean; limit?: number }  // render `children` once per item — at most `limit` of them, this instance only
   | { kind: 'action'; ref: string; href?: string };  // this node triggers a host action
 ```
 

@@ -103,7 +103,10 @@ Pass `package` to get just one.
 | `list_blocks({ category?, tag? })` | Composed page blocks (hero, FAQ, feature grid, …), summary only. |
 | `get_block({ key })` | One block's full node tree. |
 | `list_behaviors()` / `get_behavior({ type })` | The `data-sui-*` interactive-behavior contract. |
-| `search_docs({ query })` | Free-text search across components, blocks, and behaviors. |
+| `get_node_schema({ section? })` | Path 3's document schema (`@wizeworks/silicaui-html`): the four node kinds, the typed system-metadata band, the data-binding vocabulary, the host resolution contract, and the tag/attribute allowlist `toHtml` enforces. |
+| `list_email_nodes()` | The email builder's closed node schema (`@wizeworks/silicaui-builder/email`): every kind, what it may hold, what may hold it, the insertable presets, and the document envelope. |
+| `get_email_node({ kind })` | One email node kind's real typed fields (with source docs) and its data-binding contract — which `attr` a bind may target. |
+| `search_docs({ query })` | Free-text search across components, blocks, behaviors, classes, tokens, node-tree bindings and allowed tags, and email node kinds. |
 
 ## A note on versioning
 

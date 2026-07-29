@@ -18,7 +18,16 @@
  */
 import * as React from "react";
 import type { Child, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { applyOverrides, expandComponent, iconSvg, resolveTree, rolesOf, sanitizeElement, walk } from "@wizeworks/silicaui-html";
+import {
+  applyCollectionLimit,
+  applyOverrides,
+  expandComponent,
+  iconSvg,
+  resolveTree,
+  rolesOf,
+  sanitizeElement,
+  walk,
+} from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection, useSelectionSet } from "./editor-context";
 import { useHost } from "./host-context";
 import type { BuilderHost } from "./host";
@@ -259,6 +268,10 @@ interface RenderCtx {
   /** Nodes production would DROP (`visible:false`, or `omitWhenEmpty` at zero
    *  items) but the canvas keeps selectable. Rendered ghosted. */
   hiddenIds?: ReadonlySet<string>;
+  /** Collection-bound node id → how many items it will actually render (see
+   *  `useResolved`). Drives the repeat GHOSTS — the canvas half of §12's
+   *  per-instance `limit`. */
+  repeatCounts?: ReadonlyMap<string, number>;
   /** Set while rendering INSIDE an instance's expanded master: selection/edit keys
    *  become composite (`instanceId::masterId`) and edits route to overrides. */
   instance?: { id: string };
@@ -402,6 +415,41 @@ function renderChildren(children: Child[] | undefined, parentId: string, ctx: Re
     );
   });
   if (gap === list.length) out.push(<DropLine key="drop-end" />);
+  return out;
+}
+
+/**
+ * REPEAT GHOSTS — the extra copies a `collection` binding will render, drawn
+ * after the authored template so the author lays out against the real count.
+ *
+ * `resolveTree`'s editing walk deliberately does NOT expand a collection: a
+ * clone carries its template's `id`s, and selection, overrides and React keys
+ * are all keyed off those, so ten products would mean ten nodes claiming one
+ * id. That reasoning holds and is untouched. The count is a RENDERING concern,
+ * so it's answered here instead: copy 0 is the authored template, fully
+ * selectable and editable exactly as before, and copies 1..n-1 render through
+ * the same inert `preview` path the context layer already uses — no ids
+ * emitted, no interaction wiring, no decorations, so nothing about identity
+ * changes. A click on a ghost bubbles to the repeat container, which is the
+ * node the author would have wanted anyway.
+ *
+ * The ghosts are the AUTHORED template, not per-item data: the question a
+ * count answers is "does this wrap at 12", and resolving each copy against its
+ * own item would make copy 0 (which must stay authored, so inline editing
+ * still edits the placeholder) the odd one out.
+ */
+function repeatGhosts(children: Child[] | undefined, id: string | undefined, ctx: RenderCtx): React.ReactNode {
+  if (ctx.preview || !id || !children?.length) return null;
+  const count = ctx.repeatCounts?.get(id) ?? 1;
+  if (count < 2) return null;
+  // Inert copies: `preview` suppresses ids, handlers and decorations wholesale.
+  // The synthetic parentId keeps a live drop-line targeting the real container
+  // from being drawn a second time inside a ghost.
+  const ghostCtx: RenderCtx = { ...ctx, preview: true, lineGap: undefined };
+  const out: React.ReactNode[] = [];
+  for (let i = 1; i < count; i++) {
+    out.push(<React.Fragment key={`ghost-${i}`}>{renderChildren(children, `${id}::ghost`, ghostCtx)}</React.Fragment>);
+  }
   return out;
 }
 
@@ -651,6 +699,10 @@ function CanvasNode({
     tag,
     { className: cls || undefined, ...attrs, ...inter },
     empty ? <EmptyHint /> : renderChildren(el.children, id ?? "", ctx),
+    // A collection binding renders its template once per item; the ghosts are
+    // items 2..n, so the author sees the count they'll ship (null for every
+    // other node, which is all of them).
+    node.data?.kind === "collection" ? repeatGhosts(el.children, id, ctx) : null,
   );
 }
 
@@ -750,6 +802,48 @@ const PLACEHOLDER_IMG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='240'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ede9fe'/%3E%3Cstop offset='1' stop-color='%23c7d2fe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='240' fill='url(%23g)'/%3E%3C/svg%3E";
 
 /**
+ * How many ghost copies the canvas will draw for one repeat, at most. The count
+ * is the point, so this never lies quietly: the Inspector's preview row states
+ * the true number in words ("30 items", "4 of 30 items — limited") whether or
+ * not the cap bites. It exists because a canvas is a live React tree in the
+ * author's own browser and an uncapped source — a host handing back its whole
+ * product table for preview — would stall the editor. Past ~two dozen rows the
+ * layout question ("does this wrap, does the rail overflow") is answered anyway.
+ */
+const REPEAT_PREVIEW_CAP = 24;
+
+/**
+ * How many items each collection-bound node will render, keyed by node id.
+ *
+ * Only nodes at TOP-LEVEL scope get an entry — a repeat nested inside another
+ * repeat has no representative item to resolve against, so asking the host for
+ * its collection at empty scope would invent a count rather than report one.
+ * That is the same rule the Inspector's preview row already states out loud
+ * ("no preview — this is nested inside a repeat").
+ */
+function collectRepeatCounts(tree: Node, host: BuilderHost, out: Map<string, number>): void {
+  if (!host.resolveCollection) return;
+  const visit = (node: Node, insideRepeat: boolean): void => {
+    if (node.kind === "outlet" || node.kind === "host") return;
+    const isRepeat = node.data?.kind === "collection";
+    if (isRepeat && !insideRepeat && node.id != null && node.data?.kind === "collection") {
+      const items = host.resolveCollection?.(node.data.ref, {});
+      // An unknown ref (undefined) is NOT a count — it already renders the
+      // authored template wearing the unresolved marker, and stamping ghosts on
+      // it would dress a failure up as working data.
+      if (items) {
+        const n = applyCollectionLimit(items, node.data.limit).length;
+        if (n > 1) out.set(node.id, Math.min(n, REPEAT_PREVIEW_CAP));
+      }
+    }
+    for (const child of node.children ?? []) {
+      if (typeof child !== "string") visit(child, insideRepeat || isRepeat);
+    }
+  };
+  visit(tree, false);
+}
+
+/**
  * Resolve a tree for the CANVAS: same `resolveTree` primitive `toHtml` uses, in
  * `editing` mode (never drops a node — an author can't select what isn't there).
  * Returns the resolved tree plus the two id sets the chrome needs.
@@ -766,13 +860,15 @@ function useResolved(tree: Node, host: BuilderHost | undefined, on: boolean) {
     const bound = new Set<string>();
     const unresolved = new Set<string>();
     const hidden = new Set<string>();
+    const repeatCounts = new Map<string, number>();
     if (!on || !host || (!host.resolveBinding && !host.resolveCollection)) {
-      return { tree, bound, unresolved, hidden };
+      return { tree, bound, unresolved, hidden, repeatCounts };
     }
     walk(tree, (n) => {
       if (n.kind === "outlet" || n.id == null) return;
       if (n.data?.kind === "value" || n.data?.kind === "html") bound.add(n.id);
     });
+    collectRepeatCounts(tree, host, repeatCounts);
     const resolved = resolveTree(
       tree,
       {
@@ -787,7 +883,7 @@ function useResolved(tree: Node, host: BuilderHost | undefined, on: boolean) {
       undefined,
       { editing: true },
     );
-    return { tree: resolved, bound, unresolved, hidden };
+    return { tree: resolved, bound, unresolved, hidden, repeatCounts };
   }, [tree, host, on]);
 }
 
@@ -837,6 +933,10 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
   const boundIds = React.useMemo(() => new Set([...shellR.bound, ...pageR.bound]), [shellR, pageR]);
   const unresolvedIds = React.useMemo(() => new Set([...shellR.unresolved, ...pageR.unresolved]), [shellR, pageR]);
   const hiddenIds = React.useMemo(() => new Set([...shellR.hidden, ...pageR.hidden]), [shellR, pageR]);
+  const repeatCounts = React.useMemo(
+    () => new Map([...shellR.repeatCounts, ...pageR.repeatCounts]),
+    [shellR, pageR],
+  );
   const customCss = React.useMemo(() => customColorCss(theme, ".sui-canvas"), [theme]);
   // Every named role reaches the canvas the same way it reaches the board.
   void rolesOf(theme);
@@ -985,6 +1085,7 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
       : undefined,
     unresolvedIds,
     hiddenIds,
+    repeatCounts,
   };
 
   return (

@@ -13,7 +13,7 @@
  */
 import * as React from "react";
 import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, Theme } from "@wizeworks/silicaui-html";
-import { rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/silicaui-html";
+import { applyCollectionLimit, rolesOf, colorValue, SURFACE_TOKENS, scopeAt, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
 import { setClassTokenMany } from "../commands";
@@ -918,6 +918,7 @@ function CommitInput({
   placeholder,
   type = "text",
   mono = false,
+  testId,
 }: {
   value: string;
   reseed: string;
@@ -925,6 +926,9 @@ function CommitInput({
   placeholder?: string;
   type?: "text" | "number";
   mono?: boolean;
+  /** A stable hook for e2e / host tooling, so a field isn't located by the
+   *  label text beside it (which is copy, and changes). */
+  testId?: string;
 }) {
   const [draft, setDraft] = React.useState(value);
   React.useEffect(() => setDraft(value), [value, reseed]);
@@ -936,6 +940,7 @@ function CommitInput({
       className={`w-full ${mono ? "font-mono text-xs" : ""}`}
       size="sm"
       type={type}
+      data-testid={testId}
       value={draft}
       placeholder={placeholder}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
@@ -1145,7 +1150,9 @@ function flattenSources(sources: readonly DataSource[], pathLabel = ""): Array<{
  *  optional href for the action kind, and (for `value`) an optional target
  *  `attr` — set it to write the resolved value onto a specific attribute/prop
  *  (e.g. `href` on a card's own anchor) instead of the auto-detected primary
- *  slot. For `collection`, an "Omit when empty" toggle sets `omitWhenEmpty` —
+ *  slot. For `collection`, a "How many" field sets `limit` (blank = all, and
+ *  only a positive integer is written, so a half-typed value never caps a
+ *  collection to nothing) and an "Omit when empty" toggle sets `omitWhenEmpty` —
  *  drops the node entirely (like `visible: false`) instead of the default
  *  one-placeholder-item convention when the collection resolves to zero items
  *  (builder-contract.md §3). Lowers to `data-sui-*` in `toHtml`. When the host
@@ -1164,9 +1171,13 @@ function DataSection({ id, node }: { id: string; node: Node }) {
     href: data?.kind === "action" ? data.href ?? "" : "",
     attr: data?.kind === "value" ? data.attr ?? "" : "",
     omitWhenEmpty: data?.kind === "collection" ? (data.omitWhenEmpty ?? false) : false,
+    // Held as the RAW string the field contains, not a number: an empty box has
+    // to mean "no limit" and survive a keystroke that leaves it momentarily
+    // blank, which `0` and `NaN` both fail to express.
+    limit: data?.kind === "collection" && data.limit != null ? String(data.limit) : "",
     negate: data?.kind === "visible" ? (data.negate ?? false) : false,
   };
-  const { kind, ref, href, attr, omitWhenEmpty, negate } = current;
+  const { kind, ref, href, attr, omitWhenEmpty, limit, negate } = current;
 
   /** Commit a PATCH over the current binding — a bag, not six positional args,
    *  so adding a per-kind field doesn't rewrite every call site. */
@@ -1191,6 +1202,11 @@ function DataSection({ id, node }: { id: string; node: Node }) {
     }
     const b: DataBinding = { kind: "collection", ref: next.ref };
     if (next.omitWhenEmpty) b.omitWhenEmpty = true;
+    // Only a positive integer becomes a limit; blank, 0 and junk all mean "no
+    // cap" and leave the key OFF the binding entirely, so an untouched control
+    // never adds a field to the document.
+    const n = Number(next.limit);
+    if (next.limit.trim() !== "" && Number.isInteger(n) && n >= 1) b.limit = n;
     return editor.setData(id, b);
   };
   const options = React.useMemo(() => {
@@ -1225,6 +1241,18 @@ function DataSection({ id, node }: { id: string; node: Node }) {
           ) : (
             <CommitInput value={ref} reseed={id} placeholder="host data reference" mono onCommit={(v) => write({ ref: v })} />
           )}
+        </Row>
+      )}
+      {kind === "collection" && (
+        <Row label="How many">
+          <CommitInput
+            value={limit}
+            reseed={id}
+            type="number"
+            placeholder="All"
+            testId="data-limit"
+            onCommit={(v) => write({ limit: v })}
+          />
         </Row>
       )}
       {kind === "collection" && (
@@ -1264,7 +1292,7 @@ function DataSection({ id, node }: { id: string; node: Node }) {
         </Row>
       )}
       {kind && kind !== "action" && ref && (
-        <DataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} negate={negate} />
+        <DataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} limit={limit} negate={negate} />
       )}
     </Group>
   );
@@ -1300,12 +1328,15 @@ function DataPreview({
   kind,
   ref_,
   omitWhenEmpty,
+  limit,
   negate,
 }: {
   id: string;
   kind: string;
   ref_: string;
   omitWhenEmpty?: boolean;
+  /** The raw field value — parsed here through the SAME clamp the resolver uses. */
+  limit?: string;
   negate?: boolean;
 }) {
   const editor = useEditor();
@@ -1377,16 +1408,24 @@ function DataPreview({
   }
   if (kind === "collection") {
     if (!host?.resolveCollection) return null;
-    const items = host.resolveCollection(ref_, {});
-    if (!items) return <UnknownRef ref_={ref_} />;
+    const all = host.resolveCollection(ref_, {});
+    if (!all) return <UnknownRef ref_={ref_} />;
+    // The clamp the resolver will apply, not a re-implementation of it — so
+    // this row can never claim a count the published page contradicts. It also
+    // names what was CAPPED: "4 items" when the source has 30 reads as a data
+    // problem; "4 of 30" reads as the setting the author just typed.
+    const items = applyCollectionLimit(all, Number(limit));
+    const capped = items.length < all.length;
     return (
       <Row label="Preview">
-        <p className="text-xs text-base-content/70">
+        <p className="text-xs text-base-content/70" data-testid="data-collection-preview">
           {items.length === 0
             ? omitWhenEmpty
               ? "0 items — the node is omitted entirely"
               : "0 items — the template renders once as a placeholder"
-            : `${items.length} item${items.length === 1 ? "" : "s"}`}
+            : capped
+              ? `${items.length} of ${all.length} items — limited`
+              : `${items.length} item${items.length === 1 ? "" : "s"}`}
         </p>
       </Row>
     );

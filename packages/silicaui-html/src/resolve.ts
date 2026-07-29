@@ -152,6 +152,24 @@ function isPresent(value: unknown): boolean {
   return true;
 }
 
+/**
+ * Apply a `collection` binding's per-instance `limit` to a resolved item list.
+ *
+ * Exported because the EDITING surfaces need the same answer the production
+ * walk gives — the builder's canvas previews the true rendered count, and the
+ * Inspector's preview row states it in words. One clamp, so a "renders 4"
+ * label can never disagree with the four that ship.
+ *
+ * A limit must be a positive integer. Anything else — `0`, negative, `NaN`, a
+ * fraction, a host that wrote a string — is IGNORED rather than obeyed: the
+ * failure mode of a bad limit should be "you see the whole collection and
+ * notice", not "your section is empty and you don't".
+ */
+export function applyCollectionLimit(items: readonly unknown[], limit: number | undefined): readonly unknown[] {
+  if (limit == null || !Number.isInteger(limit) || limit < 1) return items;
+  return items.length <= limit ? items : items.slice(0, limit);
+}
+
 /** Returns `undefined` when the node should be dropped (a `visible: false` bind
  *  under production policy; an `editing` walk never drops). */
 function resolveNode(node: Node, host: ResolveHost, scope: DataScope, opts: ResolveOptions): Node | undefined {
@@ -240,8 +258,14 @@ function resolveNode(node: Node, host: ResolveHost, scope: DataScope, opts: Reso
   }
 
   if (node.data?.kind === "collection" && host.resolveCollection) {
-    const items = host.resolveCollection(node.data.ref, scope);
-    if (!items) return unknownRef(node, host, node.data.ref, "collection");
+    const all = host.resolveCollection(node.data.ref, scope);
+    if (!all) return unknownRef(node, host, node.data.ref, "collection");
+    // The per-instance cap is applied HERE, before anything else looks at the
+    // length, so `omitWhenEmpty` and the placeholder convention both see the
+    // count that will actually render. (A valid limit is >= 1, so it can never
+    // turn a non-empty collection into an empty one — but the ordering is the
+    // property, not the arithmetic.)
+    const items = applyCollectionLimit(all, node.data.limit);
     if (opts.editing) {
       // Editing: report, then hand back the AUTHORED template untouched — no
       // expansion, and deliberately no resolution of the subtree either.

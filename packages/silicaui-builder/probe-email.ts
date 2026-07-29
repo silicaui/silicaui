@@ -10,7 +10,7 @@ import { EMAIL_PALETTE } from "./src/email/palette";
 import { resolveEmailTree } from "./src/email/resolve";
 import { DEFAULT_EMAIL_COLORS } from "./src/email/schema";
 import type { EmailResolveHost } from "./src/email/resolve";
-import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, Resolved, SectionNode, TextNode } from "./src/email/schema";
+import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, LinkNode, Resolved, SectionNode, TextNode } from "./src/email/schema";
 
 let failures = 0;
 function check(name: string, cond: boolean): void {
@@ -398,6 +398,22 @@ console.log("data binding");
   const omitNonEmpty = resolveEmailTree(omitBody, { ...host, resolveCollection: () => items });
   check("omitWhenEmpty only changes behavior at ZERO items — non-empty still repeats normally", (omitNonEmpty.children[0]!.children as TextNode[]).length === 3);
 
+  // `limit`: the per-instance cap, same clamp the site resolver applies — so a
+  // campaign featuring "the first 2 products" says so on the binding rather
+  // than needing a second, differently-counted data source.
+  const limitSection: SectionNode = { id: "sec2c", kind: "section", bg: "#fff", paddingX: 0, paddingY: 0, data: { kind: "collection", ref: "products", limit: 2 }, children: [template] };
+  const limitBody: EmailBody = { id: "body2c", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [limitSection] };
+  const itemHost = { ...host, resolveCollection: () => items };
+  const limited = resolveEmailTree(limitBody, itemHost);
+  check("collection limit caps the repeat at the first N items", (limited.children[0]!.children as TextNode[]).length === 2);
+  check("...keeping them in order, each with its own scope", (limited.children[0]!.children as TextNode[]).map((c) => c.html).join("|") === "Aurora Lamp|Solstice Mug");
+  const overLimitSection: SectionNode = { ...limitSection, data: { kind: "collection", ref: "products", limit: 99 } };
+  const overLimit = resolveEmailTree({ ...limitBody, children: [overLimitSection] }, itemHost);
+  check("a limit larger than the collection is a no-op", (overLimit.children[0]!.children as TextNode[]).length === 3);
+  const badLimitSection: SectionNode = { ...limitSection, data: { kind: "collection", ref: "products", limit: 0 } };
+  const badLimit = resolveEmailTree({ ...limitBody, children: [badLimitSection] }, itemHost);
+  check("a malformed limit renders EVERYTHING, never nothing", (badLimit.children[0]!.children as TextNode[]).length === 3);
+
   // visible:false drops the node (and its subtree) from the resolved output.
   const hiddenSection: SectionNode = { id: "sec3", bg: "#fff", kind: "section", paddingX: 0, paddingY: 0, data: { kind: "value", ref: "hidden-field" }, children: [] };
   const hiddenBody: EmailBody = { id: "body3", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [hiddenSection] };
@@ -740,6 +756,115 @@ console.log("per-node auto color roles");
   ed6.update<TextNode>(tId, { linkColor: colors.primary, linkColorAuto: true });
   ed6.setColorDefaults({ ...next, primary: "#ff00ff" });
   check("a text node's link color live-tracks primary", (ed6.node(tId) as TextNode).linkColor === "#ff00ff");
+}
+
+// ── link groups: per-item links inside a collection repeat ───────────────────
+console.log("link groups");
+{
+  const ed = new EmailEditor();
+  const secId = ed.root.children[0]!.id;
+  const card: LinkNode = {
+    id: "x",
+    kind: "link",
+    href: "https://shop.test/fallback",
+    children: [
+      { id: "i", kind: "image", src: "https://cdn.test/a.jpg", alt: "A", width: 240, align: "left" },
+      { id: "t", kind: "text", html: "Product name", align: "left", color: "#18181b", fontSize: 16, fontWeight: "semibold", lineHeight: 24 },
+    ],
+  };
+  const linkId = ed.insert(card, secId);
+  check("a link group inserts into a section", typeof linkId === "string");
+
+  const nested: LinkNode = { id: "x", kind: "link", href: "", children: [] };
+  check("a link group cannot hold another link group (nested anchors)", ed.insert(nested, linkId!) === undefined);
+  const cols: ColumnsNode = { id: "x", kind: "columns", stackOnMobile: true, children: [{ id: "c", kind: "column", widthPct: 100, children: [] }] };
+  check("a link group cannot hold a columns row", ed.insert(cols, linkId!) === undefined);
+  const inner: TextNode = { id: "x", kind: "text", html: "$10", align: "left", color: "#18181b", fontSize: 14, lineHeight: 20 };
+  check("a link group DOES hold content", typeof ed.insert(inner, linkId!) === "string");
+
+  const html = toEmailHtml(ed.extract());
+  check("the group emits NO wrapper element of its own", !html.includes("<a href=\"https://shop.test/fallback\" target=\"_blank\"><table"));
+  check("the image is wrapped in its own inline anchor", html.includes(`<a href="https://shop.test/fallback" target="_blank"><img src="https://cdn.test/a.jpg"`));
+  check(
+    "the title copy is wrapped in an anchor that inherits ink and drops the underline",
+    html.includes(`<a href="https://shop.test/fallback" target="_blank" style="color:inherit;text-decoration:none">Product name</a>`),
+  );
+
+  // An empty href distributes nothing — never `<a href="">`, which some clients
+  // resolve to the message itself.
+  const ed2 = new EmailEditor();
+  ed2.insert({ ...card, href: "   " }, ed2.root.children[0]!.id);
+  const unset = toEmailHtml(ed2.extract());
+  check("an empty/whitespace href links nothing at all", !unset.includes(`<a href=""`) && !unset.includes(`href="   "`));
+  check("...and the children still render, unlinked", unset.includes(`<img src="https://cdn.test/a.jpg"`) && unset.includes("Product name"));
+
+  // Explicit beats inherited, in both directions.
+  const ed3 = new EmailEditor();
+  const own: LinkNode = {
+    ...card,
+    children: [
+      { id: "i", kind: "image", src: "https://cdn.test/a.jpg", alt: "A", href: "https://shop.test/own", width: 240, align: "left" },
+      { id: "t", kind: "text", html: `Read the <a href="https://shop.test/inline">terms</a>`, align: "left", color: "#18181b", fontSize: 16, fontWeight: "normal", lineHeight: 24 },
+    ],
+  };
+  ed3.insert(own, ed3.root.children[0]!.id);
+  const explicit = toEmailHtml(ed3.extract());
+  check("an image's own href wins over the group's", explicit.includes(`<a href="https://shop.test/own" target="_blank"><img`));
+  check("copy that already contains an anchor is never re-wrapped (no nested anchors)", !explicit.includes(`text-decoration:none">Read the`));
+  check("...and that author anchor survives untouched", explicit.includes(`<a href="https://shop.test/inline">terms</a>`));
+
+  // The point of the whole exercise: a collection repeat where each item's card
+  // links to its OWN url while its image binds its OWN src.
+  const items = [
+    { url: "https://shop.test/p/1", imageUrl: "https://cdn.test/1.jpg", title: "First" },
+    { url: "https://shop.test/p/2", imageUrl: "https://cdn.test/2.jpg", title: "Second" },
+  ];
+  const host: EmailResolveHost = {
+    resolveCollection: (ref) => (ref === "products" ? items : undefined),
+    resolveBinding: (ref, scope: DataScope) => {
+      const item = scope.item as Record<string, string> | undefined;
+      if (!item) return undefined;
+      const v = item[ref];
+      return v === undefined ? undefined : { value: v };
+    },
+  };
+  const ed4 = new EmailEditor();
+  const railSecId = ed4.root.children[0]!.id;
+  const railId = ed4.insert(
+    {
+      id: "x",
+      kind: "link",
+      href: "",
+      children: [
+        { id: "i", kind: "image", src: "", alt: "", width: 200, align: "left" },
+        { id: "t", kind: "text", html: "Name", align: "left", color: "#18181b", fontSize: 16, fontWeight: "semibold", lineHeight: 24 },
+      ],
+    } as LinkNode,
+    railSecId,
+  )!;
+  const rail = ed4.node(railId) as LinkNode;
+  // The SECTION repeats; the link binds its href per item; the children bind theirs.
+  ed4.setData(railSecId, { kind: "collection", ref: "products" });
+  ed4.setData(railId, { kind: "value", ref: "url", attr: "href" });
+  ed4.setData(rail.children[0]!.id, { kind: "value", ref: "imageUrl" });
+  ed4.setData(rail.children[1]!.id, { kind: "value", ref: "title" });
+
+  const railHtml = toEmailHtml(ed4.extract(), host);
+  check("each repeated card links to ITS OWN url (item 1)", railHtml.includes(`<a href="https://shop.test/p/1" target="_blank"><img src="https://cdn.test/1.jpg"`));
+  check("each repeated card links to ITS OWN url (item 2)", railHtml.includes(`<a href="https://shop.test/p/2" target="_blank"><img src="https://cdn.test/2.jpg"`));
+  check("the per-item title is linked to the same per-item url", railHtml.includes(`<a href="https://shop.test/p/2" target="_blank" style="color:inherit;text-decoration:none">Second</a>`));
+  check("binding the link's href did NOT strand the children's own binds", !railHtml.includes(`src=""`));
+
+  // A bare `value` bind with no attr targets href — it's the kind's only field.
+  const ed5 = new EmailEditor();
+  const bareId = ed5.insert({ id: "x", kind: "link", href: "", children: [{ id: "t", kind: "text", html: "Go", align: "left", color: "#18181b", fontSize: 16, fontWeight: "normal", lineHeight: 24 }] } as LinkNode, ed5.root.children[0]!.id)!;
+  ed5.setData(bareId, { kind: "value", ref: "url" });
+  const bare = toEmailHtml(ed5.extract(), { resolveBinding: (ref) => (ref === "url" ? { value: "https://shop.test/bare" } : undefined) });
+  check("a `value` bind with no attr fills href (the kind's default field)", bare.includes(`<a href="https://shop.test/bare" target="_blank" style="color:inherit;text-decoration:none">Go</a>`));
+
+  // A document with no link group is byte-identical to what it always projected.
+  const before = toEmailHtml(new EmailEditor().extract());
+  check("a document with no link group projects unchanged", before.includes("Start writing your email…") && !before.includes("text-decoration:none"));
 }
 
 console.log(`\n${failures === 0 ? "✅ email engine: all checks passed" : `❌ ${failures} check(s) failed`}`);

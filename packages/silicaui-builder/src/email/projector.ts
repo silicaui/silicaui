@@ -22,6 +22,7 @@ import type {
   HtmlNode,
   ImageNode,
   LayoutChild,
+  LinkNode,
   SocialNode,
   SpacerNode,
   TextNode,
@@ -74,8 +75,21 @@ export function withLinkColor(html: string, color: string): string {
   });
 }
 
-function renderText(node: TextNode): string {
-  const html = node.linkColor ? withLinkColor(node.html, node.linkColor) : node.html;
+/** Does this inline HTML already contain an anchor the author put there? An
+ *  inherited group link must not wrap one (nested anchors are invalid, and the
+ *  inner link would be the one that fires anyway). */
+const HAS_ANCHOR = /<a\b/i;
+
+function renderText(node: TextNode, link?: string): string {
+  let html = node.linkColor ? withLinkColor(node.html, node.linkColor) : node.html;
+  // A group link (`LinkNode`) lands as a plain inline anchor around the copy —
+  // `color:inherit` and no underline, because this is a card title that happens
+  // to be clickable, not a link inside a sentence. An author who wants it to
+  // READ as a link sets the text color themselves. Applied AFTER `withLinkColor`
+  // so that rewrite only ever touches the author's own anchors, not this one.
+  if (link && !HAS_ANCHOR.test(node.html)) {
+    html = `<a href="${esc(link)}" target="_blank" style="color:inherit;text-decoration:none">${html}</a>`;
+  }
   return `<div${styleAttr({
     "text-align": node.align,
     color: node.color,
@@ -85,14 +99,16 @@ function renderText(node: TextNode): string {
   })}>${html}</div>`;
 }
 
-function renderImage(node: ImageNode): string {
+function renderImage(node: ImageNode, link?: string): string {
   const img = `<img src="${esc(node.src)}" alt="${esc(node.alt)}" width="${node.width}"${styleAttr({
     display: "block",
     width: `${node.width}px`,
     "max-width": "100%",
     ...(node.align === "center" ? { margin: "0 auto" } : node.align === "right" ? { "margin-left": "auto" } : {}),
   })} />`;
-  return node.href ? `<a href="${esc(node.href)}" target="_blank">${img}</a>` : img;
+  // The image's own href wins over a group link — explicit beats inherited.
+  const href = node.href || link;
+  return href ? `<a href="${esc(href)}" target="_blank">${img}</a>` : img;
 }
 
 function renderButton(node: ButtonNode): string {
@@ -208,12 +224,14 @@ function renderVideo(node: VideoNode): string {
   );
 }
 
-function renderContent(node: ContentNode): string {
+/** `link` is the destination inherited from an enclosing `LinkNode`, if any —
+ *  see `renderLink`. Only the two kinds that have no link of their own take it. */
+function renderContent(node: ContentNode, link?: string): string {
   switch (node.kind) {
     case "text":
-      return renderText(node);
+      return renderText(node, link);
     case "image":
-      return renderImage(node);
+      return renderImage(node, link);
     case "button":
       return renderButton(node);
     case "divider":
@@ -255,8 +273,37 @@ function renderColumns(node: ColumnsNode): string {
   );
 }
 
+/**
+ * A clickable group — projected by DISTRIBUTING its `href` onto each child that
+ * can carry one, NOT by wrapping the group in a single `<a>`.
+ *
+ * That is the whole design, and it is a rendering constraint rather than a
+ * preference. An anchor around block-level content is invalid in the HTML
+ * dialect Outlook's Word engine parses, and Outlook drops the link: the card
+ * would render, look clickable, and do nothing — the worst kind of failure,
+ * because nothing about the markup or a webmail preview reveals it. An inline
+ * `<a>` around an `<img>`, and another around a line of copy, are bulletproof
+ * in every client.
+ *
+ * So the group emits NO wrapper element of its own. Its children render exactly
+ * where they would have, each one linked. The trade this makes is explicit in
+ * `LinkNode`'s doc comment: the content is clickable, the padding around it
+ * isn't.
+ *
+ * An empty/whitespace `href` distributes nothing — an author who has added the
+ * group but not yet the URL (or a `value` bind that resolved empty) gets plain
+ * unlinked content, never `<a href="">`, which some clients resolve to the
+ * message itself.
+ */
+function renderLink(node: LinkNode): string {
+  const href = node.href?.trim() ? node.href : undefined;
+  return node.children.map((c) => renderContent(c, href)).join("\n");
+}
+
 function renderLayoutChild(child: LayoutChild): string {
-  return child.kind === "columns" ? renderColumns(child) : renderContent(child);
+  if (child.kind === "columns") return renderColumns(child);
+  if (child.kind === "link") return renderLink(child);
+  return renderContent(child);
 }
 
 /**

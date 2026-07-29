@@ -17,6 +17,7 @@
  * site version does (there's no `attrs`/`children` uniformity); it works off
  * an explicit per-kind field table instead.
  */
+import { applyCollectionLimit } from "@wizeworks/silicaui-html";
 import type { DataScope, DataSource, EmailNode, ResolveDiagnostic, Resolved } from "./schema";
 
 /** Twin of `@wizeworks/silicaui-html`'s `ResolveHost`, including its
@@ -32,14 +33,30 @@ export interface EmailResolveHost {
 
 const EMPTY_SCOPE: DataScope = {};
 
-/** A node kind's bindable scalar fields — the `attr` allowlist for a `value`
- *  bind, plus which one a bind with NO `attr` targets by default (the common
- *  case: a text node's copy, a button's label, an image's source). Kinds with
- *  no sensible single scalar (`social`'s links are a list; `columns`/`column`
- *  are pure layout) are simply absent — `fillEmailValue` no-ops on them. */
-const BINDABLE_FIELDS: Partial<Record<EmailNode["kind"], { default?: string; fields: Record<string, "string" | "number" | "boolean"> }>> = {
+/**
+ * A node kind's bindable scalar fields — the `attr` allowlist for a `value`
+ * bind, plus which one a bind with NO `attr` targets by default (the common
+ * case: a text node's copy, a button's label, an image's source). Kinds with
+ * no sensible single scalar (`social`'s links are a list; `columns`/`column`
+ * are pure layout) are simply absent — `fillEmailValue` no-ops on them.
+ *
+ * EXPORTED because it is a CONTRACT, not an implementation detail: it is the
+ * complete answer to "what may `data.attr` say on this kind", which a host
+ * building its own binding UI (and the MCP catalog, which reads it rather than
+ * re-describing it) otherwise has to guess at or duplicate. A bind naming a
+ * field that isn't here is inert — it writes nothing and reports nothing —
+ * which is precisely the failure a published allowlist prevents.
+ */
+export const EMAIL_BINDABLE_FIELDS: Partial<Record<EmailNode["kind"], { default?: string; fields: Record<string, "string" | "number" | "boolean"> }>> = {
   text: { default: "html", fields: { html: "string" } },
   image: { default: "src", fields: { src: "string", alt: "string", href: "string", width: "number" } },
+  // The per-item destination of a repeated card — `href` is BOTH the default
+  // target and the only field, so `{ kind: 'value', ref: 'url' }` and
+  // `{ kind: 'value', ref: 'url', attr: 'href' }` are the same bind. Filling it
+  // leaves `children` to resolve on their own (see the container branch in
+  // `resolveNode`), which is the whole point: the link carries the URL while
+  // each child still binds its own field.
+  link: { default: "href", fields: { href: "string" } },
   button: { default: "label", fields: { label: "string", href: "string", bg: "string", color: "string" } },
   divider: { fields: { color: "string", thickness: "number" } },
   spacer: { fields: { height: "number" } },
@@ -72,7 +89,7 @@ function escapeInline(s: string): string {
  *  no bindable fields, an unknown `attr`, or a kind with no default when
  *  `attr` is omitted — a bind with nothing to write to is inert, not an error. */
 function fillEmailValue(node: EmailNode, value: unknown, attr?: string): EmailNode {
-  const config = BINDABLE_FIELDS[node.kind];
+  const config = EMAIL_BINDABLE_FIELDS[node.kind];
   if (!config) return node;
   const field = attr ?? config.default;
   const type = field ? config.fields[field] : undefined;
@@ -188,11 +205,15 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
   }
 
   if (node.data?.kind === "collection" && host.resolveCollection && "children" in node) {
-    const items = host.resolveCollection(node.data.ref, scope);
-    if (!items) {
+    const all = host.resolveCollection(node.data.ref, scope);
+    if (!all) {
       host.onDiagnostic?.({ code: "unknown-ref", ref: node.data.ref, nodeId: node.id, kind: "collection" });
       return node;
     }
+    // Per-instance `limit`, applied before anything reads the length — same
+    // clamp function the site resolver uses, so "4" means the same thing in a
+    // campaign as it does on the page it links to.
+    const items = applyCollectionLimit(all, node.data.limit);
     // `omitWhenEmpty` deliberately does NOT apply to an unknown ref (above): it
     // means "legitimately empty, render nothing" — a claim only a host that
     // KNOWS the ref can make.

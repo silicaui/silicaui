@@ -102,7 +102,8 @@ const INSTRUCTIONS = `Silica UI is ONE design system delivered through THREE pat
 
 3. HTML / node-tree — \`@wizeworks/silicaui-html\` + \`@wizeworks/silicaui-behaviors\`
    A framework-neutral node-tree schema that projects to HTML — for generated or user-authored documents: site builders, CMS output, static export. Component macros expand to element subtrees carrying \`data-sui-*\` markers, which the zero-dependency \`@wizeworks/silicaui-behaviors\` runtime hydrates at load. That runtime is what makes path 3 interactive; without it you have path 1.
-   → get_component(name, package "@wizeworks/silicaui-html") for the macro; list_blocks / get_block for composed sections; list_behaviors for the marker contract.
+   → get_node_schema FIRST for the tree's own shape: the node kinds, the data-binding vocabulary (how a node draws live content, repeats over a collection, or hides itself), the resolution contract, and the tag/attribute allowlist \`toHtml\` enforces. Then get_component(name, package "@wizeworks/silicaui-html") for the macro; list_blocks / get_block for composed sections; list_behaviors for the marker contract.
+   Path 3 fails SILENTLY where the others fail loudly — an unlisted tag becomes a <div>, an unlisted attribute is dropped, an invented binding field is not persisted, and the output still looks plausible. Look it up.
 
 Rules that hold on every path:
 - Never invent a class, prop, color, or block key. Everything this server returns is extracted from Silica's source at release time — look it up rather than guessing, including when you are fairly confident.
@@ -110,6 +111,8 @@ Rules that hold on every path:
 - Do not re-skin a component with inline styles or arbitrary hex — it defeats theming and light/dark.
 - The same name can exist on more than one path with a different shape. get_component with no \`package\` returns every path's answer at once; pass \`package\` to narrow.
 - Don't know the name? search_docs first. Unsure what to install? list_packages.
+
+Authoring an EMAIL through \`@wizeworks/silicaui-builder/email\`? That is a separate surface, not a fourth path: a CLOSED document schema of typed nodes that projects to table-based inline-styled HTML. Its kinds, fields, and nesting rules are enforced — an invented kind or an illegal nesting is dropped silently, with no error to read — so call list_email_nodes / get_email_node rather than reasoning from the paths above. Classes and components do not apply there; colors are literal hex.
 
 Signs you are on the wrong path: importing @wizeworks/silicaui-react into output that is not React; hand-writing \`data-sui-*\` markers (they come from macro expansion, never from you); shipping path-3 markup without loading @wizeworks/silicaui-behaviors; expecting path 1 alone to open a dialog.`;
 
@@ -167,12 +170,84 @@ interface BehaviorData {
   description: string;
 }
 
+interface EmailFieldData {
+  name: string;
+  optional: boolean;
+  type: string;
+  doc: string;
+}
+
+interface EmailKindData {
+  kind: string;
+  typeName: string;
+  doc: string;
+  isContent: boolean;
+  container: boolean;
+  holds: string[];
+  allowedParents: string[];
+  fields: EmailFieldData[];
+  binding: { default?: string; fields: Record<string, string> } | null;
+  sourceFile: string;
+}
+
+interface EmailData {
+  entrypoint: string;
+  reactEntrypoint: string;
+  note: string;
+  sharedFields: EmailFieldData[];
+  bindingNote: string;
+  /** The envelope around the node tree — EmailDocument/EmailProject/
+   *  EmailColorDefaults and friends. A kind list alone can't answer "what do I
+   *  wrap this in". */
+  documentTypes: Array<{ typeName: string; doc: string; fields: EmailFieldData[] }>;
+  kinds: EmailKindData[];
+  palette: Array<{ key: string; label: string; hint: string; icon: string; kind: string }>;
+}
+
+interface FieldData {
+  name: string;
+  optional: boolean;
+  type: string;
+  doc: string;
+}
+
+/** Path 3's DOCUMENT schema — the node tree itself, as opposed to what you put
+ *  in it. Generated from silicaui-html's own source; see gen-catalog's
+ *  schema.json section for why each part is extracted rather than described. */
+interface SchemaData {
+  entrypoint: string;
+  behaviorRuntime: string;
+  sourceFile: string;
+  note: string;
+  child: string;
+  nodeBase: FieldData[];
+  kinds: Array<{ kind: string; typeName: string; doc: string; sharedFields: boolean; fields: FieldData[] }>;
+  bindingNote: string;
+  dataBindings: Array<{ kind: string; doc: string; fields: Array<{ name: string; optional: boolean; type: string }> }>;
+  resolution: {
+    note: string;
+    honesty: string;
+    host: FieldData[];
+    resolved: FieldData[];
+    scope: FieldData[];
+    options: FieldData[];
+    diagnostic: FieldData[];
+  };
+  elementFloor: {
+    note: string;
+    globalAttrs: string[];
+    tags: Array<{ tag: string; group: string; void: boolean; attrs: string[] }>;
+  };
+}
+
 const packages = loadJson<PackageMeta[]>("packages");
 const tokens = loadJson<TokensData>("tokens");
 const classesByComponent = loadJson<Record<string, string[]>>("classes");
 const blocks = loadJson<BlockData[]>("blocks");
 const behaviors = loadJson<BehaviorData[]>("behaviors");
 const components = loadJson<ComponentData[]>("components");
+const email = loadJson<EmailData>("email");
+const schema = loadJson<SchemaData>("schema");
 
 /** CSS → React → HTML: the order the instructions introduce the paths in, so a
  *  multi-path get_component answer reads the same way every time. Packages not
@@ -443,11 +518,131 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
+    "list_email_nodes",
+    {
+      title: "List the email builder's node kinds",
+      description:
+        "List every node kind an email document can contain (@wizeworks/silicaui-builder/email) with its nesting rules — what each kind may HOLD and which kinds may hold IT — plus the insertable palette presets. This schema is CLOSED and enforced: `EmailEditor.insert` returns undefined for an illegal kind or nesting, silently, so check here rather than assuming a site/HTML structure carries over. Email nodes carry typed fields, not classes, and literal hex colors, not tokens. Call get_email_node for one kind's real fields.",
+      inputSchema: {},
+    },
+    async () => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              entrypoint: email.entrypoint,
+              reactEntrypoint: email.reactEntrypoint,
+              note: email.note,
+              bindingNote: email.bindingNote,
+              kinds: email.kinds.map(({ kind, typeName, isContent, container, holds, allowedParents, binding }) => ({
+                kind,
+                typeName,
+                isContent,
+                container,
+                holds,
+                allowedParents,
+                bindableFields: binding ? Object.keys(binding.fields) : [],
+                defaultBindTarget: binding?.default ?? null,
+              })),
+              palette: email.palette,
+              // The envelope, in full: it's small, and a caller that has the
+              // kinds but not `EmailDocument` still can't produce a document.
+              documentTypes: email.documentTypes,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
+
+  server.registerTool(
+    "get_email_node",
+    {
+      title: "Get an email node kind's real fields",
+      description:
+        "Get one email node kind's full definition: every typed field with its TypeScript type, whether it's optional, and its source doc comment; the fields shared by every node (id/ord/data/locked); its nesting rules; and its data-binding contract — which `attr` a `value` bind may target and which one a bind with no `attr` fills. Use this instead of guessing field names: an unknown field is dropped by the engine and an unknown bind target is inert, neither with an error.",
+      inputSchema: {
+        kind: z.string().describe("Node kind, e.g. 'link', 'image', 'section'. See list_email_nodes."),
+      },
+    },
+    async ({ kind }) => {
+      const node = email.kinds.find((k) => k.kind === kind.toLowerCase());
+      if (!node) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No email node kind "${kind}". Known kinds: ${email.kinds.map((k) => k.kind).join(", ")}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                ...node,
+                sharedFields: email.sharedFields,
+                bindingNote: email.bindingNote,
+                palette: email.palette.filter((p) => p.kind === node.kind),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
+  server.registerTool(
+    "get_node_schema",
+    {
+      title: "Get the Silica UI node-tree schema (path 3)",
+      description:
+        "Get the DOCUMENT schema for @wizeworks/silicaui-html — the shape of the tree itself, as opposed to what you put in it. Covers the four node kinds and their fields, the typed system-metadata band every node carries (data / slot / behavior / part / locked / instanceOf), the DATA-BINDING vocabulary with every field, the resolution contract a host implements, and the raw-element/attribute allowlist `toHtml` enforces. Call this before authoring or generating a node tree: the failures here are SILENT — an unlisted tag is downgraded to <div>, an unlisted attribute is dropped, an invented binding field is not persisted — so none of it can be inferred from output that looks like it worked. Not needed for path 1 (CSS classes on your own HTML) or path 2 (React).",
+      inputSchema: {
+        section: z
+          .enum(["all", "nodes", "bindings", "resolution", "elements"])
+          .optional()
+          .describe(
+            "Narrow the answer: 'nodes' (kinds + the shared metadata band), 'bindings' (the data vocabulary), 'resolution' (the host hooks and their honesty contract), 'elements' (the tag/attribute floor). Omit for everything.",
+          ),
+      },
+    },
+    async ({ section }) => {
+      const head = {
+        entrypoint: schema.entrypoint,
+        behaviorRuntime: schema.behaviorRuntime,
+        sourceFile: schema.sourceFile,
+        note: schema.note,
+      };
+      const sections: Record<string, unknown> = {
+        nodes: { child: schema.child, nodeBase: schema.nodeBase, kinds: schema.kinds },
+        bindings: { bindingNote: schema.bindingNote, dataBindings: schema.dataBindings },
+        resolution: schema.resolution,
+        elements: schema.elementFloor,
+      };
+      const body =
+        !section || section === "all"
+          ? { ...sections.nodes as object, ...sections.bindings as object, resolution: schema.resolution, elementFloor: schema.elementFloor }
+          : sections[section];
+      return { content: [{ type: "text", text: JSON.stringify({ ...head, ...(body as object) }, null, 2) }] };
+    },
+  );
+
+  server.registerTool(
     "search_docs",
     {
       title: "Search Silica UI catalog data",
       description:
-        "Full-text search across everything this server knows: component names/descriptions, block names/descriptions, behavior descriptions, literal CSS class names, and design tokens. Use this when you don't know the exact name to look up.",
+        "Full-text search across everything this server knows: component names/descriptions, block names/descriptions, behavior descriptions, literal CSS class names, design tokens, and the email builder's node kinds + their fields. Use this when you don't know the exact name to look up.",
       inputSchema: {
         query: z.string().describe("Search term, case-insensitive."),
       },
@@ -471,12 +666,54 @@ export function createServer(): McpServer {
       const matchedTokens = tokens.semanticColors
         .filter((name) => name.toLowerCase().includes(q))
         .map((name) => ({ kind: "token" as const, name }));
+      // The node-tree vocabulary. Without this, "repeat", "limit", "srcset" and
+      // "conditional" found nothing here and an agent concluded the concept did
+      // not exist — the exact failure a searchable catalog is meant to prevent.
+      const matchedBindings = schema.dataBindings
+        .filter(
+          (b) =>
+            b.kind.toLowerCase().includes(q) ||
+            b.doc.toLowerCase().includes(q) ||
+            b.fields.some((f) => f.name.toLowerCase().includes(q)),
+        )
+        .map((b) => ({ kind: "data-binding" as const, binding: b.kind, tool: "get_node_schema" }));
+      const matchedNodeKinds = schema.kinds
+        .filter((k) => k.kind.toLowerCase().includes(q) || k.typeName.toLowerCase().includes(q) || k.doc.toLowerCase().includes(q))
+        .map((k) => ({ kind: "node-kind" as const, node: k.kind, tool: "get_node_schema" }));
+      const matchedTags = schema.elementFloor.tags
+        .filter((t) => t.tag.toLowerCase() === q || t.attrs.some((a) => a.toLowerCase() === q))
+        .map((t) => ({ kind: "element-tag" as const, tag: t.tag, group: t.group, tool: "get_node_schema" }));
+      // Email node kinds match on their own name, their doc, or any field they
+      // declare — "href" should find the `link` group even though no component
+      // or class is called that.
+      const matchedEmail = email.kinds
+        .filter(
+          (k) =>
+            k.kind.includes(q) ||
+            k.typeName.toLowerCase().includes(q) ||
+            k.doc.toLowerCase().includes(q) ||
+            k.fields.some((f) => f.name.toLowerCase().includes(q)),
+        )
+        .map((k) => ({ kind: "email-node" as const, node: k.kind, typeName: k.typeName }));
+      const matchedEmailTypes = email.documentTypes
+        .filter(
+          (t) =>
+            t.typeName.toLowerCase().includes(q) ||
+            t.doc.toLowerCase().includes(q) ||
+            t.fields.some((f) => f.name.toLowerCase().includes(q)),
+        )
+        .map((t) => ({ kind: "email-type" as const, typeName: t.typeName }));
       const results = [
         ...matchedComponents,
         ...matchedBlocks,
         ...matchedBehaviors,
         ...matchedClasses,
         ...matchedTokens,
+        ...matchedBindings,
+        ...matchedNodeKinds,
+        ...matchedTags,
+        ...matchedEmail,
+        ...matchedEmailTypes,
       ];
       return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
     },
