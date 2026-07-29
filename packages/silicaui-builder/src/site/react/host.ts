@@ -10,6 +10,7 @@ import type { DataBinding, DataSource, HostNode, Node, ResolveHost } from "@wize
 import type { ClassValidator } from "@wizeworks/silicaui-html";
 import type { PaletteGroup } from "../palette";
 import type { StarterContribution } from "../component-starters";
+import type { ThemeContribution } from "../theme-catalog";
 
 export type { DataScope, ResolveDiagnostic, Resolved } from "@wizeworks/silicaui-html";
 
@@ -122,6 +123,14 @@ export interface BuilderHost extends ResolveHost {
   /** The flat, host-computed-ONCE catalog that powers the binding picker (§3, §6).
    *  The engine derives per-node availability itself via `scopeAt`. */
   dataSources?(): readonly DataSource[];
+  /** The theme shelves a PLATFORM curates — its brand catalog, maintained centrally
+   *  and offered to every site it hosts. Rendered above the shipped presets and
+   *  apply-only (no delete), unlike the site's own `savedThemes` library. Same
+   *  merge shape as `catalog()`: `extend` adds shelves, `hide` prunes shipped
+   *  preset names / the shipped shelf key / `"*"` for all of it. Applying COPIES
+   *  the theme into the site, so later edits here don't reach adopted sites — see
+   *  `theme-catalog.ts`. */
+  themes?(): ThemeContribution;
   /** The class-string policy. Composes with the engine's built-in denylist floor
    *  (§9) — this can only ADD restrictions, never lift it. */
   validateClass?: ClassValidator;

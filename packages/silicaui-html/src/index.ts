@@ -65,8 +65,15 @@ export { validateClassString, buildClassValidator, composeValidators, rejectView
 export type { ClassValidator, AllowlistRule } from "./class-policy";
 
 // The binding-picker scope model (builder-contract.md §5, §3).
-export { scopeAt } from "./data-sources";
-export type { DataSource } from "./data-sources";
+export {
+  scopeAt,
+  findSource,
+  flattenSources,
+  truncationMessage,
+  MAX_SOURCE_DEPTH,
+  MAX_SOURCE_OPTIONS,
+} from "./data-sources";
+export type { DataSource, PickableSource, FlattenedSources, SourceTruncation } from "./data-sources";
 
 // The data-resolution layer (builder-contract.md §3, the Q3/Q19 keystone) — ONE
 // synchronous walker owning bind + repeat, shared by the canvas and a host's

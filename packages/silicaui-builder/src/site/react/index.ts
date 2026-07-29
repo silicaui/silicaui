@@ -39,6 +39,11 @@ export { paletteGroups, paletteItemByKey, mergeCatalog } from "../palette";
 export type { PaletteGroup, PaletteItem } from "../palette";
 export { componentStarterGroups } from "../component-starters";
 export type { StarterGroup, StarterContribution, StarterOptions } from "../component-starters";
+// The Themes panel's apply-only shelves. A host that curates a brand catalog
+// passes `BuilderHost.themes`; these are exported so it can name the type, reuse
+// the shipped shelf, and hide with the same constants the merge reads.
+export { themeShelves, shippedThemeGroups, SHIPPED_THEMES_KEY, HIDE_ALL_SHIPPED } from "../theme-catalog";
+export type { ThemeGroup, ThemeContribution } from "../theme-catalog";
 // Structural tree COMMANDS — the moves the built-in keyboard shortcuts perform,
 // as plain functions over the engine. Exported so a host's own toolbar or
 // context menu drives the same verbs, rather than re-deriving `move`'s

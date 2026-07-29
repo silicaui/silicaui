@@ -257,7 +257,7 @@ const EditableHtml = React.memo(function EditableHtml({
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [popoverPos, setPopoverPos] = React.useState<{ top: number; left: number } | undefined>(undefined);
 
-  const flatSources = React.useMemo(() => flattenEmailSources(tokenSources ?? []), [tokenSources]);
+  const flatSources = React.useMemo(() => flattenEmailSources(tokenSources ?? []).options, [tokenSources]);
   const options = match ? filterTokenOptions(flatSources, match.query) : [];
 
   React.useEffect(() => {
