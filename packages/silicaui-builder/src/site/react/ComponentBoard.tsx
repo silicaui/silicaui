@@ -20,14 +20,9 @@ import {
   Display, Heading, Text,
 } from "@wizeworks/silicaui-react";
 import { useTheme } from "./editor-context";
-import { customColorCss } from "../color-cascade";
+import { customColorCss, themeVars } from "../color-cascade";
 
-function themeVars(theme: Theme): React.CSSProperties {
-  const tokens: Record<string, string> = { ...theme.tokens, ...(theme.mode === "dark" ? theme.dark : undefined) };
-  const style: Record<string, string> = {};
-  for (const [k, v] of Object.entries(tokens)) if (k.startsWith("--")) style[k] = String(v);
-  return style as React.CSSProperties;
-}
+const themeStyle = (theme: Theme): React.CSSProperties => themeVars(theme) as React.CSSProperties;
 
 const CARD = "mb-4 inline-block w-full break-inside-avoid rounded-box border border-base-300 bg-base-100 p-4 shadow-[0_2px_12px_rgba(20,20,40,0.05)]";
 const CARD_H = "mb-3 flex items-center gap-2 text-sm font-semibold";
@@ -61,7 +56,7 @@ export function ComponentBoard() {
   const roles = rolesOf(theme).slice(0, 6);
 
   return (
-    <div className="sui-brd flex-1 min-h-0 overflow-auto p-6 bg-base-200 text-base-content @container" data-theme={theme.name} style={themeVars(theme)}>
+    <div className="sui-brd flex-1 min-h-0 overflow-auto p-6 bg-base-200 text-base-content @container" data-theme={theme.name} style={themeStyle(theme)}>
       {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
       <div className="mb-4 flex items-baseline gap-2 flex-wrap text-sm text-base-content/55">
         <b className="text-md text-base-content">Component board</b>

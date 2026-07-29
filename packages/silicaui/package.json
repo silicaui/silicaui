@@ -28,14 +28,15 @@
   "scripts": {
     "build": "echo \"(no build step — ships as source)\"",
     "typecheck": "echo \"(js plugin — no typecheck yet)\"",
-    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale && pnpm verify:type-scale && pnpm verify:readable-ink",
+    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale && pnpm verify:type-scale && pnpm verify:readable-ink && pnpm verify:token-contrast",
     "verify:layering": "node scripts/verify-layering.mjs",
     "verify:field-border": "node scripts/verify-field-border.mjs",
     "verify:icon-sizing": "node scripts/verify-icon-sizing.mjs",
     "verify:size-scale": "node scripts/verify-size-scale.mjs",
     "verify:variant-scale": "node scripts/verify-variant-scale.mjs",
     "verify:type-scale": "node scripts/verify-type-scale.mjs",
-    "verify:readable-ink": "node scripts/verify-readable-ink.mjs"
+    "verify:readable-ink": "node scripts/verify-readable-ink.mjs",
+    "verify:token-contrast": "node scripts/verify-token-contrast.mjs"
   },
   "peerDependencies": {
     "tailwindcss": ">=4.3.0"
@@ -47,5 +48,8 @@
     "design-system",
     "daisyui",
     "silica"
-  ]
+  ],
+  "devDependencies": {
+    "@wizeworks/silicaui-html": "workspace:*"
+  }
 }

@@ -32,7 +32,7 @@
  * randomly minted on the client that created them. Replaying "detach every
  * instance" independently would mint DIFFERENT ids on every peer.
  */
-import type { BehaviorMarker, DataBinding, Frame, Node, NodeOverride, Page, SymbolDef, Theme } from "@wizeworks/silicaui-html";
+import type { BehaviorMarker, Child, DataBinding, Frame, Node, NodeOverride, Page, SymbolDef, Theme } from "@wizeworks/silicaui-html";
 
 /**
  * Which tree an op addresses.
@@ -113,6 +113,31 @@ export interface NodeSetTextOp extends OpBase {
   kind: "node.setText";
   nodeId: string;
   text: string;
+}
+
+/**
+ * Replace a node's CHILDREN wholesale — the structural counterpart to
+ * `node.setText`, and the op that makes a text edit reversible.
+ *
+ * `setText` collapses `children` to a single string, so `<p>Call <a href=…>us
+ * </a></p>` flattens and no `setText` can put the link back: the information is
+ * gone from the op, and an inverse computed from ops alone has nothing to
+ * restore. A host working around it had to re-insert the whole node, which is
+ * correct and discards any concurrent edit inside that paragraph — a blast
+ * radius far wider than the edit deserved.
+ *
+ * This carries the child list verbatim (stamped, ids and `ord`s minted), for the
+ * same reason `node.insert` carries a subtree: the receiver cannot derive ids it
+ * never saw.
+ *
+ * Last-write-wins on the whole list, like `setText`. Two authors restructuring
+ * one paragraph's children do not merge; that needs a text CRDT and is out of
+ * scope. The point here is REVERSIBILITY, not concurrent rich-text editing.
+ */
+export interface NodeSetChildrenOp extends OpBase {
+  kind: "node.setChildren";
+  nodeId: string;
+  children: Child[];
 }
 
 /** Retag an element (h1→h2, div→section). Pure semantics; style rides on class. */
@@ -201,6 +226,22 @@ export interface PageReorderOp extends OpBase {
   pageIds: string[];
 }
 
+/**
+ * Which shell wraps this page (`Page.frameId`). Three states, and the two
+ * falsy-looking ones mean different things, so the op carries the tri-state
+ * verbatim rather than collapsing it:
+ *
+ *   `undefined` → the site default   ·   `null` → no frame   ·   string → named
+ *
+ * `frameId` is REQUIRED on the op (even to say `undefined`) so an applier can
+ * never confuse "set it back to the default" with "this op doesn't touch it".
+ */
+export interface PageSetFrameOp extends OpBase {
+  kind: "page.setFrame";
+  pageId: string;
+  frameId: string | null | undefined;
+}
+
 // ── symbol ops ───────────────────────────────────────────────────────────────
 
 /** Create or replace a symbol master wholesale (create + rename both land here;
@@ -278,6 +319,7 @@ export type Op =
   | NodeSetAttrsOp
   | NodeSetClassOp
   | NodeSetTextOp
+  | NodeSetChildrenOp
   | NodeSetTagOp
   | NodeSetBindingOp
   | NodeSetBehaviorOp
@@ -289,6 +331,7 @@ export type Op =
   | PageRenameOp
   | PageSetSlugOp
   | PageReorderOp
+  | PageSetFrameOp
   | SymbolSetOp
   | SymbolDeleteOp
   | ThemeSetOp

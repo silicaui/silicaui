@@ -1,13 +1,15 @@
 /**
  * Feature — media split. A single feature told as copy beside a supporting image:
- * eyebrow, heading, body, a short checklist, and an action, with an `Image` atom
- * on the other side. Container-query responsive: the two columns collapse and the
- * image drops below the copy on a narrow container.
+ * heading, body, a short checklist, and an action, with an `Image` atom on the
+ * other side. Container-query responsive: the two columns collapse and the image
+ * drops below the copy on a narrow container.
+ *
+ * No eyebrow. Nothing sits above the heading to introduce it (house RULE #2).
  */
 import { atom, block, el, slot } from "../kit";
 
 const point = (label: string) =>
-  el("li", "flex items-center gap-2 text-base-content/80", {
+  el("li", "flex items-center gap-2 text-base-content", {
     children: [
       el("span", "inline-block size-1.5 rounded-full bg-primary", {}),
       el("span", undefined, { text: label }),
@@ -31,17 +33,13 @@ export const featureMedia = block({
           el("div", "flex flex-col gap-4", {
             children: [
               slot(
-                el("p", "text-sm font-semibold uppercase tracking-wide text-primary", { text: "Workflow" }),
-                { name: "eyebrow", type: "text", label: "Eyebrow" },
-              ),
-              slot(
                 el("h2", "text-3xl font-semibold text-base-content @2xl:text-4xl", {
                   text: "Design, publish, and iterate in one place",
                 }),
                 { name: "heading", type: "text", label: "Heading", required: true },
               ),
               slot(
-                el("p", "text-base-content/70", {
+                el("p", "text-base-content", {
                   text: "No handoffs, no rebuilds. What you design is exactly what ships — and you can change it in seconds.",
                 }),
                 { name: "body", type: "text", label: "Body" },

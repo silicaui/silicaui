@@ -24,7 +24,7 @@ export const ctaBand = block({
             { name: "headline", type: "text", label: "Headline", required: true },
           ),
           slot(
-            el("p", "text-lg text-primary-content/80", {
+            el("p", "text-lg text-primary-content", {
               text: "Start free today — no credit card, no setup, no lock-in.",
             }),
             { name: "subhead", type: "text", label: "Subheadline" },

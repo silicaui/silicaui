@@ -404,6 +404,35 @@ console.log("data binding");
   const withHidden = resolveEmailTree(hiddenBody, host);
   check("visible:false drops the bound node from the resolved tree", withHidden.children.length === 0);
 
+  // ── conditional visibility (doc 139 §10) ───────────────────────────────────
+  // The email case for the same primitive: a discount block that must not
+  // render when there is no discount. Unlike a value bind, this leaves the
+  // node's own content alone — that is the whole reason it exists.
+  {
+    const discount = (ref: string, negate?: boolean): SectionNode => ({
+      id: "disc",
+      kind: "section",
+      bg: "#fff",
+      paddingX: 0,
+      paddingY: 0,
+      data: negate ? { kind: "visible", ref, negate: true } : { kind: "visible", ref },
+      children: [{ id: "dtext", kind: "text", html: "Your discount code is inside", align: "left", color: "#000", fontSize: 14 } as TextNode],
+    });
+    const wrap = (s: SectionNode): EmailBody => ({ id: "vb", kind: "body", width: 600, bg: "#fff", contentBg: "#fff", fontFamily: "Arial", children: [s] });
+    const bag = (v: unknown) => ({ resolveBinding: (r: string) => (r === "order.discount" ? { value: v } : undefined) });
+
+    check("a present value keeps the block", resolveEmailTree(wrap(discount("order.discount")), bag("SAVE10")).children.length === 1);
+    check("...and leaves its authored content untouched", (resolveEmailTree(wrap(discount("order.discount")), bag("SAVE10")).children[0]!.children as TextNode[])[0]!.html === "Your discount code is inside");
+    check("an absent value drops the whole block", resolveEmailTree(wrap(discount("order.discount")), bag(undefined)).children.length === 0);
+    check("an empty string drops it too", resolveEmailTree(wrap(discount("order.discount")), bag("")).children.length === 0);
+    check("ZERO is a value, not an absence", resolveEmailTree(wrap(discount("order.discount")), bag(0)).children.length === 1);
+    check("negate inverts the sense", resolveEmailTree(wrap(discount("order.discount", true)), bag("")).children.length === 1);
+    const vDiags: { code: string; kind: string }[] = [];
+    const unknownVis = resolveEmailTree(wrap(discount("typo")), { resolveBinding: () => undefined, onDiagnostic: (d) => vDiags.push(d) });
+    check("an UNKNOWN ref keeps the block — a typo must never silently delete content from a send", unknownVis.children.length === 1);
+    check("...and reports unknown-ref for it", vDiags.some((d) => d.code === "unknown-ref" && d.kind === "visible"));
+  }
+
   // End-to-end: a real EmailEditor + toEmailHtml(doc, resolver) — the actual
   // public path a host calls, not just the resolver internals.
   const ed = new EmailEditor();

@@ -8,14 +8,14 @@ import { atom, block, el, slot } from "../kit";
 const card = (quote: string, name: string, role: string) =>
   el("figure", "flex flex-col gap-4 rounded-box border border-base-200 bg-base-100 p-6", {
     children: [
-      el("blockquote", "text-base-content/80", { text: quote }),
+      el("blockquote", "text-base-content", { text: quote }),
       el("figcaption", "mt-auto flex items-center gap-3", {
         children: [
           atom("Avatar", "avatar w-10 rounded-full", { alt: "" }),
           el("div", undefined, {
             children: [
               el("p", "text-sm font-semibold text-base-content", { text: name }),
-              el("p", "text-xs text-base-content/60", { text: role }),
+              el("p", "text-xs text-base-content", { text: role }),
             ],
           }),
         ],
@@ -33,7 +33,7 @@ export const testimonialsGrid = block({
   colors: ["base-100", "base-200", "base-content"],
   behaviors: [],
   emailEligible: false,
-  root: el("section", "@container bg-base-200/40", {
+  root: el("section", "@container bg-base-200", {
     children: [
       el("div", "mx-auto w-full max-w-6xl px-6 py-16", {
         children: [

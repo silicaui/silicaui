@@ -54,7 +54,7 @@
                 {
                   "kind": "element",
                   "tag": "a",
-                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "class": "text-sm font-medium text-base-content hover:text-primary",
                   "attrs": {
                     "href": "#"
                   },
@@ -70,7 +70,7 @@
                 {
                   "kind": "element",
                   "tag": "a",
-                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "class": "text-sm font-medium text-base-content hover:text-primary",
                   "attrs": {
                     "href": "#"
                   },
@@ -86,7 +86,7 @@
                 {
                   "kind": "element",
                   "tag": "a",
-                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "class": "text-sm font-medium text-base-content hover:text-primary",
                   "attrs": {
                     "href": "#"
                   },
@@ -102,7 +102,7 @@
                 {
                   "kind": "element",
                   "tag": "a",
-                  "class": "text-sm font-medium text-base-content/70 hover:text-base-content",
+                  "class": "text-sm font-medium text-base-content hover:text-primary",
                   "attrs": {
                     "href": "#"
                   },
@@ -125,7 +125,7 @@
                 {
                   "kind": "element",
                   "tag": "a",
-                  "class": "hidden text-sm font-medium text-base-content/70 hover:text-base-content @sm:inline",
+                  "class": "hidden text-sm font-medium text-base-content hover:text-primary @sm:inline",
                   "attrs": {
                     "href": "#"
                   },
@@ -185,7 +185,7 @@
             {
               "kind": "element",
               "tag": "a",
-              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
               "attrs": {
                 "href": "#"
               },
@@ -201,7 +201,7 @@
             {
               "kind": "element",
               "tag": "a",
-              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
               "attrs": {
                 "href": "#"
               },
@@ -217,7 +217,7 @@
             {
               "kind": "element",
               "tag": "a",
-              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
               "attrs": {
                 "href": "#"
               },
@@ -233,7 +233,7 @@
             {
               "kind": "element",
               "tag": "a",
-              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content",
+              "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
               "attrs": {
                 "href": "#"
               },
@@ -362,7 +362,7 @@
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "text-lg text-base-content/70",
+                  "class": "text-lg text-base-content",
                   "children": [
                     "Everything you need to sell online — no code, no wrangling."
                   ],
@@ -499,7 +499,7 @@
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "text-base-content/70",
+                  "class": "text-base-content",
                   "children": [
                     "Every page ships lean, so your store feels instant."
                   ],
@@ -561,19 +561,6 @@
               "children": [
                 {
                   "kind": "element",
-                  "tag": "p",
-                  "class": "text-sm font-semibold uppercase tracking-wide text-primary",
-                  "children": [
-                    "Workflow"
-                  ],
-                  "slot": {
-                    "name": "eyebrow",
-                    "type": "text",
-                    "label": "Eyebrow"
-                  }
-                },
-                {
-                  "kind": "element",
                   "tag": "h2",
                   "class": "text-3xl font-semibold text-base-content @2xl:text-4xl",
                   "children": [
@@ -589,7 +576,7 @@
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "text-base-content/70",
+                  "class": "text-base-content",
                   "children": [
                     "No handoffs, no rebuilds. What you design is exactly what ships — and you can change it in seconds."
                   ],
@@ -607,7 +594,7 @@
                     {
                       "kind": "element",
                       "tag": "li",
-                      "class": "flex items-center gap-2 text-base-content/80",
+                      "class": "flex items-center gap-2 text-base-content",
                       "children": [
                         {
                           "kind": "element",
@@ -626,7 +613,7 @@
                     {
                       "kind": "element",
                       "tag": "li",
-                      "class": "flex items-center gap-2 text-base-content/80",
+                      "class": "flex items-center gap-2 text-base-content",
                       "children": [
                         {
                           "kind": "element",
@@ -645,7 +632,7 @@
                     {
                       "kind": "element",
                       "tag": "li",
-                      "class": "flex items-center gap-2 text-base-content/80",
+                      "class": "flex items-center gap-2 text-base-content",
                       "children": [
                         {
                           "kind": "element",
@@ -697,11 +684,6 @@
       ]
     },
     "slots": [
-      {
-        "name": "eyebrow",
-        "type": "text",
-        "label": "Eyebrow"
-      },
       {
         "name": "heading",
         "type": "text",
@@ -755,7 +737,7 @@
             {
               "kind": "element",
               "tag": "p",
-              "class": "text-sm font-medium uppercase tracking-wide text-base-content/50",
+              "class": "text-sm font-medium text-base-content",
               "children": [
                 "Trusted by teams at"
               ],
@@ -773,7 +755,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "class": "text-lg font-semibold tracking-tight text-base-content",
                   "children": [
                     "Meridian"
                   ]
@@ -781,7 +763,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "class": "text-lg font-semibold tracking-tight text-base-content",
                   "children": [
                     "Halcyon"
                   ]
@@ -789,7 +771,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "class": "text-lg font-semibold tracking-tight text-base-content",
                   "children": [
                     "Brightline"
                   ]
@@ -797,7 +779,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "class": "text-lg font-semibold tracking-tight text-base-content",
                   "children": [
                     "Loom & Co"
                   ]
@@ -805,7 +787,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-lg font-semibold tracking-tight text-base-content/50",
+                  "class": "text-lg font-semibold tracking-tight text-base-content",
                   "children": [
                     "Northgate"
                   ]
@@ -867,7 +849,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-sm text-base-content/60",
+                  "class": "text-sm text-base-content",
                   "children": [
                     "Active stores"
                   ]
@@ -890,7 +872,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-sm text-base-content/60",
+                  "class": "text-sm text-base-content",
                   "children": [
                     "Uptime"
                   ]
@@ -913,7 +895,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-sm text-base-content/60",
+                  "class": "text-sm text-base-content",
                   "children": [
                     "Countries"
                   ]
@@ -936,7 +918,7 @@
                 {
                   "kind": "element",
                   "tag": "span",
-                  "class": "text-sm text-base-content/60",
+                  "class": "text-sm text-base-content",
                   "children": [
                     "Average rating"
                   ]
@@ -1024,7 +1006,7 @@
                     {
                       "kind": "element",
                       "tag": "p",
-                      "class": "text-sm text-base-content/60",
+                      "class": "text-sm text-base-content",
                       "children": [
                         "Head of Growth, Meridian"
                       ],
@@ -1082,7 +1064,7 @@
     "root": {
       "kind": "element",
       "tag": "section",
-      "class": "@container bg-base-200/40",
+      "class": "@container bg-base-200",
       "children": [
         {
           "kind": "element",
@@ -1115,7 +1097,7 @@
                     {
                       "kind": "element",
                       "tag": "blockquote",
-                      "class": "text-base-content/80",
+                      "class": "text-base-content",
                       "children": [
                         "“Setup took an afternoon and support has been outstanding ever since.”"
                       ]
@@ -1148,7 +1130,7 @@
                             {
                               "kind": "element",
                               "tag": "p",
-                              "class": "text-xs text-base-content/60",
+                              "class": "text-xs text-base-content",
                               "children": [
                                 "Founder, Loom & Co"
                               ]
@@ -1167,7 +1149,7 @@
                     {
                       "kind": "element",
                       "tag": "blockquote",
-                      "class": "text-base-content/80",
+                      "class": "text-base-content",
                       "children": [
                         "“The editor is fast enough that our whole team actually uses it.”"
                       ]
@@ -1200,7 +1182,7 @@
                             {
                               "kind": "element",
                               "tag": "p",
-                              "class": "text-xs text-base-content/60",
+                              "class": "text-xs text-base-content",
                               "children": [
                                 "Design Lead, Halcyon"
                               ]
@@ -1219,7 +1201,7 @@
                     {
                       "kind": "element",
                       "tag": "blockquote",
-                      "class": "text-base-content/80",
+                      "class": "text-base-content",
                       "children": [
                         "“We replaced three tools with this and never looked back.”"
                       ]
@@ -1252,7 +1234,7 @@
                             {
                               "kind": "element",
                               "tag": "p",
-                              "class": "text-xs text-base-content/60",
+                              "class": "text-xs text-base-content",
                               "children": [
                                 "COO, Brightline"
                               ]
@@ -1299,7 +1281,7 @@
     "root": {
       "kind": "element",
       "tag": "section",
-      "class": "@container bg-base-200/40",
+      "class": "@container bg-base-200",
       "children": [
         {
           "kind": "element",
@@ -1327,7 +1309,7 @@
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "max-w-xl text-base-content/70",
+                  "class": "max-w-xl text-base-content",
                   "children": [
                     "Start free, then pick the plan that grows with you. Cancel anytime."
                   ],
@@ -1378,7 +1360,7 @@
                             {
                               "kind": "element",
                               "tag": "span",
-                              "class": "text-sm text-base-content/60",
+                              "class": "text-sm text-base-content",
                               "children": [
                                 "/mo"
                               ]
@@ -1395,7 +1377,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1414,7 +1396,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1433,7 +1415,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1495,7 +1477,7 @@
                             {
                               "kind": "element",
                               "tag": "span",
-                              "class": "text-sm text-base-content/60",
+                              "class": "text-sm text-base-content",
                               "children": [
                                 "/mo"
                               ]
@@ -1512,7 +1494,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1531,7 +1513,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1550,7 +1532,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1569,7 +1551,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1631,7 +1613,7 @@
                             {
                               "kind": "element",
                               "tag": "span",
-                              "class": "text-sm text-base-content/60",
+                              "class": "text-sm text-base-content",
                               "children": [
                                 "/mo"
                               ]
@@ -1648,7 +1630,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1667,7 +1649,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1686,7 +1668,7 @@
                         {
                           "kind": "element",
                           "tag": "li",
-                          "class": "flex items-center gap-2 text-sm text-base-content/70",
+                          "class": "flex items-center gap-2 text-sm text-base-content",
                           "children": [
                             {
                               "kind": "element",
@@ -1793,7 +1775,7 @@
                 {
                   "kind": "element",
                   "tag": "div",
-                  "class": "p-4 pt-0 text-base-content/70",
+                  "class": "p-4 pt-0 text-base-content",
                   "children": [
                     "Nope — everything is visual."
                   ],
@@ -1818,7 +1800,7 @@
                 {
                   "kind": "element",
                   "tag": "div",
-                  "class": "p-4 pt-0 text-base-content/70",
+                  "class": "p-4 pt-0 text-base-content",
                   "attrs": {
                     "hidden": true
                   },
@@ -1846,7 +1828,7 @@
                 {
                   "kind": "element",
                   "tag": "div",
-                  "class": "p-4 pt-0 text-base-content/70",
+                  "class": "p-4 pt-0 text-base-content",
                   "attrs": {
                     "hidden": true
                   },
@@ -1880,7 +1862,7 @@
     "name": "Content — prose section",
     "category": "content",
     "version": "1.0.0",
-    "description": "A titled long-form section with an eyebrow, heading, and two body columns.",
+    "description": "A titled long-form section with a heading and two body columns.",
     "tags": [
       "content",
       "about",
@@ -1888,8 +1870,7 @@
     ],
     "colors": [
       "base-100",
-      "base-content",
-      "primary"
+      "base-content"
     ],
     "behaviors": [],
     "emailEligible": false,
@@ -1903,19 +1884,6 @@
           "tag": "div",
           "class": "mx-auto w-full max-w-4xl px-6 py-16",
           "children": [
-            {
-              "kind": "element",
-              "tag": "p",
-              "class": "mb-2 text-sm font-semibold uppercase tracking-wide text-primary",
-              "children": [
-                "Our story"
-              ],
-              "slot": {
-                "name": "eyebrow",
-                "type": "text",
-                "label": "Eyebrow"
-              }
-            },
             {
               "kind": "element",
               "tag": "h2",
@@ -1933,7 +1901,7 @@
             {
               "kind": "element",
               "tag": "div",
-              "class": "grid grid-cols-1 gap-6 text-base-content/70 @2xl:grid-cols-2",
+              "class": "grid grid-cols-1 gap-6 text-base-content @2xl:grid-cols-2",
               "children": [
                 {
                   "kind": "element",
@@ -1966,11 +1934,6 @@
       ]
     },
     "slots": [
-      {
-        "name": "eyebrow",
-        "type": "text",
-        "label": "Eyebrow"
-      },
       {
         "name": "heading",
         "type": "text",
@@ -2062,7 +2025,7 @@
                         {
                           "kind": "element",
                           "tag": "p",
-                          "class": "text-sm text-base-content/60",
+                          "class": "text-sm text-base-content",
                           "children": [
                             "CEO"
                           ]
@@ -2099,7 +2062,7 @@
                         {
                           "kind": "element",
                           "tag": "p",
-                          "class": "text-sm text-base-content/60",
+                          "class": "text-sm text-base-content",
                           "children": [
                             "CTO"
                           ]
@@ -2136,7 +2099,7 @@
                         {
                           "kind": "element",
                           "tag": "p",
-                          "class": "text-sm text-base-content/60",
+                          "class": "text-sm text-base-content",
                           "children": [
                             "Head of Design"
                           ]
@@ -2173,7 +2136,7 @@
                         {
                           "kind": "element",
                           "tag": "p",
-                          "class": "text-sm text-base-content/60",
+                          "class": "text-sm text-base-content",
                           "children": [
                             "Head of Support"
                           ]
@@ -2248,7 +2211,7 @@
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "text-base-content/70",
+                  "class": "text-base-content",
                   "children": [
                     "Tell us what you're building and we'll get back to you within one business day."
                   ],
@@ -2261,7 +2224,7 @@
                 {
                   "kind": "element",
                   "tag": "div",
-                  "class": "mt-2 flex flex-col gap-2 text-sm text-base-content/70",
+                  "class": "mt-2 flex flex-col gap-2 text-sm text-base-content",
                   "children": [
                     {
                       "kind": "element",
@@ -2438,7 +2401,7 @@
             {
               "kind": "element",
               "tag": "p",
-              "class": "text-lg text-primary-content/80",
+              "class": "text-lg text-primary-content",
               "children": [
                 "Start free today — no credit card, no setup, no lock-in."
               ],
@@ -2563,7 +2526,7 @@
                     {
                       "kind": "element",
                       "tag": "p",
-                      "class": "text-sm text-base-content/60",
+                      "class": "text-sm text-base-content",
                       "children": [
                         "The fastest way to launch and grow your online store."
                       ],
@@ -2600,7 +2563,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2617,7 +2580,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2634,7 +2597,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2651,7 +2614,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2690,7 +2653,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2707,7 +2670,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2724,7 +2687,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2741,7 +2704,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2780,7 +2743,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2797,7 +2760,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2814,7 +2777,7 @@
                             {
                               "kind": "element",
                               "tag": "a",
-                              "class": "text-sm text-base-content/60 hover:text-base-content",
+                              "class": "text-sm text-base-content hover:text-primary",
                               "attrs": {
                                 "href": "#"
                               },
@@ -2838,7 +2801,7 @@
                 {
                   "kind": "element",
                   "tag": "p",
-                  "class": "text-sm text-base-content/50",
+                  "class": "text-sm text-base-content",
                   "children": [
                     "© 2026 SilicaUI, Inc. All rights reserved."
                   ]
@@ -2914,7 +2877,7 @@
             {
               "kind": "element",
               "tag": "button",
-              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-transparent text-base-content/60",
+              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-transparent text-base-content",
               "attrs": {
                 "type": "button",
                 "role": "tab",
@@ -2929,7 +2892,7 @@
             {
               "kind": "element",
               "tag": "button",
-              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-transparent text-base-content/60",
+              "class": "px-4 py-2 -mb-px border-b-2 font-medium border-transparent text-base-content",
               "attrs": {
                 "type": "button",
                 "role": "tab",
@@ -2946,7 +2909,7 @@
         {
           "kind": "element",
           "tag": "div",
-          "class": "p-4 text-base-content/80",
+          "class": "p-4 text-base-content",
           "attrs": {
             "role": "tabpanel"
           },
@@ -2958,7 +2921,7 @@
         {
           "kind": "element",
           "tag": "div",
-          "class": "p-4 text-base-content/80",
+          "class": "p-4 text-base-content",
           "attrs": {
             "role": "tabpanel",
             "hidden": true
@@ -2971,7 +2934,7 @@
         {
           "kind": "element",
           "tag": "div",
-          "class": "p-4 text-base-content/80",
+          "class": "p-4 text-base-content",
           "attrs": {
             "role": "tabpanel",
             "hidden": true
@@ -3032,7 +2995,7 @@
             {
               "kind": "element",
               "tag": "div",
-              "class": "p-4 pt-0 text-base-content/70",
+              "class": "p-4 pt-0 text-base-content",
               "children": [
                 "Everything in the core plan, plus priority support and analytics."
               ],
@@ -3060,7 +3023,7 @@
             {
               "kind": "element",
               "tag": "div",
-              "class": "p-4 pt-0 text-base-content/70",
+              "class": "p-4 pt-0 text-base-content",
               "attrs": {
                 "hidden": true
               },
@@ -3091,7 +3054,7 @@
             {
               "kind": "element",
               "tag": "div",
-              "class": "p-4 pt-0 text-base-content/70",
+              "class": "p-4 pt-0 text-base-content",
               "attrs": {
                 "hidden": true
               },

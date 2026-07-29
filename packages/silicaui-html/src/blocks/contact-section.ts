@@ -29,12 +29,12 @@ export const contactSection = block({
                                 label: "Heading",
                             }),
                             slot(
-                                el("p", "text-base-content/70", {
+                                el("p", "text-base-content", {
                                     text: "Tell us what you're building and we'll get back to you within one business day.",
                                 }),
                                 { name: "subhead", type: "text", label: "Subheadline" },
                             ),
-                            el("div", "mt-2 flex flex-col gap-2 text-sm text-base-content/70", {
+                            el("div", "mt-2 flex flex-col gap-2 text-sm text-base-content", {
                                 children: [
                                     el("p", undefined, { text: "hello@silicaui.com" }),
                                     el("p", undefined, { text: "+1 (555) 012-3456" }),

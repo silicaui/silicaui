@@ -510,6 +510,20 @@ export class EmailEditor {
     }
   }
 
+  /**
+   * Run `body` as ONE user action: one undo step, one change event, one `ops`
+   * batch out to the host, however many nodes it touches. The email twin of the
+   * site `Editor.batch` — same reason (every mutation is single-id, so a
+   * multi-node gesture would otherwise cost the author one undo press per node)
+   * and same contract, including nesting collapse and the deliberate lack of
+   * rollback on throw.
+   *
+   *   editor.batch(() => { for (const id of selected) editor.update(id, patch) })
+   */
+  batch<T>(body: () => T): T {
+    return this.transact([], false, body);
+  }
+
   // ── active template + document ──────────────────────────────────────────────
   private currentTemplate(): EmailTemplate {
     return this.project.templates.find((t) => t.id === this.activeTemplateId) ?? this.project.templates[0]!;

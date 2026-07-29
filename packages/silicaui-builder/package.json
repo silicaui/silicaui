@@ -46,7 +46,7 @@
     "dev": "tsup --watch",
     "harness": "vite harness",
     "typecheck": "tsc --noEmit",
-    "verify": "pnpm verify:batch && pnpm verify:ord && pnpm verify:ops && pnpm verify:email-batch && pnpm verify:email-ops && pnpm verify:symbols && pnpm verify:lock && pnpm verify:host && pnpm verify:starters && pnpm verify:email && pnpm verify:email-frame && pnpm verify:email-lock",
+    "verify": "pnpm verify:safelist && pnpm verify:batch && pnpm verify:ord && pnpm verify:ops && pnpm verify:invert && pnpm verify:shortcuts && pnpm verify:responsive && pnpm verify:email-batch && pnpm verify:email-ops && pnpm verify:symbols && pnpm verify:lock && pnpm verify:host && pnpm verify:starters && pnpm verify:email && pnpm verify:email-frame && pnpm verify:email-lock",
     "verify:batch": "esbuild probe-batch.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-batch.mjs && node node_modules/.cache/probe-batch.mjs",
     "verify:ord": "esbuild probe-ord.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-ord.mjs && node node_modules/.cache/probe-ord.mjs",
     "verify:ops": "esbuild probe-ops.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-ops.mjs && node node_modules/.cache/probe-ops.mjs",
@@ -59,7 +59,12 @@
     "verify:email": "esbuild probe-email.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-email.mjs && node node_modules/.cache/probe-email.mjs",
     "verify:email-frame": "esbuild probe-email-frame.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-email-frame.mjs && node node_modules/.cache/probe-email-frame.mjs",
     "verify:email-lock": "esbuild probe-email-lock.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-email-lock.mjs && node node_modules/.cache/probe-email-lock.mjs",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "verify:shortcuts": "esbuild probe-shortcuts.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-shortcuts.mjs && node node_modules/.cache/probe-shortcuts.mjs",
+    "verify:responsive": "esbuild probe-responsive.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-responsive.mjs && node node_modules/.cache/probe-responsive.mjs",
+    "gen:safelist": "node scripts/gen-canvas-safelist.mjs",
+    "verify:safelist": "node scripts/gen-canvas-safelist.mjs --check",
+    "verify:invert": "esbuild probe-invert.ts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.cache/probe-invert.mjs && node node_modules/.cache/probe-invert.mjs"
   },
   "dependencies": {
     "@wizeworks/silicaui": "workspace:*",

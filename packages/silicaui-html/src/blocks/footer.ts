@@ -8,7 +8,7 @@ import { block, el, slot } from "../kit";
 const link = (label: string) =>
     el("li", undefined, {
         children: [
-            el("a", "text-sm text-base-content/60 hover:text-base-content", { text: label, attrs: { href: "#" } }),
+            el("a", "text-sm text-base-content hover:text-primary", { text: label, attrs: { href: "#" } }),
         ],
     });
 
@@ -44,7 +44,7 @@ export const footer = block({
                                         label: "SilicaUI",
                                     }),
                                     slot(
-                                        el("p", "text-sm text-base-content/60", {
+                                        el("p", "text-sm text-base-content", {
                                             text: "The fastest way to launch and grow your online store.",
                                         }),
                                         { name: "blurb", type: "text", label: "Blurb" },
@@ -58,7 +58,7 @@ export const footer = block({
                     }),
                     el("div", "mt-10 border-t border-base-200 pt-6", {
                         children: [
-                            el("p", "text-sm text-base-content/50", { text: "© 2026 SilicaUI, Inc. All rights reserved." }),
+                            el("p", "text-sm text-base-content", { text: "© 2026 SilicaUI, Inc. All rights reserved." }),
                         ],
                     }),
                 ],

@@ -137,6 +137,9 @@ console.log("every stored-state mutation emits an op");
     ["removePage", (ed) => (ed.addPage("Two"), ed.removePage("pg_home"))],
     ["reorderPages", (ed) => (ed.addPage("Two"), ed.reorderPages(ed.pagesView.pages.map((p) => p.id).reverse()))],
     ["setFrameEditable", (ed) => ed.setFrameEditable(false)],
+    ["setPageFrame(null)", (ed) => ed.setPageFrame("pg_home", null)],
+    ["setPageFrame(named)", (ed) => ed.setPageFrame("pg_home", "docs")],
+    ["setPageFrame(back to default)", (ed) => (ed.setPageFrame("pg_home", null), ed.setPageFrame("pg_home", undefined))],
     ["createSymbol", (ed) => ed.createSymbol("Hero", byClass(ed, "hero"))],
     ["createBlankSymbol", (ed) => ed.createBlankSymbol("Blank")],
     ["renameSymbol", (ed) => ed.renameSymbol(ed.createSymbol("Hero", byClass(ed, "hero"))!, "Banner")],
@@ -257,6 +260,13 @@ console.log("a peer fed only ops converges on the same document");
   a.setPageSlug("pg_home", "/home");
   a.reorderPages(a.pagesView.pages.map((p) => p.id).reverse());
   a.setFrameEditable(false);
+  // Per-page frame: walk the whole tri-state, ending back at the DEFAULT. That
+  // last hop is the one that can silently diverge — "back to default" has to
+  // delete the key, and a peer that writes `frameId: undefined` instead ends up
+  // with a page that serializes differently while looking the same.
+  a.setPageFrame("pg_home", null);
+  a.setPageFrame("pg_home", "docs");
+  a.setPageFrame("pg_home", undefined);
   // Frame tree edits — a different target scope.
   a.setActiveTree("frame");
   const frameRootId = idOf(a.frame!.root)!;

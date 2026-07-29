@@ -12,7 +12,7 @@ const tab = (label: string, selected = false) =>
     el(
       "button",
       "px-4 py-2 -mb-px border-b-2 font-medium " +
-        (selected ? "border-primary text-primary" : "border-transparent text-base-content/60"),
+        (selected ? "border-primary text-primary" : "border-transparent text-base-content"),
       { text: label, attrs: { type: "button", role: "tab", "aria-selected": selected ? "true" : "false", tabindex: selected ? 0 : -1 } },
     ),
     "tab",
@@ -20,7 +20,7 @@ const tab = (label: string, selected = false) =>
 
 const panel = (body: string, open = false) =>
   part(
-    el("div", "p-4 text-base-content/80", {
+    el("div", "p-4 text-base-content", {
       text: body,
       attrs: open ? { role: "tabpanel" } : { role: "tabpanel", hidden: true },
     }),

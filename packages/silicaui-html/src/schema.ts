@@ -141,12 +141,33 @@ export interface HostNode extends NodeBase {
   props?: Record<string, unknown>;
 }
 
-/** The three opaque dynamic-content primitives (§8). */
+/** The opaque dynamic-content primitives (§8). */
 export type DataBinding =
   | { kind: "value"; ref: string; attr?: string } // fill this node from a resolved value; `attr` targets a specific attribute/prop (e.g. "href") instead of the auto-detected primary slot
   | { kind: "html"; ref: string } // fill this node's inner content from a resolved TRUSTED HTML string (rich text / CMS long-form) — the host sanitizes the value; emitted unescaped via `rawHtml`. The one raw-HTML content path.
   | { kind: "collection"; ref: string; omitWhenEmpty?: boolean } // render `children` once per item; `omitWhenEmpty` drops the node entirely (like `visible: false`) instead of the default one-placeholder-item convention when the collection resolves to zero items
-  | { kind: "action"; ref: string; href?: string }; // triggers a host action
+  | { kind: "action"; ref: string; href?: string } // triggers a host action
+  /**
+   * CONDITIONAL VISIBILITY. Keep this node (and its subtree) only when `ref`
+   * resolves to something present; `negate` flips that to "only when absent".
+   * The node's own content is untouched — that is the whole point of a separate
+   * kind rather than a flag on `value`.
+   *
+   * Every other binding consumes the node's primary content slot to do its job,
+   * so "show the Sale badge only when there is a sale price" had no expression:
+   * binding the badge to `item.compareAtPrice` would overwrite the word "Sale"
+   * with a number. A host could already drop a node by returning
+   * `Resolved.visible: false`, but only by encoding the condition in the ref's
+   * own semantics — invisible to the author, and undiscoverable in the editor.
+   *
+   * Deliberately NOT an expression language. `present`/`absent` against a
+   * resolved ref covers the cases that actually appear (an empty collection, a
+   * missing previous page, an unset logo, a policy flag), and an author who can
+   * write a contradiction mostly produces an invisible section they cannot
+   * debug. A host that needs a richer predicate expresses it as its own ref and
+   * answers it — the same seam it already had.
+   */
+  | { kind: "visible"; ref: string; negate?: boolean };
 
 export interface SlotDef {
   name: string;
@@ -329,6 +350,28 @@ export interface Page {
   slug: string;
   /** The editable page body — ids present. */
   root: Node;
+  /**
+   * WHICH shell wraps this page. Three states, and the difference between the
+   * two falsy-looking ones is the whole point:
+   *
+   *   - ABSENT   → the site default (`Site.frame`). What every page does unless
+   *                told otherwise, and what every page authored before this
+   *                field existed keeps doing.
+   *   - `null`   → NO frame. The page renders bare — no header, no footer. This
+   *                is the campaign/landing page, and it was unrepresentable
+   *                while the site had exactly one frame and every page took it.
+   *   - a string → the named frame at `Site.frames[frameId]`.
+   *
+   * `null` rather than a `frameless: true` flag because "which frame" and
+   * "whether a frame" are one decision, and splitting them into two fields
+   * makes `{ frameId: "marketing", frameless: true }` representable — a state
+   * with no meaning that every reader would have to decide about.
+   *
+   * A `frameId` naming a frame that doesn't exist resolves to NO frame, and
+   * `frameDiagnostic` says so. Falling back to the default would render a
+   * header the author explicitly moved away from, which is the worse failure.
+   */
+  frameId?: string | null;
 }
 
 /** A multi-page site: one or more `Page`s sharing a single theme + optional frame.
@@ -338,7 +381,20 @@ export interface Page {
 export interface Site {
   version: string;
   theme: Theme;
+  /** The DEFAULT shell, used by every page that doesn't say otherwise. Keeping
+   *  this singular (rather than folding it into `frames`) is what makes the
+   *  whole feature backward-compatible: a site that never heard of `frames`
+   *  renders identically. */
   frame?: Frame;
+  /**
+   * ADDITIONAL named shells, keyed by id — a docs layout with a sidebar, a
+   * checkout layout with a stripped header. A page opts in with
+   * `Page.frameId`; `Site.frame` stays the default for everyone else.
+   *
+   * Absent on almost every site, which is the intent: one shell is the common
+   * case and shouldn't have to be expressed as a map with one entry.
+   */
+  frames?: Record<string, Frame>;
   /**
    * At least one page. Order is AUTHORING order — what the page switcher lists,
    * nothing more. It carries no routing meaning: `pages[0]` is not the home page

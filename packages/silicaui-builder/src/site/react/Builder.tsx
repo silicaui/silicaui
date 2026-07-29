@@ -34,6 +34,7 @@ import { NewComponentButton } from "./ComponentStarterDialog";
 import { Navigator } from "./Navigator";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
+import { BreakpointProvider } from "./breakpoint-context";
 import { Icon } from "../../shared/react/Icon";
 import { IconItem, PanelHead } from "../../shared/react/chrome";
 
@@ -88,16 +89,20 @@ function Chrome({
   onPublish,
   toolbarSlot,
   dataToggle,
+  initialMode,
+  onModeChange,
 }: {
   onPublish?: (payload: PublishPayload) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
   dataToggle: boolean;
+  initialMode: Mode;
+  onModeChange?: (mode: Mode) => void;
 }) {
   const editor = useEditor();
   const { canUndo, canRedo } = useHistory();
   const { activeId } = usePages();
   const editingSymbol = useEditingSymbol();
-  const [mode, setMode] = React.useState<Mode>("page");
+  const [mode, setMode] = React.useState<Mode>(initialMode);
   const [device, setDevice] = React.useState("desktop");
   const [appearance, setAppearance] = React.useState<Appearance>("light");
   // Canvas shows the host's REAL data, not authored placeholders. Default on —
@@ -149,8 +154,37 @@ function Chrome({
     if (editingSymbol && mode !== "component" && mode !== "theme") setMode("component");
   }, [editingSymbol, mode]);
 
+  // `initialMode` names where the author LANDS, so it has to retarget the editing
+  // spine once at mount — the same work `changeMode` does on a click. Without
+  // this, opening on Layout would show the Layout chrome over the page tree.
+  //
+  // Mount-only on purpose: this is an INITIAL mode, not a controlled one. A prop
+  // that re-applied on every parent render would yank the author back to it
+  // mid-edit, which is the bug the same shape causes in `document`.
+  const started = React.useRef(false);
+  React.useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (initialMode === "layout") editor.setActiveTree("frame");
+    else if (initialMode === "component" && !editor.editingSymbol && editor.symbols[0]) {
+      editor.enterSymbol(editor.symbols[0].id);
+    }
+  }, [editor, initialMode]);
+
+  // Report the mode OUT, however it changed — a toolbar click, or the automatic
+  // switch into Component mode above. A host mirrors this into its own URL so a
+  // reload (or a shared link) comes back to the surface the author was on, which
+  // is the whole reason `initialMode` exists.
+  React.useEffect(() => {
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
+
   return (
-    <>
+    // The device toggle is also the AUTHORING BREAKPOINT — the semantic
+    // Inspector controls write the container variant that matches the width on
+    // screen. One control, so "what I'm looking at" and "what I'm editing" can
+    // never drift apart. See `breakpoint-context`.
+    <BreakpointProvider device={device}>
       {/* header */}
       <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
         <ToggleGroup
@@ -379,7 +413,7 @@ function Chrome({
           silicaui
         </a>
       </footer>
-    </>
+    </BreakpointProvider>
   );
 }
 
@@ -467,6 +501,22 @@ export interface BuilderProps {
    * debugging a resolver.
    */
   dataToggle?: boolean;
+  /**
+   * Which editing surface the author LANDS on — Page (the default), Layout (the
+   * shared frame), Component (a symbol master), or Theme.
+   *
+   * Initial, not controlled: it seeds the mode at mount and is never re-read, so
+   * a parent re-render can't yank the author out of the surface they're working
+   * in. Pair it with `onModeChange` to round-trip through a host's own URL.
+   */
+  initialMode?: "page" | "layout" | "component" | "theme";
+  /**
+   * Fires whenever the editing surface changes — a toolbar click, or the
+   * automatic switch into Component mode when something opens a symbol master.
+   * A view signal, like `onActivePageChange`: it changes no stored state, so it
+   * is NOT a persistence hook.
+   */
+  onModeChange?: (mode: "page" | "layout" | "component" | "theme") => void;
 }
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
@@ -521,6 +571,8 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
   dataToggle = true,
+  initialMode = "page",
+  onModeChange,
 }: BuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
   const docRef = React.useRef(document);
@@ -559,7 +611,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
       const snap = store ? await store.load() : undefined;
       if (cancelled) return;
       setCurrent({
-        editor: new Editor(snap?.data ?? docRef.current, { validateClass: hostRef.current?.validateClass }),
+        editor: new Editor(snap?.data ?? docRef.current, { validateClass: hostRef.current?.validateClass, viewportVariants: hostRef.current?.viewportVariants }),
         recoveredAt: snap?.savedAt ?? null,
         gen: 0,
       });
@@ -627,7 +679,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
   const startFresh = React.useCallback(() => {
     void store?.clear();
     setCurrent((c) => ({
-      editor: new Editor(docRef.current, { validateClass: hostRef.current?.validateClass }),
+      editor: new Editor(docRef.current, { validateClass: hostRef.current?.validateClass, viewportVariants: hostRef.current?.viewportVariants }),
       recoveredAt: null,
       gen: (c?.gen ?? 0) + 1,
     }));
@@ -658,7 +710,13 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
               {current.recoveredAt !== null && (
                 <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
               )}
-              <Chrome onPublish={onPublish} toolbarSlot={toolbarSlot} dataToggle={dataToggle} />
+              <Chrome
+                onPublish={onPublish}
+                toolbarSlot={toolbarSlot}
+                dataToggle={dataToggle}
+                initialMode={initialMode}
+                onModeChange={onModeChange}
+              />
             </ErrorBoundary>
           </div>
         </StudioThemeProvider>

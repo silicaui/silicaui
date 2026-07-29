@@ -35,7 +35,7 @@ export const testimonialQuote = block({
                     type: "text",
                     label: "Author",
                   }),
-                  slot(el("p", "text-sm text-base-content/60", { text: "Head of Growth, Meridian" }), {
+                  slot(el("p", "text-sm text-base-content", { text: "Head of Growth, Meridian" }), {
                     name: "role",
                     type: "text",
                     label: "Role",

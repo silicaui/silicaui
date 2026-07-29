@@ -1,7 +1,10 @@
 /**
- * Content — prose section. A titled long-form block: an eyebrow, a heading, and
- * two readable body columns. For "About", policy, or docs-style copy. Container-
- * query responsive: the body collapses to one column on a narrow container.
+ * Content — prose section. A titled long-form block: a heading over two readable
+ * body columns. For "About", policy, or docs-style copy. Container-query
+ * responsive: the body collapses to one column on a narrow container.
+ *
+ * No eyebrow. Nothing sits above the heading to introduce it (house RULE #2) —
+ * the heading carries itself, and hierarchy comes from scale and weight.
  */
 import { block, el, slot } from "../kit";
 
@@ -10,9 +13,9 @@ export const contentProse = block({
   name: "Content — prose section",
   category: "content",
   version: "1.0.0",
-  description: "A titled long-form section with an eyebrow, heading, and two body columns.",
+  description: "A titled long-form section with a heading and two body columns.",
   tags: ["content", "about", "prose"],
-  colors: ["base-100", "base-content", "primary"],
+  colors: ["base-100", "base-content"],
   behaviors: [],
   emailEligible: false,
   root: el("section", "@container bg-base-100", {
@@ -20,16 +23,12 @@ export const contentProse = block({
       el("div", "mx-auto w-full max-w-4xl px-6 py-16", {
         children: [
           slot(
-            el("p", "mb-2 text-sm font-semibold uppercase tracking-wide text-primary", { text: "Our story" }),
-            { name: "eyebrow", type: "text", label: "Eyebrow" },
-          ),
-          slot(
             el("h2", "mb-6 text-3xl font-semibold text-base-content @2xl:text-4xl", {
               text: "Built for people who make things",
             }),
             { name: "heading", type: "text", label: "Heading", required: true },
           ),
-          el("div", "grid grid-cols-1 gap-6 text-base-content/70 @2xl:grid-cols-2", {
+          el("div", "grid grid-cols-1 gap-6 text-base-content @2xl:grid-cols-2", {
             children: [
               slot(
                 el("p", undefined, {

@@ -35,7 +35,7 @@ export const heroSplitCta = block({
                 { name: "headline", type: "text", label: "Headline", required: true },
               ),
               slot(
-                el("p", "text-lg text-base-content/70", {
+                el("p", "text-lg text-base-content", {
                   text: "Everything you need to sell online — no code, no wrangling.",
                 }),
                 { name: "subhead", type: "text", label: "Subheadline" },
