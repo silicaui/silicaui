@@ -1,0 +1,1428 @@
+{
+  "entrypoint": "@wizeworks/silicaui-html",
+  "behaviorRuntime": "@wizeworks/silicaui-behaviors",
+  "sourceFile": "silicaui-html/src/schema.ts",
+  "note": "A silica document is a TREE of nodes projected to HTML by `toHtml`. A node is an element (a raw tag), a component (a @wizeworks/silicaui macro that EXPANDS to an element subtree), an outlet (the reserved marker for where a routed page renders inside a frame — valid only in a frame), or a host node (an opaque mount point for a host's own live widget). A plain STRING child is a text node, so mixed inline content composes naturally. `class` is the ONLY styling surface — there is no inline style, ever.",
+  "child": "A child is another node, or a plain string (a text node).",
+  "nodeBase": [
+    {
+      "name": "id",
+      "optional": true,
+      "type": "string",
+      "doc": "GLOBALLY-UNIQUE instance id. Present on DOCUMENT nodes (selection, keys, dnd); ABSENT on template/block nodes. Minted at stamp/duplicate/paste."
+    },
+    {
+      "name": "label",
+      "optional": true,
+      "type": "string",
+      "doc": "Builder-only layer name shown in the Navigator (user-renamable). Authoring metadata — ignored by every projection."
+    },
+    {
+      "name": "ord",
+      "optional": true,
+      "type": "string",
+      "doc": "Fractional ORDERING KEY among siblings — a string chosen to sort strictly between its neighbors (see `generateKeyBetween`). Authoring metadata in the same band as `label`/`locked`: no projection reads it, and `exportSite` strips it, so it never reaches published markup. `children` order still drives local rendering; `ord` is the key that makes a position transportable. An array index is not a stable address — \"insert at 2\" resolves differently depending on what else landed first, so two authors inserting into one parent produce a result neither saw. A key between two neighbors is stable: an insert touches only the inserted node, the parent is never rewritten, and concurrent inserts can't collide. Absent on template/block nodes (like `id`) and on any tree authored before ordering keys existed; `assignOrds` backfills it at load in array order."
+    },
+    {
+      "name": "class",
+      "optional": true,
+      "type": "string",
+      "doc": "The ONLY styling surface: @wizeworks/silicaui component classes + the allowed utility subset. A host gates these. No inline style, ever."
+    },
+    {
+      "name": "children",
+      "optional": true,
+      "type": "Child[]",
+      "doc": ""
+    },
+    {
+      "name": "rawHtml",
+      "optional": true,
+      "type": "string",
+      "doc": "RENDER-TIME-ONLY trusted inner HTML, emitted UNESCAPED by `toHtml` in place of `children`. It is NOT part of the authored/persisted schema and must never be hand-authored: `resolveTree` sets it from an `html` data binding, whose value the HOST is responsible for sanitizing at its data boundary (same trust model as React's `dangerouslySetInnerHTML` / Vue's `v-html`). This is the one sanctioned bypass of the raw-element floor, gated behind an explicit binding a host opts into per-field — the CMS long-form / rich-text content path."
+    },
+    {
+      "name": "data",
+      "optional": true,
+      "type": "DataBinding",
+      "doc": "// ── system metadata — typed, and NEVER mixed into attrs/props ────────────── Dynamic content. At most one binding; the union makes \"at most one\" structural. The `ref` is opaque — @wizeworks/silicaui never parses it."
+    },
+    {
+      "name": "slot",
+      "optional": true,
+      "type": "SlotDef",
+      "doc": "Marks this node as an editable region for a builder/host."
+    },
+    {
+      "name": "behavior",
+      "optional": true,
+      "type": "BehaviorMarker",
+      "doc": "Marks this node as a behavior ROOT."
+    },
+    {
+      "name": "part",
+      "optional": true,
+      "type": "BehaviorRole",
+      "doc": "Marks this node as a structural PART of an ancestor behavior."
+    },
+    {
+      "name": "instanceOf",
+      "optional": true,
+      "type": "string",
+      "doc": "This node is an INSTANCE of a reusable symbol (a user-saved component). It holds no meaningful children of its own — at render it EXPANDS to a fresh clone of `symbols[instanceOf].root`, so editing that one master propagates to every instance. `flattenSymbols` inlines it for output; the projection itself stays symbol-agnostic."
+    },
+    {
+      "name": "overrides",
+      "optional": true,
+      "type": "Record<string, NodeOverride>",
+      "doc": "Per-INSTANCE overrides, keyed by the MASTER node's (stable) id. Applied over the expanded master clone, so this instance can differ from its siblings without detaching; an overridden field is NOT overwritten by a later master edit. Only meaningful on an instance node (`instanceOf` set)."
+    },
+    {
+      "name": "locked",
+      "optional": true,
+      "type": "\"host\" | \"author\"",
+      "doc": "Structural immutability + its OWNER. A locked node cannot be removed, moved, or reparented by the editing spine; its class/props stay editable. Presence encodes locked; the value encodes WHO owns the lock: - \"author\" — the author locked it (Navigator/Inspector \"lock layer\"); the author can unlock it the same way. - \"host\" — the host locked it (a pinned host region, or the host's own runtime call); the author UI shows it locked but offers NO unlock — only the host clears it. A single field (not a boolean + owner) so there is no invalid state: presence IS locked, absence IS unlocked, and `if (node.locked)` reads truthy/falsy like a boolean. Authoring metadata only — no projection reads it (like `label`/`slot`)."
+    }
+  ],
+  "kinds": [
+    {
+      "kind": "element",
+      "typeName": "ElementNode",
+      "doc": "",
+      "sharedFields": true,
+      "fields": [
+        {
+          "name": "tag",
+          "optional": false,
+          "type": "string",
+          "doc": "'div' | 'section' | 'nav' | 'h1' | 'a' | 'img' | …"
+        },
+        {
+          "name": "attrs",
+          "optional": true,
+          "type": "Record<string, string | number | boolean>",
+          "doc": "Whitelisted HTML attributes only."
+        }
+      ]
+    },
+    {
+      "kind": "component",
+      "typeName": "ComponentNode",
+      "doc": "",
+      "sharedFields": true,
+      "fields": [
+        {
+          "name": "component",
+          "optional": false,
+          "type": "string",
+          "doc": "A @wizeworks/silicaui atom by name: 'Button' | 'Card' | 'Image' | 'Icon' | …"
+        },
+        {
+          "name": "props",
+          "optional": true,
+          "type": "Record<string, unknown>",
+          "doc": "The component's OWN typed API."
+        }
+      ]
+    },
+    {
+      "kind": "outlet",
+      "typeName": "OutletNode",
+      "doc": "Reserved structural node — valid ONLY inside a `Frame` (§9.7).",
+      "sharedFields": false,
+      "fields": []
+    },
+    {
+      "kind": "host",
+      "typeName": "HostNode",
+      "doc": "A live, HOST-OWNED functional region embedded in an authored tree — the code-component primitive (host-nodes-and-node-locking spec §A). Opaque to the projection: `toHtml` emits an EMPTY mount point (`<div data-sui-host=\"…\">`), never live framework code, so the framework-neutral projection promise holds. A host mounts its real component into that point at render time (client or SSR), the same trust model as behavior-marker hydration and `rawHtml`. A LEAF — it never carries `children` (the `NodeBase.children` slot goes unused). Pair with `NodeBase.locked: \"host\"` to pin it non-deletable.",
+      "sharedFields": true,
+      "fields": [
+        {
+          "name": "component",
+          "optional": false,
+          "type": "string",
+          "doc": "The host component key — an ALLOWLIST key the host resolves, NEVER eval'd (e.g. \"CheckoutWidget\" | \"ProductGrid\" | \"AccountPanel\"). Opaque to @wizeworks/silicaui."
+        },
+        {
+          "name": "props",
+          "optional": true,
+          "type": "Record<string, unknown>",
+          "doc": "Author-set configuration, validated by the HOST against the component's declared prop schema. JSON-serializable; static literals in v1 (data-bound props are a later revision)."
+        }
+      ]
+    }
+  ],
+  "bindingNote": "A node carries AT MOST ONE `data` marker — the union makes that structural. The `ref` is OPAQUE: silica never parses it, it hands it to the host and renders what comes back, which is what keeps the engine domain-blind. Two values on one card is COMPOSITION, not two markers: the card's own <a> binds `href` via `attr`, and each child binds its own field.",
+  "dataBindings": [
+    {
+      "kind": "value",
+      "doc": "fill this node from a resolved value; `attr` targets a specific attribute/prop (e.g. \"href\") instead of the auto-detected primary slot",
+      "fields": [
+        {
+          "name": "ref",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "attr",
+          "optional": true,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "html",
+      "doc": "fill this node's inner content from a resolved TRUSTED HTML string (rich text / CMS long-form) — the host sanitizes the value; emitted unescaped via `rawHtml`. The one raw-HTML content path.",
+      "fields": [
+        {
+          "name": "ref",
+          "optional": false,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "collection",
+      "doc": "Render `children` once per resolved item. `omitWhenEmpty` drops the node entirely (like `visible: false`) instead of the default one-placeholder-item convention when the collection resolves to zero items. `limit` is a PER-INSTANCE cap: at most this many items render. It exists because the ref and the count are different questions and the ref cannot answer both — a catalog `key` says what a source IS, and `scopeAt` matches an ancestor's `data.ref` against that key to narrow what a descendant can bind, so a ref carrying an options suffix (`products|limit=4`) silently empties the inner field list. One tenant wanting a strip of 4 above the fold, a full grid at /shop and a rail of 12 on the product page is one source and three counts; without this the count is whatever the host chose when it fetched, uniform per source across the whole site. How many items LOAD, not how many are visible at a time: a carousel showing 4 of 12 is layout (`basis-1/4` on a snap rail), which the class model already does. Must be a positive integer — anything else is ignored, so a malformed value renders the whole collection rather than nothing.",
+      "fields": [
+        {
+          "name": "ref",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "omitWhenEmpty",
+          "optional": true,
+          "type": "boolean"
+        },
+        {
+          "name": "limit",
+          "optional": true,
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "kind": "action",
+      "doc": "triggers a host action",
+      "fields": [
+        {
+          "name": "ref",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "href",
+          "optional": true,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "visible",
+      "doc": "CONDITIONAL VISIBILITY. Keep this node (and its subtree) only when `ref` resolves to something present; `negate` flips that to \"only when absent\". The node's own content is untouched — that is the whole point of a separate kind rather than a flag on `value`. Every other binding consumes the node's primary content slot to do its job, so \"show the Sale badge only when there is a sale price\" had no expression: binding the badge to `item.compareAtPrice` would overwrite the word \"Sale\" with a number. A host could already drop a node by returning `Resolved.visible: false`, but only by encoding the condition in the ref's own semantics — invisible to the author, and undiscoverable in the editor. Deliberately NOT an expression language. `present`/`absent` against a resolved ref covers the cases that actually appear (an empty collection, a missing previous page, an unset logo, a policy flag), and an author who can write a contradiction mostly produces an invisible section they cannot debug. A host that needs a richer predicate expresses it as its own ref and answers it — the same seam it already had.",
+      "fields": [
+        {
+          "name": "ref",
+          "optional": false,
+          "type": "string"
+        },
+        {
+          "name": "negate",
+          "optional": true,
+          "type": "boolean"
+        }
+      ]
+    }
+  ],
+  "resolution": {
+    "note": "A host implements `resolveBinding` / `resolveCollection` and `resolveTree` walks the document with them. Pure and SYNCHRONOUS by design — a host with an async source fetches ONCE, up front, into whatever the synchronous hooks then read from, which is what stops an async-per-node API creating waterfalls. The SAME primitive feeds a live render and a builder canvas (`{ editing: true }`), so preview == production is structural.",
+    "honesty": "The hooks distinguish `undefined` (I have never heard of this ref) from `{ value: undefined }` (I know it and it is empty). They are treated differently and the difference is the whole contract: an UNKNOWN ref keeps the node's AUTHORED content and fires a diagnostic; a KNOWN-but-empty ref renders empty, which is a legitimate result. Without that split the walk blanks the node either way, and an author cannot tell a typo from real absence.",
+    "host": [
+      {
+        "name": "resolveBinding",
+        "optional": true,
+        "type": "(ref: string, scope: DataScope) => Resolved | undefined",
+        "doc": "Resolve `ref` to a value. Return `undefined` — NOT `{ value: undefined }` — when the ref is UNKNOWN to this host. The two are different states and the walk treats them differently: an unknown ref keeps the node's AUTHORED content and reports a diagnostic; a KNOWN ref whose value is empty renders empty, which is a legitimate result. Without that distinction the walk cannot be honest — it blanks the node either way."
+      },
+      {
+        "name": "resolveCollection",
+        "optional": true,
+        "type": "(ref: string, scope: DataScope) => readonly unknown[] | undefined",
+        "doc": "`undefined` = unknown ref (authored children stay, diagnostic fires). An empty array = a KNOWN, legitimately-empty collection (the placeholder convention / `omitWhenEmpty` apply)."
+      },
+      {
+        "name": "onDiagnostic",
+        "optional": true,
+        "type": "(d: ResolveDiagnostic) => void",
+        "doc": "Absent → the walk is silent (pure; a static publish path pays nothing)."
+      }
+    ],
+    "resolved": [
+      {
+        "name": "value",
+        "optional": false,
+        "type": "unknown",
+        "doc": ""
+      },
+      {
+        "name": "label",
+        "optional": true,
+        "type": "string",
+        "doc": "Shown as a \"bound\" chip by an editor UI — never used by `resolveTree` itself."
+      },
+      {
+        "name": "visible",
+        "optional": true,
+        "type": "boolean",
+        "doc": "`false` drops this node (and its subtree) from the resolved output — the one conditional-visibility primitive the engine supports, with no expression language attached. Defaults to `true`."
+      }
+    ],
+    "scope": [
+      {
+        "name": "item",
+        "optional": true,
+        "type": "unknown",
+        "doc": ""
+      },
+      {
+        "name": "index",
+        "optional": true,
+        "type": "number",
+        "doc": ""
+      }
+    ],
+    "options": [
+      {
+        "name": "editing",
+        "optional": true,
+        "type": "boolean",
+        "doc": "EDIT-MODE policy. The canvas resolves the same refs through the same host, but never destroys authorability: a `visible: false` node is ANNOTATED via `onDiagnostic` rather than dropped, because a dropped node cannot be selected, inspected, or un-bound — it just vanishes on the author. This is a DESTRUCTION policy, not a second resolver: same walker, same hooks, same refs. It diverges only where production's answer is \"show nothing\", which is not an answer an editor can render. Absent/false → production policy, byte-identical to a pre-`editing` walk."
+      }
+    ],
+    "diagnostic": [
+      {
+        "name": "code",
+        "optional": false,
+        "type": "\"unknown-ref\" | \"hidden\"",
+        "doc": "`unknown-ref` — the host returned `undefined` for a ref it was asked about (a typo, a stale document, a catalog entry its resolver doesn't implement). `hidden` — an `editing` walk kept a `visible: false` node that production would have dropped, so an editor can render it ghosted. Additive union; new codes are non-breaking."
+      },
+      {
+        "name": "ref",
+        "optional": false,
+        "type": "string",
+        "doc": ""
+      },
+      {
+        "name": "nodeId",
+        "optional": true,
+        "type": "string",
+        "doc": "The bound node's id, so an editor can badge / jump to the exact node."
+      },
+      {
+        "name": "kind",
+        "optional": false,
+        "type": "DataBinding[\"kind\"]",
+        "doc": ""
+      }
+    ]
+  },
+  "elementFloor": {
+    "note": "`toHtml` enforces an unconditional allowlist (builder-contract.md §9): a tag that is not listed here is DOWNGRADED to <div> and an attribute that is not listed for its tag is DROPPED — silently, with the content lost. This is a security floor, not a style guide, and no host option relaxes it. Author with these tags and attrs; for a third-party player or map use the Embed component rather than a raw <iframe>, which floors to <div>.",
+    "globalAttrs": [
+      "id",
+      "title",
+      "role",
+      "tabindex",
+      "hidden"
+    ],
+    "tags": [
+      {
+        "tag": "div",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "section",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "article",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "nav",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "header",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "footer",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "aside",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "main",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "span",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "template",
+        "group": "structure",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "h1",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "h2",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "h3",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "h4",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "h5",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "h6",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "p",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "strong",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "em",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "b",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "i",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "small",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "mark",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "blockquote",
+        "group": "text",
+        "void": false,
+        "attrs": [
+          "cite"
+        ]
+      },
+      {
+        "tag": "pre",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "code",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "kbd",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "var",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "samp",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "sub",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "sup",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "abbr",
+        "group": "text",
+        "void": false,
+        "attrs": [
+          "title"
+        ]
+      },
+      {
+        "tag": "dfn",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "q",
+        "group": "text",
+        "void": false,
+        "attrs": [
+          "cite"
+        ]
+      },
+      {
+        "tag": "s",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "u",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "del",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "ins",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "address",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "time",
+        "group": "text",
+        "void": false,
+        "attrs": [
+          "datetime"
+        ]
+      },
+      {
+        "tag": "br",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "hr",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "wbr",
+        "group": "text",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "ul",
+        "group": "list",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "ol",
+        "group": "list",
+        "void": false,
+        "attrs": [
+          "start",
+          "reversed",
+          "type"
+        ]
+      },
+      {
+        "tag": "li",
+        "group": "list",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "dl",
+        "group": "list",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "dt",
+        "group": "list",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "dd",
+        "group": "list",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "img",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "src",
+          "alt",
+          "width",
+          "height",
+          "loading",
+          "decoding",
+          "srcset",
+          "sizes"
+        ]
+      },
+      {
+        "tag": "picture",
+        "group": "media",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "source",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "src",
+          "srcset",
+          "media",
+          "type",
+          "sizes"
+        ]
+      },
+      {
+        "tag": "video",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "src",
+          "poster",
+          "controls",
+          "autoplay",
+          "loop",
+          "muted",
+          "playsinline",
+          "preload",
+          "width",
+          "height",
+          "crossorigin"
+        ]
+      },
+      {
+        "tag": "audio",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "src",
+          "controls",
+          "autoplay",
+          "loop",
+          "muted",
+          "preload",
+          "crossorigin"
+        ]
+      },
+      {
+        "tag": "figure",
+        "group": "media",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "figcaption",
+        "group": "media",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "svg",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "viewBox",
+          "width",
+          "height",
+          "xmlns",
+          "preserveAspectRatio"
+        ]
+      },
+      {
+        "tag": "g",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color"
+        ]
+      },
+      {
+        "tag": "defs",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color"
+        ]
+      },
+      {
+        "tag": "symbol",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "viewBox",
+          "preserveAspectRatio"
+        ]
+      },
+      {
+        "tag": "use",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "href",
+          "x",
+          "y",
+          "width",
+          "height"
+        ]
+      },
+      {
+        "tag": "title",
+        "group": "media",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "desc",
+        "group": "media",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "path",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "d",
+          "pathLength"
+        ]
+      },
+      {
+        "tag": "circle",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "cx",
+          "cy",
+          "r"
+        ]
+      },
+      {
+        "tag": "ellipse",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "cx",
+          "cy",
+          "rx",
+          "ry"
+        ]
+      },
+      {
+        "tag": "rect",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "x",
+          "y",
+          "width",
+          "height",
+          "rx",
+          "ry"
+        ]
+      },
+      {
+        "tag": "line",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "x1",
+          "y1",
+          "x2",
+          "y2"
+        ]
+      },
+      {
+        "tag": "polygon",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "points"
+        ]
+      },
+      {
+        "tag": "polyline",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "points"
+        ]
+      },
+      {
+        "tag": "text",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "x",
+          "y",
+          "dx",
+          "dy",
+          "text-anchor",
+          "dominant-baseline",
+          "font-size",
+          "font-family",
+          "font-weight",
+          "letter-spacing"
+        ]
+      },
+      {
+        "tag": "tspan",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "fill",
+          "stroke",
+          "stroke-width",
+          "opacity",
+          "fill-opacity",
+          "stroke-opacity",
+          "fill-rule",
+          "clip-rule",
+          "stroke-linecap",
+          "stroke-linejoin",
+          "stroke-dasharray",
+          "stroke-dashoffset",
+          "stroke-miterlimit",
+          "transform",
+          "clip-path",
+          "mask",
+          "color",
+          "x",
+          "y",
+          "dx",
+          "dy",
+          "text-anchor"
+        ]
+      },
+      {
+        "tag": "clipPath",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "clipPathUnits"
+        ]
+      },
+      {
+        "tag": "mask",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "maskUnits",
+          "maskContentUnits",
+          "x",
+          "y",
+          "width",
+          "height"
+        ]
+      },
+      {
+        "tag": "pattern",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "x",
+          "y",
+          "width",
+          "height",
+          "patternUnits",
+          "patternContentUnits",
+          "patternTransform",
+          "viewBox",
+          "preserveAspectRatio",
+          "href"
+        ]
+      },
+      {
+        "tag": "linearGradient",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "x1",
+          "y1",
+          "x2",
+          "y2",
+          "gradientUnits",
+          "gradientTransform",
+          "spreadMethod",
+          "href"
+        ]
+      },
+      {
+        "tag": "radialGradient",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "cx",
+          "cy",
+          "r",
+          "fx",
+          "fy",
+          "fr",
+          "gradientUnits",
+          "gradientTransform",
+          "spreadMethod",
+          "href"
+        ]
+      },
+      {
+        "tag": "stop",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "offset",
+          "stop-color",
+          "stop-opacity"
+        ]
+      },
+      {
+        "tag": "image",
+        "group": "media",
+        "void": false,
+        "attrs": [
+          "href",
+          "x",
+          "y",
+          "width",
+          "height",
+          "preserveAspectRatio"
+        ]
+      },
+      {
+        "tag": "table",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "thead",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "tbody",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "tfoot",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "tr",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "th",
+        "group": "table",
+        "void": false,
+        "attrs": [
+          "colspan",
+          "rowspan",
+          "scope"
+        ]
+      },
+      {
+        "tag": "td",
+        "group": "table",
+        "void": false,
+        "attrs": [
+          "colspan",
+          "rowspan"
+        ]
+      },
+      {
+        "tag": "caption",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "colgroup",
+        "group": "table",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "col",
+        "group": "table",
+        "void": false,
+        "attrs": [
+          "span"
+        ]
+      },
+      {
+        "tag": "form",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "novalidate"
+        ]
+      },
+      {
+        "tag": "input",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "type",
+          "name",
+          "value",
+          "placeholder",
+          "checked",
+          "disabled",
+          "required",
+          "readonly",
+          "min",
+          "max",
+          "step",
+          "pattern",
+          "autocomplete",
+          "multiple",
+          "accept"
+        ]
+      },
+      {
+        "tag": "textarea",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "name",
+          "placeholder",
+          "rows",
+          "cols",
+          "disabled",
+          "required",
+          "readonly"
+        ]
+      },
+      {
+        "tag": "select",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "name",
+          "disabled",
+          "required",
+          "multiple"
+        ]
+      },
+      {
+        "tag": "option",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "value",
+          "disabled",
+          "selected"
+        ]
+      },
+      {
+        "tag": "optgroup",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "label",
+          "disabled"
+        ]
+      },
+      {
+        "tag": "label",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "for"
+        ]
+      },
+      {
+        "tag": "button",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "type",
+          "disabled"
+        ]
+      },
+      {
+        "tag": "fieldset",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "disabled"
+        ]
+      },
+      {
+        "tag": "legend",
+        "group": "form",
+        "void": false,
+        "attrs": []
+      },
+      {
+        "tag": "output",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "for",
+          "name"
+        ]
+      },
+      {
+        "tag": "progress",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "value",
+          "max"
+        ]
+      },
+      {
+        "tag": "meter",
+        "group": "form",
+        "void": false,
+        "attrs": [
+          "value",
+          "min",
+          "max",
+          "low",
+          "high",
+          "optimum"
+        ]
+      },
+      {
+        "tag": "a",
+        "group": "interactive",
+        "void": false,
+        "attrs": [
+          "href",
+          "target",
+          "rel",
+          "download"
+        ]
+      },
+      {
+        "tag": "details",
+        "group": "interactive",
+        "void": false,
+        "attrs": [
+          "open"
+        ]
+      },
+      {
+        "tag": "summary",
+        "group": "interactive",
+        "void": false,
+        "attrs": []
+      }
+    ]
+  }
+}

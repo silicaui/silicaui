@@ -46,6 +46,11 @@ function cleanComment(raw) {
     .replace(/^\/\*\*?/, "")
     .replace(/\*\/$/, "")
     .split("\n")
+    // Only the block comment's leading `*`. A `//` at the start of a line is
+    // NOT stripped here: inside a JSDoc it is almost always a real line of a
+    // code example ("… /> // object items: <Combobox …"), and stripping it
+    // silently rewrote the docs of every component whose example had one.
+    // A caller reading an actual `//` comment strips its own marker.
     .map((l) => l.replace(/^\s*\*\s?/, ""))
     .join(" ")
     .replace(/\s+/g, " ")
@@ -63,7 +68,7 @@ const PACKAGES = [
   { name: "silicaui-react", purpose: "Typed React components over the silicaui classes, built on Base UI.", install: "pnpm add silicaui-react" },
   { name: "silicaui-html", purpose: "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output).", install: "pnpm add silicaui-html" },
   { name: "silicaui-behaviors", purpose: "Zero-dependency runtime that hydrates data-sui-* markers with interactivity (the vanilla-JS counterpart to silicaui-react's Base UI behavior).", install: "pnpm add silicaui-behaviors" },
-  { name: "silicaui-builder", purpose: "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react` (its own `EmailBuilderHost` seam, plus a host-owned `frame` for fixed chrome composed around — never into — the authored email, `locked` nodes for undeletable in-document blocks, and a controlled `savedBlocks`/`onSavedBlocksChange` pair so the reusable-block library can live on the account instead of one browser).", install: "pnpm add silicaui-builder silicaui-react" },
+  { name: "silicaui-builder", purpose: "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react` (its own `EmailBuilderHost` seam, plus a host-owned `frame` for fixed chrome composed around — never into — the authored email, `locked` nodes for undeletable in-document blocks, a `link` group node that gives one destination to the blocks inside it — so a card in a `collection` repeat deep-links to its own record, projected as per-child inline anchors rather than one anchor around the card, which Outlook drops — and a controlled `savedBlocks`/`onSavedBlocksChange` pair so the reusable-block library can live on the account instead of one browser).", install: "pnpm add silicaui-builder silicaui-react" },
   { name: "silicaui-charts", purpose: "Apache ECharts wrapped and auto-themed to Silica's design tokens.", install: "pnpm add silicaui-charts silicaui-react" },
   { name: "silicaui-table", purpose: "TanStack Table wrapped in Silica's table CSS.", install: "pnpm add silicaui-table silicaui-react" },
   { name: "silicaui-editor", purpose: "TipTap rich-text editor with a Silica-styled toolbar.", install: "pnpm add silicaui-editor silicaui-react" },
@@ -669,6 +674,301 @@ if (staleExempt.length) {
 const allComponents = [...components, ...htmlComponents, ...cssComponents];
 writeJson("components.json", allComponents);
 
+// ── email.json ───────────────────────────────────────────────────────────
+// The email builder's CLOSED document schema — a different surface from the
+// three delivery paths above, and the one place an agent has no other source
+// of truth for. `@wizeworks/silicaui-builder/email` accepts a fixed set of node
+// kinds with typed fields and hard nesting rules; a kind, field, or nesting an
+// agent invents is silently dropped by `EmailEditor.insert` (it returns
+// `undefined`) or projects to nothing, with no error to read. So every part of
+// this is taken from the source rather than described:
+//
+//   - field lists + doc comments  → TS AST over email/schema.ts
+//   - nesting rules               → by CALLING the real `canHold` on every
+//                                   (parent, child) pair, so the matrix cannot
+//                                   disagree with what the engine enforces
+//   - bindable `attr` allowlist   → the exported `EMAIL_BINDABLE_FIELDS` table
+//   - insertable presets          → the exported `EMAIL_PALETTE`, each item's
+//                                   `make()` actually invoked for its kind
+console.log("email.json");
+let emailCatalog = null;
+try {
+  const emailUrl = pathToFileURL(path.join(packagesRoot, "silicaui-builder/dist/email/index.js")).href;
+  const { canHold, isContentKind, EMAIL_BINDABLE_FIELDS, EMAIL_PALETTE } = await import(emailUrl);
+
+  const schemaPath = path.join(packagesRoot, "silicaui-builder/src/email/schema.ts");
+  const schemaSrc = readFileSync(schemaPath, "utf8");
+  const schemaSf = ts.createSourceFile(schemaPath, schemaSrc, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+
+  /** Every interface in the file, by name, with its members + own doc. */
+  const interfaces = {};
+  ts.forEachChild(schemaSf, (node) => {
+    if (!ts.isInterfaceDeclaration(node)) return;
+    const members = [];
+    for (const member of node.members) {
+      if (!ts.isPropertySignature(member) || !member.name) continue;
+      members.push({
+        name: member.name.getText(schemaSf),
+        optional: !!member.questionToken,
+        type: member.type ? member.type.getText(schemaSf) : "unknown",
+        doc: getLeadingDoc(schemaSrc, member, schemaSf),
+      });
+    }
+    interfaces[node.name.text] = {
+      doc: getLeadingDoc(schemaSrc, node, schemaSf),
+      extends: (node.heritageClauses ?? []).flatMap((h) => h.types.map((t) => t.expression.getText(schemaSf))),
+      members,
+    };
+  });
+
+  // A NODE KIND is any interface carrying a string-literal `kind` member —
+  // found structurally, so a kind added to the schema appears here without
+  // anyone remembering to list it (the whole point of generating this).
+  const kindOf = (iface) => {
+    const k = iface.members.find((m) => m.name === "kind");
+    const lit = k?.type.match(/^"(.+)"$/);
+    return lit ? lit[1] : null;
+  };
+  const nodeInterfaces = Object.entries(interfaces)
+    .map(([name, iface]) => ({ name, iface, kind: kindOf(iface) }))
+    .filter((e) => e.kind);
+
+  const allKinds = nodeInterfaces.map((e) => e.kind);
+  const kinds = nodeInterfaces.map(({ name, iface, kind }) => {
+    // The real rule table, executed — not a restatement of it. `canHold` reads
+    // only `kind` on both arguments.
+    const holds = allKinds.filter((child) => canHold({ kind }, { kind: child }));
+    return {
+      kind,
+      typeName: name,
+      doc: iface.doc,
+      isContent: isContentKind(kind),
+      container: holds.length > 0,
+      holds,
+      // Which kinds accept THIS one — the question an agent actually asks
+      // ("where can I put a link group?"), and a lookup it shouldn't have to
+      // invert the matrix to answer.
+      allowedParents: allKinds.filter((parent) => canHold({ kind: parent }, { kind })),
+      fields: iface.members.filter((m) => m.name !== "kind"),
+      binding: EMAIL_BINDABLE_FIELDS[kind] ?? null,
+      sourceFile: `silicaui-builder/src/email/schema.ts`,
+    };
+  });
+
+  // The ENVELOPE around the node tree — `EmailDocument` (subject/preheader/
+  // root), the project roster, the color defaults, the webfont shape. A kind
+  // list alone doesn't answer "what do I wrap this in", and these are found the
+  // same structural way: every interface in the file that is neither a node
+  // kind nor the shared base.
+  const nodeTypeNames = new Set(nodeInterfaces.map((e) => e.name));
+  const documentTypes = Object.entries(interfaces)
+    .filter(([name]) => !nodeTypeNames.has(name) && name !== "BaseNode")
+    .map(([name, iface]) => ({ typeName: name, doc: iface.doc, fields: iface.members }));
+
+  emailCatalog = {
+    entrypoint: `${scoped("silicaui-builder")}/email`,
+    reactEntrypoint: `${scoped("silicaui-builder")}/email/react`,
+    note:
+      "The CLOSED node schema of the email builder — NOT one of the three delivery paths. An email document is body → section → (columns → column)* → content, projected to table-based, fully inline-styled HTML by `toEmailHtml`. Only these kinds exist and only these nestings are accepted: `EmailEditor.insert` returns undefined for anything else, silently. Fields are typed props on the node itself (not classes) and colors are literal hex (email clients can't resolve CSS custom properties or OKLCH).",
+    // Shared by every kind via `BaseNode`, so it's stated once rather than
+    // repeated on all of them.
+    sharedFields: interfaces.BaseNode?.members ?? [],
+    bindingNote:
+      "A node carries AT MOST ONE `data` marker. `value` fills one field (`attr` picks which — see each kind's `binding.fields`; omitting it targets `binding.default`); `collection` repeats a node's children once per item and is only meaningful on a kind with children; `visible` keeps or drops the subtree; `action` is an inert marker the host wires. Two per-item values on one card is COMPOSITION, not two markers: a `link` group binds the href while each child binds its own field.",
+    documentTypes,
+    kinds,
+    palette: EMAIL_PALETTE.map((item) => ({
+      key: item.key,
+      label: item.label,
+      hint: item.hint,
+      icon: item.icon,
+      // Invoked, not inferred from the key.
+      kind: item.make().kind,
+    })),
+  };
+  writeJson("email.json", emailCatalog);
+} catch (err) {
+  console.warn(
+    `  ! failed to load the email schema (build it first: pnpm --filter @wizeworks/silicaui-builder build): ${err.message}`,
+  );
+}
+
+// ── schema.json ──────────────────────────────────────────────────────────
+// PATH 3's document schema — the node tree itself. The catalog already covers
+// what you can PUT in a silica tree (components, blocks, behaviors, classes);
+// this covers the tree's own shape: node kinds, the system-metadata band, the
+// DATA-BINDING vocabulary, and the resolution contract a host implements.
+//
+// It exists because that vocabulary had no machine-readable home at all. An
+// agent could look up `Card` and `hero_split_cta` and still have no way to
+// learn that a repeat takes a per-instance `limit`, that an unknown ref KEEPS
+// the authored content instead of blanking it, or that an unlisted tag is
+// silently downgraded to <div>. Every one of those fails quietly, which is
+// exactly the class of thing a catalog should answer instead of an agent
+// guessing.
+//
+// Same discipline as email.json — taken from source, never described:
+//
+//   - node kinds + fields + docs → TS AST over silicaui-html/src/schema.ts
+//   - the binding vocabulary     → the real `DataBinding` union, so a kind or
+//                                  field added there shows up here with no
+//                                  second place to remember
+//   - the resolution contract    → the real interfaces in resolve.ts
+//   - the raw-element floor      → the exported RAW_ELEMENTS map, READ at
+//                                  generation time, so the allowlist can't
+//                                  drift from what the projector enforces
+console.log("schema.json");
+let htmlSchema = null;
+try {
+  const { RAW_ELEMENTS, GLOBAL_ATTRS } = await import(
+    pathToFileURL(path.join(packagesRoot, "silicaui-html/dist/index.js")).href
+  );
+
+  /** Every interface/type-alias in one file, by name, with members + own doc. */
+  const parseTypes = (relPath) => {
+    const filePath = path.join(packagesRoot, relPath);
+    const src = readFileSync(filePath, "utf8");
+    const sf = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const out = {};
+    ts.forEachChild(sf, (node) => {
+      if (!ts.isInterfaceDeclaration(node)) return;
+      out[node.name.text] = {
+        doc: getLeadingDoc(src, node, sf),
+        extends: (node.heritageClauses ?? []).flatMap((h) => h.types.map((t) => t.expression.getText(sf))),
+        members: node.members
+          // METHOD signatures too, not just properties — `ResolveHost`'s whole
+          // surface is `resolveBinding?(ref, scope): Resolved | undefined`, so a
+          // property-only walk published the host contract as an EMPTY member
+          // list: the one interface an agent most needs, silently blank.
+          .filter((m) => (ts.isPropertySignature(m) || ts.isMethodSignature(m)) && m.name)
+          .map((m) => ({
+            name: m.name.getText(sf),
+            optional: !!m.questionToken,
+            type: ts.isMethodSignature(m)
+              ? `(${m.parameters.map((p) => p.getText(sf)).join(", ")}) => ${m.type ? m.type.getText(sf) : "void"}`
+              : m.type
+                ? m.type.getText(sf)
+                : "unknown",
+            doc: getLeadingDoc(src, m, sf),
+          })),
+      };
+    });
+    return { src, sf, types: out };
+  };
+
+  const schema = parseTypes("silicaui-html/src/schema.ts");
+  const resolve = parseTypes("silicaui-html/src/resolve.ts");
+
+  // A union member's doc sits in one of two places and NEITHER is what
+  // `getLeadingCommentRanges` returns for it: a `//` comment TRAILS the member
+  // on its own line, and a `/** */` block sits before the `|` separator, which
+  // is outside the member node entirely. Reading the leading ranges naively
+  // returns the PREVIOUS member's trailing comment — silently shifting every
+  // doc by one, which is worse than having none.
+  const unionMemberDoc = (src, member, prevEnd) => {
+    const trailing = ts.getTrailingCommentRanges(src, member.end) ?? [];
+    // These ARE line comments, so their `//` is a marker rather than part of a
+    // code example — strip it here, where that's known, and not in the shared
+    // `cleanComment` (which would rewrite every JSDoc containing an example).
+    if (trailing.length) {
+      return trailing
+        .map((r) => cleanComment(src.slice(r.pos, r.end)).replace(/^\/\/\s?/, ""))
+        .join(" ")
+        .trim();
+    }
+    const between = src.slice(prevEnd, member.getStart(schema.sf));
+    const blocks = between.match(/\/\*\*[\s\S]*?\*\//g);
+    return blocks?.length ? cleanComment(blocks[blocks.length - 1]) : "";
+  };
+
+  /** The `DataBinding` discriminated union, member by member. */
+  const dataBindings = [];
+  ts.forEachChild(schema.sf, (node) => {
+    if (!ts.isTypeAliasDeclaration(node) || node.name.text !== "DataBinding") return;
+    let prevEnd = node.name.end;
+    for (const member of node.type.types) {
+      const fields = member.members.map((m) => ({
+        name: m.name.getText(schema.sf),
+        optional: !!m.questionToken,
+        type: m.type.getText(schema.sf),
+      }));
+      const kindField = fields.find((f) => f.name === "kind");
+      dataBindings.push({
+        kind: kindField ? kindField.type.replace(/"/g, "") : null,
+        doc: unionMemberDoc(schema.src, member, prevEnd),
+        fields: fields.filter((f) => f.name !== "kind"),
+      });
+      prevEnd = member.end;
+    }
+  });
+
+  // A NODE KIND is any interface with a string-literal `kind` — found
+  // structurally, so a kind added to the schema appears here on its own.
+  const literalKind = (iface) => iface.members.find((m) => m.name === "kind")?.type.match(/^"(.+)"$/)?.[1] ?? null;
+  const kinds = Object.entries(schema.types)
+    .map(([typeName, iface]) => ({ typeName, iface, kind: literalKind(iface) }))
+    .filter((e) => e.kind)
+    .map(({ typeName, iface, kind }) => ({
+      kind,
+      typeName,
+      doc: iface.doc,
+      // An Outlet is the one kind that does NOT extend the shared base — it
+      // carries no class, no children and no metadata — so say which kinds do
+      // rather than letting an agent assume `data` works everywhere.
+      sharedFields: iface.extends.includes("NodeBase"),
+      fields: iface.members.filter((m) => m.name !== "kind"),
+    }));
+
+  const tags = [...RAW_ELEMENTS.entries()].map(([tag, meta]) => ({
+    tag,
+    group: meta.group,
+    void: !!meta.void,
+    attrs: meta.attrs ?? [],
+  }));
+
+  htmlSchema = {
+    entrypoint: "@wizeworks/silicaui-html",
+    behaviorRuntime: "@wizeworks/silicaui-behaviors",
+    sourceFile: "silicaui-html/src/schema.ts",
+    note:
+      "A silica document is a TREE of nodes projected to HTML by `toHtml`. A node is an element (a raw tag), a component (a @wizeworks/silicaui macro that EXPANDS to an element subtree), an outlet (the reserved marker for where a routed page renders inside a frame — valid only in a frame), or a host node (an opaque mount point for a host's own live widget). A plain STRING child is a text node, so mixed inline content composes naturally. `class` is the ONLY styling surface — there is no inline style, ever.",
+    child: schema.types.Node?.doc ?? "A child is another node, or a plain string (a text node).",
+    // Everything in this band is TYPED and top-level — never smuggled through
+    // attrs/props — which is the reason a linter, a projection and a builder
+    // can each reason about it.
+    nodeBase: schema.types.NodeBase?.members ?? [],
+    kinds,
+    bindingNote:
+      "A node carries AT MOST ONE `data` marker — the union makes that structural. The `ref` is OPAQUE: silica never parses it, it hands it to the host and renders what comes back, which is what keeps the engine domain-blind. Two values on one card is COMPOSITION, not two markers: the card's own <a> binds `href` via `attr`, and each child binds its own field.",
+    dataBindings,
+    resolution: {
+      note:
+        "A host implements `resolveBinding` / `resolveCollection` and `resolveTree` walks the document with them. Pure and SYNCHRONOUS by design — a host with an async source fetches ONCE, up front, into whatever the synchronous hooks then read from, which is what stops an async-per-node API creating waterfalls. The SAME primitive feeds a live render and a builder canvas (`{ editing: true }`), so preview == production is structural.",
+      honesty:
+        "The hooks distinguish `undefined` (I have never heard of this ref) from `{ value: undefined }` (I know it and it is empty). They are treated differently and the difference is the whole contract: an UNKNOWN ref keeps the node's AUTHORED content and fires a diagnostic; a KNOWN-but-empty ref renders empty, which is a legitimate result. Without that split the walk blanks the node either way, and an author cannot tell a typo from real absence.",
+      host: resolve.types.ResolveHost?.members ?? [],
+      resolved: resolve.types.Resolved?.members ?? [],
+      scope: resolve.types.DataScope?.members ?? [],
+      options: resolve.types.ResolveOptions?.members ?? [],
+      diagnostic: resolve.types.ResolveDiagnostic?.members ?? [],
+    },
+    elementFloor: {
+      note:
+        "`toHtml` enforces an unconditional allowlist (builder-contract.md §9): a tag that is not listed here is DOWNGRADED to <div> and an attribute that is not listed for its tag is DROPPED — silently, with the content lost. This is a security floor, not a style guide, and no host option relaxes it. Author with these tags and attrs; for a third-party player or map use the Embed component rather than a raw <iframe>, which floors to <div>.",
+      globalAttrs: GLOBAL_ATTRS,
+      tags,
+    },
+  };
+  writeJson("schema.json", htmlSchema);
+} catch (err) {
+  console.warn(
+    `  ! failed to load the node-tree schema (build it first: pnpm --filter @wizeworks/silicaui-html build): ${err.message}`,
+  );
+}
+
 console.log(
-  `\n✅ catalog generated (${allComponents.length} components [${components.length} react, ${htmlComponents.length} html, ${cssComponents.length} css], ${Object.keys(classesByComponent).length} class groups, ${Object.keys(BEHAVIOR_FILES).length} behaviors)`,
+  `\n✅ catalog generated (${allComponents.length} components [${components.length} react, ${htmlComponents.length} html, ${cssComponents.length} css], ${Object.keys(classesByComponent).length} class groups, ${Object.keys(BEHAVIOR_FILES).length} behaviors, ${emailCatalog ? emailCatalog.kinds.length : 0} email node kinds)`,
+);
+console.log(
+  `   node-tree schema: ${htmlSchema ? `${htmlSchema.kinds.length} node kinds, ${htmlSchema.dataBindings.length} binding kinds, ${htmlSchema.elementFloor.tags.length} allowed tags` : "MISSING"}`,
 );
