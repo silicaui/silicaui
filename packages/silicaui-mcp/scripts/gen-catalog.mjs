@@ -128,6 +128,11 @@ writeJson("tokens.json", {
 console.log("classes.json");
 const componentsDir = path.join(packagesRoot, "silicaui/src/components");
 const classesByComponent = {};
+// The generators' RAW selector keys, kept alongside the bare class names. A
+// bare list can't say that `.card-selectable-indicator` is only ever written
+// together with `.checkbox` — the compound selector can, and it's real output
+// rather than a description of it. Feeds the CSS-path catalog entries below.
+const selectorsByComponent = {};
 for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) {
   let mod;
   try {
@@ -137,6 +142,7 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
     continue;
   }
   const classSet = new Set();
+  const selectorSet = new Set();
   for (const [, fn] of Object.entries(mod).filter(([, v]) => typeof v === "function")) {
     // Every generator in this directory is `(prefix = "")` or `(colors, prefix = "")`
     // — `prefix` always carries a default, so `fn.length` (params BEFORE the first
@@ -153,11 +159,16 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
     }
     if (result && typeof result === "object") {
       for (const key of Object.keys(result)) {
+        selectorSet.add(key);
         for (const m of key.matchAll(/\.([a-zA-Z0-9_-]+)/g)) classSet.add(m[1]);
       }
     }
   }
-  if (classSet.size) classesByComponent[path.basename(file, ".js")] = [...classSet].sort();
+  if (classSet.size) {
+    const base = path.basename(file, ".js");
+    classesByComponent[base] = [...classSet].sort();
+    selectorsByComponent[base] = [...selectorSet];
+  }
 }
 const { colorUtilities, softUtilities, glassUtilities } = await import(
   pathToFileURL(path.join(componentsDir, "..", "color-utilities.js")).href
@@ -480,6 +491,133 @@ for (const meta of [...componentMeta, ...wrapperMeta]) {
   });
 }
 
+// ── silicaui (CSS) components — the third delivery path ──────────────────────
+// The CSS layer used to be reachable only through `list_classes`, which returns
+// a flat bag of class names: real, but silent about which class is the root,
+// which are its parts, and which are variants — so an agent on the CSS path
+// (plain HTML + classes, no React, no node-tree) had to guess the markup, which
+// is exactly what this server exists to prevent. It also meant `get_component`
+// could answer for two of the three paths and not the third.
+//
+// Everything below is derived, never authored here: the description is the
+// generator's own leading JSDoc, `colorVariants` are matched against the real
+// SEMANTIC_COLORS list, and `compoundSelectors` are the generators' literal
+// selector keys.
+console.log("silicaui (CSS) components");
+
+// Two class groups aren't component modules (see the classes.json section), so
+// their docs live elsewhere. Named explicitly rather than pattern-matched.
+const CSS_NON_COMPONENT_SOURCES = {
+  "color-utilities": "silicaui/src/color-utilities.js",
+  "type-scale": "silicaui/src/type-scale.js",
+};
+
+// The doc for the module's MAIN generator, not just the first comment in the
+// file. `button.js` exports `buttonColorVars` above `button`, so "first JSDoc
+// wins" published the helper's internals as the Button description. Matched by
+// name (kebab file -> camelCase export), falling back to the file's first doc
+// for modules with no name-matching export (e.g. type-scale.js).
+function toCamel(kebab) {
+  return kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+function extractExportDoc(filePath, exportName) {
+  try {
+    const source = readFileSync(filePath, "utf8");
+    const sf = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    let found = "";
+    ts.forEachChild(sf, (node) => {
+      if (found) return;
+      if (ts.isFunctionDeclaration(node) && node.name?.text === exportName && hasExportModifier(node)) {
+        found = getLeadingDoc(source, node, sf);
+      }
+    });
+    if (found) return found;
+  } catch {
+    // fall through to the file-level doc
+  }
+  return extractFirstDoc(filePath);
+}
+
+// The root is the class the others hang off — `btn` for the `button` module,
+// which the file name alone would get wrong. Found by counting how many
+// siblings a class prefixes, so it survives that mismatch.
+//
+// The count must also be a MAJORITY of the siblings, or a utility bag reports a
+// root it doesn't have: in `color-utilities`, `bg-info` prefixes exactly one
+// other class (`bg-info-content`) and was crowned root of 66 unrelated
+// utilities. A real root prefixes nearly everything around it.
+function deriveRoot(classes) {
+  if (classes.length === 1) return classes[0];
+  let best = null;
+  let bestCount = 0;
+  for (const c of classes) {
+    const count = classes.filter((o) => o !== c && o.startsWith(`${c}-`)).length;
+    if (count > bestCount || (count === bestCount && count > 0 && c.length < best.length)) {
+      best = c;
+      bestCount = count;
+    }
+  }
+  return bestCount > 0 && bestCount >= (classes.length - 1) / 2 ? best : null;
+}
+
+// Several families have NO bare root class — `dialog` is entirely
+// `.dialog-popup` / `.dialog-backdrop` / …, with no `.dialog` to put on
+// anything. Reporting only `root: null` there loses the useful half of the
+// fact, and `class="dialog"` is the obvious thing to invent in its absence. So
+// when every class shares a prefix and no root exists, say what the prefix is.
+function deriveFamilyPrefix(classes) {
+  if (classes.length < 2) return null;
+  const [first, ...rest] = classes;
+  let prefix = first;
+  for (const c of rest) {
+    while (prefix && !c.startsWith(prefix)) prefix = prefix.slice(0, -1);
+    if (!prefix) return null;
+  }
+  // Only report a prefix that stops on a segment boundary (`dialog-`), never a
+  // mid-word coincidence (`dis` across `display`/`disabled`).
+  return /-$/.test(prefix) && prefix.length > 1 ? prefix : null;
+}
+
+const categoryByName = new Map();
+for (const c of [...htmlComponents, ...components]) categoryByName.set(toKebab(c.name), c.category);
+
+const cssComponents = Object.entries(classesByComponent).map(([name, classes]) => {
+  const sourceFile = CSS_NON_COMPONENT_SOURCES[name] ?? `silicaui/src/components/${name}.js`;
+  const root = deriveRoot(classes);
+  const familyPrefix = root ? null : deriveFamilyPrefix(classes);
+  const colorVariants = root
+    ? SEMANTIC_COLORS.map((c) => `${root}-${c}`).filter((cls) => classes.includes(cls))
+    : [];
+  // Only the keys that carry more than a single bare class — a compound
+  // (`.checkbox.card-selectable-indicator`), a pseudo, or a combinator. The
+  // plain `.foo` keys are already fully represented by `classes`.
+  const compoundSelectors = (selectorsByComponent[name] ?? []).filter(
+    (sel) => !/^\.[a-zA-Z0-9_-]+$/.test(sel),
+  );
+  return {
+    name,
+    package: scoped("silicaui"),
+    category: categoryByName.get(name) ?? "css",
+    sourceFile,
+    description: mention(extractExportDoc(path.join(packagesRoot, sourceFile), toCamel(name))),
+    root,
+    ...(familyPrefix ? { familyPrefix, rootNote: `No bare \`.${familyPrefix.slice(0, -1)}\` class exists — this family is only its \`${familyPrefix}*\` parts.` } : {}),
+    classes,
+    ...(colorVariants.length ? { colorVariants } : {}),
+    ...(compoundSelectors.length ? { compoundSelectors } : {}),
+  };
+});
+
+// A CSS module whose JSDoc didn't extract is a silently useless catalog entry —
+// the description is the only prose the CSS path has (there are no props and no
+// usage example to fall back on), so an empty one is worth a warning.
+const undocumentedCss = cssComponents.filter((c) => !c.description).map((c) => c.name);
+if (undocumentedCss.length) {
+  console.warn(
+    `  ! ${undocumentedCss.length} CSS module(s) produced no description — add a leading JSDoc to the source file: ${undocumentedCss.join(", ")}`,
+  );
+}
+
 // ── React ↔ HTML parity ─────────────────────────────────────────────────────
 // A component that exists only in silicaui-react is invisible to every
 // non-React consumer (Sparx tenant sites, static export) — they cannot author
@@ -528,9 +666,9 @@ if (staleExempt.length) {
   );
 }
 
-const allComponents = [...components, ...htmlComponents];
+const allComponents = [...components, ...htmlComponents, ...cssComponents];
 writeJson("components.json", allComponents);
 
 console.log(
-  `\n✅ catalog generated (${allComponents.length} components [${components.length} react, ${htmlComponents.length} html], ${Object.keys(classesByComponent).length} class groups, ${Object.keys(BEHAVIOR_FILES).length} behaviors)`,
+  `\n✅ catalog generated (${allComponents.length} components [${components.length} react, ${htmlComponents.length} html, ${cssComponents.length} css], ${Object.keys(classesByComponent).length} class groups, ${Object.keys(BEHAVIOR_FILES).length} behaviors)`,
 );

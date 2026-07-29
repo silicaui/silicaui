@@ -75,6 +75,44 @@ interface PropsInterface {
   members: PropMember[];
 }
 
+/**
+ * The routing preamble every connecting client receives from `initialize`,
+ * before it calls a single tool.
+ *
+ * Silica ships one design system through three delivery paths, and the choice
+ * between them is made BEFORE any tool call — by which point per-tool
+ * descriptions are too late to help. Without this, an agent got ten tools in a
+ * bag and inferred the architecture from their names; the standard failure was
+ * reaching for `@wizeworks/silicaui-react` while emitting non-React output, or
+ * shipping node-tree markup with no behavior runtime and wondering why nothing
+ * opened.
+ *
+ * Deliberately names no counts and no version — those drift. Package names are
+ * asserted against the real catalog by verify.mjs.
+ */
+const INSTRUCTIONS = `Silica UI is ONE design system delivered through THREE paths. Decide which path matches the code you are writing BEFORE writing any markup — the paths share a class vocabulary but are not interchangeable, and mixing them is the most common way an integration breaks.
+
+1. CSS — \`@wizeworks/silicaui\`
+   A Tailwind v4 plugin. You write plain HTML and put Silica's classes on it: \`<button class="btn btn-primary">\`. No JavaScript ships, so nothing is interactive — a dialog styled this way will not open. Use it for static markup, server-rendered templates (Rails, Django, PHP, Go, …), email, or any framework at all. It is the floor the other two paths stand on.
+   → get_component(name, package "@wizeworks/silicaui") for a family's root class, its parts, and its color variants; list_classes for the literal names.
+
+2. React — \`@wizeworks/silicaui-react\`
+   Typed React components over those same classes, with Base UI supplying real behavior and accessibility: \`<Button color="primary" size="lg">\`. Use it whenever the output is React or Next.js.
+   → get_component(name, package "@wizeworks/silicaui-react") for real props (extracted from the TypeScript source) and a working usage example.
+
+3. HTML / node-tree — \`@wizeworks/silicaui-html\` + \`@wizeworks/silicaui-behaviors\`
+   A framework-neutral node-tree schema that projects to HTML — for generated or user-authored documents: site builders, CMS output, static export. Component macros expand to element subtrees carrying \`data-sui-*\` markers, which the zero-dependency \`@wizeworks/silicaui-behaviors\` runtime hydrates at load. That runtime is what makes path 3 interactive; without it you have path 1.
+   → get_component(name, package "@wizeworks/silicaui-html") for the macro; list_blocks / get_block for composed sections; list_behaviors for the marker contract.
+
+Rules that hold on every path:
+- Never invent a class, prop, color, or block key. Everything this server returns is extracted from Silica's source at release time — look it up rather than guessing, including when you are fairly confident.
+- Colors are semantic tokens (get_tokens), never hex. An app can declare extra color roles; those work everywhere a built-in one does.
+- Do not re-skin a component with inline styles or arbitrary hex — it defeats theming and light/dark.
+- The same name can exist on more than one path with a different shape. get_component with no \`package\` returns every path's answer at once; pass \`package\` to narrow.
+- Don't know the name? search_docs first. Unsure what to install? list_packages.
+
+Signs you are on the wrong path: importing @wizeworks/silicaui-react into output that is not React; hand-writing \`data-sui-*\` markers (they come from macro expansion, never from you); shipping path-3 markup without loading @wizeworks/silicaui-behaviors; expecting path 1 alone to open a dialog.`;
+
 interface ComponentData {
   name: string;
   package: string;
@@ -93,6 +131,15 @@ interface ComponentData {
   icon?: string;
   container?: boolean;
   behaviors?: string[];
+  /** silicaui (CSS) entries only: the family's root class (null when it has
+   *  none — see familyPrefix/rootNote), every literal class it generates, its
+   *  color variants, and any compound selector that reveals required structure. */
+  root?: string | null;
+  familyPrefix?: string;
+  rootNote?: string;
+  classes?: string[];
+  colorVariants?: string[];
+  compoundSelectors?: string[];
 }
 
 interface BlockSlot {
@@ -127,6 +174,22 @@ const blocks = loadJson<BlockData[]>("blocks");
 const behaviors = loadJson<BehaviorData[]>("behaviors");
 const components = loadJson<ComponentData[]>("components");
 
+/** CSS → React → HTML: the order the instructions introduce the paths in, so a
+ *  multi-path get_component answer reads the same way every time. Packages not
+ *  listed (the wrappers) sort last via indexOf's -1... which sorts them FIRST,
+ *  so map those to a large index instead. */
+const PATH_ORDER_LIST = [
+  "@wizeworks/silicaui",
+  "@wizeworks/silicaui-react",
+  "@wizeworks/silicaui-html",
+];
+const PATH_ORDER = {
+  indexOf(pkg: string): number {
+    const i = PATH_ORDER_LIST.indexOf(pkg);
+    return i === -1 ? PATH_ORDER_LIST.length : i;
+  },
+};
+
 function toKebab(name: string): string {
   return name
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
@@ -139,10 +202,13 @@ function blockSummary(b: BlockData) {
 }
 
 export function createServer(): McpServer {
-  const server = new McpServer({
-    name: "@wizeworks/silicaui-mcp",
-    version: VERSION,
-  });
+  const server = new McpServer(
+    {
+      name: "@wizeworks/silicaui-mcp",
+      version: VERSION,
+    },
+    { instructions: INSTRUCTIONS },
+  );
 
   server.registerTool(
     "list_packages",
@@ -172,7 +238,7 @@ export function createServer(): McpServer {
     {
       title: "List Silica UI components",
       description:
-        "List component names, categories, and source packages — spans BOTH @wizeworks/silicaui-react (typed React components) and @wizeworks/silicaui-html (the framework-neutral ComponentDef macros: Dialog, Popover, Combobox, etc., for non-React output). The same name can exist in both packages with different shapes; use get_component's package param to disambiguate. Optionally filter to one package (e.g. '@wizeworks/silicaui-react', '@wizeworks/silicaui-html', '@wizeworks/silicaui-charts').",
+        "List component names, categories, and source packages — spans ALL THREE delivery paths: @wizeworks/silicaui (CSS class families for plain HTML), @wizeworks/silicaui-react (typed React components), and @wizeworks/silicaui-html (framework-neutral ComponentDef macros for generated/non-React output). The same component usually exists on more than one path with a completely different shape; get_component returns every path's answer unless you pass a package. Filter here with the package param (e.g. '@wizeworks/silicaui', '@wizeworks/silicaui-react', '@wizeworks/silicaui-html', '@wizeworks/silicaui-charts').",
       inputSchema: {
         package: z.string().optional().describe("Filter to one package name, e.g. '@wizeworks/silicaui-react'."),
       },
@@ -194,7 +260,7 @@ export function createServer(): McpServer {
     {
       title: "Get a Silica UI component's real shape",
       description:
-        "Get a component's real definition — for @wizeworks/silicaui-react: props (name, type, optional, doc — extracted from its actual TypeScript source) and a real, working usage example from the playground demos; for @wizeworks/silicaui-html: its palette category/label/icon, whether it's a container, and the BehaviorType(s) it carries (cross-reference with get_behavior for the marker contract). Use this instead of guessing prop names or shapes. Pass package when a name exists in more than one package.",
+        "Get a component's real definition on whichever delivery path you're building on — for @wizeworks/silicaui (CSS): the family's root class, every literal class it generates, its color variants, and any compound selector that reveals required markup structure; for @wizeworks/silicaui-react: props (name, type, optional, doc — extracted from its actual TypeScript source) plus a real, working usage example; for @wizeworks/silicaui-html: its palette category/label/icon, whether it's a container, and the BehaviorType(s) it carries (cross-reference get_behavior for the marker contract). Use this instead of guessing class names, prop names, or shapes. Omit package to see every path's answer side by side; pass it to get just one.",
       inputSchema: {
         name: z.string().describe("Component name, e.g. 'Button', 'DataTable', 'Dialog'."),
         package: z.string().optional().describe("Disambiguate when the name exists in more than one package, e.g. '@wizeworks/silicaui-html'."),
@@ -214,15 +280,34 @@ export function createServer(): McpServer {
           isError: true,
         };
       }
+      // A name on more than one path used to be an isError telling the caller
+      // to pick a package — which costs a round trip and, worse, asks for a
+      // choice the caller can't make yet: it doesn't know how the shapes
+      // differ, which is the very thing it's asking about. Returning all of
+      // them answers the question AND demonstrates the three paths at the one
+      // moment the distinction actually matters.
       if (matches.length > 1) {
+        const ordered = [...matches].sort(
+          (a, b) => PATH_ORDER.indexOf(a.package) - PATH_ORDER.indexOf(b.package),
+        );
         return {
           content: [
             {
               type: "text",
-              text: `"${name}" exists in more than one package — pass package to disambiguate: ${matches.map((c) => c.package).join(", ")}`,
+              text: JSON.stringify(
+                {
+                  name: ordered[0]?.name ?? name,
+                  note:
+                    `"${name}" exists on ${ordered.length} delivery paths, listed below with their real (different) shapes: ` +
+                    `${ordered.map((c) => c.package).join(", ")}. Use the one matching the code you're writing — ` +
+                    `they are not interchangeable. Pass \`package\` to get just one.`,
+                  paths: ordered,
+                },
+                null,
+                2,
+              ),
             },
           ],
-          isError: true,
         };
       }
       return { content: [{ type: "text", text: JSON.stringify(matches[0], null, 2) }] };
@@ -234,7 +319,7 @@ export function createServer(): McpServer {
     {
       title: "List real Silica UI CSS class names",
       description:
-        "List the exact, literal CSS class names Silica UI generates for a core component (e.g. 'button', 'card', 'badge') — or all components if none given. These are extracted directly from the class generators, so they are never hallucinated. Also covers 'color-utilities' (text-*/bg-*/border-* for every declared color).",
+        "List the exact, literal CSS class names Silica UI generates for a core component (e.g. 'button', 'card', 'badge') — or all components if none given. These are extracted directly from the class generators, so they are never hallucinated. Also covers 'color-utilities' (text-*/bg-*/border-* for every declared color). This returns a flat list; for the CSS path's STRUCTURE — which class is the root, which are its parts, which are color variants — call get_component with package '@wizeworks/silicaui'.",
       inputSchema: {
         component: z
           .string()
