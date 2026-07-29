@@ -549,6 +549,13 @@ if (editorMode === "email") {
             </span>
           ) : undefined
         }
+        toolbarStatusSlot={
+          emailHost ? (
+            <span data-testid="email-toolbar-status-slot" className="text-xs text-base-content">
+              All changes saved
+            </span>
+          ) : undefined
+        }
       />
     </React.StrictMode>,
   );
@@ -575,6 +582,11 @@ if (editorMode === "email") {
           bus.__published = payload;
         }}
         toolbarSlot={<ToolbarSlot />}
+        toolbarStatusSlot={
+          <span data-testid="toolbar-status-slot" className="text-xs text-base-content">
+            All changes saved
+          </span>
+        }
       />
     </React.StrictMode>,
   );

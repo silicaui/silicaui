@@ -89,12 +89,14 @@ const last = (vals: string[], fallback: string): string => vals[vals.length - 1]
 function Chrome({
   onPublish,
   toolbarSlot,
+  toolbarStatusSlot,
   dataToggle,
   initialMode,
   onModeChange,
 }: {
   onPublish?: (payload: PublishPayload) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
+  toolbarStatusSlot?: React.ReactNode;
   dataToggle: boolean;
   initialMode: Mode;
   onModeChange?: (mode: Mode) => void;
@@ -242,6 +244,24 @@ function Chrome({
         )}
 
         <div className="flex-1" />
+
+        {/* STATUS, not actions. A host has two kinds of header chrome and they
+            want different places: state ABOUT the session (who else is editing,
+            saved/unsaved, an environment tag) reads wrong wedged between the
+            engine's controls and the host's own buttons — it looks like a gap in
+            a run of controls. So it lands here, at the head of the right cluster
+            and off the end of the spacer, where nothing on either side of it is
+            a control. `toolbarSlot` below stays what it was: actions, grouped
+            with Publish.
+
+            This is a real slot rather than something a host can reach with CSS
+            `order` — the header is one flex container, so `order` only sorts
+            against the WHOLE set (before the mode switcher, or after Publish);
+            there is no value that lands mid-container. And moving a control
+            visually without moving it in the DOM desyncs focus order from
+            reading order (WCAG 2.4.3), which is exactly what a host would have
+            to do to fake this. */}
+        {toolbarStatusSlot}
 
         <Kbd size="sm">
           <span className="inline-flex items-center gap-1.5">
@@ -489,13 +509,36 @@ export interface BuilderProps {
    */
   persistKey?: string | null;
   /**
-   * Arbitrary host UI rendered in the header, immediately before the Publish
-   * button — e.g. a save-status badge, a "last saved" timestamp, an environment
-   * tag. The builder has no opinion on save/publish status: it only knows about
-   * local edits, not whether the host's own `onChange` persistence succeeded,
-   * failed, or is still in flight, so it renders nothing here by default.
+   * Host ACTIONS rendered in the header, immediately before the Publish button —
+   * a preview link, a page-settings drawer trigger, a pre-publish check, Save.
+   * Grouped with Publish on purpose: actions want a stable neighbourhood a user
+   * can build muscle memory for.
+   *
+   * For non-interactive state — a presence pill, saved/unsaved, an environment
+   * tag — use `toolbarStatusSlot` instead. The builder has no opinion on either:
+   * it knows about local edits, not whether the host's own `onChange`
+   * persistence succeeded, failed, or is still in flight, so both are empty by
+   * default.
    */
   toolbarSlot?: React.ReactNode;
+  /**
+   * Host STATUS rendered in the header, at the head of the right-hand cluster —
+   * before the shortcut hint and the light/dark toggle, after the spacer that
+   * ends the engine's own left-hand controls.
+   *
+   * Separate from `toolbarSlot` because status and actions are different kinds
+   * of thing with different placement rules: status describes the session and
+   * belongs somewhere it reads as state, actions belong grouped with other
+   * actions. One slot forces a host to render one of them in the wrong place —
+   * status wedged between the engine's buttons and the host's own reads as a gap
+   * in a run of controls, not as state.
+   *
+   * Intended for non-interactive content, which is also why it costs nothing in
+   * focus order: put a control here and it becomes a tab stop ahead of the theme
+   * toggle, which is the same reading-order-vs-focus-order break (WCAG 2.4.3) a
+   * host would cause faking this position with CSS `order`.
+   */
+  toolbarStatusSlot?: React.ReactNode;
   /**
    * Whether to show the canvas data on/off toggle. Defaults to true. A host whose
    * authors are non-technical can hide it: the control's effect is invisible on a
@@ -572,6 +615,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
   onPublish,
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
+  toolbarStatusSlot,
   dataToggle = true,
   initialMode = "page",
   onModeChange,
@@ -715,6 +759,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
               <Chrome
                 onPublish={onPublish}
                 toolbarSlot={toolbarSlot}
+                toolbarStatusSlot={toolbarStatusSlot}
                 dataToggle={dataToggle}
                 initialMode={initialMode}
                 onModeChange={onModeChange}

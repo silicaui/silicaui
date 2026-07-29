@@ -195,12 +195,14 @@ function Chrome({
   onExport,
   onSendTest,
   toolbarSlot,
+  toolbarStatusSlot,
   frame,
 }: {
   studioTheme: string;
   onExport?: (html: string) => void;
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
+  toolbarStatusSlot?: React.ReactNode;
   frame?: EmailFrame;
 }) {
   const editor = useEmailEditor();
@@ -253,6 +255,13 @@ function Chrome({
         </ToggleGroup>
 
         <div className="flex-1" />
+
+        {/* Host STATUS leads the right cluster, the same split the site builder
+            makes: state about the session (a lock holder, a send window, an
+            environment tag) sits off the end of the spacer with no control
+            beside it, while `toolbarSlot` stays actions grouped with Send
+            test/Export. */}
+        {toolbarStatusSlot}
 
         {/* Subject and preview text are document fields, not toolbar controls:
             they live on the root's Settings tab (Inspector → Email → Settings →
@@ -484,17 +493,27 @@ export interface EmailBuilderProps {
    */
   onSavedBlocksChange?: (next: SavedBlock[], change: SavedBlockChange) => void;
   /**
-   * Arbitrary host UI rendered in the header, immediately before the Send
-   * test/Export HTML buttons — e.g. a save-status badge, a "last saved"
-   * timestamp, or (per the site `<Builder toolbarSlot>` this mirrors) a
-   * host's own lifecycle strip (template switch/new/fork/publish) that would
-   * otherwise have to render OUTSIDE the builder entirely, stacking a second
-   * header above it. The builder has no opinion on save/publish status: it
-   * only knows about local edits, not whether the host's own `onChange`
-   * persistence succeeded, failed, or is still in flight, so it renders
-   * nothing here by default.
+   * Host ACTIONS rendered in the header, immediately before the Send
+   * test/Export HTML buttons — or (per the site `<Builder toolbarSlot>` this
+   * mirrors) a host's own lifecycle strip (template switch/new/fork/publish)
+   * that would otherwise have to render OUTSIDE the builder entirely, stacking
+   * a second header above it.
+   *
+   * For non-interactive state — a save-status badge, a "last saved" timestamp,
+   * a send window — use `toolbarStatusSlot`. The builder has no opinion on
+   * either: it only knows about local edits, not whether the host's own
+   * `onChange` persistence succeeded, failed, or is still in flight, so both
+   * are empty by default.
    */
   toolbarSlot?: React.ReactNode;
+  /**
+   * Host STATUS rendered at the head of the header's right-hand cluster, before
+   * `toolbarSlot`'s actions. Same split (and same reasoning) as the site
+   * `<Builder toolbarStatusSlot>`: status and actions want different placement,
+   * and one slot forces a host to render one of them in the wrong place.
+   * Intended for non-interactive content, so it adds no tab stop.
+   */
+  toolbarStatusSlot?: React.ReactNode;
 }
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder-email";
@@ -533,6 +552,7 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
   savedBlocks,
   onSavedBlocksChange,
   toolbarSlot,
+  toolbarStatusSlot,
 }: EmailBuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
   // `project` takes precedence over the legacy single-template `document`.
@@ -659,6 +679,7 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
                 onExport={onExport}
                 onSendTest={onSendTest}
                 toolbarSlot={toolbarSlot}
+                toolbarStatusSlot={toolbarStatusSlot}
                 frame={frame}
               />
             </ErrorBoundary>
