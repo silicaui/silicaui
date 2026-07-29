@@ -74,6 +74,48 @@ const demoHost: BuilderHost = {
     // zero-item case in this demo host).
     { key: "empty-collection", label: "Empty collection (demo)", cardinality: "array", fields: [] },
   ],
+  // A PLATFORM's curated brand catalog — the shelf sparx maintains centrally and
+  // offers to every site it hosts. Apply-only (no delete), rendered above the
+  // shipped presets, and `hide` prunes one shipped preset to prove that lever
+  // works from the UI side too. A real platform would fetch these once.
+  themes: () => ({
+    extend: [
+      {
+        key: "acme",
+        label: "Acme brand",
+        themes: [
+          {
+            name: "acme-day",
+            tokens: {
+              "--color-base-100": "oklch(99% 0.004 95)",
+              "--color-base-200": "oklch(96% 0.006 95)",
+              "--color-base-300": "oklch(91% 0.009 95)",
+              "--color-base-content": "oklch(22% 0.02 60)",
+              "--color-primary": "oklch(56% 0.16 42)",
+              "--color-secondary": "oklch(60% 0.07 60)",
+              "--color-accent": "oklch(70% 0.14 160)",
+              "--color-neutral": "oklch(28% 0.02 60)",
+            },
+          },
+          {
+            name: "acme-night",
+            mode: "dark",
+            tokens: {
+              "--color-base-100": "oklch(18% 0.015 60)",
+              "--color-base-200": "oklch(15% 0.015 60)",
+              "--color-base-300": "oklch(12% 0.015 60)",
+              "--color-base-content": "oklch(94% 0.008 95)",
+              "--color-primary": "oklch(72% 0.15 42)",
+              "--color-secondary": "oklch(76% 0.06 60)",
+              "--color-accent": "oklch(76% 0.13 160)",
+              "--color-neutral": "oklch(85% 0.01 60)",
+            },
+          },
+        ],
+      },
+    ],
+    hide: ["ocean"],
+  }),
   validateClass: (cls) =>
     cls.includes("host-banned") ? { ok: false, reason: 'the demo host blocks "host-banned"' } : { ok: true },
   inspectorPanels: () => [

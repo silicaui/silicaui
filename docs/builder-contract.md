@@ -199,6 +199,25 @@ interface BuilderHost {
   // ref text input.
   dataSources?(): DataSource[];
 
+  // THEMES — the shelves the Themes panel offers as starting points, for a
+  // PLATFORM that curates a brand catalog centrally across every site it hosts.
+  // Same merge shape as `catalog()`: `extend` adds labeled shelves (rendered
+  // ABOVE the shipped presets), `hide` prunes SHIPPED entries by preset name, by
+  // the shipped shelf key (`'silicaui'`), or `'*'` for all of them — the
+  // white-label case. `hide` never touches the host's own `extend`.
+  //
+  // A host theme whose `name` matches a shipped preset SHADOWS it (host wins,
+  // logged): the name IS the `[data-theme]` value, so two token bags cannot share
+  // one. Host shelves are apply-only — no delete affordance, unlike the site's
+  // own `savedThemes` ("This site"), which stays the author's editable library.
+  //
+  // Applying COPIES the theme into `site.theme`. A site that adopts a host preset
+  // holds a snapshot, so later edits to this catalog do NOT propagate to sites
+  // already on it — deliberate (the author can edit an applied theme and a live
+  // upstream overwrite would discard their work), but a host's own UI must not
+  // promise propagation.
+  themes?(): { extend?: ThemeGroup[]; hide?: string[] };
+
   // POLICY — the class allowlist. The engine calls this before committing ANY class
   // string (hand-typed OR AI-generated); a rejected class never enters the document.
   // This COMPOSES with a built-in engine floor (the fixed/z-[…]/content-[…]/url()
@@ -237,9 +256,17 @@ interface DataSource {
   cardinality: 'scalar' | 'array' | 'object';
   fields?: DataSource[]; // nested shape, for scopeAt's ancestor-narrowing walk
 }
+
+interface ThemeGroup {
+  key: string;    // hide matches this to drop the whole shelf; same-keyed groups merge
+  label: string;  // the shelf heading, verbatim
+  themes: Theme[];
+}
 ```
 
-Every field is optional. A host that passes no adapter at all gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`pickAsset` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
+Every field is optional. A host that passes no adapter at all gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`pickAsset`/`themes` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
+
+The **email** builder has no equivalent seam and needs none: it has no Theme mode (there is no `[data-theme]`/custom-property mechanism in email HTML — Outlook and Gmail don't support it), so a host hands it one resolved `Theme` prop and the builder folds that into its color defaults. See "The email builder carries the same contract" below.
 
 ---
 
@@ -404,6 +431,7 @@ a user opens.
 | Select / drag / edit / add / duplicate | ● | |
 | Palette, layers tree, inspector *framework* | ● | |
 | Theme editing (`[data-theme]` tokens) | ● | |
+| Theme *starting points* (shipped presets / brand catalog) | ● (shipped) | ● (platform shelves, `themes()`) |
 | `[data-theme]` island + `@scope` isolation | ● | |
 | Undo/redo, device preview, behavior preview | ● | |
 | Load / extract the document | ● | |

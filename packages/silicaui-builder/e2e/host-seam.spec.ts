@@ -26,6 +26,62 @@ test("host.catalog() extends the Insert palette, and the inserted node renders",
   await expect(canvas.locator("#host-callout")).toHaveText("Host-contributed block");
 });
 
+test("host.themes() adds a curated shelf above the shipped presets, applies, and hides one of ours", async ({ page }) => {
+  await ready(page);
+  await page.getByRole("button", { name: "Theme" }).click();
+  await expect(page.locator(".sui-brd")).toBeVisible();
+
+  // The host's shelf renders with its own heading, ABOVE the shipped presets.
+  const hostShelf = page.getByTestId("theme-shelf-acme");
+  const shippedShelf = page.getByTestId("theme-shelf-silicaui");
+  await expect(hostShelf).toHaveText("Acme brand");
+  await expect(shippedShelf).toBeVisible();
+  const [hostY, shippedY] = await Promise.all([
+    hostShelf.boundingBox().then((b) => b!.y),
+    shippedShelf.boundingBox().then((b) => b!.y),
+  ]);
+  expect(hostY).toBeLessThan(shippedY);
+
+  // `hide` pruned one shipped preset; its siblings are untouched.
+  await expect(page.getByText("ocean", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("quartz", { exact: true })).toBeVisible();
+
+  // Applying a host theme retargets the document — the name field reseeds and
+  // the canvas repaints against the host's tokens.
+  await page.getByText("acme-day", { exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Theme name" })).toHaveValue("acme-day");
+  await expect(page.locator("[data-theme='acme-day']").first()).toBeVisible();
+
+  // Apply-only: a host shelf carries no delete affordance (unlike "This site").
+  await expect(hostShelf.locator("xpath=following-sibling::div[1]").getByRole("button", { name: /^Delete/ })).toHaveCount(0);
+
+  // And it's a COPY — editing the applied theme cannot mutate the host catalog,
+  // so re-applying from the shelf restores the host's original primary.
+  const primaryOf = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as { __editor: { extract(): { theme: { tokens: Record<string, string> } } } }).__editor
+          .extract().theme.tokens["--color-primary"],
+    );
+  expect(await primaryOf()).toBe("oklch(56% 0.16 42)");
+  await page.evaluate(() => {
+    const ed = (
+      window as unknown as {
+        __editor: {
+          extract(): { theme: { name: string; tokens: Record<string, string> } };
+          setTheme(t: unknown): void;
+        };
+      }
+    ).__editor;
+    const t = ed.extract().theme;
+    ed.setTheme({ ...t, tokens: { ...t.tokens, "--color-primary": "oklch(50% 0.2 300)" } });
+  });
+  expect(await primaryOf()).toBe("oklch(50% 0.2 300)");
+  await page.getByText("acme-night", { exact: true }).click();
+  await page.getByText("acme-day", { exact: true }).click();
+  expect(await primaryOf()).toBe("oklch(56% 0.16 42)");
+});
+
 test("host.validateClass composes with the built-in floor — both reject, host adds its own reason", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");

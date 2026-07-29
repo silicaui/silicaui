@@ -1,15 +1,22 @@
 /**
- * The Themes library (right panel in Theme mode). Three sections, matching how a
- * site theme actually lives: THIS SITE — the saved-theme library you snapshot the
- * current edit into (apply / delete); SILICAUI PRESETS — the shipped starting
- * points; OUTPUT — export the active theme as the same `[data-theme]` CSS @wizeworks/silicaui
- * emits. Styled ONLY with Tailwind + @wizeworks/silicaui classes; every glyph is a baked
- * `<Icon>`. Applying/saving routes through the engine so editor + board repaint.
+ * The Themes library (right panel in Theme mode). Sections matching how a site
+ * theme actually lives: THIS SITE — the saved-theme library you snapshot the
+ * current edit into (apply / delete); the HOST's own curated shelves, if it
+ * contributes any (`BuilderHost.themes`); the shipped SILICAUI PRESETS; OUTPUT —
+ * export the active theme as the same `[data-theme]` CSS @wizeworks/silicaui
+ * emits. Styled ONLY with Tailwind + @wizeworks/silicaui classes; every glyph is
+ * a baked `<Icon>`. Applying/saving routes through the engine so editor + board
+ * repaint.
+ *
+ * Only "This site" is editable — every other shelf is apply-only, and applying
+ * COPIES the theme into the document (see `theme-catalog.ts`).
  */
 import * as React from "react";
 import type { Theme } from "@wizeworks/silicaui-html";
-import { THEME_PRESETS, colorValue } from "@wizeworks/silicaui-html";
+import { colorValue } from "@wizeworks/silicaui-html";
 import { useEditor, useTheme, useSavedThemes } from "./editor-context";
+import { useHost } from "./host-context";
+import { themeShelves } from "../theme-catalog";
 import { themeToCss } from "../theme-ops";
 import { Icon } from "../../shared/react/Icon";
 
@@ -48,7 +55,14 @@ export function ThemeLibrary() {
   const editor = useEditor();
   const theme = useTheme();
   const saved = useSavedThemes();
+  const host = useHost();
   const [copied, setCopied] = React.useState(false);
+
+  // The apply-only shelves: the host's curated catalog, then whatever it left of
+  // the shipped presets. Read once per host identity — `host` is a mount-lifetime
+  // object (BuilderProps), and re-calling `themes()` every render would also
+  // re-run its shadow diagnostics.
+  const shelves = React.useMemo(() => themeShelves(host?.themes?.()), [host]);
 
   // "Dirty" when the current edit differs from its saved snapshot (or was never
   // saved) — compare the token bags, ignoring the light/dark preview toggle.
@@ -105,18 +119,27 @@ export function ThemeLibrary() {
         ))}
       </div>
 
-      <div className={SUBHEAD}>@wizeworks/silicaui presets</div>
-      <div className="px-2">
-        {THEME_PRESETS.map((p) => (
-          <ThemeRow
-            key={p.name}
-            theme={p}
-            active={theme.name === p.name}
-            onApply={() => editor.setTheme({ ...structuredClone(p), mode: theme.mode })}
-            trailing={theme.name === p.name ? <Icon name="check" className="mr-1 text-primary" /> : undefined}
-          />
-        ))}
-      </div>
+      {shelves.map((shelf) => (
+        <React.Fragment key={shelf.key}>
+          <div className={SUBHEAD} data-testid={`theme-shelf-${shelf.key}`}>
+            {shelf.label}
+          </div>
+          <div className="px-2">
+            {shelf.themes.map((p) => (
+              <ThemeRow
+                key={p.name}
+                theme={p}
+                active={theme.name === p.name}
+                // A copy, not the shelf's own object: the author edits the applied
+                // theme freely, and a host that memoizes its catalog must not find
+                // its brand mutated through the panel.
+                onApply={() => editor.setTheme({ ...structuredClone(p), mode: theme.mode })}
+                trailing={theme.name === p.name ? <Icon name="check" className="mr-1 text-primary" /> : undefined}
+              />
+            ))}
+          </div>
+        </React.Fragment>
+      ))}
 
       <div className={SUBHEAD}>Output</div>
       <button
