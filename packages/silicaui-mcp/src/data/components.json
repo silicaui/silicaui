@@ -10860,5 +10860,2866 @@
     "container": true,
     "behaviors": [],
     "sourceFile": "silicaui-html/src/component.ts:3671"
+  },
+  {
+    "name": "accordion",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/accordion.js",
+    "description": "The Accordion component — collapsible sections (Base UI behavior). Colorless. Base UI drives open/close state and exposes the natural panel height as `--accordion-panel-height`, which we animate; the panel starts and ends at height 0 (`[data-starting-style]`/`[data-ending-style]`). The trigger chevron rotates while its panel is open (`[data-panel-open]`). Padding lives on an inner `.accordion-content` so the height animation stays smooth. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "accordion",
+    "classes": [
+      "accordion",
+      "accordion-content",
+      "accordion-header",
+      "accordion-item",
+      "accordion-panel",
+      "accordion-trigger"
+    ]
+  },
+  {
+    "name": "alert",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/alert.js",
+    "description": "The Alert component — a feedback surface for a contextual message. Same orthogonal design as Button/Badge: a color class (`.alert-success`) only sets `--alert-*` variables; `.alert` and the style classes read them. Alert is a box-tier surface, so it rounds with `--radius-box` (like Card). It lays its children out as a flex row — an optional leading icon, a growing content column, and any trailing actions — so the icon and text share one baseline. Variants mirror the rest of the system: solid (default, painted by `.alert`), plus `-soft` (tint), `-outline`, and `-dash`. Silica ships no icons; pass your own into the leading slot. @param {string[]} colors - color names to generate `.alert-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "alert",
+    "classes": [
+      "alert",
+      "alert-accent",
+      "alert-actions",
+      "alert-banner",
+      "alert-close",
+      "alert-content",
+      "alert-dash",
+      "alert-description",
+      "alert-dismiss",
+      "alert-dismiss-inner",
+      "alert-error",
+      "alert-ghost",
+      "alert-info",
+      "alert-lg",
+      "alert-md",
+      "alert-neutral",
+      "alert-outline",
+      "alert-primary",
+      "alert-secondary",
+      "alert-sm",
+      "alert-soft",
+      "alert-success",
+      "alert-title",
+      "alert-warning",
+      "alert-xl",
+      "alert-xs"
+    ],
+    "colorVariants": [
+      "alert-primary",
+      "alert-secondary",
+      "alert-accent",
+      "alert-neutral",
+      "alert-info",
+      "alert-success",
+      "alert-warning",
+      "alert-error"
+    ],
+    "compoundSelectors": [
+      ".alert-dismiss[data-closed]"
+    ]
+  },
+  {
+    "name": "animations",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/animations.js",
+    "description": "Assignable element animations — presets an end user (via a site builder) can apply to ANY element, generated from one preset table so the three trigger class families always stay in sync: .sui-animate-{preset} — ON LOAD: a `@keyframes` animation that plays automatically on paint. No JS, no attribute. .sui-reveal-{preset} — ON SCROLL: sits at its hidden state by default, transitions to visible once `[data-sui-inview]` lands on the element (set by the `reveal` behavior in @wizeworks/@wizeworks/silicaui-behaviors) — the same idiom Dialog/Popover already use for `[data-starting-style]`/`[data-ending-style]`, just driven by our own attribute. .sui-hover-{preset} — HOVER: a plain `:hover`/`:focus-visible` transition. No JS. Naming is deliberately `sui-`, not `animate-`: Tailwind core already ships `animate-spin`/`animate-pulse`/etc, and this package's own keyframes (`silica-spin`, `silica-skeleton`, …) already sidestep that collision by never exposing a bare `.animate-*` class. `sui-` also mirrors the existing `data-sui-*` marker namespace used by behaviors. Speed/delay are separate modifier classes (`.sui-duration-*`, `.sui-delay-*`) that set the `--sui-motion-duration`/`--sui-motion-delay` custom properties a preset reads, each with a `var(--duration-fast, …)` -style fallback — same non-namespace-token convention as `--duration`/ `--ease` (see theme.js): the DEFAULT lives in the fallback, so an app's own `--duration-fast` override always wins regardless of layer ordering. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "sui-",
+    "rootNote": "No bare `.sui` class exists — this family is only its `sui-*` parts.",
+    "classes": [
+      "sui-animate-fade-in",
+      "sui-animate-scale-in",
+      "sui-animate-slide-down",
+      "sui-animate-slide-left",
+      "sui-animate-slide-right",
+      "sui-animate-slide-up",
+      "sui-animate-zoom-in",
+      "sui-delay-1",
+      "sui-delay-2",
+      "sui-delay-3",
+      "sui-duration-fast",
+      "sui-duration-normal",
+      "sui-duration-slow",
+      "sui-hover-glow",
+      "sui-hover-lift",
+      "sui-hover-scale",
+      "sui-reveal-fade-in",
+      "sui-reveal-scale-in",
+      "sui-reveal-slide-down",
+      "sui-reveal-slide-left",
+      "sui-reveal-slide-right",
+      "sui-reveal-slide-up",
+      "sui-reveal-zoom-in"
+    ],
+    "compoundSelectors": [
+      "@keyframes silica-fade-in",
+      "@keyframes silica-slide-up",
+      "@keyframes silica-slide-down",
+      "@keyframes silica-slide-left",
+      "@keyframes silica-slide-right",
+      "@keyframes silica-scale-in",
+      "@keyframes silica-zoom-in",
+      "@media (prefers-reduced-motion: reduce)"
+    ]
+  },
+  {
+    "name": "app-shell",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/app-shell.js",
+    "description": "AppShell — the outer page skeleton: sidebar + header + main + footer, any combination. A single CSS Grid with named areas handles every layout (\"sidebar+top+footer\", \"top+footer\", \"sidebar only\", …) — an area simply collapses to zero size when its slot isn't rendered, so there's no variant prop to pick; just render the slots you need. Each slot is a thin `grid-area` wrapper; the real chrome inside it is BYO (`Sidebar`, `Navbar`, `Footer`, or anything else). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "app-shell",
+    "classes": [
+      "app-shell",
+      "app-shell-footer",
+      "app-shell-header",
+      "app-shell-main",
+      "app-shell-sidebar"
+    ]
+  },
+  {
+    "name": "avatar",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/avatar.js",
+    "description": "The Avatar component — a user/entity thumbnail: a photo, or an initials / icon fallback on a colored chip. Single element by design. It does NOT clip with `overflow: hidden`; instead the inner `<img>` rounds itself via `border-radius: inherit` (border-radius clips a raster image to the rounded shape in every engine). That keeps the clip while letting the accent ring (`box-shadow`) and the presence dot (`::after`) render OUTSIDE the circle, where `overflow: hidden` would eat them. Orthogonal color model like the rest of the system, but scoped to the fallback chip: a color class sets `--avatar-bg`/`--avatar-fg` (the initials chip) and `--avatar-accent` (the ring). Circle by default; `-rounded` switches to a `--radius-box` square. `-ring` adds a gap ring, `-online` / `-offline` a presence dot, and `.avatar-group` overlaps a row of them. @param {string[]} colors - color names to generate `.avatar-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "avatar",
+    "classes": [
+      "avatar",
+      "avatar-accent",
+      "avatar-error",
+      "avatar-group",
+      "avatar-info",
+      "avatar-lg",
+      "avatar-md",
+      "avatar-neutral",
+      "avatar-offline",
+      "avatar-online",
+      "avatar-primary",
+      "avatar-ring",
+      "avatar-rounded",
+      "avatar-secondary",
+      "avatar-sm",
+      "avatar-success",
+      "avatar-warning",
+      "avatar-xl",
+      "avatar-xs"
+    ],
+    "colorVariants": [
+      "avatar-primary",
+      "avatar-secondary",
+      "avatar-accent",
+      "avatar-neutral",
+      "avatar-info",
+      "avatar-success",
+      "avatar-warning",
+      "avatar-error"
+    ],
+    "compoundSelectors": [
+      ".avatar-online::after, .avatar-offline::after",
+      ".avatar-online::after",
+      ".avatar-offline::after",
+      ".avatar-group > .avatar",
+      ".avatar-group > .avatar:first-child"
+    ]
+  },
+  {
+    "name": "badge",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/badge.js",
+    "description": "The Badge component — a small pill for labels, counts, and statuses. Same orthogonal design as Button: a color class (`.badge-primary`) only sets `--badge-*` variables; `.badge` and the style classes read them. Badge is a selector-tier element, so it rounds with `--radius-selector` and scales with the `--size-selector` density lever. @param {string[]} colors - color names to generate `.badge-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "badge",
+    "classes": [
+      "badge",
+      "badge-accent",
+      "badge-dash",
+      "badge-error",
+      "badge-ghost",
+      "badge-info",
+      "badge-lg",
+      "badge-md",
+      "badge-neutral",
+      "badge-outline",
+      "badge-primary",
+      "badge-secondary",
+      "badge-sm",
+      "badge-soft",
+      "badge-success",
+      "badge-warning",
+      "badge-xl",
+      "badge-xs"
+    ],
+    "colorVariants": [
+      "badge-primary",
+      "badge-secondary",
+      "badge-accent",
+      "badge-neutral",
+      "badge-info",
+      "badge-success",
+      "badge-warning",
+      "badge-error"
+    ],
+    "compoundSelectors": [
+      ".badge:has(svg)"
+    ]
+  },
+  {
+    "name": "breadcrumb",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/breadcrumb.js",
+    "description": "The Breadcrumb component — a navigation trail. Colorless. Styles a `<nav class=\"breadcrumb\">` wrapping an ordered list: items lay out in a wrapping flex row and a CSS chevron is drawn via `li:not(:first-child)::before` (top+right borders rotated 45°, in `currentColor`, `em`-scaled) — no separator markup needed. Links read muted and brighten on hover; the current page (`[aria-current=\"page\"]`) sits at full strength. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "breadcrumb",
+    "classes": [
+      "breadcrumb"
+    ]
+  },
+  {
+    "name": "button",
+    "package": "@wizeworks/silicaui",
+    "category": "Actions",
+    "sourceFile": "silicaui/src/components/button.js",
+    "description": "The Button component. Design: color and style are orthogonal axes. - A color class (`.btn-primary`, `.btn-brand`, …) only sets CSS variables (`--btn-bg`, `--btn-fg`, `--btn-accent`, …). It renders nothing itself. - `.btn` and the style classes (`.btn-outline`, `.btn-soft`, …) read those variables to paint the button. Because color classes only set variables (never concrete properties), they never fight the style classes on specificity, and any new color composes with every style for free. @param {string[]} colors - color names to generate `.btn-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-` → `.sx-btn`). Only affects Silica class names, never the internal `--btn-*` variables or the shared `silica-spin` keyframes.",
+    "root": "btn",
+    "classes": [
+      "btn",
+      "btn-accent",
+      "btn-active",
+      "btn-block",
+      "btn-circle",
+      "btn-dash",
+      "btn-error",
+      "btn-ghost",
+      "btn-info",
+      "btn-lg",
+      "btn-link",
+      "btn-md",
+      "btn-neutral",
+      "btn-outline",
+      "btn-primary",
+      "btn-secondary",
+      "btn-sm",
+      "btn-soft",
+      "btn-square",
+      "btn-success",
+      "btn-warning",
+      "btn-wide",
+      "btn-xl",
+      "btn-xs"
+    ],
+    "colorVariants": [
+      "btn-primary",
+      "btn-secondary",
+      "btn-accent",
+      "btn-neutral",
+      "btn-info",
+      "btn-success",
+      "btn-warning",
+      "btn-error"
+    ],
+    "compoundSelectors": [
+      ".btn:has(svg)"
+    ]
+  },
+  {
+    "name": "calendar",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/calendar.js",
+    "description": "The Calendar / DatePicker component — a from-scratch month-grid date picker (Base UI ships no calendar in rc.0, so the React layer owns all the behavior; this owns the surface). A colorless grid with an orthogonal accent for the selection: a color class (`.calendar-primary`) sets `--calendar-accent`. Day states are driven by data attributes the React layer stamps: `[data-outside]` (adjacent month), `[data-today]`, `[data-selected]` (single), `[data-range-start]` / `[data-range-end]` / `[data-in-range]` (range), and `[data-disabled]`. In-range cells fill edge-to-edge (no gap) so the run reads as one continuous bar with accent endpoints. The `.calendar-popup` surface + `.date-field` control let the DatePicker sit under an `.input`-styled trigger. @param {string[]} colors - color names to generate `.calendar-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "calendar",
+    "classes": [
+      "calendar",
+      "calendar-accent",
+      "calendar-day",
+      "calendar-error",
+      "calendar-grid",
+      "calendar-header",
+      "calendar-info",
+      "calendar-month",
+      "calendar-months",
+      "calendar-nav",
+      "calendar-neutral",
+      "calendar-popup",
+      "calendar-primary",
+      "calendar-secondary",
+      "calendar-success",
+      "calendar-title",
+      "calendar-warning",
+      "calendar-weekday",
+      "calendar-weekdays",
+      "date-field",
+      "date-field-icon",
+      "date-field-value"
+    ],
+    "colorVariants": [
+      "calendar-primary",
+      "calendar-secondary",
+      "calendar-accent",
+      "calendar-neutral",
+      "calendar-info",
+      "calendar-success",
+      "calendar-warning",
+      "calendar-error"
+    ],
+    "compoundSelectors": [
+      ".date-field[data-placeholder] .date-field-value"
+    ]
+  },
+  {
+    "name": "card",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/card.js",
+    "description": "The Card component — a surface container. Box-tier element: rounds with `--radius-box`. Sits on the `base-100` surface with a `base-300` hairline and a `--depth`-scaled shadow (flat when `--depth: 0`). Composes from parts: `.card` (frame) → `.card-body` (padded stack) with `.card-title` and `.card-actions` inside. A full-bleed `<figure>` (e.g. a cover image) is handled by the nested rules below. Card has no color variants — it's a neutral surface — so unlike the other components it takes only the prefix. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "card",
+    "classes": [
+      "card",
+      "card-actions",
+      "card-body",
+      "card-clickable",
+      "card-selectable",
+      "card-selectable-indicator",
+      "card-title",
+      "checkbox",
+      "radio"
+    ],
+    "compoundSelectors": [
+      ".checkbox.card-selectable-indicator, .radio.card-selectable-indicator"
+    ]
+  },
+  {
+    "name": "carousel",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/carousel.js",
+    "description": "The Carousel component — a scroll-snapping strip WITH navigation. Colorless. The scroll surface (`.carousel`) uses CSS scroll-snap; the React wrapper adds prev/next controls (`.carousel-control`) and clickable dot indicators (`.carousel-dot`) that drive it, so it behaves like a real carousel rather than a bare scrollable list. The scrollbar is hidden because the controls provide navigation; touch/trackpad swipe still works. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "carousel",
+    "classes": [
+      "carousel",
+      "carousel-center",
+      "carousel-control",
+      "carousel-dot",
+      "carousel-dot-active",
+      "carousel-end",
+      "carousel-indicators",
+      "carousel-item",
+      "carousel-next",
+      "carousel-number",
+      "carousel-number-active",
+      "carousel-prev",
+      "carousel-root",
+      "carousel-vertical"
+    ],
+    "compoundSelectors": [
+      ".carousel-center .carousel-item",
+      ".carousel-end .carousel-item"
+    ]
+  },
+  {
+    "name": "chart",
+    "package": "@wizeworks/silicaui",
+    "category": "wrapper",
+    "sourceFile": "silicaui/src/components/chart.js",
+    "description": "Chart container — the box an ECharts canvas/SVG renders into. The actual chart theming is done in JS (the `@wizeworks/@wizeworks/silicaui-charts` package reads the live color tokens and hands ECharts a matching theme); this class only owns the container so ECharts has a sized, block-level box to measure. Colorless. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "chart",
+    "classes": [
+      "chart"
+    ]
+  },
+  {
+    "name": "chat-suite",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/chat-suite.js",
+    "description": "The Chat suite — a higher-level layer over the `chat`/`chat-bubble` primitives (chat.js): a scrollable message layout, a composer, and the small extras a real conversation needs (system dividers, grouped metadata, a collapsible tool-call detail). `ChatMessage` itself composes the existing `.chat`/`.chat-image`/`.chat-header`/`.chat-bubble` classes rather than repainting them — this module only adds what those don't already cover. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "classes": [
+      "chat-composer",
+      "chat-composer-actions",
+      "chat-composer-field",
+      "chat-layout",
+      "chat-layout-messages",
+      "chat-message-metadata",
+      "chat-system-message",
+      "chat-tool-calls",
+      "chat-typing",
+      "chat-typing-dot",
+      "collapsible-content",
+      "collapsible-trigger"
+    ],
+    "compoundSelectors": [
+      ".chat-tool-calls .collapsible-trigger",
+      ".chat-tool-calls .collapsible-content",
+      ".chat-typing-dot:nth-child(2)",
+      ".chat-typing-dot:nth-child(3)"
+    ]
+  },
+  {
+    "name": "chat",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/chat.js",
+    "description": "The Chat component — a message row with an avatar, header/footer, and bubble. A grid: the avatar (`.chat-image`) spans all rows in one column; the header, bubble, and footer stack in the other. `.chat-start` puts the avatar on the left (incoming), `.chat-end` flips it to the right (outgoing). The bubble takes an orthogonal color (`.chat-bubble-primary`), defaulting to a neutral base-200 surface. @param {string[]} colors - color names to generate `.chat-bubble-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "chat",
+    "classes": [
+      "chat",
+      "chat-bubble",
+      "chat-bubble-accent",
+      "chat-bubble-error",
+      "chat-bubble-info",
+      "chat-bubble-neutral",
+      "chat-bubble-primary",
+      "chat-bubble-secondary",
+      "chat-bubble-success",
+      "chat-bubble-warning",
+      "chat-end",
+      "chat-footer",
+      "chat-header",
+      "chat-image"
+    ],
+    "compoundSelectors": [
+      ".chat > *:not(.chat-image)",
+      ".chat-end > *:not(.chat-image)",
+      ".chat-end .chat-bubble"
+    ]
+  },
+  {
+    "name": "checkbox-group",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/checkbox-group.js",
+    "description": "The CheckboxGroup layout — a stack of checkbox options managed as one array value (with optional parent \"select all\" that goes indeterminate). Colorless. Layout + option row only; the checkboxes are Silica `.checkbox` inputs. `.checkbox-option` is the clickable `<label>` pairing a checkbox with its caption. `[data-orientation=\"horizontal\"]` lays them in a row. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "checkbox-",
+    "rootNote": "No bare `.checkbox` class exists — this family is only its `checkbox-*` parts.",
+    "classes": [
+      "checkbox-group",
+      "checkbox-option"
+    ]
+  },
+  {
+    "name": "checkbox",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/checkbox.js",
+    "description": "The Checkbox component — a native `<input type=\"checkbox\">` restyled. Selector-tier control: scales with `--size-selector` and rounds with `--radius-selector` (capped so it stays a rounded square, never a full circle, even under a large selector radius). A color class (`.checkbox-primary`) sets `--checkbox-accent` (checked fill/border/focus) and `--checkbox-content` (the checkmark color); unchecked is a neutral hairline box. The checkmark is composed from layered `linear-gradient`s rather than an SVG, so its color can be a live CSS var — the accent's auto-derived `-content`, which stays legible on ANY accent (dark mark on a light color like `warning`, light mark on a dark one). SVG `background-image` can't read a CSS var, and `::before`/`::after` on form controls is inconsistent across browsers — this avoids both. @param {string[]} colors - color names to generate `.checkbox-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "checkbox",
+    "classes": [
+      "checkbox",
+      "checkbox-accent",
+      "checkbox-error",
+      "checkbox-info",
+      "checkbox-lg",
+      "checkbox-md",
+      "checkbox-neutral",
+      "checkbox-primary",
+      "checkbox-secondary",
+      "checkbox-sm",
+      "checkbox-success",
+      "checkbox-warning",
+      "checkbox-xl",
+      "checkbox-xs"
+    ],
+    "colorVariants": [
+      "checkbox-primary",
+      "checkbox-secondary",
+      "checkbox-accent",
+      "checkbox-neutral",
+      "checkbox-info",
+      "checkbox-success",
+      "checkbox-warning",
+      "checkbox-error"
+    ]
+  },
+  {
+    "name": "collapse",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/collapse.js",
+    "description": "The Collapse component — a disclosure panel built on native `<details>`/`<summary>`, so open/close, keyboard, and screen-reader support come for free (no JS). Several with a shared `name` form an exclusive accordion (native HTML behavior). The CSS class is `.details`, NOT `.collapse` — Tailwind v4 ships a built-in `.collapse { visibility: collapse }` utility (for table row/column collapsing), and utility-layer rules always beat component base-layer rules regardless of source order or specificity. A `.collapse` class here would still get this component's box styling (border/bg/radius all still apply, since Tailwind's utility only sets `visibility`), but Tailwind's `visibility: collapse` would ALSO apply and silently make the whole thing invisible while it still occupies layout space — exactly the \"empty box\" bug this dodges. `Collapse`/`CollapseTitle`/`CollapseContent` (the public React names) are unaffected; only the underlying class token changed. Colorless. The `.details-title` (the `<summary>`) hides the default marker and draws its own chevron via `::after`, which rotates when the parent is `[open]`. `.details-content` holds the body. `-ghost` drops the surface for a flush, borderless accordion. Toggle is instant by design — animating `<details>` height needs bleeding-edge CSS (`interpolate-size`/`::details-content`) that isn't universally shipped; only the chevron animates, which is safe everywhere. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "details",
+    "classes": [
+      "details",
+      "details-content",
+      "details-ghost",
+      "details-title"
+    ],
+    "compoundSelectors": [
+      ".details[open] > .details-title::after"
+    ]
+  },
+  {
+    "name": "collapsible",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/collapsible.js",
+    "description": "The Collapsible component — a single show/hide disclosure (Base UI behavior). The low-level primitive behind `Accordion` (which groups several): one trigger reveals one animated panel. Colorless and chrome-light so it drops into any layout. Base UI exposes the natural panel height as `--collapsible-panel-height`, which we animate; the panel starts/ends at height 0 (`[data-starting-style]`/`[data-ending-style]`). The trigger's chevron rotates while the panel is open (`[data-panel-open]`). Padding lives on an inner `.collapsible-content` so the height animation stays smooth. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "collapsible",
+    "classes": [
+      "collapsible",
+      "collapsible-content",
+      "collapsible-panel",
+      "collapsible-trigger",
+      "collapsible-trigger-icon"
+    ]
+  },
+  {
+    "name": "color-picker",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/color-picker.js",
+    "description": "ColorPicker — an OKLCH-native color editor. SilicaUI's tokens are all OKLCH, so the picker edits L / C / H directly with three sliders instead of translating through HSV. Each slider's track is painted with a live `linear-gradient(... in oklch, …)` (set inline from the React component), so what you drag across is the real color ramp. A big swatch previews the result and a hex field reads/writes the same color. Colorless: the surface uses base tokens; the focus ring is `--color-primary`. The thumb/track gradients are all data-driven (inline styles), so there's no per-color variant to generate here. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "color-picker",
+    "classes": [
+      "color-picker",
+      "color-picker-hex",
+      "color-picker-hex-input",
+      "color-picker-hex-label",
+      "color-picker-popover",
+      "color-picker-preview",
+      "color-picker-slider",
+      "color-picker-slider-label",
+      "color-picker-slider-value",
+      "color-picker-sliders",
+      "color-picker-swatch",
+      "color-picker-swatch-trigger",
+      "color-picker-swatch-trigger-chip",
+      "color-picker-swatch-trigger-label",
+      "color-picker-thumb",
+      "color-picker-track",
+      "color-picker-value-hex",
+      "color-picker-value-oklch",
+      "color-picker-values"
+    ],
+    "compoundSelectors": [
+      ".color-picker[data-disabled]"
+    ]
+  },
+  {
+    "name": "combobox",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/combobox.js",
+    "description": "The Combobox / Autocomplete control chrome — the input-field half of the Base-UI-backed `Combobox` and `Autocomplete` (a searchable, filtered listbox). The popup, list, items, group labels and separators REUSE the Select surface (`.select-popup`, `.select-item`, `.select-item-indicator`, …) so the two read identically; this module only adds the text-input control: a field wrapper (`.combobox-control`) around an `.input`-styled `.combobox-input`, plus the trailing clear (×) and open (chevron) buttons and the empty-state row. The chevron flips while the popup is open (`[data-popup-open]`), and the clear button hides itself when there's nothing to clear (`:disabled`). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "combobox-",
+    "rootNote": "No bare `.combobox` class exists — this family is only its `combobox-*` parts.",
+    "classes": [
+      "combobox-clear",
+      "combobox-control",
+      "combobox-empty",
+      "combobox-input",
+      "combobox-item",
+      "combobox-trigger"
+    ]
+  },
+  {
+    "name": "command-palette",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/command-palette.js",
+    "description": "CommandPalette — the ⌘K launcher surface. Built on the same Base UI Dialog machinery as `.dialog` (portal, focus trap, scroll lock, Escape-to-dismiss), but positioned near the top of the viewport and shaped as a search box over a scrolling result list. The React `<CommandPalette>` owns the filtering + arrow-key navigation; this styles the backdrop, the panel, the search row, groups, items, and the active/empty states. Colorless: the active item reads `--color-primary` for its tint/marker, same orthogonal-accent approach as the rest of Silica. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "command-palette-",
+    "rootNote": "No bare `.command-palette` class exists — this family is only its `command-palette-*` parts.",
+    "classes": [
+      "command-palette-backdrop",
+      "command-palette-empty",
+      "command-palette-group",
+      "command-palette-group-label",
+      "command-palette-input",
+      "command-palette-item",
+      "command-palette-item-body",
+      "command-palette-item-desc",
+      "command-palette-item-icon",
+      "command-palette-item-label",
+      "command-palette-item-shortcut",
+      "command-palette-list",
+      "command-palette-popup",
+      "command-palette-search",
+      "command-palette-search-icon"
+    ],
+    "compoundSelectors": [
+      ".command-palette-item[data-active] .command-palette-item-desc"
+    ]
+  },
+  {
+    "name": "countdown",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/countdown.js",
+    "description": "The Countdown component — a segmented days/hours/minutes/seconds display. Colorless. A row of boxed units, each a big tabular number over a small label. The React wrapper ticks the values; this just paints the boxes. `-plain` drops the boxes for an inline number run. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "countdown",
+    "classes": [
+      "countdown",
+      "countdown-label",
+      "countdown-plain",
+      "countdown-unit",
+      "countdown-value"
+    ]
+  },
+  {
+    "name": "data-table",
+    "package": "@wizeworks/silicaui",
+    "category": "wrapper",
+    "sourceFile": "silicaui/src/components/data-table.js",
+    "description": "DataTable chrome — the interactive shell around a `.table`. The base `.table` still styles the cells (this module deliberately does NOT restyle `th`/`td`); `.data-table` only adds what a data grid needs on top: a bordered scroll container, sortable-header buttons with a caret that lights up per sort direction, a selected-row tint, a sticky header, skeleton/empty bodies, and a pagination toolbar. The React `<DataTable>` (in the optional `@wizeworks/@wizeworks/silicaui-table` package) drives TanStack Table and hangs these classes on the markup. Colored: a `.data-table-<name>` class only sets `--dt-accent`, which the sort hover + selected-row tint read — so the accent is orthogonal to everything else, same as the rest of Silica. @param {string[]} colors - color names to generate `.data-table-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "data-table",
+    "classes": [
+      "data-table",
+      "data-table-accent",
+      "data-table-empty",
+      "data-table-error",
+      "data-table-info",
+      "data-table-neutral",
+      "data-table-pager",
+      "data-table-pagination",
+      "data-table-primary",
+      "data-table-row-clickable",
+      "data-table-scroll",
+      "data-table-secondary",
+      "data-table-skeleton",
+      "data-table-sort",
+      "data-table-sort-icon",
+      "data-table-sticky",
+      "data-table-success",
+      "data-table-warning"
+    ],
+    "colorVariants": [
+      "data-table-primary",
+      "data-table-secondary",
+      "data-table-accent",
+      "data-table-neutral",
+      "data-table-info",
+      "data-table-success",
+      "data-table-warning",
+      "data-table-error"
+    ],
+    "compoundSelectors": [
+      ".data-table-sticky .data-table-scroll",
+      ".data-table-sticky thead th",
+      ".data-table-sort-icon [data-part]",
+      ".data-table-sort[data-sort=\"asc\"] .data-table-sort-icon [data-part=\"up\"]",
+      ".data-table-sort[data-sort=\"desc\"] .data-table-sort-icon [data-part=\"down\"]",
+      ".data-table tbody tr[data-selected]"
+    ]
+  },
+  {
+    "name": "dialog",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/dialog.js",
+    "description": "The Dialog surface — the visual half of the Base-UI-backed Dialog (and AlertDialog). Base UI owns the modal machinery (portal, focus trap, scroll lock, dismissal); this styles the backdrop + centered popup + title/description. The popup is fixed-centered in CSS (Dialog has no positioner). Enter/exit rides Base UI's `[data-starting-style]`/`[data-ending-style]` — note the transform keeps the `translate(-50%, -50%)` centering AND adds the scale, so both must be restated in the animated state. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "dialog-",
+    "rootNote": "No bare `.dialog` class exists — this family is only its `dialog-*` parts.",
+    "classes": [
+      "dialog-backdrop",
+      "dialog-description",
+      "dialog-footer",
+      "dialog-footer-sticky",
+      "dialog-header",
+      "dialog-header-sticky",
+      "dialog-popup",
+      "dialog-title"
+    ]
+  },
+  {
+    "name": "diff",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/diff.js",
+    "description": "The Diff component — a before/after comparison with a draggable split. Colorless. Two layers occupy the same grid cell: `.diff-item-2` is the full \"after\" underneath, `.diff-item-1` is the \"before\" on top, clipped to the split position with `clip-path: inset(...)`. The split is a single CSS variable, `--diff-pos` (a 0–100% length), so the React wrapper can drive it from pointer drag or the keyboard while the CSS stays declarative. `clip-path: inset()` and CSS custom properties are universally supported, so this renders identically everywhere (no container-query-unit dependence). `.diff-resizer` is the vertical handle drawn at `--diff-pos`; its `.diff-grip` knob holds the drag affordance. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "diff",
+    "classes": [
+      "diff",
+      "diff-grip",
+      "diff-item-1",
+      "diff-item-2",
+      "diff-resizer"
+    ],
+    "compoundSelectors": [
+      ".diff-item-1, .diff-item-2",
+      ".diff-item-1 > *, .diff-item-2 > *"
+    ]
+  },
+  {
+    "name": "divider",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/divider.js",
+    "description": "The Divider component — a labeled or plain separator. Colorless. A flex line whose `::before`/`::after` draw the rules on either side of an optional centered label; with no label (`:empty`) the gap collapses so the two segments meet as one continuous line. `-vertical` rotates it for row layouts (needs a height from its parent). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "divider",
+    "classes": [
+      "divider",
+      "divider-vertical"
+    ]
+  },
+  {
+    "name": "dock",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/dock.js",
+    "description": "The Dock component — a bottom navigation bar of icon+label items. Colorless base with an orthogonal accent for the active item. A flex row of equal-width `.dock-item` buttons, each an icon over a small label. Position it yourself (`fixed bottom-0` for a real app dock). The active item lifts to full opacity and the accent color. @param {string[]} colors - color names to generate `.dock-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "dock",
+    "classes": [
+      "dock",
+      "dock-accent",
+      "dock-error",
+      "dock-info",
+      "dock-item",
+      "dock-item-active",
+      "dock-label",
+      "dock-neutral",
+      "dock-primary",
+      "dock-secondary",
+      "dock-success",
+      "dock-warning"
+    ],
+    "colorVariants": [
+      "dock-primary",
+      "dock-secondary",
+      "dock-accent",
+      "dock-neutral",
+      "dock-info",
+      "dock-success",
+      "dock-warning",
+      "dock-error"
+    ]
+  },
+  {
+    "name": "drawer",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/drawer.js",
+    "description": "The Drawer component — a panel that slides in from an edge (Base UI Dialog). Colorless. Reuses Base UI's Dialog behavior (focus trap, scroll lock, escape) but pins the popup to an edge and slides it in with a transform. `data-side` chooses the edge; the enter/exit transforms are driven by `[data-starting-style]` / `[data-ending-style]`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "drawer-",
+    "rootNote": "No bare `.drawer` class exists — this family is only its `drawer-*` parts.",
+    "classes": [
+      "drawer-backdrop",
+      "drawer-description",
+      "drawer-footer",
+      "drawer-footer-sticky",
+      "drawer-header",
+      "drawer-header-sticky",
+      "drawer-popup",
+      "drawer-title"
+    ]
+  },
+  {
+    "name": "dropdown",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/dropdown.js",
+    "description": "The Dropdown Menu surface — the visual half of the Base-UI-backed Menu (click-triggered command menu). Named `.dropdown*` to avoid colliding with the static `.menu` nav-list component. Base UI owns positioning + roving focus + dismissal; this styles the popup, items, separators, and labels. Items highlight via Base UI's `[data-highlighted]` (keyboard OR pointer, so it unifies focus + hover) and dim via `[data-disabled]`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "dropdown",
+    "classes": [
+      "dropdown",
+      "dropdown-item",
+      "dropdown-item-arrow",
+      "dropdown-label",
+      "dropdown-separator"
+    ]
+  },
+  {
+    "name": "dropzone",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/dropzone.js",
+    "description": "Dropzone — a file drag-and-drop / click-to-browse target. A dashed, focusable area that lights up while a drag hovers it and opens the native file picker on click/Enter. The React `<Dropzone>` owns the drag counter, the hidden `<input type=file>`, and accept/size filtering; this styles the idle / hover / dragging / disabled surface and the icon + text stack. Colorless: the active (dragging) state reads `--color-primary` for its border and tint. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "dropzone",
+    "classes": [
+      "dropzone",
+      "dropzone-hint",
+      "dropzone-icon",
+      "dropzone-input",
+      "dropzone-title"
+    ],
+    "compoundSelectors": [
+      ".dropzone[data-dragging]",
+      ".dropzone[data-disabled]",
+      ".dropzone[data-dragging] .dropzone-icon"
+    ]
+  },
+  {
+    "name": "empty-state",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/empty-state.js",
+    "description": "EmptyState — the centered \"nothing here yet\" placeholder. A vertical stack: an optional icon chip, a title, a description, and an action row. Colorless (neutral by design); it just reads the base tokens so it sits quietly inside any surface (card, table body, panel). The React `<EmptyState>` fills the slots. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "empty-state",
+    "classes": [
+      "empty-state",
+      "empty-state-actions",
+      "empty-state-description",
+      "empty-state-icon",
+      "empty-state-lg",
+      "empty-state-md",
+      "empty-state-sm",
+      "empty-state-title",
+      "empty-state-xl",
+      "empty-state-xs"
+    ]
+  },
+  {
+    "name": "field",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/field.js",
+    "description": "The Field component — an accessible form field that wires a label, control, description, and error together (ids + aria + validity). Behavior is Base UI's Field (it tracks dirty/touched/valid/invalid and associates the parts); Silica styles them. Use it around any Silica control. Colorless (semantic error). `.field-error` only renders when the field is invalid (Base UI controls that). When the control is marked `[data-invalid]` its accent flips to error, so the border + focus ring turn red to match. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "field",
+    "classes": [
+      "field",
+      "field-description",
+      "field-error",
+      "field-label",
+      "field-status",
+      "field-status-attached",
+      "field-status-detached",
+      "field-status-error",
+      "field-status-floating",
+      "field-status-success",
+      "field-status-warning",
+      "input",
+      "select",
+      "textarea"
+    ],
+    "colorVariants": [
+      "field-error"
+    ],
+    "compoundSelectors": [
+      ".input[data-invalid], .select[data-invalid], .textarea[data-invalid]",
+      ".input[data-status=\"error\"], .select[data-status=\"error\"], .textarea[data-status=\"error\"]",
+      ".input[data-status=\"warning\"], .select[data-status=\"warning\"], .textarea[data-status=\"warning\"]",
+      ".input[data-status=\"success\"], .select[data-status=\"success\"], .textarea[data-status=\"success\"]",
+      ".field:has(.field-status-attached) .input, .field:has(.field-status-attached) .select, .field:has(.field-status-attached) .textarea",
+      ".field-status-floating.field-status-detached",
+      ".field-status-floating.field-status-attached",
+      ".field:has(.field-status-attached) .input:focus",
+      ".field:has(.field-status-attached) .select:focus",
+      ".field:has(.field-status-attached) .textarea:focus",
+      ".field:has(.input:focus, .select:focus, .textarea:focus) .field-status-attached"
+    ]
+  },
+  {
+    "name": "fieldset",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/fieldset.js",
+    "description": "The Fieldset component — a labeled group of form controls. Colorless. A vertical stack that resets the browser's native `<fieldset>` chrome (border/margin/padding/min-inline-size) so it lays out predictably, then adds a `.fieldset-legend` heading and `.fieldset-label` helper text that pair with Silica inputs. Drop it inside a `.card` or on its own; the gap keeps legend, controls, and helper text evenly spaced. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "fieldset",
+    "classes": [
+      "fieldset",
+      "fieldset-label",
+      "fieldset-legend"
+    ]
+  },
+  {
+    "name": "file-input",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/file-input.js",
+    "description": "The FileInput component — a styled `<input type=\"file\">`. Colorless. Styles the native control and its `::file-selector-button` so the \"Choose file\" button reads as a Silica button while the filename sits beside it. Fully native — no JS needed. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "file-input",
+    "classes": [
+      "file-input",
+      "file-input-lg",
+      "file-input-md",
+      "file-input-sm",
+      "file-input-xl",
+      "file-input-xs"
+    ]
+  },
+  {
+    "name": "file-upload",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/file-upload.js",
+    "description": "FileUpload — a Dropzone plus a managed preview list. The dropzone itself is unstyled here (reuses `.dropzone`); this only styles the list of accepted-file rows rendered below it: a thumbnail/icon, name + size, and a remove button. Colorless. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "file-upload",
+    "classes": [
+      "file-upload",
+      "file-upload-item",
+      "file-upload-item-icon",
+      "file-upload-item-meta",
+      "file-upload-item-name",
+      "file-upload-item-remove",
+      "file-upload-item-size",
+      "file-upload-item-thumb",
+      "file-upload-list",
+      "file-upload-rejections"
+    ]
+  },
+  {
+    "name": "filter",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/filter.js",
+    "description": "The Filter component — a single-select row of pill \"chips\" with a reset, the pattern behind faceted product/category filtering. Radio semantics (choose one); picking a chip fills it with the accent, and a circular reset (`.filter-reset`) clears the choice. Colorless chips (base-100 + border) read an orthogonal accent for the selected state via `--filter-accent`; a color class (`.filter-primary`) on the row sets it. The selected chip is marked `[data-selected]` by the React layer. @param {string[]} colors - color names to generate `.filter-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "filter",
+    "classes": [
+      "filter",
+      "filter-accent",
+      "filter-error",
+      "filter-info",
+      "filter-item",
+      "filter-neutral",
+      "filter-primary",
+      "filter-reset",
+      "filter-secondary",
+      "filter-success",
+      "filter-warning"
+    ],
+    "colorVariants": [
+      "filter-primary",
+      "filter-secondary",
+      "filter-accent",
+      "filter-neutral",
+      "filter-info",
+      "filter-success",
+      "filter-warning",
+      "filter-error"
+    ]
+  },
+  {
+    "name": "footer",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/footer.js",
+    "description": "The Footer component — a responsive multi-column site footer. Colorless. A grid that stacks its columns vertically on small screens and flows them into a row of `max-content` columns from `md` up. Each direct child is itself a grid, so a `<nav>` of links becomes a tidy vertical stack under its `.footer-title`. `-center` centers every column and its contents (for a single-row, centered footer). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "footer",
+    "classes": [
+      "footer",
+      "footer-center",
+      "footer-title"
+    ],
+    "compoundSelectors": [
+      "@media (min-width: 48rem)"
+    ]
+  },
+  {
+    "name": "hero",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/hero.js",
+    "description": "The Hero component — a full-width banner that centers its content. Colorless. A single-cell grid: `.hero-content` and an optional `.hero-overlay` are stacked in the same cell (both pinned to row/column 1), so an overlay can tint a background image set on `.hero` itself while the content sits legibly on top. Uses `background-size: cover` so an inline `background-image` fills the banner. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "hero",
+    "classes": [
+      "hero",
+      "hero-content",
+      "hero-overlay"
+    ]
+  },
+  {
+    "name": "indicator",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/indicator.js",
+    "description": "The Indicator component — pins a small overlay (a Badge, a status dot) to a corner of another element: a notification count on a button, an unread dot on an avatar. Colorless / structural. `.indicator` is the positioning context; the `.indicator-item` sits at the top-end corner by default, nudged half over the edge. `-start` / `-bottom` move it to the other corners (combine them). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "indicator",
+    "classes": [
+      "indicator",
+      "indicator-bottom",
+      "indicator-item",
+      "indicator-start"
+    ],
+    "compoundSelectors": [
+      ".indicator-item.indicator-start",
+      ".indicator-item.indicator-bottom",
+      ".indicator-item.indicator-bottom.indicator-start"
+    ]
+  },
+  {
+    "name": "input-group",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/input-group.js",
+    "description": "The InputGroup component — a positioning shell that lets a leading/trailing icon or button sit inside an `.input` (search icon, password show/hide, clear button, a country-code prefix, …). `.input-group` is the relative-positioned shell; `.input-group-start` / `.input-group-end` are absolutely-placed slots for the decoration itself; `.input-group-btn` is an interactive icon button that can live inside a slot. The `.input` living inside the shell reserves room for its decorations via `.input-affix-start` / `.input-affix-end` (defined in `input.js`, applied alongside the base `.input` class). Slot sizing is intentionally fixed (not per Input `size`), matching the existing Combobox/Autocomplete trailing-button precedent. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "input-group",
+    "classes": [
+      "input-group",
+      "input-group-btn",
+      "input-group-end",
+      "input-group-start"
+    ]
+  },
+  {
+    "name": "input",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/input.js",
+    "description": "The Input component — a single-line text field. Field-tier element: rounds with `--radius-field` and scales with the `--size-field` density lever, so it lines up pixel-for-pixel with same-size Buttons. A color class (`.input-primary`, `.input-error`, …) sets `--input-accent` (focus ring + focused border) and `--input-border` (a softened tint of the same color for the resting border); the default (no color) shows a neutral border and a primary focus ring. @param {string[]} colors - color names to generate `.input-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "input",
+    "classes": [
+      "input",
+      "input-accent",
+      "input-affix-end",
+      "input-affix-start",
+      "input-error",
+      "input-info",
+      "input-lg",
+      "input-md",
+      "input-neutral",
+      "input-primary",
+      "input-secondary",
+      "input-sm",
+      "input-success",
+      "input-warning",
+      "input-xl",
+      "input-xs"
+    ],
+    "colorVariants": [
+      "input-primary",
+      "input-secondary",
+      "input-accent",
+      "input-neutral",
+      "input-info",
+      "input-success",
+      "input-warning",
+      "input-error"
+    ]
+  },
+  {
+    "name": "join",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/join.js",
+    "description": "The Join component — groups adjacent items (buttons, inputs) into one seamless segmented control. Colorless / structural. It resets every child's corners to square, rounds only the outer ends of the group (`--radius-field`), and pulls each item back by one border-width so shared edges don't double up. The hovered/focused child lifts via `z-index` so its border/ring sits above its neighbours. Horizontal by default; `-vertical` stacks them. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "join",
+    "classes": [
+      "join",
+      "join-vertical"
+    ],
+    "compoundSelectors": [
+      ".join:not(.join-vertical) > :first-child",
+      ".join:not(.join-vertical) > :last-child",
+      ".join:not(.join-vertical) > :not(:first-child)",
+      ".join-vertical > :first-child",
+      ".join-vertical > :last-child",
+      ".join-vertical > :not(:first-child)"
+    ]
+  },
+  {
+    "name": "kbd",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/kbd.js",
+    "description": "The Kbd component — an inline keyboard-key cap (`<kbd>`). Colorless. Sits on the base-100 surface with a thicker bottom border for a subtle \"keycap\" depth. Everything is sized in `em` so it tracks the surrounding text; the size modifiers just re-scale that `em` base. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "kbd",
+    "classes": [
+      "kbd",
+      "kbd-lg",
+      "kbd-md",
+      "kbd-sm",
+      "kbd-xl",
+      "kbd-xs"
+    ]
+  },
+  {
+    "name": "label",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/label.js",
+    "description": "The Label components — a static `.label` and an animated `.floating-label`. Colorless. `.label` is a plain inline caption for a control (muted, icon-friendly). Use it above an input or inside a `.join` as an addon. `.floating-label` wraps a control + a `<span>` caption that sits inside the field at rest and floats up onto the top border once the field is focused or filled. It keys off `:placeholder-shown`, so the control MUST carry a placeholder (even a single space) for the \"filled\" state to resolve. Works whether the `<span>` comes before or after the control (`:has()` handles the ordering), and `select`/textarea are treated as always-floated when they hold a value. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "label",
+    "classes": [
+      "floating-label",
+      "label",
+      "label-control",
+      "label-required"
+    ],
+    "compoundSelectors": [
+      ".floating-label:has(> input:not(:placeholder-shown)) > span",
+      ".floating-label:has(> textarea:not(:placeholder-shown)) > span",
+      ".floating-label:has(> select) > span",
+      ".floating-label:focus-within > span"
+    ]
+  },
+  {
+    "name": "lightbox",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/lightbox.js",
+    "description": "Lightbox — a full-viewport image viewer (Base UI Dialog: focus trap, scroll lock, Escape-to-close). Chrome is deliberately theme-invariant (always a near-black scrim + white controls, like a photo viewer or video player) so it reads consistently regardless of the page's light/dark theme; only the focus ring uses `--color-primary`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "lightbox-",
+    "rootNote": "No bare `.lightbox` class exists — this family is only its `lightbox-*` parts.",
+    "classes": [
+      "lightbox-backdrop",
+      "lightbox-caption",
+      "lightbox-close",
+      "lightbox-counter",
+      "lightbox-image",
+      "lightbox-nav",
+      "lightbox-nav-next",
+      "lightbox-nav-prev",
+      "lightbox-popup"
+    ]
+  },
+  {
+    "name": "link",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/link.js",
+    "description": "The Link component — a styled inline anchor. Orthogonal color model, like Badge: a color class (`.link-primary`) only sets `--link-accent`; the base `.link` reads it for its color. By default a link is underlined and inherits the surrounding text color; `-hover` defers the underline until hover. A visible focus ring is always drawn for keyboard use. @param {string[]} colors - color names to generate `.link-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "link",
+    "classes": [
+      "link",
+      "link-accent",
+      "link-error",
+      "link-hover",
+      "link-info",
+      "link-neutral",
+      "link-primary",
+      "link-secondary",
+      "link-success",
+      "link-warning"
+    ],
+    "colorVariants": [
+      "link-primary",
+      "link-secondary",
+      "link-accent",
+      "link-neutral",
+      "link-info",
+      "link-success",
+      "link-warning",
+      "link-error"
+    ]
+  },
+  {
+    "name": "list",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/list.js",
+    "description": "The List component — a vertical list of rows. Colorless. A base-100 surface whose `.list-row`s are flex rows separated by hairline rules. Put `.list-col-grow` on the cell that should take the free space (title/body); leading/trailing cells (icon, avatar, actions) size to content. `.list-title` is a small muted section heading. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "list",
+    "classes": [
+      "list",
+      "list-col-grow",
+      "list-hover",
+      "list-row",
+      "list-title"
+    ]
+  },
+  {
+    "name": "loading",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/loading.js",
+    "description": "The Loading component — a spinner for in-progress states. Colorless: a ring with one transparent edge spun by the shared `silica-spin` keyframes, drawn in `currentColor` so it takes on the surrounding text color (or a `text-*` utility). Sizes xs–xl. It stays spinning under `prefers-reduced-motion` on purpose — it's an essential activity signal, not decoration. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "loading",
+    "classes": [
+      "loading",
+      "loading-lg",
+      "loading-md",
+      "loading-sm",
+      "loading-xl",
+      "loading-xs"
+    ]
+  },
+  {
+    "name": "mask",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/mask.js",
+    "description": "The Mask component — clips an element (or its content) to a shape. Colorless. Polygonal shapes use `clip-path: polygon()` with percentage points (so they scale with the element and never depend on an SVG being decoded); the circle uses `clip-path: circle()`. Only the two curved shapes that a polygon can't express — `squircle` and `heart` — fall back to a `mask-image` data-URI sized with `mask-size: contain`. All of these are broadly supported. Apply `.mask` + a shape class directly to an `<img>`, or to a sized container whose content should be clipped. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "mask",
+    "classes": [
+      "mask",
+      "mask-circle",
+      "mask-decagon",
+      "mask-diamond",
+      "mask-heart",
+      "mask-hexagon",
+      "mask-hexagon-2",
+      "mask-parallelogram",
+      "mask-pentagon",
+      "mask-squircle",
+      "mask-star",
+      "mask-star-2",
+      "mask-triangle",
+      "mask-triangle-2",
+      "mask-triangle-3",
+      "mask-triangle-4"
+    ]
+  },
+  {
+    "name": "menu",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/menu.js",
+    "description": "The Menu component — a styled vertical list of links/actions (sidebars, and later the contents of a dropdown/popover). Colorless surface. Items are the `<a>`/`<button>` inside each `<li>`: padded, field-rounded, hover-washed with base-200. The active item (`.menu-active` or `[aria-current=\"page\"]`) gets a soft primary tint. A `.menu-title` is a muted section label. Behavior (open/close of an enclosing popover) is NOT here — that arrives with the Base UI layer; this is the list. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "menu",
+    "classes": [
+      "menu",
+      "menu-title"
+    ]
+  },
+  {
+    "name": "menubar",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/menubar.js",
+    "description": "The Menubar component — a horizontal bar of menus (File / Edit / View …), like a desktop-app menu bar. Behavior is Base UI's Menubar + Menu (arrow between menus, hover to switch once one is open, roving focus); Silica styles the bar and its triggers. The menus themselves reuse the `.dropdown*` popup surface so every menu in the system looks identical. Colorless. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "menubar",
+    "classes": [
+      "menubar",
+      "menubar-trigger"
+    ]
+  },
+  {
+    "name": "metadata-list",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/metadata-list.js",
+    "description": "MetadataList — a key/value property list (a real `<dl>`; `MetadataItem` renders a `<dt>`+`<dd>` pair as direct grid children, so the whole list is one two-column CSS Grid — no wrapper divs needed per row). `data-layout=\"row\"` (default): label left, value right-aligned, one row each. `data-layout=\"stack\"`: label above value, single column — for narrow cards/sidebars. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "metadata-list",
+    "classes": [
+      "metadata-list",
+      "metadata-list-label",
+      "metadata-list-value"
+    ],
+    "compoundSelectors": [
+      ".metadata-list dt:last-of-type",
+      ".metadata-list dd:last-of-type",
+      ".metadata-list[data-layout=\"stack\"]",
+      ".metadata-list[data-layout=\"stack\"] .metadata-list-label",
+      ".metadata-list[data-layout=\"stack\"] .metadata-list-value"
+    ]
+  },
+  {
+    "name": "meter",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/meter.js",
+    "description": "The Meter component — a static measurement within a known range. Distinct from Progress: a meter shows a fixed reading (disk usage, score, capacity), not the advancement of a task. Same div-based track/indicator as Progress (Base UI's Meter sizes the indicator's width from the value; we just paint it), and the same orthogonal color model — a color class only sets `--meter-fill`, the neutral track stays put so the reading reads clearly. A `.meter-header` row pairs an optional `.meter-label` with a `.meter-value`. @param {string[]} colors - color names to generate `.meter-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "meter",
+    "classes": [
+      "meter",
+      "meter-accent",
+      "meter-error",
+      "meter-header",
+      "meter-indicator",
+      "meter-info",
+      "meter-label",
+      "meter-lg",
+      "meter-md",
+      "meter-neutral",
+      "meter-primary",
+      "meter-secondary",
+      "meter-sm",
+      "meter-success",
+      "meter-track",
+      "meter-value",
+      "meter-warning",
+      "meter-xl",
+      "meter-xs"
+    ],
+    "colorVariants": [
+      "meter-primary",
+      "meter-secondary",
+      "meter-accent",
+      "meter-neutral",
+      "meter-info",
+      "meter-success",
+      "meter-warning",
+      "meter-error"
+    ],
+    "compoundSelectors": [
+      ".meter-xs .meter-track",
+      ".meter-sm .meter-track",
+      ".meter-md .meter-track",
+      ".meter-lg .meter-track",
+      ".meter-xl .meter-track"
+    ]
+  },
+  {
+    "name": "mockup",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/mockup.js",
+    "description": "The Mockup components — frames for showcasing UI and code in docs and marketing pages. Colorless (the code frame paints itself with the neutral surface). Three independent frames: .mockup-window — an app window with three faux traffic-light dots .mockup-browser — a window plus a toolbar that holds a faux address bar .mockup-code — a dark terminal/code block; each `<pre data-prefix>` line renders its prefix (`$`, `>`, a line number…) The window titlebar and its dots are drawn with pseudo-elements so authors just wrap their content — no chrome markup required. The browser toolbar is real markup because it carries a URL. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "mockup-",
+    "rootNote": "No bare `.mockup` class exists — this family is only its `mockup-*` parts.",
+    "classes": [
+      "mockup-browser",
+      "mockup-browser-input",
+      "mockup-browser-toolbar",
+      "mockup-code",
+      "mockup-phone",
+      "mockup-phone-display",
+      "mockup-window"
+    ]
+  },
+  {
+    "name": "multi-select",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/multi-select.js",
+    "description": "MultiSelect — a searchable, multi-value listbox (Base UI Combobox in `multiple` mode, using its dedicated `Chip`/`Chips`/`ChipRemove` parts). The outer `.multi-select` is the bordered field (looks and focuses like `.tag-input`): a flex-wrapping box holding removable `.multi-select-chip`s and a borderless `.multi-select-input` that grows to fill the row, plus trailing clear (×) / open (chevron) buttons reusing the Combobox icon-button treatment. The dropdown list REUSES the Select surface (`.select-popup`, `.select-item`, `.select-item-indicator`, `.combobox-empty`) so every listbox in the system reads identically — this module only adds the chip field. Colored: `.multi-select-<name>` sets `--multi-select-accent` (focus ring, chip fill/text, focused border) and `--multi-select-border` (a softened tint of the same color for the resting border), matching the other field-tier controls. @param {string[]} colors - color names to generate `.multi-select-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "multi-select",
+    "classes": [
+      "multi-select",
+      "multi-select-accent",
+      "multi-select-chip",
+      "multi-select-chip-remove",
+      "multi-select-chips",
+      "multi-select-clear",
+      "multi-select-error",
+      "multi-select-info",
+      "multi-select-input",
+      "multi-select-lg",
+      "multi-select-md",
+      "multi-select-neutral",
+      "multi-select-primary",
+      "multi-select-secondary",
+      "multi-select-sm",
+      "multi-select-success",
+      "multi-select-trigger",
+      "multi-select-warning",
+      "multi-select-xl",
+      "multi-select-xs"
+    ],
+    "colorVariants": [
+      "multi-select-primary",
+      "multi-select-secondary",
+      "multi-select-accent",
+      "multi-select-neutral",
+      "multi-select-info",
+      "multi-select-success",
+      "multi-select-warning",
+      "multi-select-error"
+    ],
+    "compoundSelectors": [
+      ".multi-select:focus-within",
+      ".multi-select[data-disabled]"
+    ]
+  },
+  {
+    "name": "navbar",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/navbar.js",
+    "description": "The Navbar component — a horizontal top bar with start / center / end slots. Colorless. A flex row painted with the base surface. The three slots use `flex: 1` on start/end and `flex-shrink: 0` on center, so a centered slot stays optically centered whether or not the start/end content is balanced — and it degrades gracefully to a simple two-side bar when center is omitted. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "navbar",
+    "classes": [
+      "navbar",
+      "navbar-center",
+      "navbar-end",
+      "navbar-start"
+    ]
+  },
+  {
+    "name": "navigation-menu",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/navigation-menu.js",
+    "description": "The NavigationMenu component — a site-navigation bar whose items can open rich dropdown panels (a \"mega menu\"). Behavior is Base UI's NavigationMenu (hover/ click to open, a single shared animated viewport that resizes between panels, keyboard nav); Silica styles the bar, triggers, links, the floating popup, and the clipping viewport. Colorless. Base UI moves the active item's `.navigation-menu-content` into the shared `.navigation-menu-viewport` and exposes the target size as `--popup-width` / `--popup-height`, which the popup animates toward — so switching panels slides + resizes smoothly. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "navigation-menu",
+    "classes": [
+      "navigation-menu",
+      "navigation-menu-content",
+      "navigation-menu-icon",
+      "navigation-menu-link",
+      "navigation-menu-list",
+      "navigation-menu-popup",
+      "navigation-menu-positioner",
+      "navigation-menu-trigger",
+      "navigation-menu-viewport"
+    ]
+  },
+  {
+    "name": "number-field",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/number-field.js",
+    "description": "The NumberField component — a stepper input (Base UI behavior). Colorless. A bordered group with a decrement button, a centered numeric input, and an increment button. Base UI owns the value clamping, keyboard stepping, and scrub interaction; we paint the group. The native spinner is hidden (the buttons replace it). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "number-field",
+    "classes": [
+      "number-field",
+      "number-field-button",
+      "number-field-decrement",
+      "number-field-group",
+      "number-field-increment",
+      "number-field-input"
+    ]
+  },
+  {
+    "name": "outline",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/outline.js",
+    "description": "Outline — a scroll-spy table of contents. A vertical rail (`.outline-list`'s border) with one link per heading; the link nearest the active reading position gets a solid accent rail segment + accent text (`[data-active]`, set by the React layer's scroll tracking — this module is pure paint). Colorless: the active state reads `--color-primary`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "outline",
+    "classes": [
+      "outline",
+      "outline-link",
+      "outline-list"
+    ]
+  },
+  {
+    "name": "overflow-list",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/overflow-list.js",
+    "description": "OverflowList — a single-row list that measures available width and folds whatever doesn't fit into a trailing \"+N\" indicator. The React layer does the measuring (a hidden off-screen row renders every item once to read its real width, ResizeObserver drives recompute); this only paints the visible row, the hidden measurer, and the default \"+N\" badge + its popup. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "overflow-list",
+    "classes": [
+      "overflow-list",
+      "overflow-list-badge",
+      "overflow-list-measure",
+      "overflow-list-popup"
+    ]
+  },
+  {
+    "name": "overlay",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/overlay.js",
+    "description": "Overlay — a contextual scrim over a media element (image/video/card), presenting info or actions specific to what's behind it. Distinct from `Lightbox` (a full-viewport viewer) and `Dialog` (an interruptive modal) — this stays anchored to its media, either always visible or revealed on hover/focus (`data-reveal=\"hover\"`), for gallery grids and media cards. Colorless: the scrim is a black gradient/wash + white text, independent of the page theme (matches media conventions — captions read over any photo). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "overlay",
+    "classes": [
+      "overlay",
+      "overlay-scrim"
+    ],
+    "compoundSelectors": [
+      ".overlay-scrim :where(h1, h2, h3, h4, h5, h6, p)",
+      ".overlay-scrim[data-placement=\"bottom\"]",
+      ".overlay-scrim[data-placement=\"top\"]",
+      ".overlay-scrim[data-placement=\"full\"]",
+      ".overlay[data-reveal=\"hover\"] .overlay-scrim",
+      ".overlay[data-reveal=\"hover\"]:hover .overlay-scrim, .overlay[data-reveal=\"hover\"]:focus-within .overlay-scrim"
+    ]
+  },
+  {
+    "name": "pagination",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/pagination.js",
+    "description": "The Pagination component — a row of page controls. Colorless base with an orthogonal accent for the active page. The React wrapper computes the page range (with ellipses) and renders `.pagination-item` buttons plus prev/next; the active page gets `.pagination-item-active`. @param {string[]} colors - color names to generate `.pagination-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "pagination",
+    "classes": [
+      "pagination",
+      "pagination-accent",
+      "pagination-ellipsis",
+      "pagination-error",
+      "pagination-info",
+      "pagination-item",
+      "pagination-item-active",
+      "pagination-lg",
+      "pagination-md",
+      "pagination-neutral",
+      "pagination-primary",
+      "pagination-secondary",
+      "pagination-sm",
+      "pagination-success",
+      "pagination-warning",
+      "pagination-xl",
+      "pagination-xs"
+    ],
+    "colorVariants": [
+      "pagination-primary",
+      "pagination-secondary",
+      "pagination-accent",
+      "pagination-neutral",
+      "pagination-info",
+      "pagination-success",
+      "pagination-warning",
+      "pagination-error"
+    ]
+  },
+  {
+    "name": "phone-input",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/phone-input.js",
+    "description": "The PhoneInput component's only bespoke rule — a fixed, compact width for the country-code `Select` trigger when it's joined (via `Join`) to the national-number `Input`. Everything else is composed from `Select`, `Input`, and `Join`, which is why this module is so small. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "phone-input-country",
+    "classes": [
+      "phone-input-country"
+    ]
+  },
+  {
+    "name": "pin-input",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/pin-input.js",
+    "description": "The PinInput component — a row of single-character field-tier cells for OTP / verification-code entry. Each cell shares Input's field tier (`--radius-field`, `--size-field`) so it lines up with same-size Inputs; a color class (`.pin-input-cell-primary`, …) sets only `--pin-input-accent`, matching Input/Select's orthogonal-color convention. @param {string[]} colors - color names to generate `.pin-input-cell-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "pin-input",
+    "classes": [
+      "pin-input",
+      "pin-input-cell",
+      "pin-input-cell-accent",
+      "pin-input-cell-error",
+      "pin-input-cell-info",
+      "pin-input-cell-lg",
+      "pin-input-cell-md",
+      "pin-input-cell-neutral",
+      "pin-input-cell-primary",
+      "pin-input-cell-secondary",
+      "pin-input-cell-sm",
+      "pin-input-cell-success",
+      "pin-input-cell-warning",
+      "pin-input-cell-xl",
+      "pin-input-cell-xs"
+    ]
+  },
+  {
+    "name": "popover",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/popover.js",
+    "description": "The Popover surface — the visual half of the Base-UI-backed Popover (click-triggered floating panel). Base UI owns positioning/focus/dismissal; this styles the `.popover` panel + optional arrow + title/description. Light base-100 surface (unlike the dark Tooltip). The arrow is OFF by default (shadcn-style) — a bordered arrow on a light surface is fiddly to make seamless, and most popovers read cleaner without one; opt in with `arrow`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "popover",
+    "classes": [
+      "popover",
+      "popover-arrow",
+      "popover-description",
+      "popover-title"
+    ],
+    "compoundSelectors": [
+      ".popover-arrow[data-side=\"top\"]",
+      ".popover-arrow[data-side=\"bottom\"]",
+      ".popover-arrow[data-side=\"left\"]",
+      ".popover-arrow[data-side=\"right\"]"
+    ]
+  },
+  {
+    "name": "power-search",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/power-search.js",
+    "description": "PowerSearch — a structured search field: free text plus removable `field: value` filter chips, added via a field-picker → value-picker popover flow. The popup content reuses `.select-popup`-style chrome implicitly (it's rendered through `Popover`, styled here as `power-search-*` lists) so it still reads as part of the same listbox family. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "power-search",
+    "classes": [
+      "power-search",
+      "power-search-add",
+      "power-search-chip",
+      "power-search-chip-field",
+      "power-search-chip-remove",
+      "power-search-chip-trigger",
+      "power-search-field-item",
+      "power-search-field-list",
+      "power-search-input",
+      "power-search-option-list",
+      "power-search-value-form",
+      "power-search-value-picker",
+      "power-search-value-picker-back",
+      "power-search-value-picker-label"
+    ],
+    "compoundSelectors": [
+      ".power-search:focus-within"
+    ]
+  },
+  {
+    "name": "preview-card",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/preview-card.js",
+    "description": "The PreviewCard surface — a hover/focus-triggered rich preview (link hovercard). Base UI's PreviewCard owns the open-on-hover behavior, focus, and positioning; this styles the `.preview-card` panel and its optional arrow. Same light base-100 surface + scale-in animation as Popover, but roomier and meant to hold freeform content (an avatar, heading, blurb, stats). Arrow is OFF by default (cleaner without one on a light bordered surface); opt in with the `arrow` prop. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "preview-card",
+    "classes": [
+      "preview-card",
+      "preview-card-arrow"
+    ],
+    "compoundSelectors": [
+      ".preview-card-arrow[data-side=\"top\"]",
+      ".preview-card-arrow[data-side=\"bottom\"]",
+      ".preview-card-arrow[data-side=\"left\"]",
+      ".preview-card-arrow[data-side=\"right\"]"
+    ]
+  },
+  {
+    "name": "progress",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/progress.js",
+    "description": "The Progress component — a horizontal bar showing completion of a task. Deliberately div-based (`.progress` track + `.progress-bar` fill), NOT a styled native `<progress>`. The native element paints its fill through engine-specific pseudo-elements (`::-webkit-progress-value` vs `::-moz-progress-bar`) that render differently across browsers and fight you on the indeterminate state. Two nested divs render pixel-identically in every engine and give full control over the indeterminate animation and radius. Orthogonal color model, same as the rest of the system: a color class (`.progress-success`) only sets `--progress-fill`; the track stays neutral so the filled portion reads clearly against it. Height scales with the shared `--size-field` density lever, so an `-sm` progress lines up with `-sm` fields. Determinate: set the bar's inline `width`. Indeterminate: add `.progress-indeterminate` and let a sliding segment animate (a gentle opacity pulse under `prefers-reduced-motion`). Keyframes live in theme.js. @param {string[]} colors - color names to generate `.progress-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "progress",
+    "classes": [
+      "progress",
+      "progress-accent",
+      "progress-bar",
+      "progress-error",
+      "progress-indeterminate",
+      "progress-info",
+      "progress-label",
+      "progress-label-row",
+      "progress-lg",
+      "progress-md",
+      "progress-neutral",
+      "progress-primary",
+      "progress-secondary",
+      "progress-sm",
+      "progress-success",
+      "progress-value",
+      "progress-warning",
+      "progress-wrapper",
+      "progress-xl",
+      "progress-xs"
+    ],
+    "colorVariants": [
+      "progress-primary",
+      "progress-secondary",
+      "progress-accent",
+      "progress-neutral",
+      "progress-info",
+      "progress-success",
+      "progress-warning",
+      "progress-error"
+    ]
+  },
+  {
+    "name": "prose",
+    "package": "@wizeworks/silicaui",
+    "category": "Typography",
+    "sourceFile": "silicaui/src/components/prose.js",
+    "description": "The Prose component — typographic defaults for a block of rich/markdown content (Silica's answer to `@tailwindcss/typography`). Tailwind's Preflight strips headings, lists, quotes, code, and tables to nothing (it won't impose a look); this puts a considered, theme-aware look back — but ONLY inside `.prose`, so it never leaks into the app chrome. Every color is a Silica token (base-content text, primary links, base-200/300 surfaces + rules), so it tracks the active theme automatically. Colorless in the variant sense (no per-color classes). Inner sizing is in `em`, so the size modifiers (`-sm`/`-lg`/`-xl`) rescale the whole block by changing one root font-size. Caps at `65ch` for readability — add `max-w-none` to remove. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "prose",
+    "classes": [
+      "prose",
+      "prose-lg",
+      "prose-md",
+      "prose-sm",
+      "prose-xl",
+      "prose-xs"
+    ]
+  },
+  {
+    "name": "radial-progress",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/radial-progress.js",
+    "description": "The RadialProgress component — a circular progress ring with a centered label. Colorless accent (defaults to primary). Drawn with a single `conic-gradient` (filled arc + base-300 track) and a `::before` inner disc that punches out the centre to leave a ring of `--thickness`. No mask, no SVG — `conic-gradient` ships across every engine (2020+). The `--value` (0–100), `--size`, and `--thickness` custom properties are set inline by the React wrapper. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "radial-progress",
+    "classes": [
+      "radial-progress"
+    ]
+  },
+  {
+    "name": "radio-group",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/radio-group.js",
+    "description": "The RadioGroup layout — a stack of radio options managed as one control. Colorless. Just the layout + option row; the radios themselves are Silica `.radio` inputs (native, so the browser gives arrow-key navigation within the shared `name` for free). `.radio-option` is the clickable `<label>` pairing a radio with its caption. `[data-orientation=\"horizontal\"]` lays them in a row. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "radio-",
+    "rootNote": "No bare `.radio` class exists — this family is only its `radio-*` parts.",
+    "classes": [
+      "radio-group",
+      "radio-option"
+    ]
+  },
+  {
+    "name": "radio",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/radio.js",
+    "description": "The Radio component — a native `<input type=\"radio\">` restyled. Selector-tier control: scales with `--size-selector`, always a circle. A color class (`.radio-primary`) sets only `--radio-accent` (checked fill + border + focus ring). The checked \"dot\" is drawn with an inset box-shadow ring of the surface color — reliable across browsers and needs no pseudo-element. @param {string[]} colors - color names to generate `.radio-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "radio",
+    "classes": [
+      "radio",
+      "radio-accent",
+      "radio-error",
+      "radio-info",
+      "radio-lg",
+      "radio-md",
+      "radio-neutral",
+      "radio-primary",
+      "radio-secondary",
+      "radio-sm",
+      "radio-success",
+      "radio-warning",
+      "radio-xl",
+      "radio-xs"
+    ],
+    "colorVariants": [
+      "radio-primary",
+      "radio-secondary",
+      "radio-accent",
+      "radio-neutral",
+      "radio-info",
+      "radio-success",
+      "radio-warning",
+      "radio-error"
+    ]
+  },
+  {
+    "name": "range",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/range.js",
+    "description": "The Range component — a slider (Base UI behavior). Colorless track (base-300) with an orthogonal accent for the filled indicator and thumb. Base UI positions the indicator and thumb; we paint them. The thumb grows a soft focus/drag ring (`[data-dragging]` / `:focus-visible`). @param {string[]} colors - color names to generate `.range-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "range",
+    "classes": [
+      "range",
+      "range-accent",
+      "range-control",
+      "range-error",
+      "range-indicator",
+      "range-info",
+      "range-neutral",
+      "range-primary",
+      "range-secondary",
+      "range-success",
+      "range-thumb",
+      "range-track",
+      "range-warning"
+    ],
+    "colorVariants": [
+      "range-primary",
+      "range-secondary",
+      "range-accent",
+      "range-neutral",
+      "range-info",
+      "range-success",
+      "range-warning",
+      "range-error"
+    ],
+    "compoundSelectors": [
+      ".range[data-disabled] .range-thumb"
+    ]
+  },
+  {
+    "name": "rating",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/rating.js",
+    "description": "The Rating component — a row of star buttons. Colorless base with an orthogonal accent (`.rating-warning` sets the fill). Filled/empty state is driven by a `data-filled` attribute the React wrapper sets per star (so hover-preview and value both work). Icons are hard-sized so an unsized `<svg>` can't collapse or balloon across browsers. @param {string[]} colors - color names to generate `.rating-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "rating",
+    "classes": [
+      "rating",
+      "rating-accent",
+      "rating-error",
+      "rating-info",
+      "rating-item",
+      "rating-lg",
+      "rating-md",
+      "rating-neutral",
+      "rating-primary",
+      "rating-readonly",
+      "rating-secondary",
+      "rating-sm",
+      "rating-success",
+      "rating-warning",
+      "rating-xl",
+      "rating-xs"
+    ],
+    "colorVariants": [
+      "rating-primary",
+      "rating-secondary",
+      "rating-accent",
+      "rating-neutral",
+      "rating-info",
+      "rating-success",
+      "rating-warning",
+      "rating-error"
+    ],
+    "compoundSelectors": [
+      ".rating-readonly .rating-item"
+    ]
+  },
+  {
+    "name": "resizable-panels",
+    "package": "@wizeworks/silicaui",
+    "category": "wrapper",
+    "sourceFile": "silicaui/src/components/resizable-panels.js",
+    "description": "ResizablePanels chrome — the visual surface for react-resizable-panels. react-resizable-panels owns the layout + drag math (it sets flex direction, panel sizes, and the handle's `data-resize-handle-state`); this styles the bordered group frame and the resize handle (a thin bar with a centered grip that lights up on hover/drag). Orientation comes from the group's `data-panel-group-direction`, so one rule set covers both axes. The React wrappers (in the optional `@wizeworks/@wizeworks/silicaui-panels` package) hang these classes on the library's components. Colorless: the hovered/dragged handle + grip read `--color-primary`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "resizable-",
+    "rootNote": "No bare `.resizable` class exists — this family is only its `resizable-*` parts.",
+    "classes": [
+      "resizable-group",
+      "resizable-handle",
+      "resizable-handle-grip",
+      "resizable-panel"
+    ],
+    "compoundSelectors": [
+      ".resizable-group[data-panel-group-direction=\"horizontal\"] > .resizable-handle",
+      ".resizable-group[data-panel-group-direction=\"vertical\"] > .resizable-handle",
+      ".resizable-handle[data-resize-handle-state=\"hover\"], .resizable-handle[data-resize-handle-state=\"drag\"]",
+      ".resizable-group[data-panel-group-direction=\"horizontal\"] > .resizable-handle .resizable-handle-grip",
+      ".resizable-group[data-panel-group-direction=\"vertical\"] > .resizable-handle .resizable-handle-grip",
+      ".resizable-handle[data-resize-handle-state=\"hover\"] .resizable-handle-grip, .resizable-handle[data-resize-handle-state=\"drag\"] .resizable-handle-grip"
+    ]
+  },
+  {
+    "name": "rich-text-editor",
+    "package": "@wizeworks/silicaui",
+    "category": "wrapper",
+    "sourceFile": "silicaui/src/components/rich-text-editor.js",
+    "description": "RichTextEditor chrome — the visual shell around a TipTap editor. TipTap (ProseMirror) owns all editing behavior; this styles the frame: a bordered box, a wrapping toolbar of toggle buttons (active state reads `--color-primary`), and the editable content surface (`.ProseMirror`) with sensible prose typography + a placeholder. The React `<RichTextEditor>` (in the optional `@wizeworks/@wizeworks/silicaui-editor` package) drives TipTap and hangs these classes on the markup. Colorless: the active/pressed toolbar button reads `--color-primary`, same orthogonal-accent approach as the rest of Silica. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "rich-text-editor",
+    "classes": [
+      "ProseMirror",
+      "is-editor-empty",
+      "rich-text-editor",
+      "rich-text-editor-btn",
+      "rich-text-editor-content",
+      "rich-text-editor-sep",
+      "rich-text-editor-toolbar"
+    ],
+    "compoundSelectors": [
+      ".rich-text-editor-btn[data-active]",
+      ".rich-text-editor-content h1",
+      ".rich-text-editor-content h2",
+      ".rich-text-editor-content h3",
+      ".rich-text-editor-content ul",
+      ".rich-text-editor-content ol",
+      ".rich-text-editor-content li > * + *",
+      ".rich-text-editor-content blockquote",
+      ".rich-text-editor-content a",
+      ".rich-text-editor-content code",
+      ".rich-text-editor-content pre",
+      ".rich-text-editor-content pre code",
+      ".rich-text-editor-content hr",
+      ".rich-text-editor-content .ProseMirror p.is-editor-empty:first-child::before",
+      ".rich-text-editor[data-disabled]"
+    ]
+  },
+  {
+    "name": "scroll-area",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/scroll-area.js",
+    "description": "The ScrollArea component — a panel with custom, overlay scrollbars. Colorless. Behavior is Base UI's ScrollArea (native scrolling on the Viewport, synced decorative Scrollbar/Thumb overlays); Silica paints the surface. Base UI sizes the thumb inline from the scroll ratio, so we only style appearance and the cross-axis fill. The scrollbars overlay the content (they don't take layout width) and darken on hover. Structure: `.scroll-area` (root) › `.scroll-area-viewport` › `.scroll-area-content`, plus a `.scroll-area-scrollbar` (per orientation) wrapping a `.scroll-area-thumb`, and a `.scroll-area-corner`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "scroll-area",
+    "classes": [
+      "scroll-area",
+      "scroll-area-content",
+      "scroll-area-corner",
+      "scroll-area-scrollbar",
+      "scroll-area-thumb",
+      "scroll-area-viewport"
+    ],
+    "compoundSelectors": [
+      ".scroll-area:hover .scroll-area-scrollbar",
+      ".scroll-area-scrollbar[data-orientation=\"vertical\"] .scroll-area-thumb",
+      ".scroll-area-scrollbar[data-orientation=\"horizontal\"] .scroll-area-thumb"
+    ]
+  },
+  {
+    "name": "segment-field",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/segment-field.js",
+    "description": "The segmented-field chrome shared by `DateInput`, `TimeInput`, `DateTimeInput`, and `DateRangeInput` — a bordered box (looks and focuses like `.input`) holding individually-focusable segment cells (`role=\"spinbutton\"`, e.g. mm / dd / yyyy) separated by literal text (the \"/\" or \":\" the locale's own format inserts). Colored: `.segment-field-<name>` sets `--segment-field-accent`, read by the focus ring and the focused-segment highlight. @param {string[]} colors - color names to generate `.segment-field-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "segment-field",
+    "classes": [
+      "date-range-input",
+      "date-range-input-sep",
+      "segment-field",
+      "segment-field-accent",
+      "segment-field-error",
+      "segment-field-info",
+      "segment-field-lg",
+      "segment-field-literal",
+      "segment-field-md",
+      "segment-field-neutral",
+      "segment-field-primary",
+      "segment-field-secondary",
+      "segment-field-segment",
+      "segment-field-sm",
+      "segment-field-success",
+      "segment-field-warning",
+      "segment-field-xl",
+      "segment-field-xs"
+    ],
+    "colorVariants": [
+      "segment-field-primary",
+      "segment-field-secondary",
+      "segment-field-accent",
+      "segment-field-neutral",
+      "segment-field-info",
+      "segment-field-success",
+      "segment-field-warning",
+      "segment-field-error"
+    ],
+    "compoundSelectors": [
+      ".segment-field:focus-within",
+      ".segment-field[data-disabled]"
+    ]
+  },
+  {
+    "name": "select-menu",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/select-menu.js",
+    "description": "The Select (listbox) surface — the visual half of the Base-UI-backed `Select`, a fully-styled, keyboard-driven, optionally-multi listbox. Distinct from the native-`<select>` `.select` field (see `select.js` / `NativeSelect`): the TRIGGER here reuses `.select` (and its `.select-<color>` / `.select-<size>` modifiers) for pixel-parity, then these sub-parts swap the CSS caret for a flex chevron `Icon` and add the portalled popup, items, groups, and separators. Base UI owns positioning + roving focus + typeahead + dismissal; this paints the surface. Items highlight via `[data-highlighted]` (keyboard OR pointer), mark the current choice via `[data-selected]`, and dim via `[data-disabled]`. The popup width tracks the trigger through `--anchor-width`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "select-",
+    "rootNote": "No bare `.select` class exists — this family is only its `select-*` parts.",
+    "classes": [
+      "select-group-label",
+      "select-icon",
+      "select-item",
+      "select-item-indicator",
+      "select-placeholder",
+      "select-popup",
+      "select-scroll-arrow",
+      "select-separator",
+      "select-trigger",
+      "select-value"
+    ],
+    "compoundSelectors": [
+      ".select-trigger[data-placeholder] .select-placeholder",
+      ".select-trigger[data-popup-open] .select-icon svg"
+    ]
+  },
+  {
+    "name": "select",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/select.js",
+    "description": "The Select component — a native `<select>` restyled to the field tier. Shares Input's tier exactly (`--radius-field`, `--size-field`), so a Select lines up pixel-for-pixel with same-size Inputs and Buttons. A color class (`.select-primary`, …) sets `--select-accent`, coloring the border + focus ring; the default shows a neutral border and a primary focus ring. The dropdown chevron comes from the shared field-affordance contract (`lib/field-affordance.js`), so this caret is the same mark, ink, and trailing inset as the listbox trigger's chevron and the Combobox open button. It's drawn with `linear-gradient`s rather than an SVG because a native `<select>` can carry neither a child nor a reliable pseudo-element, and an SVG data-URI is a separate document that can't resolve a CSS var — gradients take a live color, so the mark still follows the theme. `appearance: none` removes the platform arrow. @param {string[]} colors - color names to generate `.select-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "select",
+    "classes": [
+      "select",
+      "select-accent",
+      "select-error",
+      "select-info",
+      "select-lg",
+      "select-md",
+      "select-neutral",
+      "select-primary",
+      "select-secondary",
+      "select-sm",
+      "select-success",
+      "select-warning",
+      "select-xl",
+      "select-xs"
+    ],
+    "colorVariants": [
+      "select-primary",
+      "select-secondary",
+      "select-accent",
+      "select-neutral",
+      "select-info",
+      "select-success",
+      "select-warning",
+      "select-error"
+    ]
+  },
+  {
+    "name": "selection-list",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/selection-list.js",
+    "description": "The SelectionList component — a selectable list of rows (single- or multi-select), each with a leading Checkbox/Radio indicator. Colorless: the selected row reads `--color-primary` for its tint, matching `tree-view.js`'s convention. The indicator itself is a real `.checkbox`/ `.radio` element (@wizeworks/@wizeworks/silicaui-react reuses those components directly), so this module only styles the row/label/description chrome around it. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "selection-list",
+    "classes": [
+      "selection-list",
+      "selection-list-item",
+      "selection-list-item-body",
+      "selection-list-item-description",
+      "selection-list-item-icon",
+      "selection-list-item-label"
+    ],
+    "compoundSelectors": [
+      ".selection-list-item[aria-selected=\"true\"]",
+      ".selection-list-item:focus-visible",
+      ".selection-list-item[aria-disabled=\"true\"]"
+    ]
+  },
+  {
+    "name": "sidebar",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/sidebar.js",
+    "description": "The Sidebar component — a persistent layout nav panel, distinct from `Drawer` (which overlays content and is meant to be dismissed). A Sidebar never overlays: it collapses IN PLACE to a narrow icon rail via `[data-collapsed]`, driven by `--sidebar-w`/`--sidebar-w-collapsed`. Same orthogonal-accent design as `dock.js`: a color class only sets `--sidebar-accent` (the active-item tint); everything else reads it with a fallback to `--color-primary`. `.sidebar-header-brand` is an optional wrapper for a logo/`Wordmark` inside `.sidebar-header` — it auto-hides when collapsed so only the trigger remains. @param {string[]} colors - color names to generate `.sidebar-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "sidebar",
+    "classes": [
+      "sidebar",
+      "sidebar-accent",
+      "sidebar-content",
+      "sidebar-error",
+      "sidebar-footer",
+      "sidebar-group",
+      "sidebar-group-label",
+      "sidebar-header",
+      "sidebar-header-brand",
+      "sidebar-info",
+      "sidebar-item",
+      "sidebar-item-icon",
+      "sidebar-item-label",
+      "sidebar-item-trailing",
+      "sidebar-neutral",
+      "sidebar-primary",
+      "sidebar-secondary",
+      "sidebar-success",
+      "sidebar-trigger",
+      "sidebar-warning"
+    ],
+    "colorVariants": [
+      "sidebar-primary",
+      "sidebar-secondary",
+      "sidebar-accent",
+      "sidebar-neutral",
+      "sidebar-info",
+      "sidebar-success",
+      "sidebar-warning",
+      "sidebar-error"
+    ],
+    "compoundSelectors": [
+      ".sidebar[data-side=\"right\"]",
+      ".sidebar[data-collapsed]",
+      "@media (prefers-reduced-motion: reduce)",
+      ".sidebar[data-collapsed] .sidebar-header",
+      ".sidebar[data-collapsed] .sidebar-header-brand",
+      ".sidebar[data-collapsed] .sidebar-group-label",
+      ".sidebar-item[data-active=\"true\"]",
+      ".sidebar-item[data-disabled=\"true\"]",
+      ".sidebar-item:focus-visible",
+      ".sidebar[data-collapsed] .sidebar-item",
+      ".sidebar[data-collapsed] .sidebar-item-label",
+      ".sidebar[data-collapsed] .sidebar-item-trailing"
+    ]
+  },
+  {
+    "name": "skeleton",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/skeleton.js",
+    "description": "The Skeleton component — an animated placeholder standing in for content that's still loading. Colorless (like Card): a neutral `base-300` fill with a translucent sheen that sweeps across via an animated `background-position`. Under `prefers-reduced-motion` the sweep is dropped for a gentle opacity pulse (the shared `silica-pulse` keyframe). Dimensions come from the caller (utilities / inline size) — Skeleton only owns the fill, radius, and shimmer. Shapes: base is a `--radius-field` block; `-circle` is an avatar-shaped placeholder; `-text` is a pill-rounded line sized in `em` so you can stack a few at different widths for a paragraph. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "skeleton",
+    "classes": [
+      "skeleton",
+      "skeleton-circle",
+      "skeleton-text"
+    ]
+  },
+  {
+    "name": "slider",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/slider.js",
+    "description": "The Slider component — a rich range input (Base UI behavior). Where the native-input-backed `Range` is one thumb on a rail, `Slider` is the full Base UI slider: single OR multi-thumb (a two-thumb range selection), horizontal or vertical, with an optional value readout. Colorless track (base-300) + an orthogonal accent for the filled indicator and thumbs; a color class (`.slider-primary`) sets `--slider-accent`. Base UI positions the indicator and thumbs via inline styles; we only paint them. @param {string[]} colors - color names to generate `.slider-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "slider",
+    "classes": [
+      "slider",
+      "slider-accent",
+      "slider-control",
+      "slider-error",
+      "slider-indicator",
+      "slider-info",
+      "slider-lg",
+      "slider-md",
+      "slider-neutral",
+      "slider-primary",
+      "slider-secondary",
+      "slider-sm",
+      "slider-success",
+      "slider-thumb",
+      "slider-track",
+      "slider-value",
+      "slider-warning",
+      "slider-xl",
+      "slider-xs"
+    ],
+    "colorVariants": [
+      "slider-primary",
+      "slider-secondary",
+      "slider-accent",
+      "slider-neutral",
+      "slider-info",
+      "slider-success",
+      "slider-warning",
+      "slider-error"
+    ],
+    "compoundSelectors": [
+      ".slider[data-orientation=\"vertical\"]",
+      ".slider-control[data-orientation=\"vertical\"]",
+      ".slider-track[data-orientation=\"vertical\"]",
+      ".slider[data-disabled]"
+    ]
+  },
+  {
+    "name": "sortable-list",
+    "package": "@wizeworks/silicaui",
+    "category": "wrapper",
+    "sourceFile": "silicaui/src/components/sortable-list.js",
+    "description": "SortableList chrome — the visual surface for a dnd-kit reorderable list. dnd-kit owns the drag behavior (sensors, collision, keyboard, transforms); this styles the list rows and the drag handle, plus the lifted look while a row is being dragged (`[data-dragging]`). The React `<SortableList>` (in the optional `@wizeworks/@wizeworks/silicaui-dnd` package) drives dnd-kit and hangs these classes on the markup; `transform`/`transition` are applied inline by dnd-kit, so this module deliberately doesn't set them. Colorless: the dragged row's border reads `--color-primary`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "familyPrefix": "sortable-",
+    "rootNote": "No bare `.sortable` class exists — this family is only its `sortable-*` parts.",
+    "classes": [
+      "sortable-handle",
+      "sortable-item",
+      "sortable-list"
+    ],
+    "compoundSelectors": [
+      ".sortable-item[data-dragging]",
+      ".sortable-item[data-dragging] .sortable-handle"
+    ]
+  },
+  {
+    "name": "stack",
+    "package": "@wizeworks/silicaui",
+    "category": "Layout",
+    "sourceFile": "silicaui/src/components/stack.js",
+    "description": "The Stack component — layers its children into a peeking deck. Colorless. All children share one grid cell (`grid-area: 1/1`); the first child sits flush on top, and the next two peek out behind it, each nudged and scaled down a touch. `-bottom` makes the deck peek downward; `-start` / `-end` fan it to the sides. Great for stacked cards, notification piles, or image decks. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "stack",
+    "classes": [
+      "stack",
+      "stack-bottom",
+      "stack-end",
+      "stack-start"
+    ]
+  },
+  {
+    "name": "stat",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/stat.js",
+    "description": "The Stat component — a metric block (title · value · description), optionally with a trailing figure (icon), grouped in a `.stats` container. Colorless. Each `.stat` is a grid: the title/value/desc stack in column 1 while a `.stat-figure` sits in an implicit column 2 spanning all three rows, vertically centered (the daisyUI layout). The `.stats` container paints the surface and draws hairline separators between blocks — inline by default, switched to stacked by `-vertical`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "stat",
+    "classes": [
+      "stat",
+      "stat-desc",
+      "stat-figure",
+      "stat-title",
+      "stat-value",
+      "stats",
+      "stats-vertical"
+    ],
+    "compoundSelectors": [
+      ".stats > .stat:not(:first-child)",
+      ".stats-vertical > .stat:not(:first-child)"
+    ]
+  },
+  {
+    "name": "status",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/status.js",
+    "description": "The Status component — a small status dot, optionally pinging. An inline dot painted with an orthogonal accent. `-ping` adds an expanding, fading ring behind it (respecting reduced-motion). Sizes scale the dot. @param {string[]} colors - color names to generate `.status-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "status",
+    "classes": [
+      "status",
+      "status-accent",
+      "status-error",
+      "status-info",
+      "status-lg",
+      "status-md",
+      "status-neutral",
+      "status-ping",
+      "status-primary",
+      "status-secondary",
+      "status-sm",
+      "status-success",
+      "status-warning",
+      "status-xl",
+      "status-xs"
+    ],
+    "colorVariants": [
+      "status-primary",
+      "status-secondary",
+      "status-accent",
+      "status-neutral",
+      "status-info",
+      "status-success",
+      "status-warning",
+      "status-error"
+    ],
+    "compoundSelectors": [
+      "@keyframes silica-ping",
+      "@media (prefers-reduced-motion: reduce)"
+    ]
+  },
+  {
+    "name": "steps",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/steps.js",
+    "description": "The Steps component — a horizontal progress tracker. A `.steps` list lays each `.step` out as an equal-width column: a numbered node on top, a label under it. Two pseudo-elements do the work — `::before` is the node (shows `counter(step)`, or a `data-content` override like a check), `::after` is the connector line reaching back to the previous node (absolutely placed at the node's center line, behind it). The first step drops its connector. A step marked with a color (`.step-primary`) paints its node AND its incoming connector via `--step-bg`/`--step-fg` — so coloring the steps up to the current one reads as \"completed\". Extensible over the color set. @param {string[]} colors - color names to generate `.step-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "step",
+    "classes": [
+      "step",
+      "step-accent",
+      "step-error",
+      "step-info",
+      "step-neutral",
+      "step-primary",
+      "step-secondary",
+      "step-success",
+      "step-warning",
+      "steps"
+    ],
+    "colorVariants": [
+      "step-primary",
+      "step-secondary",
+      "step-accent",
+      "step-neutral",
+      "step-info",
+      "step-success",
+      "step-warning",
+      "step-error"
+    ],
+    "compoundSelectors": [
+      ".step::before",
+      ".step[data-content]::before",
+      ".step::after",
+      ".step:first-child::after"
+    ]
+  },
+  {
+    "name": "swap",
+    "package": "@wizeworks/silicaui",
+    "category": "Actions",
+    "sourceFile": "silicaui/src/components/swap.js",
+    "description": "The Swap component — toggles between two overlaid children. A `<label>` with a hidden checkbox and `.swap-on` / `.swap-off` children stacked in the same grid cell; checking the box cross-fades between them. `-rotate` spins the icons as they swap; `-flip` does a 3D flip. Perfect for a hamburger↔close, play↔pause, sun↔moon, etc. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "swap",
+    "classes": [
+      "swap",
+      "swap-flip",
+      "swap-off",
+      "swap-on",
+      "swap-rotate"
+    ],
+    "compoundSelectors": [
+      ".swap-on, .swap-off",
+      ".swap > input:checked ~ .swap-on",
+      ".swap > input:checked ~ .swap-off",
+      ".swap-rotate .swap-off",
+      ".swap-rotate .swap-on",
+      ".swap-rotate > input:checked ~ .swap-off",
+      ".swap-rotate > input:checked ~ .swap-on",
+      ".swap-flip .swap-off",
+      ".swap-flip .swap-on",
+      ".swap-flip > input:checked ~ .swap-off",
+      ".swap-flip > input:checked ~ .swap-on"
+    ]
+  },
+  {
+    "name": "switch",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/switch.js",
+    "description": "The Switch component — an accessible on/off toggle (Base UI behavior). Where `Toggle` is a restyled native `<input type=\"checkbox\">`, `Switch` is the Base UI switch: a `role=\"switch\"` control (with a hidden real input beside it, so it submits in a form and integrates with `Field`). Selector-tier: height scales with `--size-selector`; the track is a pill 1.75× as wide as it is tall. Style: the track fills with the accent when checked (`[data-checked]`) and the knob (`.switch-thumb`) glides from left to right via `translate`. A color class (`.switch-primary`) sets `--switch-accent`. The knob position keys off the ROOT's state (descendant selector), so it's robust regardless of which parts Base UI stamps `[data-checked]` onto. @param {string[]} colors - color names to generate `.switch-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "switch",
+    "classes": [
+      "switch",
+      "switch-accent",
+      "switch-error",
+      "switch-info",
+      "switch-lg",
+      "switch-md",
+      "switch-neutral",
+      "switch-primary",
+      "switch-secondary",
+      "switch-sm",
+      "switch-success",
+      "switch-thumb",
+      "switch-warning",
+      "switch-xl",
+      "switch-xs"
+    ],
+    "colorVariants": [
+      "switch-primary",
+      "switch-secondary",
+      "switch-accent",
+      "switch-neutral",
+      "switch-info",
+      "switch-success",
+      "switch-warning",
+      "switch-error"
+    ],
+    "compoundSelectors": [
+      ".switch[data-checked] .switch-thumb"
+    ]
+  },
+  {
+    "name": "table",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/table.js",
+    "description": "The Table component — a styled native `<table>`. Colorless (like Card/Skeleton → `table(prefix)` only). Rather than wrapping every cell in a class, `.table` styles the native table elements it contains (`th`, `td`, `thead`, `tbody tr`) via descendant selectors — so it works on plain semantic HTML (`<table class=\"table\"><thead>…`) with no per-cell classes, and the React layer can stay a single `<Table>` over raw rows. Modifiers: `-zebra` (striped rows), `-hover` (row highlight — a translucent base-content wash so it stays visible ON TOP of a zebra stripe too), and sizes `-xs…-xl` (cell padding + type). Neutral by design; no color variants. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "table",
+    "classes": [
+      "table",
+      "table-hover",
+      "table-lg",
+      "table-md",
+      "table-sm",
+      "table-xl",
+      "table-xs",
+      "table-zebra"
+    ]
+  },
+  {
+    "name": "tabs",
+    "package": "@wizeworks/silicaui",
+    "category": "Navigation",
+    "sourceFile": "silicaui/src/components/tabs.js",
+    "description": "The Tabs surface — the visual half of the Base-UI-backed Tabs (no portal; Base UI owns selection state, roving focus, and the moving indicator's measurements). This styles the list, tabs, the sliding indicator, and panel. The active tab is marked **`[data-active]`** by Base UI (NOT `data-selected` — that mismatch silently no-ops the text-color rules while the indicator still moves, since the indicator is positioned by CSS vars, not the attribute). The indicator reads Base UI's `--active-tab-left`/`-width` (and `-top`/`-height` for the pill variants) and eases between positions. Accent is themed like the rest of the system: everything reads `--tabs-accent` / `--tabs-accent-content`, defaulting to primary. A color class (`.tabs-success`) re-points those, so a whole tab set recolors — and it still tracks the active theme, since the fallbacks are theme tokens. @param {string[]} colors - color names to generate `.tabs-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "tabs",
+    "classes": [
+      "tabs",
+      "tabs-accent",
+      "tabs-boxed",
+      "tabs-error",
+      "tabs-indicator",
+      "tabs-info",
+      "tabs-list",
+      "tabs-neutral",
+      "tabs-panel",
+      "tabs-pills",
+      "tabs-primary",
+      "tabs-secondary",
+      "tabs-success",
+      "tabs-tab",
+      "tabs-warning"
+    ],
+    "colorVariants": [
+      "tabs-primary",
+      "tabs-secondary",
+      "tabs-accent",
+      "tabs-neutral",
+      "tabs-info",
+      "tabs-success",
+      "tabs-warning",
+      "tabs-error"
+    ],
+    "compoundSelectors": [
+      ".tabs-boxed .tabs-list",
+      ".tabs-boxed .tabs-tab",
+      ".tabs-boxed .tabs-tab[data-active]",
+      ".tabs-boxed .tabs-indicator",
+      ".tabs-pills .tabs-list",
+      ".tabs-pills .tabs-tab",
+      ".tabs-pills .tabs-tab[data-active]",
+      ".tabs-pills .tabs-indicator"
+    ]
+  },
+  {
+    "name": "tag-input",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/tag-input.js",
+    "description": "TagInput — a multi-value chip field. The outer `.tag-input` looks and focuses like an `.input`: a flex-wrapping box with a border + focus ring that holds removable `.tag-input-chip`s and a borderless `.tag-input-field` that grows to fill the row. The React `<TagInput>` manages the tag array, key handling, and remove buttons. Colored: a `.tag-input-<name>` class sets `--tag-accent`, which the focus ring and chip fill/text read — so chips can match any semantic color. @param {string[]} colors - color names to generate `.tag-input-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "tag-input",
+    "classes": [
+      "tag-input",
+      "tag-input-accent",
+      "tag-input-chip",
+      "tag-input-chip-label",
+      "tag-input-error",
+      "tag-input-field",
+      "tag-input-info",
+      "tag-input-lg",
+      "tag-input-md",
+      "tag-input-neutral",
+      "tag-input-primary",
+      "tag-input-remove",
+      "tag-input-secondary",
+      "tag-input-sm",
+      "tag-input-success",
+      "tag-input-warning",
+      "tag-input-xl",
+      "tag-input-xs"
+    ],
+    "colorVariants": [
+      "tag-input-primary",
+      "tag-input-secondary",
+      "tag-input-accent",
+      "tag-input-neutral",
+      "tag-input-info",
+      "tag-input-success",
+      "tag-input-warning",
+      "tag-input-error"
+    ],
+    "compoundSelectors": [
+      ".tag-input:focus-within",
+      ".tag-input[data-disabled]"
+    ]
+  },
+  {
+    "name": "textarea",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/textarea.js",
+    "description": "The Textarea component — a multi-line text field, sibling to Input. Field-tier element: rounds with `--radius-field` and its horizontal rhythm scales with `--size-field`, so it aligns with same-size Inputs. Unlike Input it grows vertically (a `min-height` floor, then `resize: vertical`) and uses a readable multi-line `line-height` rather than optical centering. A color class (`.textarea-primary`, …) sets only `--textarea-accent` (border + focus ring). @param {string[]} colors - color names to generate `.textarea-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "textarea",
+    "classes": [
+      "textarea",
+      "textarea-accent",
+      "textarea-error",
+      "textarea-info",
+      "textarea-lg",
+      "textarea-md",
+      "textarea-neutral",
+      "textarea-primary",
+      "textarea-secondary",
+      "textarea-sm",
+      "textarea-success",
+      "textarea-warning",
+      "textarea-xl",
+      "textarea-xs"
+    ],
+    "colorVariants": [
+      "textarea-primary",
+      "textarea-secondary",
+      "textarea-accent",
+      "textarea-neutral",
+      "textarea-info",
+      "textarea-success",
+      "textarea-warning",
+      "textarea-error"
+    ]
+  },
+  {
+    "name": "timeline",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/timeline.js",
+    "description": "The Timeline component — a sequence of events with connecting lines. Colorless. Each `<li>` is a 3-track grid: an opposite-side label (`.timeline-start`), a centered marker (`.timeline-middle`), and a content box (`.timeline-end`). The connecting lines are drawn as the marker's `::before`/`::after`, each flex-filling half the row so consecutive markers join into one continuous rail — no `<hr>` markup, and the first/last caps are hidden automatically. `-horizontal` rotates the whole thing into a row. (For a simple numbered process use Steps instead; Timeline is for dated events with content — changelogs, roadmaps, \"our story\".) @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "timeline",
+    "classes": [
+      "timeline",
+      "timeline-box",
+      "timeline-dot",
+      "timeline-end",
+      "timeline-horizontal",
+      "timeline-middle",
+      "timeline-start"
+    ],
+    "compoundSelectors": [
+      ".timeline > li:first-child .timeline-middle::before",
+      ".timeline > li:last-child .timeline-middle::after",
+      ".timeline-horizontal .timeline-start",
+      ".timeline-horizontal .timeline-middle",
+      ".timeline-horizontal .timeline-end",
+      ".timeline-horizontal > li:first-child .timeline-middle::before",
+      ".timeline-horizontal > li:last-child .timeline-middle::after"
+    ]
+  },
+  {
+    "name": "timestamp",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/timestamp.js",
+    "description": "The Timestamp component — a muted, tabular-numeral time label. Colorless. Inherits font-size from context (used inline in chat metadata, table cells, list rows — sizes vary by callsite); only sets a quiet default color and `font-variant-numeric: tabular-nums` so shifting digits (a live \"2 minutes ago\" ticking up) don't jitter the surrounding layout. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "timestamp",
+    "classes": [
+      "timestamp"
+    ]
+  },
+  {
+    "name": "toast",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/toast.js",
+    "description": "The Toast component — transient notifications (Base UI behavior). Shares Alert's surface: a solid color-per-type background driven by `--toast-bg`/`--toast-fg` (set via `[data-type]`, same orthogonal color model as `.alert-<name>`), a top-aligned leading icon slot, and the same radius/spacing/type scale — a toast is an Alert that floats and expires. Base UI owns the queue, timeout, focus management, and swipe-to-dismiss on top of that shared look; we lay the toasts out in a fixed corner viewport (a simple flex stack — reliable across browsers) and animate them in/out via `[data-starting-style]` / `[data-ending-style]`. @param {string[]} colors - color names to generate `[data-type=\"<name>\"]` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "toast",
+    "classes": [
+      "toast",
+      "toast-action",
+      "toast-close",
+      "toast-content",
+      "toast-description",
+      "toast-title",
+      "toast-viewport"
+    ],
+    "compoundSelectors": [
+      ".toast[data-type=\"primary\"]",
+      ".toast[data-type=\"secondary\"]",
+      ".toast[data-type=\"accent\"]",
+      ".toast[data-type=\"neutral\"]",
+      ".toast[data-type=\"info\"]",
+      ".toast[data-type=\"success\"]",
+      ".toast[data-type=\"warning\"]",
+      ".toast[data-type=\"error\"]"
+    ]
+  },
+  {
+    "name": "toggle-group",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/toggle-group.js",
+    "description": "The ToggleGroup component — a segmented control (single- or multi-select set of toggle buttons). Behavior is Base UI's ToggleGroup + Toggle (roving focus, pressed state, single/multiple selection); Silica styles the track and the items. The active item reads as a raised base-100 pill on the base-200 track. NOTE: this is the button-based segmented control — distinct from `.toggle` (the on/off switch). `[data-pressed]` marks the selected item(s); `[data-orientation=\"vertical\"]` stacks it. @param {string[]} colors - registered color names to emit `-<color>` classes for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "toggle-group",
+    "classes": [
+      "toggle-group",
+      "toggle-group-accent",
+      "toggle-group-error",
+      "toggle-group-info",
+      "toggle-group-item",
+      "toggle-group-lg",
+      "toggle-group-md",
+      "toggle-group-neutral",
+      "toggle-group-primary",
+      "toggle-group-secondary",
+      "toggle-group-sm",
+      "toggle-group-success",
+      "toggle-group-warning",
+      "toggle-group-xl",
+      "toggle-group-xs"
+    ],
+    "colorVariants": [
+      "toggle-group-primary",
+      "toggle-group-secondary",
+      "toggle-group-accent",
+      "toggle-group-neutral",
+      "toggle-group-info",
+      "toggle-group-success",
+      "toggle-group-warning",
+      "toggle-group-error"
+    ],
+    "compoundSelectors": [
+      ".toggle-group-xs .toggle-group-item",
+      ".toggle-group-sm .toggle-group-item",
+      ".toggle-group-md .toggle-group-item",
+      ".toggle-group-lg .toggle-group-item",
+      ".toggle-group-xl .toggle-group-item"
+    ]
+  },
+  {
+    "name": "toggle",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/toggle.js",
+    "description": "The Toggle component — a native `<input type=\"checkbox\">` restyled as a switch. Selector-tier control: height scales with `--size-selector`; the track is a pill 1.75× as wide as it is tall. Style: the track background stays TRANSPARENT in both states — only the border and the knob carry color. Off = grey border + grey knob (at left); checked = accent border + accent knob (slid right). A color class (`.toggle-primary`) sets `--toggle-accent`. The knob is a `radial-gradient` circle sized to one square \"tile\", slid from left to right via `background-position` (which animates, so it glides); its color is `--toggle-knob`. No pseudo-element — reliable on a bare `<input>`. @param {string[]} colors - color names to generate `.toggle-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "toggle",
+    "classes": [
+      "toggle",
+      "toggle-accent",
+      "toggle-error",
+      "toggle-info",
+      "toggle-lg",
+      "toggle-md",
+      "toggle-neutral",
+      "toggle-primary",
+      "toggle-secondary",
+      "toggle-sm",
+      "toggle-success",
+      "toggle-warning",
+      "toggle-xl",
+      "toggle-xs"
+    ],
+    "colorVariants": [
+      "toggle-primary",
+      "toggle-secondary",
+      "toggle-accent",
+      "toggle-neutral",
+      "toggle-info",
+      "toggle-success",
+      "toggle-warning",
+      "toggle-error"
+    ]
+  },
+  {
+    "name": "toolbar",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/toolbar.js",
+    "description": "The Toolbar component — a container grouping related controls with roving focus. Behavior (arrow-key navigation, roving tabindex) is Base UI's Toolbar; Silica styles the bar, its buttons, groups, links, and separators. Colorless. A compact base-200 bar with ghost-style buttons that highlight on hover. `data-orientation=\"vertical\"` stacks it. Separators read their own `data-orientation` (a vertical rule inside a horizontal bar, and vice-versa). `data-size` (\"xs\" | \"sm\" | \"md\" | \"lg\" | \"xl\") sets `--toolbar-height`/ `--toolbar-padding-inline` and the bar's own `font-size`, which its native `.toolbar-button`/`.toolbar-link` parts read — so they resize for free. That cascade is real only for THOSE parts (this module owns both ends of it); a bare `.btn`/`.input` dropped into a toolbar still needs its own explicit `-sm`/`-lg` class, since those components pick their size via a literal class, not an inherited variable. `data-variant=\"muted\"` gives the bar a tinted, less prominent background — for contextual/temporary toolbars (e.g. a bulk-selection action bar) that should read as distinct from a standing one. `data-dividers` (\"top\" | \"bottom\" | \"both\") drops the bar's own box (full border on every side) in favor of a rule on just the given edge(s) — for embedding the toolbar as a header inside a Card/Section rather than as a standalone floating bar. A `.toolbar-center` child switches the bar to a 3-column grid (`start | center | end`, via `:has()`) so center content (e.g. tabs) stays visually centered independent of how wide the start/end content is. Give the toolbar exactly 3 direct children when using it: a start child, the `.toolbar-center` child, and an end child (typically each wrapped in a `ToolbarGroup`). @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "toolbar",
+    "classes": [
+      "toolbar",
+      "toolbar-button",
+      "toolbar-center",
+      "toolbar-group",
+      "toolbar-link",
+      "toolbar-separator"
+    ]
+  },
+  {
+    "name": "tooltip",
+    "package": "@wizeworks/silicaui",
+    "category": "Feedback & overlay",
+    "sourceFile": "silicaui/src/components/tooltip.js",
+    "description": "The Tooltip surface — the visual half of the Base-UI-backed Tooltip. Silica's split: Base UI owns the behavior (hover/focus intent, delay, positioning, portal, dismissal) in the React layer; this file owns only how the popup LOOKS. It's the first component to pair a CSS surface with a Base UI primitive, so it sets the pattern: style `.tooltip` (the popup) + `.tooltip-arrow`, and let the React wrapper attach these classes to `Tooltip.Popup`/`Tooltip.Arrow`. A classic dark chip (neutral surface). Enter/exit is driven by Base UI's `[data-starting-style]`/`[data-ending-style]` attributes + the `--transform-origin` it sets on the popup, so the scale animation grows from the anchored edge. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "tooltip",
+    "classes": [
+      "tooltip",
+      "tooltip-arrow"
+    ],
+    "compoundSelectors": [
+      ".tooltip-arrow[data-side=\"top\"]",
+      ".tooltip-arrow[data-side=\"bottom\"]",
+      ".tooltip-arrow[data-side=\"left\"]",
+      ".tooltip-arrow[data-side=\"right\"]"
+    ]
+  },
+  {
+    "name": "tree-view",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/tree-view.js",
+    "description": "TreeView — a hierarchical, keyboard-navigable tree (page trees, file/section hierarchies, nav builders). Structure follows the ARIA tree pattern: `ul.tree[role=tree]` → `li.tree-item[role=treeitem]` (the focusable node, roving tabindex) → an inner `.tree-node` row (the highlight/click target: chevron + optional icon + label) and, when expanded, a nested `ul.tree-group[role=group]`. Depth indentation is driven by a `--tree-depth` custom prop set inline by the React component. Colorless: the selected row reads `--color-primary` for its tint/text. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "tree",
+    "classes": [
+      "tree",
+      "tree-group",
+      "tree-item",
+      "tree-node",
+      "tree-node-icon",
+      "tree-node-label",
+      "tree-toggle",
+      "tree-toggle-spacer"
+    ],
+    "compoundSelectors": [
+      ".tree-node[data-selected]",
+      ".tree-node[data-disabled]",
+      ".tree-item:focus-visible > .tree-node",
+      ".tree-node[data-dragging]",
+      ".tree-node[data-drag-over=\"inside\"]",
+      ".tree-node[data-drag-over=\"before\"], .tree-node[data-drag-over=\"after\"]",
+      ".tree-node[data-drag-over=\"before\"]::before, .tree-node[data-drag-over=\"after\"]::after",
+      ".tree-node[data-drag-over=\"before\"]::before",
+      ".tree-node[data-drag-over=\"after\"]::after",
+      ".tree-toggle[data-expanded]"
+    ]
+  },
+  {
+    "name": "typography",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/components/typography.js",
+    "description": "Typography — @wizeworks/@wizeworks/silicaui's UI type ramp (distinct from `.prose`, which styles a block of long-form/markdown content). This gives the *application* a designed default: bare `<h1>`–`<h6>` and `<p>` look right with zero classes, plus explicit `.display` / `.display-1`–`.display-3` / `.h1`–`.h6` / `.lead` / `.caption` classes to apply any step to any element (a semantic `<h1>` that should read as an h3, or a hero `<h1>` sized up to `.display-1`, etc.). Anchored to the 16px root + the `text-*` scale (see index.js/theme.js). Heading sizes are in `rem` so they track the base font size; the oversized display ramp is fluid (`clamp` + container units) — see DISPLAY_STEPS. Two deliberate scoping choices: • Global element defaults are scoped to `[data-theme]` — the same opt-in surface @wizeworks/@wizeworks/silicaui paints (theme.js) — so @wizeworks/@wizeworks/silicaui NEVER restyles a host page's headings you didn't opt into (the embeddable/Sparx case). • They use `:where(...)` (zero specificity) so a Tailwind utility (`text-sm`) OR a `.h*` class always wins without `!important`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": null,
+    "classes": [
+      "blockquote",
+      "blockquote-cite",
+      "caption",
+      "display",
+      "display-1",
+      "display-2",
+      "display-3",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "lead"
+    ],
+    "compoundSelectors": [
+      "[data-theme] :where(h1, h2, h3, h4, h5, h6)",
+      "[data-theme] :where(h1)",
+      "[data-theme] :where(h2)",
+      "[data-theme] :where(h3)",
+      "[data-theme] :where(h4)",
+      "[data-theme] :where(h5)",
+      "[data-theme] :where(h6)",
+      "[data-theme] :where(p)",
+      "[data-theme] :where(small)",
+      "[data-theme] :where(blockquote)",
+      "[data-theme] :where(blockquote > footer, blockquote > cite)"
+    ]
+  },
+  {
+    "name": "validator",
+    "package": "@wizeworks/silicaui",
+    "category": "Data input",
+    "sourceFile": "silicaui/src/components/validator.js",
+    "description": "The Validator component — validity-driven coloring for form controls. Colorless (semantic error/success only). Add `.validator` alongside `.input`, `.select`, `.textarea`, etc. It recolors the control by (a) the native `:user-invalid` / `:user-valid` states — which only engage AFTER the user has interacted, so a pristine form doesn't shout — and (b) an explicit `[aria-invalid]` attribute for controlled React validation. It works by writing the SAME accent variables the field components already read (`--input-accent`, `--select-accent`, `--textarea-accent`), so the border and focus ring flip to error/success with no per-field wiring. As a fallback it also sets `border-color`/`outline-color` directly for any control that doesn't route through an accent var. `.validator-hint` is an inline message that stays hidden until the control it immediately follows is invalid. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "validator",
+    "classes": [
+      "validator",
+      "validator-hint"
+    ],
+    "compoundSelectors": [
+      ".validator:user-invalid",
+      ".validator[aria-invalid='true']",
+      ".validator:user-valid",
+      ".validator[aria-invalid='false']",
+      ".validator:user-invalid + .validator-hint",
+      ".validator[aria-invalid='true'] + .validator-hint"
+    ]
+  },
+  {
+    "name": "wizard",
+    "package": "@wizeworks/silicaui",
+    "category": "Advanced / composite",
+    "sourceFile": "silicaui/src/components/wizard.js",
+    "description": "Wizard — a multi-step flow: a numbered step indicator with connectors, a content pane for the active step, and a Back / Next-or-Finish footer. The React `<Wizard>` owns the active-step state, linear vs. free navigation, and the footer buttons; this styles the indicator (upcoming / active / complete markers + the connecting rail), the content area, and the footer row. Colored: a `.wizard-<name>` class sets `--wz-accent` (+ its readable `--wz-accent-content`), which the active/complete markers and filled connectors read — orthogonal accent, same as the rest of Silica. @param {string[]} colors - color names to generate `.wizard-<name>` for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "wizard",
+    "classes": [
+      "wizard",
+      "wizard-accent",
+      "wizard-content",
+      "wizard-error",
+      "wizard-footer",
+      "wizard-info",
+      "wizard-neutral",
+      "wizard-primary",
+      "wizard-secondary",
+      "wizard-step",
+      "wizard-step-label",
+      "wizard-step-marker",
+      "wizard-step-optional",
+      "wizard-steps",
+      "wizard-success",
+      "wizard-warning"
+    ],
+    "colorVariants": [
+      "wizard-primary",
+      "wizard-secondary",
+      "wizard-accent",
+      "wizard-neutral",
+      "wizard-info",
+      "wizard-success",
+      "wizard-warning",
+      "wizard-error"
+    ],
+    "compoundSelectors": [
+      ".wizard-step[data-clickable]",
+      ".wizard-step[data-disabled]",
+      ".wizard-step:not(:first-child)::before",
+      ".wizard-step[data-state=\"active\"]::before, .wizard-step[data-state=\"complete\"]::before",
+      ".wizard-step[data-state=\"active\"] .wizard-step-marker",
+      ".wizard-step[data-state=\"complete\"] .wizard-step-marker",
+      ".wizard-step[data-state=\"active\"] .wizard-step-label"
+    ]
+  },
+  {
+    "name": "wordmark",
+    "package": "@wizeworks/silicaui",
+    "category": "Typography",
+    "sourceFile": "silicaui/src/components/wordmark.js",
+    "description": "The Wordmark component — a stylized logotype for a brand/product name. Colorless base (reads `currentColor`-adjacent `--color-base-content`) with an orthogonal accent for `.wordmark-accent` (a highlighted suffix/prefix, e.g. the \"UI\" in \"Silica UI\"). Tight tracking + a heavier weight distinguish it from ordinary body/heading text — this is a logotype, not a `<Heading>`. @param {string[]} colors - color names to generate `.wordmark-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "wordmark",
+    "classes": [
+      "wordmark",
+      "wordmark-accent",
+      "wordmark-error",
+      "wordmark-info",
+      "wordmark-lg",
+      "wordmark-md",
+      "wordmark-neutral",
+      "wordmark-primary",
+      "wordmark-secondary",
+      "wordmark-sm",
+      "wordmark-success",
+      "wordmark-warning",
+      "wordmark-xl",
+      "wordmark-xs"
+    ],
+    "colorVariants": [
+      "wordmark-primary",
+      "wordmark-secondary",
+      "wordmark-accent",
+      "wordmark-neutral",
+      "wordmark-info",
+      "wordmark-success",
+      "wordmark-warning",
+      "wordmark-error"
+    ]
+  },
+  {
+    "name": "color-utilities",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/color-utilities.js",
+    "description": "The full build-time utility set: the surface ramp plus each semantic color and its `-content` foreground. Wired into the plugin so every declared color is paintable via `text-`/`bg-`/`border-` without scanning. @param {string[]} colors - the plugin's `colors:` list @param {string} [prefix]",
+    "root": null,
+    "classes": [
+      "bg-accent",
+      "bg-accent-content",
+      "bg-base-100",
+      "bg-base-200",
+      "bg-base-300",
+      "bg-base-content",
+      "bg-error",
+      "bg-error-content",
+      "bg-info",
+      "bg-info-content",
+      "bg-neutral",
+      "bg-neutral-content",
+      "bg-primary",
+      "bg-primary-content",
+      "bg-secondary",
+      "bg-secondary-content",
+      "bg-soft",
+      "bg-success",
+      "bg-success-content",
+      "bg-warning",
+      "bg-warning-content",
+      "border-accent",
+      "border-accent-content",
+      "border-base-100",
+      "border-base-200",
+      "border-base-300",
+      "border-base-content",
+      "border-error",
+      "border-error-content",
+      "border-info",
+      "border-info-content",
+      "border-neutral",
+      "border-neutral-content",
+      "border-primary",
+      "border-primary-content",
+      "border-secondary",
+      "border-secondary-content",
+      "border-soft",
+      "border-success",
+      "border-success-content",
+      "border-warning",
+      "border-warning-content",
+      "glass",
+      "soft",
+      "text-accent",
+      "text-accent-content",
+      "text-base-100",
+      "text-base-200",
+      "text-base-300",
+      "text-base-content",
+      "text-error",
+      "text-error-content",
+      "text-info",
+      "text-info-content",
+      "text-neutral",
+      "text-neutral-content",
+      "text-primary",
+      "text-primary-content",
+      "text-secondary",
+      "text-secondary-content",
+      "text-soft",
+      "text-success",
+      "text-success-content",
+      "text-warning",
+      "text-warning-content"
+    ]
+  },
+  {
+    "name": "type-scale",
+    "package": "@wizeworks/silicaui",
+    "category": "css",
+    "sourceFile": "silicaui/src/type-scale.js",
+    "description": "The type scale — @wizeworks/@wizeworks/silicaui's `text-*` size ladder, and the SINGLE source of truth for it. The plugin registers this as `theme.extend.fontSize` (see index.js) so Tailwind emits `text-xs` … `text-10xl`, and the MCP catalog generator imports the SAME object so the documented scale can never drift from what the plugin actually ships. Exposed as `@wizeworks/@wizeworks/silicaui/type-scale` for anyone who wants to build a size picker or safelist from the canonical scale rather than re-typing it. Anchored to a 16px root (index.js declares `100%`, honoring a user's own browser setting): `text-md` (== `text-base`) is 1rem = 16px — the worldwide default body size — so the scale reads as a self-documenting xs → sm → MD → lg… ladder rather than leaving 16px an accidental Tailwind default. `md` is the named alias @wizeworks/@wizeworks/silicaui code should reach for; always prefer a scale step over a `text-[13px]`-style magic number. xs–9xl match Tailwind's own defaults (nothing shifts) but are declared EXPLICITLY rather than left to Tailwind — otherwise the ladder @wizeworks/@wizeworks/silicaui \"owns\" quietly stopped at 7xl while 8xl/9xl leaked in from the framework default, so the top of the scale wasn't self-documenting. `10xl` (10rem) extends past Tailwind's ceiling for oversized hero/display type. Shape matches Tailwind's `fontSize` theme: `[fontSize, { lineHeight }]`.",
+    "root": null,
+    "familyPrefix": "text-",
+    "rootNote": "No bare `.text` class exists — this family is only its `text-*` parts.",
+    "classes": [
+      "text-xs",
+      "text-sm",
+      "text-md",
+      "text-base",
+      "text-lg",
+      "text-xl",
+      "text-2xl",
+      "text-3xl",
+      "text-4xl",
+      "text-5xl",
+      "text-6xl",
+      "text-7xl",
+      "text-8xl",
+      "text-9xl",
+      "text-10xl"
+    ]
   }
 ]

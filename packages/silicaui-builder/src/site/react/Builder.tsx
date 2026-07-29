@@ -29,6 +29,7 @@ import { ComponentBoard } from "./ComponentBoard";
 import { ThemeLibrary } from "./ThemeLibrary";
 import { Canvas } from "./Canvas";
 import { PagesPanel } from "./PagesPanel";
+import { LayoutsPanel } from "./LayoutsPanel";
 import { ComponentsPanel } from "./ComponentsPanel";
 import { NewComponentButton } from "./ComponentStarterDialog";
 import { Navigator } from "./Navigator";
@@ -319,8 +320,9 @@ function Chrome({
             </>
           ) : (
             <>
-              {/* Pages sit above Layers/Insert — a navigation peer to the tree. */}
-              <PagesPanel />
+              {/* Pages (or, in Layout mode, layouts) sit above Layers/Insert —
+                  a navigation peer to the tree, switching what it shows. */}
+              {mode === "layout" ? <LayoutsPanel /> : <PagesPanel />}
               <PanelHead>
                 <ToggleGroup
                   className="toggle-group-xs w-full"

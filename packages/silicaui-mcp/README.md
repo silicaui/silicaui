@@ -58,13 +58,46 @@ add to `.cursor/mcp.json`:
 No API key, account, or network access required after install — everything the
 server answers with is bundled in the package.
 
+## The three delivery paths
+
+Silica UI is one design system consumed three different ways, and the server
+tells every connecting client so up front (via MCP `instructions`, which clients
+surface before the first tool call) — because the choice is made *before* any
+tool gets called, and getting it wrong is the most common way an integration
+breaks.
+
+| Path | Package | You write | Interactive? |
+| --- | --- | --- | --- |
+| **CSS** | `@wizeworks/silicaui` | Plain HTML + classes: `<button class="btn btn-primary">` | No — no JS ships |
+| **React** | `@wizeworks/silicaui-react` | `<Button color="primary" size="lg">` | Yes, via Base UI |
+| **HTML / node-tree** | `@wizeworks/silicaui-html` + `@wizeworks/silicaui-behaviors` | A node tree that projects to HTML with `data-sui-*` markers | Yes, once the behaviors runtime loads |
+
+`get_component` answers on all three. Called without a `package`, it returns
+every path's shape side by side so an assistant can see how they differ rather
+than guessing which one it wants:
+
+```jsonc
+// get_component({ name: "Button" })
+{
+  "name": "button",
+  "note": "\"Button\" exists on 3 delivery paths … they are not interchangeable.",
+  "paths": [
+    { "package": "@wizeworks/silicaui",       "root": "btn", "classes": ["btn", "btn-outline", …], "colorVariants": ["btn-primary", …] },
+    { "package": "@wizeworks/silicaui-react", "props": [ … ], "usageExample": "…" },
+    { "package": "@wizeworks/silicaui-html",  "category": "content", "label": "Button", "container": false, "behaviors": [] }
+  ]
+}
+```
+
+Pass `package` to get just one.
+
 ## Tools
 
 | Tool | Purpose |
 | --- | --- |
 | `list_packages` | The Silica UI package family, purpose, install command, version. |
-| `list_components({ package? })` | Component names + categories, optionally filtered to one package. |
-| `get_component({ name })` | A component's real props (from source) + a real usage example (from the playground). |
+| `list_components({ package? })` | Component names + categories across all three paths, optionally filtered to one package. |
+| `get_component({ name, package? })` | A component's real shape on each path: CSS root class + classes + color variants, React props (from source) + a real usage example, or the `-html` macro and its behaviors. |
 | `list_classes({ component? })` | Exact, literal CSS class names — extracted from the actual class generators. |
 | `get_tokens()` | Semantic color list, light/dark values, typography tokens. |
 | `list_blocks({ category?, tag? })` | Composed page blocks (hero, FAQ, feature grid, …), summary only. |

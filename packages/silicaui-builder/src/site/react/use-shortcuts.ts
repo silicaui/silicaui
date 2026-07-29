@@ -9,6 +9,7 @@
  *   Cmd/Ctrl+D           duplicate the selection
  *   Cmd/Ctrl+C / X / V   copy / cut / paste a node
  *   Cmd/Ctrl+G           wrap the selection in a container
+ *   Cmd/Ctrl+A           select every sibling (everything at this level)
  *   ↑ ↓                  select the previous / next sibling
  *   ← →                  select the parent / the first child
  *   Cmd/Ctrl+↑ ↓         MOVE the selection among its siblings
@@ -21,10 +22,14 @@
  * `items-center`, not by pushing them a pixel at a time — a nudge would either
  * do nothing or have to invent an inline offset the schema bans outright.
  *
- * There is also no Cmd+A. `selection` is a single id, so "select all" has
- * nothing to land in; wiring it to something else (the root, the parent) would
- * be a different feature wearing the shortcut everyone recognises. It arrives
- * with a selection SET or not at all.
+ * Cmd+A selects every SIBLING — everything at the level the author is looking
+ * at — rather than every node in the document. A flat select-all in a nested
+ * tree returns a set whose members are each other's ancestors, and then every
+ * structural verb on it has to decide what deleting a parent and its child
+ * together means. Siblings are unambiguous, and match what a canvas tool means.
+ *
+ * Multi-node verbs (delete, duplicate) run through the set-aware commands, so a
+ * six-node gesture is ONE undo step rather than six.
  *
  * The tree moves themselves live in `../commands` — pure functions over the
  * engine, so they're testable without a DOM and reusable by a host's own chrome.
@@ -34,7 +39,17 @@
  * never goes stale.
  */
 import * as React from "react";
-import { cutNode, groupNode, moveSibling, selectFirstChild, selectParent, selectSibling } from "../commands";
+import {
+  cutNode,
+  duplicateMany,
+  groupNode,
+  moveSibling,
+  removeMany,
+  selectFirstChild,
+  selectParent,
+  selectSibling,
+  selectSiblings,
+} from "../commands";
 import { useEditor } from "./editor-context";
 
 export function useEditorShortcuts(enabled: boolean): void {
@@ -49,6 +64,10 @@ export function useEditorShortcuts(enabled: boolean): void {
       const mod = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
       const sel = editor.selection;
+      // The whole selection for the verbs that act on all of it; `sel` stays the
+      // primary, for the single-node moves (navigation, reorder, group) where a
+      // set has no meaning.
+      const all = editor.selectedIds;
 
       if (mod && key === "z") {
         e.preventDefault();
@@ -57,10 +76,12 @@ export function useEditorShortcuts(enabled: boolean): void {
       } else if (mod && key === "y") {
         e.preventDefault();
         editor.redo();
+      } else if (mod && key === "a") {
+        if (selectSiblings(editor)) e.preventDefault();
       } else if (mod && key === "d") {
-        if (sel) {
+        if (all.length) {
           e.preventDefault();
-          editor.duplicate(sel);
+          duplicateMany(editor, all);
         }
       } else if (mod && key === "c") {
         if (sel) {
@@ -94,9 +115,9 @@ export function useEditorShortcuts(enabled: boolean): void {
       } else if (key === "arrowright") {
         if (sel && selectFirstChild(editor, sel)) e.preventDefault();
       } else if (key === "delete" || key === "backspace") {
-        if (sel) {
+        if (all.length) {
           e.preventDefault();
-          editor.remove(sel);
+          removeMany(editor, all);
         }
       } else if (key === "escape") {
         if (sel) {

@@ -20,6 +20,10 @@ import type { TokenState } from "./class-tokens";
 import { invertOp } from "./invert";
 import type { Op, OpTarget, SymbolDetachment } from "./ops";
 
+/** Two id lists, same members in the same order? */
+const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
+  a.length === b.length && a.every((x, i) => x === b[i]);
+
 /** Constructor-time options — the host's class policy (§9 of
  *  builder-contract.md). Composed with the engine's built-in denylist floor;
  *  see `composeValidators`. */
@@ -285,6 +289,8 @@ export class Editor {
   // document — a view concern — so it rides its own "selection" change kind and is
   // never snapshotted into history.
   private selectedId: string | undefined;
+  // The full selection, in add order;  is always its last member.
+  private selection_: string[] = [];
   // Copy/paste buffer — an id-STRIPPED subtree (so paste stamps fresh ids). A view
   // concern, not part of the document, and never snapshotted into history.
   private clipboard: Node | undefined;
@@ -297,6 +303,8 @@ export class Editor {
   // The symbol master currently being edited (when `active === "symbol"`). Edits to
   // it flow to every instance because instances render THIS master, not a copy.
   private editingSymbolId: string | undefined;
+  // Which NAMED layout Layout mode edits; undefined = the site default frame.
+  private editingFrameId: string | undefined;
   // Cached, referentially-stable symbol roster for the Components palette + hooks —
   // swapped (never mutated) only when a symbol is added/removed/renamed.
   private symbolsViewCache: readonly SymbolDef[] = [];
@@ -422,7 +430,10 @@ export class Editor {
    *  or a symbol master. A dangling symbol pointer (e.g. after undo removed it)
    *  falls back to the page body so the spine always has a valid target. */
   private activeRoot(): Node {
-    if (this.active === "frame" && this.site.frame) return this.site.frame.root;
+    if (this.active === "frame") {
+      const frame = this.editingFrame();
+      if (frame) return frame.root;
+    }
     if (this.active === "symbol" && this.editingSymbolId) {
       const sym = this.site.symbols?.[this.editingSymbolId];
       if (sym) return sym.root;
@@ -561,20 +572,71 @@ export class Editor {
   }
 
   // ── selection ──────────────────────────────────────────────────────────────
-  /** The selected node's id, or undefined. */
+  /**
+   * The PRIMARY selection — the last node added to the set, or undefined.
+   *
+   * Stays a single id even though selection is now a set, because that is what
+   * "the node the Inspector is describing" means: a panel of controls has to
+   * show ONE node's values, and every existing caller reads it that way. The set
+   * is `selectedIds`, and the two never disagree — `selection` is always its
+   * last member.
+   */
   get selection(): string | undefined {
     return this.selectedId;
   }
 
-  /** The selected node itself, or undefined. */
+  /**
+   * The full selection, in the order nodes were added. Usually one id; more when
+   * the author shift-clicks or presses Cmd+A.
+   *
+   * Order is meaningful: the last entry is the primary, and a set-wide edit
+   * applies in this order so the result is predictable rather than
+   * hash-dependent.
+   */
+  get selectedIds(): readonly string[] {
+    return this.selection_;
+  }
+
+  /** The primary selected node itself, or undefined. */
   get selectedNode(): Node | undefined {
     return this.selectedId ? locate(this.activeRoot(), this.selectedId)?.node : undefined;
   }
 
-  /** Select a node (or clear with undefined). No-op if already selected. */
+  /** Select exactly one node, replacing any existing set (or clear with
+   *  undefined). No-op if that's already the entire selection. */
   select(id: string | undefined): void {
-    if (id === this.selectedId) return;
+    const next = id ? [id] : [];
+    if (sameIds(next, this.selection_)) return;
+    this.selection_ = next;
     this.selectedId = id;
+    this.emit("selection");
+  }
+
+  /**
+   * Select a SET, replacing what was there. Duplicates are dropped, order is
+   * kept, and the last id becomes the primary.
+   *
+   * A view concern like `select` — no history, no ops. Selection is per-client
+   * by definition: relaying it would make two authors fight over one cursor.
+   */
+  selectMany(ids: readonly string[]): void {
+    const next = [...new Set(ids)];
+    if (sameIds(next, this.selection_)) return;
+    this.selection_ = next;
+    this.selectedId = next[next.length - 1];
+    this.emit("selection");
+  }
+
+  /**
+   * Add or remove one node from the selection — the shift-click gesture.
+   * Re-adding a node that's already selected REMOVES it, which is what every
+   * canvas tool does and the only way to correct a mis-click without starting
+   * the whole selection over.
+   */
+  toggleSelect(id: string): void {
+    const next = this.selection_.includes(id) ? this.selection_.filter((x) => x !== id) : [...this.selection_, id];
+    this.selection_ = next;
+    this.selectedId = next[next.length - 1];
     this.emit("selection");
   }
 
@@ -944,6 +1006,10 @@ export class Editor {
   private forEachTree(fn: (root: Node, target: OpTarget) => void): void {
     for (const p of this.site.pages) fn(p.root, { scope: "page", id: p.id });
     if (this.site.frame) fn(this.site.frame.root, { scope: "frame" });
+    // Named layouts are editable trees like any other — a symbol instance can
+    // live in one, so a detach cascade that skipped them would leave dangling
+    // references in exactly the layouts nobody was looking at.
+    for (const [id, f] of Object.entries(this.site.frames ?? {})) fn(f.root, { scope: "frame", id });
     for (const s of Object.values(this.site.symbols ?? {})) fn(s.root, { scope: "symbol", id: s.id });
   }
 
@@ -965,7 +1031,11 @@ export class Editor {
   /** The tree the editing spine is currently pointed at — the target for any op
    *  produced by a node edit, since every node edit runs against `activeRoot`. */
   private activeTarget(): OpTarget {
-    if (this.active === "frame" && this.site.frame) return { scope: "frame" };
+    if (this.active === "frame" && this.editingFrame()) {
+      // The id RIDES ALONG only for a named layout. Omitted for the default one,
+      // so ops keep the shape every peer (and every stored op) already expects.
+      return this.editingFrameId ? { scope: "frame", id: this.editingFrameId } : { scope: "frame" };
+    }
     if (this.active === "symbol" && this.editingSymbolId && this.site.symbols?.[this.editingSymbolId]) {
       return { scope: "symbol", id: this.editingSymbolId };
     }
@@ -993,7 +1063,7 @@ export class Editor {
   /** The tree an op addresses, or undefined if it names one that's gone. */
   private rootFor(target: OpTarget): Node | undefined {
     if (target.scope === "page") return this.site.pages.find((p) => p.id === target.id)?.root;
-    if (target.scope === "frame") return this.site.frame?.root;
+    if (target.scope === "frame") return (target.id ? this.site.frames?.[target.id] : this.site.frame)?.root;
     if (target.scope === "symbol") return this.site.symbols?.[target.id]?.root;
     return undefined; // "site" addresses no tree
   }
@@ -1048,10 +1118,33 @@ export class Editor {
       case "savedThemes.set":
         this.site.savedThemes = structuredClone(op.savedThemes);
         return true;
-      case "frame.setEditable":
-        if (!this.site.frame) return false;
-        this.site.frame.editable = op.editable;
+      case "frame.setEditable": {
+        // Honors the target's frame id, so a remote edit to a NAMED layout can't
+        // land on the default one.
+        const frame = op.target.scope === "frame" && op.target.id ? this.site.frames?.[op.target.id] : this.site.frame;
+        if (!frame) return false;
+        frame.editable = op.editable;
         return true;
+      }
+      case "frame.create":
+        (this.site.frames ??= {})[op.frameId] = structuredClone(op.frame);
+        return true;
+      case "frame.rename": {
+        const frame = this.site.frames?.[op.frameId];
+        if (!frame) return false;
+        frame.name = op.name;
+        return true;
+      }
+      case "frame.delete": {
+        if (!this.site.frames?.[op.frameId]) return false;
+        // Same fallback the local path takes: to the DEFAULT, never to `null`.
+        for (const p of this.site.pages) if (p.frameId === op.frameId) delete p.frameId;
+        delete this.site.frames[op.frameId];
+        if (Object.keys(this.site.frames).length === 0) delete this.site.frames;
+        if (this.editingFrameId === op.frameId) this.editingFrameId = undefined;
+        this.syncPages();
+        return true;
+      }
       case "symbol.set":
         (this.site.symbols ??= {})[op.symbol.id] = structuredClone(op.symbol);
         return true;
@@ -1475,13 +1568,10 @@ export class Editor {
     });
   }
 
-  /** The frames a page can be pointed at: the site default plus every named
-   *  frame in `Site.frames`. What a page-settings picker lists. */
+  /** The frames a page can be pointed at — an alias of `layouts`, kept because
+   *  "which frame" is the schema's word and "layout" is the author's. */
   get frameChoices(): { id: string | undefined; name: string }[] {
-    return [
-      { id: undefined, name: "Default" },
-      ...Object.keys(this.site.frames ?? {}).map((id) => ({ id, name: id })),
-    ];
+    return this.layouts;
   }
 
   /**
@@ -1512,16 +1602,111 @@ export class Editor {
   }
 
   /**
-   * Set whether the shared frame (site shell) is author-editable. Undoable.
-   * API-only, like `reorderPages` — `Frame.editable` is persisted site state
-   * that no engine method could previously write.
+   * Set whether the frame currently open in Layout mode is author-editable.
+   * Undoable. API-only, like `reorderPages` — `Frame.editable` is persisted site
+   * state that no engine method could previously write.
    */
   setFrameEditable(editable: boolean): void {
-    const frame = this.site.frame;
+    const frame = this.editingFrame();
     if (!frame || frame.editable === editable) return;
+    const target = this.editingFrameId ? { scope: "frame" as const, id: this.editingFrameId } : { scope: "frame" as const };
     this.transact(["structure"], true, () => {
       frame.editable = editable;
-      this.record({ target: { scope: "frame" }, kind: "frame.setEditable", editable });
+      this.record({ target, kind: "frame.setEditable", editable });
+    });
+  }
+
+  // ── named layouts ──────────────────────────────────────────────────────────
+  /** The frame Layout mode is editing: a named one when `editingFrameId` is set,
+   *  otherwise the site default. */
+  private editingFrame(): Frame | undefined {
+    return this.editingFrameId ? this.site.frames?.[this.editingFrameId] : this.site.frame;
+  }
+
+  /** Which named layout is open, or `undefined` for the site default. */
+  get editingLayoutId(): string | undefined {
+    return this.editingFrameId;
+  }
+
+  /** The root of the layout Layout mode is editing — the named one if open, else
+   *  the site default. What chrome targeting "the current shell" reads. */
+  frameRoot(): Node | undefined {
+    return this.editingFrame()?.root;
+  }
+
+  /** Every layout a page can be pointed at, in switcher order: the site default
+   *  first, then each named one. */
+  get layouts(): { id: string | undefined; name: string }[] {
+    return [
+      { id: undefined, name: "Default" },
+      ...Object.entries(this.site.frames ?? {}).map(([id, f]) => ({ id, name: f.name ?? id })),
+    ];
+  }
+
+  /**
+   * Point Layout mode at a layout — a named one, or `undefined` for the site
+   * default. A view concern (like the page switcher), so it takes no history and
+   * emits no ops; selection clears because an id in one tree means nothing in
+   * another. A dangling id falls back to the default.
+   */
+  editLayout(frameId: string | undefined): void {
+    const next = frameId && this.site.frames?.[frameId] ? frameId : undefined;
+    if (next === this.editingFrameId) return;
+    this.transact(["active"], false, () => {
+      this.editingFrameId = next;
+      this.select(undefined);
+    });
+  }
+
+  /**
+   * Create a named layout and OPEN it. Seeded from the same default shell a new
+   * site gets (navbar + outlet + footer), so it starts as something to edit
+   * rather than an empty box with a mystery Outlet. Returns its id. Undoable.
+   */
+  createLayout(name: string): string {
+    const frameId = defaultMakeId();
+    const label = name.trim() || "Layout";
+    const frame: Frame = { root: stampTree(defaultFrameRoot()), editable: true, name: label };
+    return this.transact(["structure", "page"], true, () => {
+      (this.site.frames ??= {})[frameId] = frame;
+      this.record({ target: { scope: "site" }, kind: "frame.create", frameId, frame });
+      this.editingFrameId = frameId;
+      this.active = "frame";
+      this.select(undefined);
+      return frameId;
+    });
+  }
+
+  /** Rename a named layout. The id is untouched, so pages pointing at it keep
+   *  working — that's why the key and the label are separate. Undoable. */
+  renameLayout(frameId: string, name: string): void {
+    const frame = this.site.frames?.[frameId];
+    const value = name.trim();
+    if (!frame || !value || frame.name === value) return;
+    this.transact(["page"], true, () => {
+      frame.name = value;
+      this.record({ target: { scope: "site" }, kind: "frame.rename", frameId, name: value });
+    });
+  }
+
+  /**
+   * Delete a named layout. Every page using it falls back to the site DEFAULT —
+   * not to `null`, which would silently turn ordinary pages into bare landing
+   * pages, a much louder change than the author asked for. Undoable.
+   */
+  deleteLayout(frameId: string): void {
+    if (!this.site.frames?.[frameId]) return;
+    const reassign = this.site.pages.filter((p) => p.frameId === frameId).map((p) => p.id);
+    this.transact(["structure", "page"], true, () => {
+      for (const p of this.site.pages) if (p.frameId === frameId) delete p.frameId;
+      delete this.site.frames![frameId];
+      if (Object.keys(this.site.frames!).length === 0) delete this.site.frames;
+      this.record({ target: { scope: "site" }, kind: "frame.delete", frameId, reassign });
+      if (this.editingFrameId === frameId) {
+        this.editingFrameId = undefined;
+        this.select(undefined);
+      }
+      this.syncPages();
     });
   }
 
@@ -1879,7 +2064,17 @@ export class Editor {
     this.transact(["structure"], true, () => {
       found.parent!.children!.splice(found.index, 1);
       this.record({ target: this.activeTarget(), kind: "node.remove", nodeId: id });
-      if (this.selectedId === id) this.select(parentId);
+      // Drop just THIS node from the selection. Removing one member of a
+      // multi-selection must leave the rest selected — replacing the whole set
+      // with the parent (the old single-selection behavior) would silently
+      // deselect the five other nodes the author was working on. Only when
+      // nothing survives do we fall back to the parent, which is the helpful
+      // answer for the ordinary one-node delete.
+      if (this.selection_.includes(id)) {
+        const rest = this.selection_.filter((x) => x !== id);
+        if (rest.length) this.selectMany(rest);
+        else this.select(parentId);
+      }
     });
   }
 
@@ -2061,9 +2256,17 @@ export class Editor {
 
   /** Drop the selection if it points at a node the current tree no longer has. */
   private clampSelection(): void {
-    if (this.selectedId && !locate(this.activeRoot(), this.selectedId)) {
-      this.select(undefined);
-    }
+    if (this.selection_.length === 0) return;
+    const root = this.activeRoot();
+    // Prune EVERY stranded id, not just the primary: after an undo that removed
+    // three of five selected nodes, keeping the two that survive is the useful
+    // answer, and leaving the ghosts in would make the next set-wide edit
+    // silently skip them.
+    const alive = this.selection_.filter((id) => locate(root, id));
+    if (alive.length === this.selection_.length) return;
+    this.selection_ = alive;
+    this.selectedId = alive[alive.length - 1];
+    this.emit("selection");
   }
 
   // ── theme ──────────────────────────────────────────────────────────────────

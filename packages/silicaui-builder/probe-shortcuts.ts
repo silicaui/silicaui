@@ -9,7 +9,7 @@
  * like a dead keyboard shortcut and would never fail a typecheck or a smoke test.
  */
 import { Editor } from "./src/site/engine";
-import { cutNode, groupNode, moveSibling, selectFirstChild, selectParent, selectSibling } from "./src/site/commands";
+import { cutNode, duplicateMany, groupNode, moveSibling, removeMany, selectFirstChild, selectParent, selectSibling, selectSiblings, setClassTokenMany } from "./src/site/commands";
 import { el, stampTree } from "@wizeworks/silicaui-html";
 import type { Node, Theme } from "@wizeworks/silicaui-html";
 
@@ -152,3 +152,99 @@ console.log("\ngroup + cut");
 
 console.log(failures === 0 ? "\nALL SHORTCUT PROBES PASSED" : `\n${failures} SHORTCUT PROBE(S) FAILED`);
 if (failures) process.exit(1);
+
+// ── multi-select (doc 139 §3) ────────────────────────────────────────────────
+// The set is what makes Cmd+A mean anything, and the set-aware verbs are what
+// make a six-node gesture ONE undo step instead of six.
+console.log("\nselection set");
+{
+  const ed = freshEditor();
+  const a = byClass(ed, "a");
+  const b = byClass(ed, "b");
+  ed.select(a);
+  check("select() sets a one-member set", JSON.stringify(ed.selectedIds) === JSON.stringify([a]));
+  ed.toggleSelect(b);
+  check("toggleSelect ADDS", JSON.stringify(ed.selectedIds) === JSON.stringify([a, b]));
+  check("...and the primary is the LAST added", ed.selection === b);
+  ed.toggleSelect(b);
+  check("toggling an already-selected node REMOVES it", JSON.stringify(ed.selectedIds) === JSON.stringify([a]));
+  check("...and the primary follows", ed.selection === a);
+  ed.selectMany([a, b, a]);
+  check("selectMany dedupes, keeping order", JSON.stringify(ed.selectedIds) === JSON.stringify([a, b]));
+  ed.select(undefined);
+  check("select(undefined) clears the whole set", ed.selectedIds.length === 0 && ed.selection === undefined);
+}
+{
+  // The snapshot identity has to be stable or useSyncExternalStore loops.
+  const ed = freshEditor();
+  ed.select(byClass(ed, "a"));
+  check("selectedIds is referentially stable between reads", ed.selectedIds === ed.selectedIds);
+  const before = ed.selectedIds;
+  ed.select(byClass(ed, "a"));
+  check("...and a no-op select does not replace it", ed.selectedIds === before);
+}
+
+console.log("\nCmd+A — select siblings");
+{
+  const ed = freshEditor();
+  ed.select(byClass(ed, "a"));
+  check("selects every sibling at this level", selectSiblings(ed) && ed.selectedIds.length === 3);
+  check("...which is a, b, c", JSON.stringify([...ed.selectedIds].sort()) === JSON.stringify([byClass(ed, "a"), byClass(ed, "b"), byClass(ed, "c")].sort()));
+
+  // From a nested node it selects THAT level, not the top one.
+  ed.select(byClass(ed, "b1"));
+  selectSiblings(ed);
+  check("from a nested node it selects that node's level", ed.selectedIds.length === 2);
+  check("...b1 and b2, not the outer three", JSON.stringify([...ed.selectedIds].sort()) === JSON.stringify([byClass(ed, "b1"), byClass(ed, "b2")].sort()));
+}
+{
+  const ed = freshEditor();
+  ed.select(undefined);
+  check("with nothing selected it takes the top level", selectSiblings(ed) && ed.selectedIds.length === 1);
+}
+
+console.log("\nset-aware verbs are ONE action");
+{
+  const ed = freshEditor();
+  const ids = [byClass(ed, "a"), byClass(ed, "c")];
+  removeMany(ed, ids);
+  check("removeMany removes every one", order(ed) === "b", order(ed));
+  ed.undo();
+  check("...and ONE undo brings them all back", order(ed) === "a b c", order(ed));
+  check("...leaving no second step", !ed.canUndo);
+}
+{
+  // Deepest-first: removing a parent must not strand a queued descendant.
+  const ed = freshEditor();
+  removeMany(ed, [byClass(ed, "b"), byClass(ed, "b1")]);
+  check("removing a parent AND its child together is still one clean action", order(ed) === "a c", order(ed));
+  ed.undo();
+  check("...fully reversed by one undo", order(ed) === "a b c", order(ed));
+}
+{
+  const ed = freshEditor();
+  const ids = [byClass(ed, "a"), byClass(ed, "c")];
+  const copies = duplicateMany(ed, ids);
+  check("duplicateMany copies every one", copies.length === 2 && order(ed) === "a a b c c", order(ed));
+  check("...and selects the copies, so the next gesture works", JSON.stringify(ed.selectedIds) === JSON.stringify(copies));
+  ed.undo();
+  check("...one undo removes all the copies", order(ed) === "a b c", order(ed));
+}
+{
+  const ed = freshEditor();
+  const ids = [byClass(ed, "a"), byClass(ed, "c")];
+  setClassTokenMany(ed, ids, ["text-sm", "text-lg"], "text-lg", "@3xl:");
+  const clsOf = (id: string) => { const n = ed.node(id); return n && n.kind !== "outlet" ? n.class ?? "" : ""; };
+  check("setClassTokenMany writes to every target", ids.every((i) => clsOf(i).includes("@3xl:text-lg")));
+  ed.undo();
+  check("...as one undo step", ids.every((i) => !clsOf(i).includes("@3xl:text-lg")) && !ed.canUndo);
+}
+{
+  // A stranded id must be pruned, not left to make later set edits silently skip.
+  const ed = freshEditor();
+  const a = byClass(ed, "a");
+  ed.selectMany([a, byClass(ed, "c")]);
+  ed.remove(a);
+  check("removing a selected node prunes it from the set", !ed.selectedIds.includes(a));
+  check("...and keeps the survivors selected", ed.selectedIds.length === 1);
+}

@@ -55,8 +55,57 @@ const components = JSON.parse(
 );
 check("list_components filters by package", components.length > 0 && components.every((c) => c.package === "@wizeworks/silicaui-react"));
 
-const ambiguous = await client.callTool({ name: "get_component", arguments: { name: "Button" } });
-check("get_component reports isError when a name spans multiple packages", ambiguous.isError === true);
+// ── the three delivery paths ────────────────────────────────────────────────
+// The routing preamble clients read at `initialize`, before any tool call. It
+// used to not exist at all: an agent got ten tools and had to infer that CSS,
+// React, and node-tree output are three different ways to consume Silica.
+const instructions = client.getInstructions() ?? "";
+check("server exposes routing instructions", instructions.length > 0);
+check(
+  "instructions name all three delivery paths",
+  ["@wizeworks/silicaui-react", "@wizeworks/silicaui-html", "@wizeworks/silicaui-behaviors"].every((p) =>
+    instructions.includes(p),
+  ) && /THREE paths/.test(instructions),
+);
+// Anti-drift: prose can name a package that was renamed or never existed, and
+// nothing else would catch it. Every @wizeworks/* package the instructions
+// mention must be a real entry in the catalog.
+const catalogNames = new Set(packages.map((p) => p.name));
+const bogus = [...new Set(instructions.match(/@wizeworks\/[a-z-]+/g) ?? [])].filter(
+  (n) => !catalogNames.has(n),
+);
+check(`instructions only name real packages${bogus.length ? ` (bogus: ${bogus.join(", ")})` : ""}`, bogus.length === 0);
+
+const multi = JSON.parse(text(await client.callTool({ name: "get_component", arguments: { name: "Button" } })));
+check(
+  "get_component with no package returns every path's shape",
+  Array.isArray(multi.paths) &&
+    ["@wizeworks/silicaui", "@wizeworks/silicaui-react", "@wizeworks/silicaui-html"].every((p) =>
+      multi.paths.some((m) => m.package === p),
+    ),
+);
+check("multi-path answer leads with the CSS path", multi.paths?.[0]?.package === "@wizeworks/silicaui");
+
+// The CSS path is a first-class catalog entry, not just a bag of class names:
+// `list_classes` alone never said which class is the root or which are variants.
+const cssButton = JSON.parse(
+  text(await client.callTool({ name: "get_component", arguments: { name: "Button", package: "@wizeworks/silicaui" } })),
+);
+check("CSS entry derives the real root class (btn, not the file name)", cssButton.root === "btn");
+check("CSS entry lists color variants", cssButton.colorVariants?.includes("btn-primary"));
+check(
+  "CSS entry documents from the module's own JSDoc",
+  typeof cssButton.description === "string" && cssButton.description.startsWith("The Button component"),
+);
+// Families with no bare root class must SAY so — `class="dialog"` is the
+// obvious thing to invent when the answer is just `root: null`.
+const cssDialog = JSON.parse(
+  text(await client.callTool({ name: "get_component", arguments: { name: "Dialog", package: "@wizeworks/silicaui" } })),
+);
+check(
+  "CSS entry flags families that have no root class",
+  cssDialog.root === null && cssDialog.familyPrefix === "dialog-" && !!cssDialog.rootNote,
+);
 
 const button = JSON.parse(
   text(await client.callTool({ name: "get_component", arguments: { name: "Button", package: "@wizeworks/silicaui-react" } })),
