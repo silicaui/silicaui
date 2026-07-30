@@ -29,7 +29,7 @@ import { useEditor, useTheme, useStudioTheme } from "./editor-context";
 import { randomizePalette, themeToCss, isCustomRole, cssToTheme, sanitizeThemeName } from "../theme-ops";
 import { Icon } from "../../shared/react/Icon";
 import { googleFontsCatalog } from "./google-fonts-catalog";
-import { loadGoogleFontPreview } from "./google-fonts-loader";
+import { inferThemeFonts, pickWeights } from "./google-fonts-loader";
 
 type Mode = "light" | "dark";
 
@@ -163,12 +163,6 @@ function genericFallback(category: string): string {
   return "sans-serif";
 }
 
-/** Regular/semibold/bold when the family has them; else its first 3 weights. */
-function pickWeights(available: readonly number[]): number[] {
-  const desired = [400, 600, 700].filter((w) => available.includes(w));
-  return desired.length ? desired : available.slice(0, 3);
-}
-
 // Computed once at module load — the catalog is a static import, not theme state.
 const GOOGLE_OPTIONS: FontOption[] = googleFontsCatalog.map((f) => ({
   label: f.family,
@@ -231,9 +225,11 @@ export function ThemeEditor() {
   const setToken = (key: string, v: string) => editor.setTheme(withToken(theme, key, v));
   const tokenOf = (key: string, dflt: string) => theme.tokens[key] ?? dflt;
 
+  // Just write the theme — `useThemeWebfonts` (mounted at the editor root) sees the
+  // new token/`fonts` record on the very next render and fetches the face. One
+  // mechanism for every way a theme changes, instead of a load bolted to this click.
   const setFont = (key: "sans" | "head", cssVar: string, option: FontOption) => {
     editor.setTheme(withFont(theme, key, cssVar, option));
-    if (option.source === "google") loadGoogleFontPreview(option.label, option.weights ?? [400, 700]);
   };
 
   const addColor = () => {
@@ -260,9 +256,20 @@ export function ThemeEditor() {
       setCssError(result.reason);
       return;
     }
+    // A font token the paste CHANGED invalidates the picker's provenance record —
+    // but dropping it outright left the theme with a webfont token and nothing for
+    // the publish-time self-hosting step to act on. Re-derive it from the pasted
+    // token instead (the same catalog match the editor uses to preview it), so
+    // what publishes matches what the board shows. An unrecognized family records
+    // nothing, which is the honest answer.
     const fonts = { ...(theme.fonts ?? {}) };
-    if (theme.tokens["--font-sans"] !== result.tokens["--font-sans"]) delete fonts.sans;
-    if (theme.tokens["--font-head"] !== result.tokens["--font-head"]) delete fonts.head;
+    const inferred = inferThemeFonts(result.tokens) ?? {};
+    for (const key of ["sans", "head"] as const) {
+      const cssVar = key === "sans" ? "--font-sans" : "--font-head";
+      if (theme.tokens[cssVar] === result.tokens[cssVar]) continue;
+      if (inferred[key]) fonts[key] = inferred[key];
+      else delete fonts[key];
+    }
     editor.setTheme({
       ...structuredClone(theme),
       name: result.name,

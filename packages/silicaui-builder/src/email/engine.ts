@@ -789,10 +789,21 @@ export class EmailEditor {
     return this.selectedId ? locate(this.doc.root, this.selectedId)?.node : undefined;
   }
 
-  select(id: string | undefined): void {
-    if (id === this.selectedId) return;
+  /**
+   * Select one node, or clear with undefined. Returns whether the selection
+   * LANDED — `false` means `id` isn't in the ACTIVE template (a node from another
+   * template, or one a concurrent editor already deleted), which is refused
+   * rather than stored: a phantom selection paints no ring, lists no Navigator
+   * row and fills no Inspector. Same contract as the site engine's `select`, and
+   * the boolean is there for the same reason — it's how a host tells "not here"
+   * from "gone" instead of guessing at a silent no-op.
+   */
+  select(id: string | undefined): boolean {
+    if (id !== undefined && !locate(this.doc.root, id)) return false;
+    if (id === this.selectedId) return true;
     this.selectedId = id;
     this.emit("selection");
+    return true;
   }
 
   node(id: string): EmailNode | undefined {

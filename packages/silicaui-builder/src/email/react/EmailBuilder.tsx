@@ -196,6 +196,7 @@ function Chrome({
   onSendTest,
   toolbarSlot,
   toolbarStatusSlot,
+  statusBarSlot,
   frame,
 }: {
   studioTheme: string;
@@ -203,6 +204,7 @@ function Chrome({
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
   toolbarStatusSlot?: React.ReactNode;
+  statusBarSlot?: React.ReactNode;
   frame?: EmailFrame;
 }) {
   const editor = useEmailEditor();
@@ -339,9 +341,20 @@ function Chrome({
         </section>
       )}
 
-      <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content/55">
+      {/* footer — the STATUS BAR, same contract as the site builder's: facts
+          about the session (which width, edit-or-preview, the canvas width),
+          never controls. */}
+      <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content">
         <span className="capitalize">{device}</span>
-        <span className="capitalize text-base-content/40">· {mode}</span>
+        <span className="capitalize">· {mode}</span>
+
+        {/* Host STATE beside the engine's own, reading as one sentence about the
+            session — a send window, a lock holder, saved/unsaved. Same split and
+            same non-interactive contract as the site builder's `statusBarSlot`;
+            `toolbarStatusSlot` is the header twin for whatever has to sit at eye
+            level. */}
+        {statusBarSlot}
+
         <span className="flex-1" />
         <span>{doc.root.width}px canvas</span>
         <a
@@ -514,6 +527,18 @@ export interface EmailBuilderProps {
    * Intended for non-interactive content, so it adds no tab stop.
    */
   toolbarStatusSlot?: React.ReactNode;
+  /**
+   * Host STATUS rendered in the STATUS BAR — the footer strip, after the engine's
+   * own device/mode labels and before the spacer. Same content as
+   * `toolbarStatusSlot`, one floor down, and usually the better home for it: the
+   * footer carries only facts about the session, so state read there isn't
+   * competing with a bar full of buttons. Mirrors the site
+   * `<Builder statusBarSlot>` exactly.
+   *
+   * Non-interactive content only — the strip is 28px tall and the engine's own
+   * children are plain text.
+   */
+  statusBarSlot?: React.ReactNode;
 }
 
 const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder-email";
@@ -553,6 +578,7 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
   onSavedBlocksChange,
   toolbarSlot,
   toolbarStatusSlot,
+  statusBarSlot,
 }: EmailBuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<EmailProject>(persistKey) : null), [persistKey]);
   // `project` takes precedence over the legacy single-template `document`.
@@ -680,6 +706,7 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
                 onSendTest={onSendTest}
                 toolbarSlot={toolbarSlot}
                 toolbarStatusSlot={toolbarStatusSlot}
+                statusBarSlot={statusBarSlot}
                 frame={frame}
               />
             </ErrorBoundary>

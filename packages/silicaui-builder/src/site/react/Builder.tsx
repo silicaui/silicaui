@@ -18,7 +18,7 @@ import { Editor } from "../engine";
 import type { HistoryDelegate, PageMeta } from "../engine";
 import type { Op, OpMeta } from "../ops";
 import { DraftStore } from "../../shared/persistence";
-import { EditorProvider, StudioThemeProvider, useEditingSymbol, useEditor, useHistory, usePages } from "./editor-context";
+import { EditorProvider, StudioThemeProvider, useActiveTree, useEditingSymbol, useEditor, useHistory, usePages, useTheme } from "./editor-context";
 import { HostProvider, useHost } from "./host-context";
 import type { BuilderHost } from "./host";
 import { ErrorBoundary } from "../../shared/react/ErrorBoundary";
@@ -36,6 +36,7 @@ import { Navigator } from "./Navigator";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
 import { BreakpointProvider } from "./breakpoint-context";
+import { useThemeWebfonts } from "./google-fonts-loader";
 import { Icon } from "../../shared/react/Icon";
 import { IconItem, PanelHead } from "../../shared/react/chrome";
 
@@ -90,6 +91,7 @@ function Chrome({
   onPublish,
   toolbarSlot,
   toolbarStatusSlot,
+  statusBarSlot,
   dataToggle,
   initialMode,
   onModeChange,
@@ -97,6 +99,7 @@ function Chrome({
   onPublish?: (payload: PublishPayload) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
   toolbarStatusSlot?: React.ReactNode;
+  statusBarSlot?: React.ReactNode;
   dataToggle: boolean;
   initialMode: Mode;
   onModeChange?: (mode: Mode) => void;
@@ -105,6 +108,13 @@ function Chrome({
   const { canUndo, canRedo } = useHistory();
   const { activeId } = usePages();
   const editingSymbol = useEditingSymbol();
+  const activeTree = useActiveTree();
+  // Fetch whatever webfonts the ACTIVE theme names, however that theme arrived —
+  // preset, saved theme, pasted CSS, host prop, restore, undo, remote op, or the
+  // picker. Mounted here (the one root inside EditorProvider) so the canvas and
+  // the component board can never render a font the page never fetched.
+  const documentTheme = useTheme();
+  useThemeWebfonts(documentTheme);
   const [mode, setMode] = React.useState<Mode>(initialMode);
   const [device, setDevice] = React.useState("desktop");
   const [appearance, setAppearance] = React.useState<Appearance>("light");
@@ -156,6 +166,36 @@ function Chrome({
   React.useEffect(() => {
     if (editingSymbol && mode !== "component" && mode !== "theme") setMode("component");
   }, [editingSymbol, mode]);
+
+  // …and the same for the OTHER tree a host can retarget the spine at directly:
+  // `editor.setActiveTree("frame")` (how a host jumps to a finding in the header
+  // or footer — selection is tree-scoped, so it has to switch the tree before it
+  // can select a frame node at all). The mode has to FOLLOW, or the chrome lies:
+  // the toggle still says Page, the left rail still lists Pages, and the
+  // Navigator — keyed `${mode}:${activeId}` — isn't remounted, so it keeps the
+  // page tree's expanded set and the newly-selected node can have no visible row.
+  //
+  // Keyed off a CHANGE of tree rather than the (tree, mode) pair, because the
+  // pair is legitimately mismatched when the MODE moved and the tree didn't:
+  // Component mode with no symbol yet ("create a component") leaves the tree on
+  // the page body on purpose, and a pair test would yank the author straight
+  // back out of it.
+  //
+  // Theme mode is exempt for the same reason `changeMode` leaves the tree alone
+  // there: it edits tokens, so being in it is not a claim about any tree and
+  // there is nothing stale on screen to correct — unlike Page mode, which
+  // asserts you are looking at a page body. (A host's "jump to this node" while
+  // the Theme editor is open therefore retargets the spine without moving the
+  // author; nothing shows until they leave Theme.)
+  const lastTree = React.useRef(activeTree);
+  React.useEffect(() => {
+    const prev = lastTree.current;
+    lastTree.current = activeTree;
+    if (activeTree === prev || mode === "theme") return;
+    // "symbol" is already covered by the `editingSymbol` effect above.
+    if (activeTree === "frame" && mode !== "layout") setMode("layout");
+    else if (activeTree === "page" && mode !== "page") setMode("page");
+  }, [activeTree, mode]);
 
   // `initialMode` names where the author LANDS, so it has to retarget the editing
   // spine once at mount — the same work `changeMode` does on a click. Without
@@ -420,9 +460,25 @@ function Chrome({
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {/* footer */}
-      <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content/55">
+      {/* footer — the STATUS BAR. Everything in it is a fact about the session
+          (which surface, which width), never a control; that's why `mode` and
+          `device` read here rather than beside the toggles that set them. */}
+      <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content">
         <span className="text-primary font-semibold capitalize">{mode}</span>
+
+        {/* Host STATE, next to the engine's own, reading left to right as one
+            sentence about the session — a presence count, saved-but-not-live, a
+            lock holder. The header's `toolbarStatusSlot` is the same kind of
+            content one floor up, for a host that wants it at eye level; this is
+            where status BELONGS, and the engine's own two children are the
+            argument. Non-interactive only: a 28px strip is nowhere to put a
+            control, and keeping it text costs no tab stop.
+            Unreachable for a host otherwise — `<footer>` is engine-owned, so the
+            alternatives are a second status bar stacked below `<Builder>` or a
+            portal into our markup at a computed index (breaking the first time
+            these children change). */}
+        {statusBarSlot}
+
         <span className="flex-1" />
         <span className="capitalize">{device}</span>
         <a
@@ -540,6 +596,26 @@ export interface BuilderProps {
    */
   toolbarStatusSlot?: React.ReactNode;
   /**
+   * Host STATUS rendered in the STATUS BAR — the footer strip, immediately after
+   * the mode label and before the spacer, so a host's state reads left to right
+   * as one sentence with the engine's own.
+   *
+   * The same content as `toolbarStatusSlot`, one floor down, and usually the
+   * better home for it: the footer already carries exactly this kind of fact
+   * (which surface you're on, which device width you're looking at) and nothing
+   * else, so state read there isn't competing with a bar full of buttons. Use the
+   * header slot for the one or two things that must be at eye level, this for the
+   * rest — or this alone.
+   *
+   * Non-interactive content only, and more strictly than in the header: the strip
+   * is 28px tall, and the engine's own children are plain text. A host can't
+   * reach this position any other way — `<footer>` is engine-owned, and the
+   * alternatives are a second status bar stacked under `<Builder>` or a portal
+   * into our markup at a computed index, which breaks silently the first time the
+   * footer's children change.
+   */
+  statusBarSlot?: React.ReactNode;
+  /**
    * Whether to show the canvas data on/off toggle. Defaults to true. A host whose
    * authors are non-technical can hide it: the control's effect is invisible on a
    * tree with no bindings, so it reads as a dead button to everyone who isn't
@@ -616,6 +692,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
   persistKey = DEFAULT_PERSIST_KEY,
   toolbarSlot,
   toolbarStatusSlot,
+  statusBarSlot,
   dataToggle = true,
   initialMode = "page",
   onModeChange,
@@ -760,6 +837,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
                 onPublish={onPublish}
                 toolbarSlot={toolbarSlot}
                 toolbarStatusSlot={toolbarStatusSlot}
+                statusBarSlot={statusBarSlot}
                 dataToggle={dataToggle}
                 initialMode={initialMode}
                 onModeChange={onModeChange}

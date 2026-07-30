@@ -602,14 +602,30 @@ export class Editor {
     return this.selectedId ? locate(this.activeRoot(), this.selectedId)?.node : undefined;
   }
 
-  /** Select exactly one node, replacing any existing set (or clear with
-   *  undefined). No-op if that's already the entire selection. */
-  select(id: string | undefined): void {
+  /**
+   * Select exactly one node, replacing any existing set (or clear with
+   * undefined). No-op if that's already the entire selection.
+   *
+   * Returns whether the selection LANDED. Selection is tree-scoped, so an id
+   * from another tree means nothing here — a frame node while the spine is on a
+   * page body, or a node a concurrent editor already deleted. Both are refused
+   * rather than stored: a phantom `selectedId` that resolves to no node paints no
+   * ring, lists no Navigator row, fills no Inspector, and would leave the
+   * shortcuts acting on garbage.
+   *
+   * The boolean is what makes those two cases distinguishable to a host, which
+   * a silent no-op could not: `false` means "not in the tree you're pointed at",
+   * so a host can say "that block isn't there any more" — or switch trees with
+   * `setActiveTree` and try again — instead of guessing. Clearing always lands.
+   */
+  select(id: string | undefined): boolean {
+    if (id !== undefined && !locate(this.activeRoot(), id)) return false;
     const next = id ? [id] : [];
-    if (sameIds(next, this.selection_)) return;
+    if (sameIds(next, this.selection_)) return true;
     this.selection_ = next;
     this.selectedId = id;
     this.emit("selection");
+    return true;
   }
 
   /**
