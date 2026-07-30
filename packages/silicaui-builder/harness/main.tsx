@@ -556,6 +556,7 @@ if (editorMode === "email") {
             </span>
           ) : undefined
         }
+        statusBarSlot={<span data-testid="email-status-bar-slot">Sends 9am Tue</span>}
       />
     </React.StrictMode>,
   );
@@ -587,6 +588,7 @@ if (editorMode === "email") {
             All changes saved
           </span>
         }
+        statusBarSlot={<span data-testid="status-bar-slot">3 editing · saved, not live yet</span>}
       />
     </React.StrictMode>,
   );

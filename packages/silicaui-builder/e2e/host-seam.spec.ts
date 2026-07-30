@@ -353,3 +353,98 @@ test("a ref the host cannot resolve fails LOUDLY — it never blanks the node si
   // span and no explanation.
   await expect(canvas.getByText(HEADLINE)).toBeVisible();
 });
+
+test("statusBarSlot renders host state in the footer, after the engine's mode label", async ({ page }) => {
+  await ready(page);
+  const status = page.getByTestId("status-bar-slot");
+  await expect(status).toBeVisible();
+
+  // The FOOTER (the status bar), not the header — and positioned between the
+  // engine's own mode label and the spacer, so host state and engine state read
+  // left to right as one sentence about the session. DOM order, not CSS: a host
+  // can't reach mid-container with `order`, and faking it would desync focus
+  // order from reading order (WCAG 2.4.3) exactly as in the header.
+  const placement = await status.evaluate((el) => {
+    const FOLLOWING = 4; // Node.DOCUMENT_POSITION_FOLLOWING
+    const footer = el.closest("footer");
+    if (!footer) return "not in the footer";
+    const kids = [...footer.children];
+    const mode = kids[0]!;
+    const spacer = kids.find((k) => k.className.includes("flex-1"));
+    return {
+      modeLabel: (mode.textContent ?? "").trim(),
+      afterMode: Boolean(mode.compareDocumentPosition(el) & FOLLOWING),
+      beforeSpacer: spacer ? Boolean(el.compareDocumentPosition(spacer) & FOLLOWING) : null,
+      // Non-interactive by contract: a 28px strip is nowhere to put a control,
+      // and text costs no tab stop.
+      controls: el.querySelectorAll("button, a, input, select, [tabindex]").length,
+    };
+  });
+  expect(placement).toEqual({ modeLabel: "page", afterMode: true, beforeSpacer: true, controls: 0 });
+});
+
+test("a host's setActiveTree('frame') moves the mode toggle and the left rail with it", async ({ page }) => {
+  await ready(page);
+  const pageTab = page.getByRole("button", { name: "Page", exact: true });
+  const layoutTab = page.getByRole("button", { name: "Layout", exact: true });
+  const footer = page.locator("footer");
+
+  await expect(pageTab).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("layout-switcher")).toHaveCount(0);
+
+  // How a host jumps to a finding in the header or footer: selection is
+  // tree-scoped, so it has to retarget the spine before it can select a frame
+  // node at all. The chrome has to follow, or it claims you're on a page body
+  // while you're editing the shared shell.
+  await page.evaluate(() => (window as unknown as { __editor: { setActiveTree(t: string): void } }).__editor.setActiveTree("frame"));
+
+  await expect(layoutTab).toHaveAttribute("aria-pressed", "true");
+  await expect(pageTab).toHaveAttribute("aria-pressed", "false");
+  await expect(footer.getByText("layout", { exact: true })).toBeVisible();
+  // The two knock-ons of the stale mode, both gone with it: the left rail lists
+  // LAYOUTS rather than pages, and the Navigator — keyed on the mode — remounts,
+  // so it reseeds its expanded set for the tree now in view.
+  await expect(page.getByTestId("layout-switcher")).toBeVisible();
+  await expect(page.getByRole("treeitem").first()).toBeVisible();
+
+  // A frame node is now selectable, which is the whole point of the jump.
+  const landed = await page.evaluate(() => {
+    const ed = (window as unknown as {
+      __editor: { frame: { root: { children: { id: string }[] } }; select(id: string): boolean };
+    }).__editor;
+    return ed.select(ed.frame.root.children[0]!.id);
+  });
+  expect(landed).toBe(true);
+  await expect(page.getByText("No selection")).toHaveCount(0);
+
+  // …and it follows back the other way too.
+  await page.evaluate(() => (window as unknown as { __editor: { setActiveTree(t: string): void } }).__editor.setActiveTree("page"));
+  await expect(pageTab).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("layout-switcher")).toHaveCount(0);
+});
+
+test("a mode that deliberately leaves the tree alone is not yanked back by the tree sync", async ({ page }) => {
+  await ready(page);
+  const componentTab = page.getByRole("button", { name: "Component", exact: true });
+
+  // Component mode with nothing to open leaves the spine on the page body on
+  // purpose, so the pair (tree=page, mode=component) is legitimate — the sync
+  // keys off a CHANGE of tree for exactly this reason. A pair test would bounce
+  // the author straight back out of the "create a component" state.
+  await componentTab.click();
+  await expect(componentTab).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("footer").getByText("component", { exact: true })).toBeVisible();
+  const tree = await page.evaluate(
+    () => (window as unknown as { __editor: { activeTree: string } }).__editor.activeTree,
+  );
+  expect(["page", "symbol"]).toContain(tree); // whichever it is, the mode stayed put
+
+  // Theme mode is exempt for the same shape of reason: it edits tokens, so being
+  // in it is not a claim about any tree, and a host retargeting the spine has
+  // nothing stale on screen to correct.
+  await page.getByRole("button", { name: "Theme", exact: true }).click();
+  await page.evaluate(() =>
+    (window as unknown as { __editor: { setActiveTree(t: string): void } }).__editor.setActiveTree("frame"),
+  );
+  await expect(page.getByRole("button", { name: "Theme", exact: true })).toHaveAttribute("aria-pressed", "true");
+});

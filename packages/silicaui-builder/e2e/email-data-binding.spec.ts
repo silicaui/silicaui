@@ -146,6 +146,25 @@ test("toolbarSlot renders host UI in the header, next to Send test/Export HTML",
   });
   expect(beforeActions).toBe(true);
 
+  // …and the status BAR twin, one floor down: host state in the footer, after
+  // the engine's own device/mode labels and before the spacer, where the strip
+  // carries nothing but facts about the session.
+  const statusBar = page.getByTestId("email-status-bar-slot");
+  await expect(statusBar).toBeVisible();
+  const footerPlacement = await statusBar.evaluate((el) => {
+    const FOLLOWING = 4;
+    const footer = el.closest("footer");
+    if (!footer) return "not in the footer";
+    const kids = [...footer.children];
+    const spacer = kids.find((k) => k.className.includes("flex-1"));
+    return {
+      afterMode: Boolean(kids[1]!.compareDocumentPosition(el) & FOLLOWING),
+      beforeSpacer: spacer ? Boolean(el.compareDocumentPosition(spacer) & FOLLOWING) : null,
+      controls: el.querySelectorAll("button, a, input, select, [tabindex]").length,
+    };
+  });
+  expect(footerPlacement).toEqual({ afterMode: true, beforeSpacer: true, controls: 0 });
+
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
