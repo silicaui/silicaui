@@ -44,7 +44,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-prop-vocabulary.mjs"
+    "verify": "node verify.mjs && node verify-prop-vocabulary.mjs && node verify-form-focus.mjs"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "jsdom": "^25.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tsup": "^8.3.0",

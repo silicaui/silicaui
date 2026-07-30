@@ -446,7 +446,7 @@ export type {
 } from "./field";
 
 export { Form } from "./form";
-export type { FormProps } from "./form";
+export type { FormProps, FormFocusOnError } from "./form";
 
 export { RadioGroup, RadioOption } from "./radio-group";
 export type {

@@ -64,6 +64,7 @@ import { NavigationMenuDemo } from "./demos/NavigationMenu";
 import { MenubarDemo } from "./demos/Menubar";
 import { ToggleGroupDemo } from "./demos/ToggleGroup";
 import { FieldDemo } from "./demos/Field";
+import { FormDemo } from "./demos/Form";
 import { RadioGroupDemo } from "./demos/RadioGroup";
 import { CheckboxGroupDemo } from "./demos/CheckboxGroup";
 import { SliderDemo } from "./demos/Slider";
@@ -193,6 +194,7 @@ export const DEMOS: DemoEntry[] = [
     { id: "menubar", title: "Menubar", Demo: MenubarDemo },
     { id: "toggle-group", title: "Toggle Group", Demo: ToggleGroupDemo },
     { id: "field", title: "Field", Demo: FieldDemo },
+    { id: "form", title: "Form", Demo: FormDemo },
     { id: "radio-group", title: "Radio Group", Demo: RadioGroupDemo },
     { id: "checkbox-group", title: "Checkbox Group", Demo: CheckboxGroupDemo },
     { id: "slider", title: "Slider", Demo: SliderDemo },
