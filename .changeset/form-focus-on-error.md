@@ -1,6 +1,5 @@
 ---
 "@wizeworks/silicaui-react": minor
-"@wizeworks/silicaui-demos": patch
 "@wizeworks/silicaui-mcp": patch
 ---
 
