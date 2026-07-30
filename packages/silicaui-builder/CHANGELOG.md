@@ -1,5 +1,97 @@
 # @wizeworks/silicaui-builder
 
+## 0.41.0
+
+### Minor Changes
+
+- 78a7569: A `statusBarSlot` on both builders, and the mode toggle now follows a host's `setActiveTree`.
+
+  **`statusBarSlot`** renders host state in the FOOTER — the status bar — immediately after the
+  engine's own mode label and before the spacer, so a host's state and the engine's read left to
+  right as one sentence about the session.
+
+  It's the same content `toolbarStatusSlot` takes, one floor down, and usually the better home for
+  it. The footer already carries exactly this kind of fact (which surface you're on, which device
+  width you're looking at) and nothing else — the engine's own two children are the argument:
+  `mode` and `device` are state, so they live down there rather than beside the toggles that set
+  them. State read in the footer isn't competing with a bar full of buttons. Use the header slot
+  for the one or two things that must be at eye level, this for the rest, or this alone.
+
+  Non-interactive content only, and more strictly than in the header: the strip is 28px tall.
+  Unreachable for a host any other way — `<footer>` is engine-owned and takes no children, so the
+  alternatives were a second status bar stacked below `<Builder>` (two per screen, one per package)
+  or a portal into our markup at a computed index, which breaks silently the first time the
+  footer's children change. Same slot, same position, same contract on `EmailBuilder`.
+
+  **The mode follows the tree.** `editor.setActiveTree("frame")` retargeted the whole editing spine
+  — canvas, Navigator, Inspector — while the shell's mode toggle kept saying **Page** and the left
+  rail kept listing pages, so an author edited the shared header and footer while the editor
+  insisted they were on a page body. Two knock-ons came from the same root: the rail showed Pages
+  instead of Layouts, and `<Navigator>` (keyed on the mode) wasn't remounted, so it kept the page
+  tree's expanded set and a newly-selected frame node could sit inside a collapsed ancestor with no
+  visible row. All three are gone: the shell now watches the active tree the same way it already
+  watched `enterSymbol`, and moves the mode to match.
+
+  It keys off a CHANGE of tree rather than the (tree, mode) pair, because the pair is legitimately
+  mismatched when the MODE moved and the tree didn't — Component mode with no symbol yet leaves the
+  spine on the page body on purpose, and a pair test would bounce the author straight back out of
+  it. Theme mode is exempt for the same reason `changeMode` leaves the tree alone there: it edits
+  tokens, so being in it is not a claim about any tree and there is nothing stale on screen to
+  correct.
+
+  **`editor.select(id)` now returns whether it landed** — the sharp edge underneath the above.
+  Selection is tree-scoped, so an id from another tree means nothing: a frame node while the spine
+  is on a page body, a node in another email template, a node a concurrent editor already deleted.
+  Those used to be stored anyway, leaving a selection that resolved to no node — no ring, no
+  Navigator row, no Inspector, and shortcuts pointed at nothing. They're now refused, and the
+  boolean is what makes "not in the tree you're pointed at" distinguishable from "gone", so a host
+  can say _that block isn't there any more_ — or switch trees and try again — instead of guessing at
+  a silent no-op. Clearing (`select(undefined)`) always lands. Same contract on the email engine.
+
+  Also: the footer's ink is a real token instead of `text-base-content/55` (and, in email,
+  `/40` on the mode label). Faded ink on text a person is meant to read was already wrong, and it's
+  squarely wrong now that the strip is where a host's status lives.
+
+### Patch Changes
+
+- 78a7569: Webfont loading follows the active THEME, so a preset's heading font actually changes.
+
+  The editor fetched a Google face from the theme editor's font picker — the click, not the
+  result. That covered exactly one of the eight ways a theme arrives. Applying one of the shipped
+  presets, a saved theme, pasted theme CSS, a host-supplied theme at mount, crash-recovery restore,
+  undo, or a remote editor's op all wrote a perfectly correct `--font-head: "Syne", sans-serif` onto
+  the island against a font the page had never requested. The token resolved, the browser fell back
+  to the generic, and the component board's Typography specimen showed headings in the body face:
+  _the heading font doesn't change when I switch themes._
+
+  The load now hangs off the theme itself — `useThemeWebfonts`, mounted once at the editor root —
+  so it watches the result rather than the cause and every route is covered by construction,
+  including routes added later. `theme.fonts` is preferred for the family and its exact weights
+  (the unambiguous provenance record the picker and the presets both write); the raw token is the
+  fallback, which is what makes pasted CSS work with no `fonts` record at all. A stack leading with
+  a generic keyword, a `var()`, or a face the shipped system stacks name on purpose resolves to
+  nothing to fetch.
+
+  Two silent degradations around it now say so once, on the affordance rather than at each call
+  site: a family the theme names that isn't in the catalog (nowhere to fetch it from), and a face
+  whose `<link>` fails — offline, a blocked CDN, a CSP without `fonts.googleapis.com`. Both paint a
+  fallback and look merely _wrong_ rather than broken, which is worth knowing before a screenshot.
+
+  Pasting theme CSS also stops dropping the `fonts` record for a token the paste changed. Dropping
+  it left the theme naming a webfont with nothing for the publish-time self-hosting step
+  (`selfHostGoogleFonts`) to act on, so the published page shipped `--font-head: "Fraunces"` with no
+  `@font-face` behind it — the preview lying about the output. The record is re-derived from the
+  pasted token instead, by the same catalog match the editor uses to preview it. A family we can't
+  source records nothing, which is the honest answer.
+
+  Guarded by e2e that asserts the `<link>`, not the token: a token on the island was exactly the
+  evidence that made this invisible, and `document.fonts.check` is no better — it reports true for a
+  family with no matching `@font-face` at all.
+
+  - @wizeworks/silicaui@0.41.0
+  - @wizeworks/silicaui-html@0.41.0
+  - @wizeworks/silicaui-panels@0.41.0
+
 ## 0.40.0
 
 ### Minor Changes
