@@ -73,6 +73,7 @@ export const DEMO_META: DemoMeta[] = [
   { id: "menubar", title: "Menubar" },
   { id: "toggle-group", title: "Toggle Group" },
   { id: "field", title: "Field" },
+  { id: "form", title: "Form" },
   { id: "radio-group", title: "Radio Group" },
   { id: "checkbox-group", title: "Checkbox Group" },
   { id: "slider", title: "Slider" },
