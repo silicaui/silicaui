@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The ToggleGroup component — a segmented control (single- or multi-select set
@@ -112,12 +112,7 @@ export function toggleGroup(colors, prefix = "") {
   // `.toggle-group-<color>` tints the SELECTED item, so a segmented control can
   // signal its active choice more strongly. Orthogonal: the color class only
   // sets the pill vars on the track; `[data-pressed]` above reads them.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--toggle-group-pill-bg": `var(--color-${name})`,
-      "--toggle-group-pill-fg": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("toggleGroup", colors, prefix));
 
   return base;
 }

@@ -102,6 +102,31 @@ const cssButton = JSON.parse(
 );
 check("CSS entry derives the real root class (btn, not the file name)", cssButton.root === "btn");
 check("CSS entry lists color variants", cssButton.colorVariants?.includes("btn-primary"));
+// The colorVariants list is the DEFAULT roles, not the whole set. Without a
+// pattern + an explicit openness note, an agent read the 8 literal names as
+// exhaustive and refused to write `btn-brand` — with the preamble's "never
+// invent a color" rule reinforcing exactly the wrong conclusion.
+check("CSS entry gives an open-set color pattern", cssButton.colorPattern === "btn-<color>");
+check("CSS entry says the color set is open", /not the whole set/i.test(cssButton.colorNote ?? ""));
+// The three families whose color selector is NOT `<root>-<color>` — a consumer
+// that assumes the uniform shape writes dead classes for these.
+const nonUniform = [
+  ["Chat", "chat-bubble-<color>"],
+  ["pin-input", "pin-input-cell-<color>"],
+  ["Toast", 'toast[data-type="<color>"]'],
+];
+for (const [name, pattern] of nonUniform) {
+  const entry = JSON.parse(
+    text(await client.callTool({ name: "get_component", arguments: { name, package: "@wizeworks/silicaui" } })),
+  );
+  check(`${name} reports its non-uniform color pattern`, entry.colorPattern === pattern);
+}
+// Field's `field-error` is a VALIDATION part that merely looks like a color
+// variant; the old heuristic advertised Field as colorable-but-only-in-error.
+const cssField = JSON.parse(
+  text(await client.callTool({ name: "get_component", arguments: { name: "Field", package: "@wizeworks/silicaui" } })),
+);
+check("Field is not advertised as colorable", cssField.colorPattern === undefined);
 check(
   "CSS entry documents from the module's own JSDoc",
   typeof cssButton.description === "string" && cssButton.description.startsWith("The Button component"),
@@ -136,6 +161,19 @@ check("list_classes returns real class names", btnClasses.classes.includes("btn-
 
 const tokens = JSON.parse(text(await client.callTool({ name: "get_tokens", arguments: {} })));
 check("get_tokens returns semantic colors", tokens.semanticColors.includes("primary"));
+// "How do I add a `brand` color?" was unanswerable from MCP data alone.
+check("get_tokens explains how to register a custom color", /@plugin/.test(tokens.customColors?.howToDeclare ?? ""));
+check(
+  "get_tokens covers every colorable component",
+  tokens.customColors?.componentPatterns?.length === 35 &&
+    tokens.customColors.componentPatterns.includes("badge-<color>"),
+);
+check("get_tokens documents the auto-derived -content ink", /auto-derive/i.test(tokens.customColors?.contentNote ?? ""));
+// The concept has no literal name to match, so it needed its own search entry.
+const brandHits = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "brand" } })));
+check("search_docs surfaces custom colors for 'brand'", brandHits.some((r) => r.kind === "concept"));
+const customHits = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "custom color" } })));
+check("search_docs surfaces custom colors for 'custom color'", customHits.some((r) => r.kind === "concept"));
 
 const blocks = JSON.parse(text(await client.callTool({ name: "list_blocks", arguments: {} })));
 check("list_blocks returns summaries without a root", blocks.length > 0 && !("root" in blocks[0]));

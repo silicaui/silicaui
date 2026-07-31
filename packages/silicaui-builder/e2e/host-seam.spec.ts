@@ -116,7 +116,7 @@ test("host.inspectorPanels renders a host panel that writes through the shared m
 
   const HEADLINE = "Ship your store in an afternoon";
   await canvas.getByText(HEADLINE).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
 
   await expect(page.getByText("Host panel", { exact: true })).toBeVisible();
   await expect(page.getByTestId("host-panel")).toBeVisible();
@@ -131,7 +131,7 @@ test("host.dataSources() + scopeAt turn the Reference field into a picker", asyn
 
   const HEADLINE = "Ship your store in an afternoon";
   await canvas.getByText(HEADLINE).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
 
   await page.getByTestId("data-kind").selectOption("value");
 
@@ -150,7 +150,7 @@ test("a value bind's Target attribute round-trips through editor.setData", async
 
   const HEADLINE = "Ship your store in an afternoon";
   await canvas.getByText(HEADLINE).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("data-kind").selectOption("value");
   await page.getByTestId("data-ref-picker").selectOption("site.title");
 
@@ -206,7 +206,7 @@ test("a collection bind's 'Omit when empty' toggle drops the node from the resol
 
   const HEADLINE = "Ship your store in an afternoon";
   await canvas.getByText(HEADLINE).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
 
   await page.getByTestId("data-kind").selectOption("collection");
   const refSelect = page.getByTestId("data-ref-picker");
@@ -264,7 +264,7 @@ test("the Data binding Preview row calls host.resolveBinding/resolveCollection l
 
   const HEADLINE = "Ship your store in an afternoon";
   await canvas.getByText(HEADLINE).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("data-kind").selectOption("value");
   await page.getByTestId("data-ref-picker").selectOption("site.title");
 
@@ -298,7 +298,7 @@ test("a collection's 'How many' caps the instance, and the canvas draws that cou
   // item, so the count the author lays out against is the count that ships.
   const HEADLINE = "Ship your store in an afternoon";
   await page.locator(".tree-node").nth(3).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("data-kind").selectOption("collection");
   await page.getByTestId("data-ref-picker").selectOption("catalog");
 
@@ -330,7 +330,7 @@ test("a ref the host cannot resolve fails LOUDLY — it never blanks the node si
 
   const HEADLINE = "Ship your store in an afternoon";
   await canvas.getByText(HEADLINE).click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("data-kind").selectOption("value");
 
   // The picker only offers refs the host DECLARED, so an unknown ref can't be
@@ -447,4 +447,113 @@ test("a mode that deliberately leaves the tree alone is not yanked back by the t
     (window as unknown as { __editor: { setActiveTree(t: string): void } }).__editor.setActiveTree("frame"),
   );
   await expect(page.getByRole("button", { name: "Theme", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+// ── inspectorTabs (the coarse half of the inspector seam) ────────────────────
+
+test("the Inspector rail has no header above its tabs — the tab strip IS the header", async ({ page }) => {
+  await ready(page);
+  const rail = page.getByTestId("inspector-tab-design").locator("xpath=ancestor::div[contains(@class,'border-l')][1]");
+
+  // The strip is the FIRST thing in the rail. A fixed "Design" bar above it used
+  // to duplicate the first tab's name and then contradict the second, and the
+  // regression is invisible in a screenshot diff of the Design tab alone —
+  // it only shows once you open Settings. So assert the structure, not the pixels.
+  const stripY = await page.getByTestId("inspector-tab-design").boundingBox().then((b) => b!.y);
+  const railY = await rail.boundingBox().then((b) => b!.y);
+  expect(stripY - railY).toBeLessThan(12);
+
+  // And "Design" appears in the rail exactly ONCE — as the tab. The old header
+  // made it two, the second of which went stale the moment Settings opened.
+  await page.getByTestId("inspector-tab-settings").click();
+  await expect(rail.getByText("Design", { exact: true })).toHaveCount(1);
+  await expect(page.getByTestId("inspector-tab-design")).toHaveText("Design");
+});
+
+test("a panel-scoped host tab renders with NOTHING selected, and node chrome stays hidden", async ({ page }) => {
+  await ready(page);
+
+  // Nothing selected: the built-in tabs are node-scoped, so they show the empty
+  // state — but the strip is still there and the host's History tab still works.
+  // This is the whole reason the seam has two scopes.
+  await expect(page.getByText("No selection")).toBeVisible();
+  await page.getByTestId("inspector-tab-demo-history").click();
+  await expect(page.getByTestId("host-tab-history")).toBeVisible();
+  await expect(page.getByText("No selection")).toHaveCount(0);
+
+  // With a node selected the panel tab keeps rendering — and the node chrome
+  // (identity header, Duplicate/Delete) stays hidden, because this tab is not
+  // about that node.
+  await page.locator(".sui-canvas").getByText("Ship your store in an afternoon").click();
+  await expect(page.getByTestId("host-tab-history")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Duplicate" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Save as component" })).toHaveCount(0);
+
+  // Back to Design and the node chrome returns.
+  await page.getByTestId("inspector-tab-design").click();
+  await expect(page.getByRole("button", { name: "Save as component" })).toBeVisible();
+});
+
+test("a node-scoped host tab comes and goes with the selection, and falls back rather than blanking", async ({ page }) => {
+  await ready(page);
+  const canvas = page.locator(".sui-canvas");
+  const audit = page.getByTestId("inspector-tab-demo-audit");
+
+  // The demo host returns Audit only for element nodes, so it is absent until one
+  // is selected.
+  await expect(audit).toHaveCount(0);
+  await canvas.getByText("Ship your store in an afternoon").click();
+  await expect(audit).toBeVisible();
+
+  // It writes through the SAME ctx the built-in panels use — the attribute lands
+  // on the real canvas element, not in host-local state.
+  await audit.click();
+  await expect(page.getByTestId("host-tab-audit-tag")).toHaveText("h1");
+  await page.getByTestId("host-tab-audit-mark").click();
+  await expect(canvas.locator('[data-audited="yes"]')).toHaveCount(1);
+
+  // Deselecting takes the tab away WHILE IT IS OPEN. The rail must fall back to
+  // Design, not render a blank body or keep a tab that no longer exists.
+  await page.evaluate(() =>
+    (window as unknown as { __editor: { select(id: string | undefined): boolean } }).__editor.select(undefined),
+  );
+  await expect(audit).toHaveCount(0);
+  // `aria-selected`, not `aria-pressed` — these are real tabs (a page of the
+  // panel), not toggle buttons (a mode that is armed). The mode toggles in the
+  // header above are the ones that use `aria-pressed`.
+  await expect(page.getByTestId("inspector-tab-design")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText("No selection")).toBeVisible();
+});
+
+test("a host tab cannot hijack a built-in id, and overflow gets paging buttons rather than a scrollbar", async ({ page }) => {
+  await ready(page);
+  await page.locator(".sui-canvas").getByText("Ship your store in an afternoon").click();
+
+  // The demo host registers a tab with id "design". Rejected — the built-in
+  // survives with its own label and its own content. Letting a host shadow it
+  // would silently remove the only way to style a node.
+  await expect(page.getByTestId("host-tab-hijack")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Hijack" })).toHaveCount(0);
+  await page.getByTestId("inspector-tab-design").click();
+  await expect(page.getByText("Surface", { exact: true })).toBeVisible();
+
+  // Six tabs do not fit a ~300px rail, so the paging buttons mount. They take
+  // real layout space beside the strip — an overlay would cover the end tabs.
+  const left = page.getByRole("button", { name: "Scroll tabs left" });
+  const right = page.getByRole("button", { name: "Scroll tabs right" });
+  await expect(right).toBeVisible();
+  // At the start there is nowhere to go left, and the button says so.
+  await expect(left).toBeDisabled();
+  await expect(right).toBeEnabled();
+
+  await right.click();
+  await expect(left).toBeEnabled();
+
+  // No horizontal scrollbar: the strip scrolls, but its chrome is hidden because
+  // the buttons are the affordance.
+  const hasScrollbar = await page.getByTestId("inspector-tab-design").evaluate((el) => {
+    const scroller = el.closest("div[class*='overflow-x-auto']") as HTMLElement | null;
+    return scroller ? scroller.offsetHeight - scroller.clientHeight > 0 : null;
+  });
+  expect(hasScrollbar).toBe(false);
 });

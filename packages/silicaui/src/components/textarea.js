@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Textarea component — a multi-line text field, sibling to Input.
  *
@@ -87,12 +89,7 @@ export function textarea(colors, prefix = "") {
   // Accent drives the focus ring + focused border; the separate border lever
   // softens the resting border (field.js statuses set only the accent, so they
   // stay solid).
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--textarea-accent": `var(--color-${name})`,
-      "--textarea-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("textarea", colors, prefix));
 
   return base;
 }

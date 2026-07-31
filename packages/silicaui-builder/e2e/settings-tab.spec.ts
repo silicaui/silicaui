@@ -37,7 +37,7 @@ test("Design/Settings tabs split style from semantics, and Settings retags + add
   await expect(page.getByText("Data binding")).toHaveCount(0);
 
   // Switch to Settings → identity + semantics surface; design groups hide.
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await expect(page.getByText("Element")).toBeVisible();
   await expect(page.getByText("Data binding")).toBeVisible();
   await expect(page.getByText("Surface", { exact: true })).toHaveCount(0);

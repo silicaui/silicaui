@@ -24,6 +24,7 @@
  */
 import type { Theme } from "@wizeworks/silicaui-html";
 import { THEME_PRESETS } from "@wizeworks/silicaui-html";
+import { warnOnce } from "../shared/warn";
 
 /** One shelf in the Themes panel: a labeled, apply-only row of themes. */
 export interface ThemeGroup {
@@ -60,12 +61,6 @@ export function shippedThemeGroups(): ThemeGroup[] {
 // adopts it, so two rows under one name is not a cosmetic duplicate — it's two
 // different token bags claiming the same selector. Dropping one silently is the
 // exact class of degradation that reads as a mystery later, so say so once.
-const warned = new Set<string>();
-function warnOnce(key: string, message: string): void {
-  if (warned.has(key)) return;
-  warned.add(key);
-  console.warn(`[silicaui-builder] ${message}`);
-}
 
 /** Host shelves, de-duplicated by theme name (first shelf wins), same-key groups
  *  merged — plus the name→shelf-label index the shipped filter shadows against. */

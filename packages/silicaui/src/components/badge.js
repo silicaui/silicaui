@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Badge component — a small pill for labels, counts, and statuses.
@@ -107,16 +107,7 @@ export function badge(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    const color = `var(--color-${name})`;
-    const content = contentVar(name);
-    base[sel(`-${name}`)] = {
-      "--badge-bg": color,
-      "--badge-fg": content,
-      "--badge-accent": color,
-      "--badge-accent-content": content,
-    };
-  }
+  Object.assign(base, colorVariantRules("badge", colors, prefix));
 
   return base;
 }

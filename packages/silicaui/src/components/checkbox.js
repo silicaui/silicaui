@@ -1,3 +1,4 @@
+import { colorVariantRules } from "../color-variants.js";
 import { contentVar } from "../lib/auto-content.js";
 
 /**
@@ -88,13 +89,7 @@ export function checkbox(colors, prefix = "") {
   // ---- Color variants (extensible) -----------------------------------------
   // The border lever softens only the UNCHECKED box; `:checked` paints border
   // and fill from the accent directly, so a checked box stays fully solid.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--checkbox-accent": `var(--color-${name})`,
-      "--checkbox-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-      "--checkbox-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("checkbox", colors, prefix));
 
   return base;
 }

@@ -97,6 +97,24 @@ console.log("tokens.json");
 const { LIGHT, DARK, SEMANTIC_COLORS } = await import(
   pathToFileURL(path.join(packagesRoot, "silicaui/src/colors.js")).href
 );
+// The canonical colorable-component table — the SAME source the plugin and the
+// builder's runtime cascade read. Deriving the catalog's color facts from it
+// (rather than intersecting class lists against the 8 semantic names) is what
+// keeps the MCP from describing an OPEN set as a closed one.
+const { COLOR_VARIANTS, colorVariantRules } = await import(
+  pathToFileURL(path.join(packagesRoot, "silicaui/src/color-variants.js")).href
+);
+
+/**
+ * The selector template a component uses for its color axis, with the color
+ * itself left as `<color>` — e.g. `btn-<color>`, `chat-bubble-<color>`,
+ * `toast[data-type="<color>"]`. Generated through the real generator, so the
+ * three non-uniform families can't be mis-described by hand.
+ */
+function colorPatternOf(key) {
+  const [sel] = Object.keys(colorVariantRules(key, ["__COLOR__"], ""));
+  return sel.replace(/^\./, "").replace("__COLOR__", "<color>");
+}
 let scalarTokens = [];
 try {
   const { SCALAR_TOKENS } = await import(
@@ -117,6 +135,24 @@ const typeScale = Object.fromEntries(
 );
 writeJson("tokens.json", {
   semanticColors: SEMANTIC_COLORS,
+  semanticColorsNote:
+    "These eight are the DEFAULT roles, not a closed list — see customColors. An app can register any number of extra roles, and they work everywhere a built-in one does.",
+  customColors: {
+    summary:
+      "Silica's core promise: N named colors cascade through everything. A color you register gets the full utility trio AND every component variant, with no codegen step and no safelist.",
+    howToDeclare:
+      '@plugin "@wizeworks/silicaui" { colors: primary, secondary, accent, neutral, info, success, warning, error, brand; }\n@theme { --color-brand: #7c3aed; }',
+    declareNote:
+      "The `colors:` list REPLACES the default set, so re-list the built-ins you still want. Using a `*-brand` class without registering `brand` leaves it unstyled; the plugin warns at build time (warn-unregistered-colors.js).",
+    contentNote:
+      "`--color-brand-content` (the legible ink ON brand) is optional — omit it and Silica auto-derives black/white by measured contrast. Declare it only to override that choice.",
+    utilities: ["text-<color>", "bg-<color>", "border-<color>", "text-<color>-content", "bg-<color>-content", "border-<color>-content"],
+    componentPatterns: Object.keys(COLOR_VARIANTS).map(colorPatternOf).sort(),
+    componentPatternsNote:
+      "Every colorable component, as a selector template — substitute a registered color name. Most are `<root>-<color>`; chat, pin-input and toast are not, so read the pattern rather than assuming.",
+    builderNote:
+      "In @wizeworks/silicaui-builder, a color invented live in the theme editor is generated at runtime (scoped to the canvas) from these same patterns, so it behaves identically to a build-time-declared one without a rebuild.",
+  },
   light: LIGHT,
   dark: DARK,
   scalarTokens,
@@ -133,6 +169,8 @@ writeJson("tokens.json", {
 console.log("classes.json");
 const componentsDir = path.join(packagesRoot, "silicaui/src/components");
 const classesByComponent = {};
+/** component file base → its COLOR_VARIANTS key, for the components that take colors. */
+const colorKeyByComponent = {};
 // The generators' RAW selector keys, kept alongside the bare class names. A
 // bare list can't say that `.card-selectable-indicator` is only ever written
 // together with `.checkbox` — the compound selector can, and it's real output
@@ -148,7 +186,10 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
   }
   const classSet = new Set();
   const selectorSet = new Set();
-  for (const [, fn] of Object.entries(mod).filter(([, v]) => typeof v === "function")) {
+  for (const [exportName, fn] of Object.entries(mod).filter(([, v]) => typeof v === "function")) {
+    // Colorability is a FACT read off the shared table, keyed by the factory's
+    // export name — not inferred from which class strings happen to exist.
+    if (exportName in COLOR_VARIANTS) colorKeyByComponent[path.basename(file, ".js")] = exportName;
     // Every generator in this directory is `(prefix = "")` or `(colors, prefix = "")`
     // — `prefix` always carries a default, so `fn.length` (params BEFORE the first
     // default) is 0 for the former, 1 for the latter. That makes the call shape
@@ -173,6 +214,13 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
     const base = path.basename(file, ".js");
     classesByComponent[base] = [...classSet].sort();
     selectorsByComponent[base] = [...selectorSet];
+  }
+}
+// Drift: a table entry that matched no component file means the catalog would
+// silently under-report colorability for it.
+for (const key of Object.keys(COLOR_VARIANTS)) {
+  if (!Object.values(colorKeyByComponent).includes(key)) {
+    console.warn(`  ! COLOR_VARIANTS has "${key}" but no components/*.js exported a factory by that name`);
   }
 }
 const { colorUtilities, softUtilities, glassUtilities } = await import(
@@ -590,9 +638,16 @@ const cssComponents = Object.entries(classesByComponent).map(([name, classes]) =
   const sourceFile = CSS_NON_COMPONENT_SOURCES[name] ?? `silicaui/src/components/${name}.js`;
   const root = deriveRoot(classes);
   const familyPrefix = root ? null : deriveFamilyPrefix(classes);
-  const colorVariants = root
-    ? SEMANTIC_COLORS.map((c) => `${root}-${c}`).filter((cls) => classes.includes(cls))
-    : [];
+  // Read colorability off the shared table. The old approach — intersecting the
+  // class list with the 8 semantic names — was a heuristic that got three
+  // families wrong: it MISSED chat (`.chat-bubble-<c>`), pin-input
+  // (`.pin-input-cell-<c>`) and toast (`[data-type]`, not a class at all)
+  // because their color selector isn't `<root>-<color>`, and it INVENTED one for
+  // Field, whose `field-error` is a validation part that merely looks like a
+  // color variant. It also had no way to say the set is open.
+  const colorKey = colorKeyByComponent[name];
+  const colorVariants = colorKey ? Object.keys(colorVariantRules(colorKey, SEMANTIC_COLORS, "")).map((s) => s.replace(/^\./, "")) : [];
+  const colorPattern = colorKey ? colorPatternOf(colorKey) : null;
   // Only the keys that carry more than a single bare class — a compound
   // (`.checkbox.card-selectable-indicator`), a pseudo, or a combinator. The
   // plain `.foo` keys are already fully represented by `classes`.
@@ -608,7 +663,13 @@ const cssComponents = Object.entries(classesByComponent).map(([name, classes]) =
     root,
     ...(familyPrefix ? { familyPrefix, rootNote: `No bare \`.${familyPrefix.slice(0, -1)}\` class exists — this family is only its \`${familyPrefix}*\` parts.` } : {}),
     classes,
-    ...(colorVariants.length ? { colorVariants } : {}),
+    ...(colorVariants.length
+      ? {
+          colorVariants,
+          colorPattern,
+          colorNote: `The eight above are the DEFAULT roles, not the whole set — \`${colorPattern}\` accepts any color the app registers (see get_tokens → customColors). \`${colorPattern.replace("<color>", "brand")}\` is as real as \`${colorPattern.replace("<color>", "primary")}\` once \`brand\` is declared.`,
+        }
+      : {}),
     ...(compoundSelectors.length ? { compoundSelectors } : {}),
   };
 });

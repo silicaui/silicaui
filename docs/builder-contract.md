@@ -227,13 +227,23 @@ interface BuilderHost {
   // hand-writing this function.
   validateClass?(cls: string): { ok: true } | { ok: false; reason: string };
 
-  // PANELS — host-contributed inspector panels for specific node types (SEO,
-  // product-pin, a per-module editor). The engine renders the generic panels
-  // (class, props, slots, theme) and slots these in beside them — ADDITIVE only
-  // in v1, a host panel never replaces a built-in one. `ctx` exposes the engine's
-  // own mutation primitives (setProp/setData/…) so a host panel writes through the
-  // same paths the built-ins use, never a second node-mutation API.
+  // PANELS — host-contributed inspector SECTIONS for specific node types (SEO,
+  // product-pin, a per-module editor), rendered after the built-in sections
+  // INSIDE the Settings tab. ADDITIVE only — a host panel never replaces a
+  // built-in one. `ctx` exposes the engine's own mutation primitives
+  // (setProp/setData/…) so a host panel writes through the same paths the
+  // built-ins use, never a second node-mutation API.
   inspectorPanels?(node: BuilderNode): InspectorPanel[];
+
+  // TABS — the coarse half of the same seam: a whole panel in the inspector
+  // rail, a top-level peer of Design and Settings. This is how a host adds a
+  // PANEL to the right rail rather than a section within one.
+  //
+  // Called with the selected node, or `undefined` when nothing is selected.
+  // Return node-scoped tabs conditionally and panel-scoped tabs unconditionally
+  // (see below) — a host that filters everything on `node` makes its own
+  // document-level panel unreachable the moment the author clicks empty canvas.
+  inspectorTabs?(node: SelectableNode | undefined): InspectorTabDef[];
 
   // ASSETS — the media picker. The engine invokes it when an image/video slot
   // asks for a source; the host returns a ref (and owns upload, the library, CDN).
@@ -242,6 +252,23 @@ interface BuilderHost {
   // NOTE: change notification is NOT on the host object — it's a `<Builder>`
   // prop, `onChange(site, ops, meta)`. See §5.1.
 }
+
+// A tab is either about the SELECTED NODE (the default, and what the built-in
+// Design/Settings are) or about the DOCUMENT/session. The distinction is not
+// cosmetic: it decides whether the tab renders with an empty selection, and
+// whether the rail shows its node chrome (identity header, Duplicate/Delete)
+// alongside. A panel-scoped tab deliberately receives NO node and NO mutation
+// ctx — those are per-node primitives, and handing them to a tab that is showing
+// something else invites it to edit "the selection" while displaying a history.
+type InspectorTabDef =
+  | { id: string; label: string; icon?: string; order?: number; scope?: 'node';
+      render(node: SelectableNode, ctx: InspectorPanelCtx): ReactNode }
+  | { id: string; label: string; icon?: string; order?: number; scope: 'panel';
+      render(): ReactNode };
+
+// An outlet is a layout placeholder, not a thing with properties — the rail
+// treats it as no selection at all, so a node-scoped tab is never handed one.
+type SelectableNode = Exclude<BuilderNode, { kind: 'outlet' }>;
 
 interface InspectorPanel {
   id: string;
@@ -264,9 +291,35 @@ interface ThemeGroup {
 }
 ```
 
-Every field is optional. A host that passes no adapter at all gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`pickAsset`/`themes` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
+Every field is optional. A host that passes no adapter at all gets a working static-site builder off the default catalog. Add `catalog`/`dataSources`/`resolveBinding`/`resolveCollection`/`inspectorPanels`/`inspectorTabs`/`pickAsset`/`themes` and it builds a full commerce/CMS site — **without the engine gaining a single line of domain code.**
 
-The **email** builder has no equivalent seam and needs none: it has no Theme mode (there is no `[data-theme]`/custom-property mechanism in email HTML — Outlook and Gmail don't support it), so a host hands it one resolved `Theme` prop and the builder folds that into its color defaults. See "The email builder carries the same contract" below.
+### 5.0.1 Where host UI can go
+
+The rails are not uniformly open, and the asymmetry is deliberate:
+
+| Surface | Seam | Grain |
+| --- | --- | --- |
+| Right rail — a whole panel | `inspectorTabs()` | A tab beside Design/Settings. Node- or document-scoped. |
+| Right rail — a few fields | `inspectorPanels()` | A section inside Settings, after the built-ins. |
+| Header — status | `toolbarStatusSlot` | Leads the right cluster. Facts, not controls. |
+| Header — actions | `toolbarSlot` | Buttons, beside Publish. |
+| Footer | `statusBarSlot` | Session facts, after the engine's own. |
+| Left rail | *(none)* | Contents extend via `catalog()` / `componentStarters()` / `themes()`; the rail's own structure does not. |
+
+Pick the grain that matches the contribution. A host that wraps three fields in a tab has buried them behind a click; a host that stuffs a change-history log into a Settings section has put a document-level surface under a node-level heading, where it disappears the moment nothing is selected.
+
+**The inspector rail has no header of its own** — its tab strip *is* the header. There is no title to theme or override, and a host tab reads as a peer of the built-ins rather than a guest inside them. When the tabs outgrow the rail's width, the strip pages with explicit circle buttons that take layout space beside it; there is no horizontal scrollbar, and nothing is hidden under an overlay.
+
+The **email** builder carries the same two inspector seams, under `EmailBuilderHost`, with the same scopes and the same merge rules. It has no Theme-mode seam and needs none: there is no `[data-theme]`/custom-property mechanism in email HTML — Outlook and Gmail don't support it — so a host hands it one resolved `Theme` prop and the builder folds that into its color defaults. See "The email builder carries the same contract" below.
+
+**Merge rules for `inspectorTabs`** (all rejections warn once on the console — a contribution that silently never renders is indistinguishable from a builder bug):
+
+- `design` and `settings` are the builder's own ids; a host tab claiming one is **rejected, not shadowed**. Letting a host replace Design would silently remove the only way to style a node.
+- Duplicate host ids: first wins.
+- Blank `id` or `label`: rejected (an unlabeled tab is unreachable).
+- Unknown `icon`: the tab renders without one.
+- `order` sorts against the built-ins — Design is `0`, Settings is `10`, an omitted `order` lands after both. Sorting is stable, so tabs without one keep the order the host returned them in.
+- A node-scoped tab that stops being returned **while it is open** falls back to Design rather than blanking the rail.
 
 ---
 
@@ -492,7 +545,7 @@ function buildClassValidator(config: { blocks: AllowlistRule[] }): BuilderHost['
 - [ ] `BuilderDocument` / `BuilderNode` / `ThemeConfig` / `DocumentFrame` types (§2), one shape shared with @wizeworks/silicaui-blocks (+ `id`).
 - [ ] `mountBuilder(el, { document, host })` → `BuilderHandle` with `extract()` symmetric to load (§4).
 - [ ] The three dynamic primitives (`bind` / `repeat` / `action`) as **opaque** markers resolved only through the host (§3).
-- [ ] `BuilderHost` (§5): `catalog` + `validateClass` required (`onChange` is a `<Builder>` prop, §5.1); `resolveBinding` + `resolveCollection` + `inspectorPanels` + `pickAsset` optional.
+- [ ] `BuilderHost` (§5): `catalog` + `validateClass` required (`onChange` is a `<Builder>` prop, §5.1); `resolveBinding` + `resolveCollection` + `inspectorPanels` + `inspectorTabs` + `pickAsset` optional.
 - [ ] Canvas renders preview==production under a `[data-theme]` island with `@scope` isolation (§8); editor chrome on its own token lane.
 - [ ] Direct manipulation: select/multi-select, drag reorder+reparent, add (from catalog)/remove/duplicate/paste, edit class + props + slots.
 - [ ] Layers tree, inspector framework (generic panels + host panels), theme panel, device preview, undo/redo, behavior preview.

@@ -101,7 +101,7 @@ test("a text block's link colour applies to anchors on the canvas", async ({ pag
   await canvas.getByText("Start writing your email…").first().click();
 
   // Put a real anchor in the copy via the Settings tab's raw content field.
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   const contentArea = page.locator("textarea").first();
   await contentArea.fill('Read the <a href="https://example.com">docs</a>.');
   await contentArea.blur();
@@ -109,7 +109,7 @@ test("a text block's link colour applies to anchors on the canvas", async ({ pag
   const anchor = canvas.locator("a", { hasText: "docs" }).first();
   await expect(anchor).toBeVisible();
 
-  await page.getByRole("button", { name: "Design", exact: true }).click();
+  await page.getByRole("tab", { name: "Design", exact: true }).click();
   const linkRow = page.locator("label", { hasText: "Link color" }).first();
   const errorSwatch = linkRow.locator("button").nth(7); // no leading Auto here: primary(0)…error(7)
   const errorColor = await errorSwatch.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -153,7 +153,7 @@ test("document settings expose web fonts and a colour-scheme declaration", async
 
   // The document root's row is always the first `.tree-node`.
   await page.locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   await expect(page.getByText("Web fonts (0)")).toBeVisible();
   await page.getByRole("button", { name: "Add web font" }).click();

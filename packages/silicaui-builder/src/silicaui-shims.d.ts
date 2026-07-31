@@ -9,6 +9,13 @@ declare module "@wizeworks/silicaui/button" {
   export function buttonColorVars(colors: string[], prefix?: string): RuleMap;
 }
 
+declare module "@wizeworks/silicaui/color-variants" {
+  /** `.<root>-<name>` component variants for ONE registered component. */
+  export function colorVariantRules(key: string, colors: string[], prefix?: string): RuleMap;
+  /** The same, for EVERY colored component — the full cascade for a set of colors. */
+  export function allColorVariantRules(colors: string[], prefix?: string): RuleMap;
+}
+
 declare module "@wizeworks/silicaui/color-utilities" {
   /** `.text-`/`.bg-`/`.border-<name>` var-setters for the given token names. */
   export function colorUtilityRules(names: string[], prefix?: string): RuleMap;

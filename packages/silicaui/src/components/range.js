@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Range component — a slider (Base UI behavior).
@@ -67,12 +67,7 @@ export function range(colors, prefix = "") {
     },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--range-accent": `var(--color-${name})`,
-      "--range-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("range", colors, prefix));
 
   return base;
 }

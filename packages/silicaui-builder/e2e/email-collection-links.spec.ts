@@ -37,11 +37,11 @@ async function ready(page: Page): Promise<void> {
  *  anything nested under it has to be selected on the canvas instead. */
 async function selectLayer(page: Page, name: string): Promise<void> {
   await page.getByRole("treeitem", { name, exact: true }).locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 }
 
 async function openSettings(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 }
 
 async function bind(page: Page, kind: string, ref: string): Promise<void> {

@@ -33,8 +33,10 @@ import {
 } from "@wizeworks/silicaui-react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
 import { useEmailHost } from "./host-context";
-import type { EmailInspectorPanelCtx } from "./host";
+import type { EmailInspectorPanelCtx, EmailInspectorTabDef } from "./host";
 import { Icon } from "../../shared/react/Icon";
+import { PanelTabs } from "../../shared/react/chrome";
+import { mergeInspectorTabs, tabIcon } from "../../shared/inspector-tabs";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
 import { useSavedBlocks } from "./saved-blocks";
@@ -1323,8 +1325,6 @@ function IconButton({
   );
 }
 
-type InspectorTab = "design" | "settings";
-
 /** Design tab body for one node kind, or `undefined` for kinds with no visual
  *  fields (falls back to an `EmptyTab` note, same as Settings below). */
 function designFieldsFor(node: EmailNode, update: (patch: Record<string, unknown>) => void): React.ReactNode {
@@ -1731,18 +1731,91 @@ function EmailHostPanels({ id, node }: { id: string; node: EmailNode }) {
   );
 }
 
+/** The rail's own tabs — same shape as a host's, same merge, same render path.
+ *  Site parity, including the `order` numbers a host slots between. */
+const BUILT_IN_EMAIL_TABS: readonly EmailInspectorTabDef[] = [
+  {
+    id: "design",
+    label: "Design",
+    icon: "sliders",
+    order: 0,
+    render: (node, ctx) => designFieldsFor(node, ctx.update) ?? <EmptyTab text="No design options for this element." />,
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: "settings",
+    order: 10,
+    render: (node, ctx) => (
+      <>
+        {settingsFieldsFor(node, ctx.update) ?? <EmptyTab text="No settings for this element." />}
+        <LockSection id={node.id} node={node} />
+        <EmailDataSection id={node.id} node={node} />
+        <EmailHostPanels id={node.id} node={node} />
+      </>
+    ),
+  },
+];
+
+/**
+ * The email Inspector rail — structurally identical to the site's: its header IS
+ * the tab strip, built-in and host tabs merge into one list, and a panel-scoped
+ * host tab renders with nothing selected.
+ */
 export function EmailInspector() {
   const editor = useEmailEditor();
+  const host = useEmailHost();
   const selectedId = useEmailSelection();
-  const node = useEmailSelectedNode();
+  const selected = useEmailSelectedNode();
   // Persists across selection changes (the Inspector stays mounted), so moving
-  // between nodes keeps you in Design or Settings — same as the site Inspector.
-  const [tab, setTab] = React.useState<InspectorTab>("design");
+  // between nodes keeps you where you were — same as the site Inspector.
+  const [tabId, setTabId] = React.useState("design");
 
-  // Same empty state as the site Inspector — nothing selected means nothing
-  // to edit. Select "Email" (the document root) in the Navigator or
-  // breadcrumb to reach subject/preview text/canvas width/backgrounds/font.
-  if (!selectedId || !node) {
+  const node = selectedId && selected ? selected : undefined;
+
+  const tabs = mergeInspectorTabs(BUILT_IN_EMAIL_TABS, host?.inspectorTabs?.(node) ?? []);
+  const active = tabs.find((t) => t.id === tabId) ?? tabs[0];
+  // Reconciled during render, not in an effect — an effect paints one visible
+  // frame of the departed tab first. Same reasoning as the site Inspector.
+  if (active && active.id !== tabId) setTabId(active.id);
+
+  const nodeScoped = active?.scope !== "panel";
+
+  return (
+    <PanelTabs
+      tabs={tabs.map((t) => ({ id: t.id, label: t.label, icon: tabIcon(t.icon, t.id) }))}
+      value={active?.id ?? "design"}
+      onValueChange={setTabId}
+      ariaLabel="Inspector tab"
+    >
+      {/* The node toolbar is node chrome, so it follows the same rule as the
+          site rail's identity header: hidden while a panel-scoped tab is open. */}
+      {nodeScoped && node && selectedId && <Toolbar selectedId={selectedId} node={node} />}
+
+      <EmailInspectorBody tab={active} node={node} editor={editor} />
+    </PanelTabs>
+  );
+}
+
+function EmailInspectorBody({
+  tab,
+  node,
+  editor,
+}: {
+  tab: EmailInspectorTabDef | undefined;
+  node: EmailNode | undefined;
+  editor: ReturnType<typeof useEmailEditor>;
+}) {
+  if (!tab) return null;
+
+  if (tab.scope === "panel") {
+    return <div className="flex-1 min-h-0 overflow-auto">{tab.render()}</div>;
+  }
+
+  // Nothing selected means nothing for a node-scoped tab to edit. Select "Email"
+  // (the document root) in the Navigator or breadcrumb to reach subject/preview
+  // text/canvas width/backgrounds/font.
+  if (!node) {
     return (
       <div className="grid flex-1 min-h-0 place-items-center p-6">
         <EmptyState
@@ -1755,52 +1828,21 @@ export function EmailInspector() {
     );
   }
 
-  const update = (patch: Record<string, unknown>) => editor.update(selectedId, patch);
-  const design = designFieldsFor(node, update);
-  const settings = settingsFieldsFor(node, update);
+  const ctx: EmailInspectorPanelCtx = {
+    update: (patch) => editor.update(node.id, patch),
+    setData: (binding) => editor.setData(node.id, binding),
+  };
 
   return (
-    <div key={selectedId} className="flex flex-1 flex-col min-h-0">
-      <Toolbar selectedId={selectedId} node={node} />
-
-      <div className="flex-none border-b border-base-200 px-3 py-2">
-        <ToggleGroup
-          className="toggle-group-sm w-full"
-          aria-label="Inspector tab"
-          value={[tab]}
-          onValueChange={(v: string[]) => v.length && setTab(v[0] as InspectorTab)}
-        >
-          <ToggleGroupItem value="design" className="flex-1">
-            <span className="inline-flex items-center gap-1.5">
-              <Icon name="sliders" /> Design
-            </span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="settings" className="flex-1">
-            <span className="inline-flex items-center gap-1.5">
-              <Icon name="settings" /> Settings
-            </span>
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      {/* Fields are `defaultValue`-based (uncontrolled, committed on blur) so
-          typing doesn't fight a re-render — but that means they'd go stale if
-          the node changes from elsewhere (a canvas inline text edit, an
-          undo/redo) while the same node stays selected. Keying on the node's
-          own content forces a remount — and fresh `defaultValue`s — whenever
-          that happens. */}
-      <div key={JSON.stringify(node)} className="flex-1 min-h-0 overflow-auto">
-        {tab === "design" ? (
-          design ?? <EmptyTab text="No design options for this element." />
-        ) : (
-          <>
-            {settings ?? <EmptyTab text="No settings for this element." />}
-            <LockSection id={selectedId} node={node} />
-            <EmailDataSection id={selectedId} node={node} />
-            <EmailHostPanels id={selectedId} node={node} />
-          </>
-        )}
-      </div>
+    /* Fields are `defaultValue`-based (uncontrolled, committed on blur) so
+       typing doesn't fight a re-render — but that means they'd go stale if the
+       node changes from elsewhere (a canvas inline text edit, an undo/redo)
+       while the same node stays selected. Keying on the node's own content
+       forces a remount — and fresh `defaultValue`s — whenever that happens.
+       The tab id is in the key too: switching tabs swaps the whole field set,
+       and a stale `defaultValue` surviving that swap is the same bug. */
+    <div key={`${tab.id}:${JSON.stringify(node)}`} className="flex-1 min-h-0 overflow-auto">
+      {tab.render(node, ctx)}
     </div>
   );
 }

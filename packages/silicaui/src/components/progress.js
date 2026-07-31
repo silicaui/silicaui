@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Progress component — a horizontal bar showing completion of a task.
  *
@@ -104,11 +106,7 @@ export function progress(colors, prefix = "") {
 
   // ---- Color variants (extensible) -----------------------------------------
   // Only the fill takes the color; the track stays neutral for contrast.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--progress-fill": `var(--color-${name})`,
-    };
-  }
+  Object.assign(base, colorVariantRules("progress", colors, prefix));
 
   return base;
 }

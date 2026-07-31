@@ -102,7 +102,7 @@ test("the Subject field's token autocomplete inserts a token that resolves in th
   // "Export HTML produces valid table-based markup" for the same selection
   // pattern) — click the row's own `.tree-node`, not the `treeitem` <li>.
   await page.locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const subjectInput = page.locator("label", { hasText: "Subject" }).locator("input");
   await subjectInput.click();

@@ -16,7 +16,7 @@ async function insertWordmark(page: Page): Promise<void> {
   await page.locator('[data-insert-key="wordmark"]').click();
   await expect(page.locator(".sui-canvas .wordmark")).toHaveCount(1);
   // Inserting selects the new node, so the Inspector is already on it.
-  await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Settings" })).toBeVisible();
 }
 
 /** Set the Wordmark's Logo. The Inspector's asset control is a plain URL Input
@@ -52,7 +52,7 @@ test("a Wordmark carries a logo, and a non-square mark keeps its aspect ratio", 
   const canvas = page.locator(".sui-canvas");
 
   await insertWordmark(page);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
 
   // The one-control path: assign a logo without touching the tree.
   await setLogo(page, WIDE_LOGO);
@@ -78,7 +78,7 @@ test("a Wordmark's logo can be data-bound, and resolves to the host's real brand
   await ready(page);
 
   await insertWordmark(page);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
 
   // Bind the LOGO specifically — `attr: "src"` targets the mark, leaving the
   // name alone. This is the exact thing a consumer tried and couldn't do.
@@ -99,7 +99,7 @@ test("a bare bind on a Wordmark fills the NAME, never the logo URL", async ({ pa
   const canvas = page.locator(".sui-canvas");
 
   await insertWordmark(page);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await setLogo(page, WIDE_LOGO);
 
   // With a logo set, the Wordmark now HAS a `src` prop — the case that would

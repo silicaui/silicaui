@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Toggle component — a native `<input type="checkbox">` restyled as a switch.
  *
@@ -74,9 +76,7 @@ export function toggle(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[sel(`-${name}`)] = { "--toggle-accent": `var(--color-${name})` };
-  }
+  Object.assign(base, colorVariantRules("toggle", colors, prefix));
 
   return base;
 }

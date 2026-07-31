@@ -53,6 +53,9 @@ function resolveColor(theme: Theme, name: string, mode: Mode): string {
   return base ? inkOn(resolveColor(theme, base, mode)) : "transparent";
 }
 
+/** Starting value for a freshly added color — a mid-lightness blue, legible in both modes. */
+const NEW_COLOR = "oklch(0.62 0.16 260)";
+
 function withColor(theme: Theme, name: string, value: string, mode: Mode): Theme {
   const key = `--color-${name}`;
   const next = structuredClone(theme);
@@ -235,7 +238,13 @@ export function ThemeEditor() {
   const addColor = () => {
     const name = newColor.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-+|-+$/g, "");
     if (!name) return;
-    editor.setTheme(withColor(theme, name, "oklch(0.62 0.16 260)", mode));
+    // Seed the BASE token even when adding from dark mode, then layer the
+    // mode-specific value on top. `tokens` is the color's value in light and the
+    // fallback in dark, so a dark-only token would leave `--color-<name>`
+    // undefined the moment the theme flipped to light — the swatch would read
+    // correct in the editor and paint nothing on the canvas.
+    const seeded = withColor(theme, name, NEW_COLOR, "light");
+    editor.setTheme(mode === "dark" ? withColor(seeded, name, NEW_COLOR, "dark") : seeded);
     setNewColor("");
     setOpenColor(name);
   };

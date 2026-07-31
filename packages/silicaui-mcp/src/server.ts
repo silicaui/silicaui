@@ -57,6 +57,17 @@ interface PackageMeta {
 
 interface TokensData {
   semanticColors: string[];
+  /** How an app registers extra color roles, and everything one reaches once declared. */
+  customColors: {
+    summary: string;
+    howToDeclare: string;
+    declareNote: string;
+    contentNote: string;
+    utilities: string[];
+    componentPatterns: string[];
+    componentPatternsNote: string;
+    builderNote: string;
+  };
   light: Record<string, string>;
   dark: Record<string, string>;
   typography: { baseFontSize: string; fontFamilyTokens: string[]; note: string };
@@ -106,8 +117,8 @@ const INSTRUCTIONS = `Silica UI is ONE design system delivered through THREE pat
    Path 3 fails SILENTLY where the others fail loudly — an unlisted tag becomes a <div>, an unlisted attribute is dropped, an invented binding field is not persisted, and the output still looks plausible. Look it up.
 
 Rules that hold on every path:
-- Never invent a class, prop, color, or block key. Everything this server returns is extracted from Silica's source at release time — look it up rather than guessing, including when you are fairly confident.
-- Colors are semantic tokens (get_tokens), never hex. An app can declare extra color roles; those work everywhere a built-in one does.
+- Never invent a class, prop, or block key. Everything this server returns is extracted from Silica's source at release time — look it up rather than guessing, including when you are fairly confident.
+- Colors are semantic tokens (get_tokens), never hex — but the eight built-in roles are a DEFAULT, not a closed set. Silica's core promise is that N named colors cascade through everything: an app registers extra roles (get_tokens → customColors for the two-line syntax) and each works everywhere a built-in does, so \`btn-brand\` is exactly as real as \`btn-primary\`. Read a component's \`colorPattern\` (get_component) and substitute the registered name — most are \`<root>-<color>\`, but chat, pin-input and toast are not. A REGISTERED color is the one name you may use that this catalog does not list literally; an unregistered one is still an invention, and renders unstyled.
 - Do not re-skin a component with inline styles or arbitrary hex — it defeats theming and light/dark.
 - The same name can exist on more than one path with a different shape. get_component with no \`package\` returns every path's answer at once; pass \`package\` to narrow.
 - Don't know the name? search_docs first. Unsure what to install? list_packages.
@@ -142,6 +153,9 @@ interface ComponentData {
   rootNote?: string;
   classes?: string[];
   colorVariants?: string[];
+  /** Selector template for the color axis, e.g. `btn-<color>` — substitute any registered color. */
+  colorPattern?: string;
+  colorNote?: string;
   compoundSelectors?: string[];
 }
 
@@ -428,7 +442,7 @@ export function createServer(): McpServer {
     {
       title: "Get Silica UI design tokens",
       description:
-        "Get the semantic color list and their light/dark OKLCH values, the typography token model, and the scalar theme tokens (radius/border/depth/noise/focus/disabled-opacity) with defaults, ranges, and what each one actually affects.",
+        "Get the semantic color list and their light/dark OKLCH values, the typography token model, and the scalar theme tokens (radius/border/depth/noise/focus/disabled-opacity) with defaults, ranges, and what each one actually affects. Also returns `customColors`: how to register extra color roles beyond the built-in eight, and the selector pattern for every component a registered color reaches — call this before concluding a color like `brand` is unavailable.",
       inputSchema: {},
     },
     async () => ({ content: [{ type: "text", text: JSON.stringify(tokens, null, 2) }] }),
@@ -666,6 +680,38 @@ export function createServer(): McpServer {
       const matchedTokens = tokens.semanticColors
         .filter((name) => name.toLowerCase().includes(q))
         .map((name) => ({ kind: "token" as const, name }));
+      // Custom colors are a CONCEPT, not a literal name, so nothing above could
+      // ever match them: "brand", "custom color", "register" and "@plugin" all
+      // returned empty and an agent reasonably concluded the 8 semantic roles
+      // were the whole set — then refused to write `badge-brand`. Same failure
+      // mode the data-binding entry below was added for.
+      const COLOR_CONCEPT = [
+        "custom color",
+        "custom colors",
+        "color role",
+        "n-color",
+        "brand",
+        "register",
+        "registered",
+        "declare",
+        "@plugin",
+        "plugin",
+        "@theme",
+        "palette",
+        "extra color",
+        "new color",
+      ];
+      const matchedColorConcept = COLOR_CONCEPT.some((k) => k.includes(q) || q.includes(k))
+        ? [
+            {
+              kind: "concept" as const,
+              name: "custom colors (N-color)",
+              summary: tokens.customColors.summary,
+              tool: "get_tokens",
+              field: "customColors",
+            },
+          ]
+        : [];
       // The node-tree vocabulary. Without this, "repeat", "limit", "srcset" and
       // "conditional" found nothing here and an agent concluded the concept did
       // not exist — the exact failure a searchable catalog is meant to prevent.
@@ -709,6 +755,7 @@ export function createServer(): McpServer {
         ...matchedBehaviors,
         ...matchedClasses,
         ...matchedTokens,
+        ...matchedColorConcept,
         ...matchedBindings,
         ...matchedNodeKinds,
         ...matchedTags,

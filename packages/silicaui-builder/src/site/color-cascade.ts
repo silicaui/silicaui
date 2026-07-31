@@ -2,15 +2,23 @@
  * Runtime color cascade — the live-editing half of @wizeworks/silicaui's N-color promise.
  *
  * @wizeworks/silicaui's plugin emits color utilities (`text-brand`, `bg-brand`) and component
- * variants (`btn-brand`) for every color DECLARED at build time. The builder lets
- * a user INVENT a color in the theme editor, so its classes aren't in the compiled
- * CSS yet — this module generates exactly those missing rules at runtime, for the
- * theme's custom roles, scoped to a container, reusing @wizeworks/silicaui's OWN generators
- * (`buttonColorVars`, `colorUtilityRules`) so a live color behaves byte-for-byte
- * like a declared one. Both generators return FLAT rule maps, so serialization is
- * trivial (no nested-selector handling).
+ * variants (`btn-brand`, `badge-brand`, `alert-brand`, …) for every color DECLARED
+ * at build time. The builder lets a user INVENT a color in the theme editor, so its
+ * classes aren't in the compiled CSS yet — this module generates exactly those
+ * missing rules at runtime, for the theme's custom roles, scoped to a container,
+ * reusing @wizeworks/silicaui's OWN generators (`allColorVariantRules`,
+ * `colorUtilityRules`) so a live color behaves byte-for-byte like a declared one.
+ * Both generators return FLAT rule maps, so serialization is trivial (no
+ * nested-selector handling).
+ *
+ * `allColorVariantRules` covers EVERY colored component, not just Button. It used
+ * to call `buttonColorVars`, because Button's mapping was the only one factored
+ * out of its module — so a color invented live painted `btn-brand` and silently
+ * nothing else (no `badge-brand`, no `input-brand`, no `tabs-brand`). That made
+ * the N-color promise true at build time and false in the builder, which is the
+ * one place a color is actually invented.
  */
-import { buttonColorVars } from "@wizeworks/silicaui/button";
+import { allColorVariantRules } from "@wizeworks/silicaui/color-variants";
 import { colorUtilityRules } from "@wizeworks/silicaui/color-utilities";
 import { resolveThemeTokens, rolesOf, SEMANTIC_ROLES } from "@wizeworks/silicaui-html";
 import type { Theme, SemanticRole } from "@wizeworks/silicaui-html";
@@ -39,9 +47,13 @@ function serialize(rules: RuleMap, scope: string): string {
 export function customColorCss(theme: Theme, scope = ".sui-canvas"): string {
   const custom = rolesOf(theme).filter((r) => !SEMANTIC_ROLES.includes(r as SemanticRole));
   if (custom.length === 0) return "";
+  // Utilities cover the role AND its `-content` foreground — the same pair the
+  // build-time `colorUtilities` emits, so `text-brand-content` (the legible ink
+  // ON brand) exists live too rather than only for declared colors.
+  const utilityNames = custom.flatMap((c) => [c, `${c}-content`]);
   const rules: RuleMap = {
-    ...colorUtilityRules(custom),
-    ...buttonColorVars(custom),
+    ...colorUtilityRules(utilityNames),
+    ...allColorVariantRules(custom),
   };
   return serialize(rules, scope);
 }

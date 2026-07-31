@@ -54,7 +54,7 @@ test("clicking a block selects it (overlay appears) and shows its Design/Setting
   await expect(page.getByText("Text", { exact: true })).toBeVisible();
   await expect(page.getByText("Font size", { exact: true })).toBeVisible();
   // Settings holds the node's content.
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   await expect(page.getByText("Content", { exact: true }).first()).toBeVisible();
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
@@ -76,7 +76,7 @@ test("inserting a Button from the palette adds it to the canvas and it's editabl
 
   // Selecting it surfaces the Button fields (Settings tab: Label/Link).
   await buttonText.click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   await expect(page.getByText("Label", { exact: true })).toBeVisible();
   const labelInput = page.locator("label", { hasText: "Label" }).locator("input");
   await labelInput.fill("Get 20% off");
@@ -139,7 +139,7 @@ test("Export HTML produces valid table-based markup with the current subject", a
   // Click the row's own `.tree-node` (always the first in document order),
   // not the `treeitem` <li> (whose bounding box spans its expanded children).
   await page.locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   await page.locator("label", { hasText: "Subject" }).locator("input").fill("Weekend sale");
   await page.locator("label", { hasText: "Subject" }).locator("input").blur();
 

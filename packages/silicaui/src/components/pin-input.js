@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The PinInput component — a row of single-character field-tier cells for
  * OTP / verification-code entry. Each cell shares Input's field tier
@@ -85,12 +87,7 @@ export function pinInput(colors, prefix = "") {
 
   // ---- Color variants (extensible) -----------------------------------------
   // Soft resting border, solid accent once the cell is focused or filled.
-  for (const name of colors) {
-    base[cell(`-${name}`)] = {
-      "--pin-input-accent": `var(--color-${name})`,
-      "--pin-input-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("pinInput", colors, prefix));
 
   return base;
 }

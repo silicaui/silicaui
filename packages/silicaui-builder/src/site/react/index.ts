@@ -19,7 +19,20 @@ export type { Op, OpKind, OpTarget, OpMeta, SymbolDetachment } from "../ops";
 export { BREAKPOINT_ORDER, declaredBreakpoints, declaresContainer, setTokenAt, splitToken, tokenStateAt } from "../class-tokens";
 export type { TokenState } from "../class-tokens";
 export { BREAKPOINT_CHOICES, useBreakpoint } from "./breakpoint-context";
-export type { BuilderHost, InspectorPanel, InspectorPanelCtx, AssetRef } from "./host";
+export type {
+  BuilderHost,
+  InspectorPanel,
+  InspectorPanelCtx,
+  // The two-tier inspector seam: `InspectorPanel` is a section inside Settings,
+  // `InspectorTabDef` is a whole tab beside it. A host implementing either needs
+  // these names, so both tiers are exported together.
+  InspectorTabDef,
+  InspectorTabBase,
+  InspectorNodeTab,
+  InspectorPanelTab,
+  SelectableNode,
+  AssetRef,
+} from "./host";
 export { useHost } from "./host-context";
 export {
   EditorProvider,

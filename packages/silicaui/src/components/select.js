@@ -1,3 +1,4 @@
+import { colorVariantRules } from "../color-variants.js";
 import { caretBackground, TEXT_CLEARANCE } from "../lib/field-affordance.js";
 
 /**
@@ -102,12 +103,7 @@ export function select(colors, prefix = "") {
   // Each color sets the accent (focus ring + focused border) and a softened
   // resting border. Kept as separate levers so field.js's validation statuses,
   // which drive the accent alone, keep their solid border.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--select-accent": `var(--color-${name})`,
-      "--select-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("select", colors, prefix));
 
   return base;
 }

@@ -1,32 +1,23 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The color-variant var-setters for the button, as a standalone rule map.
  *
  * Each `.btn-<name>` only assigns the source variables (`--btn-bg`/`--btn-fg`
  * drive the solid look; `--btn-accent`/`--btn-accent-content` drive
- * outline/soft/ghost/link/dash). Split out so the SAME generator produces the
- * build-time variants AND the builder's runtime cascade for colors invented
- * live in the theme editor — guaranteeing byte-for-byte parity (a runtime
- * `brand` behaves exactly like a declared one).
+ * outline/soft/ghost/link/dash).
+ *
+ * Kept as a named export because it is part of this package's public surface
+ * (`@wizeworks/silicaui/button`); the mapping itself now lives in the shared
+ * `color-variants.js` table alongside every other component's, so the builder's
+ * runtime cascade can regenerate the WHOLE set for a live-invented color rather
+ * than buttons alone. Prefer `allColorVariantRules` for that.
  *
  * @param {string[]} colors - color names to generate `.btn-<name>` variants for
  * @param {string} [prefix] - prepended verbatim to every class
  */
 export function buttonColorVars(colors, prefix = "") {
-  const sel = (suffix = "") => `.${prefix}btn${suffix}`;
-  const rules = {};
-  for (const name of colors) {
-    const color = `var(--color-${name})`;
-    const content = contentVar(name);
-    rules[sel(`-${name}`)] = {
-      "--btn-bg": color,
-      "--btn-fg": content,
-      "--btn-accent": color,
-      "--btn-accent-content": content,
-    };
-  }
-  return rules;
+  return colorVariantRules("button", colors, prefix);
 }
 
 /**

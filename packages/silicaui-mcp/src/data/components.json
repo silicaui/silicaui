@@ -10930,6 +10930,8 @@
       "alert-warning",
       "alert-error"
     ],
+    "colorPattern": "alert-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `alert-<color>` accepts any color the app registers (see get_tokens → customColors). `alert-brand` is as real as `alert-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".alert-dismiss[data-closed]"
     ]
@@ -11032,6 +11034,8 @@
       "avatar-warning",
       "avatar-error"
     ],
+    "colorPattern": "avatar-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `avatar-<color>` accepts any color the app registers (see get_tokens → customColors). `avatar-brand` is as real as `avatar-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".avatar-online::after, .avatar-offline::after",
       ".avatar-online::after",
@@ -11077,6 +11081,8 @@
       "badge-warning",
       "badge-error"
     ],
+    "colorPattern": "badge-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `badge-<color>` accepts any color the app registers (see get_tokens → customColors). `badge-brand` is as real as `badge-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".badge:has(svg)"
     ]
@@ -11135,6 +11141,8 @@
       "btn-warning",
       "btn-error"
     ],
+    "colorPattern": "btn-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `btn-<color>` accepts any color the app registers (see get_tokens → customColors). `btn-brand` is as real as `btn-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".btn:has(svg)"
     ]
@@ -11180,6 +11188,8 @@
       "calendar-warning",
       "calendar-error"
     ],
+    "colorPattern": "calendar-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `calendar-<color>` accepts any color the app registers (see get_tokens → customColors). `calendar-brand` is as real as `calendar-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".date-field[data-placeholder] .date-field-value"
     ]
@@ -11296,6 +11306,18 @@
       "chat-header",
       "chat-image"
     ],
+    "colorVariants": [
+      "chat-bubble-primary",
+      "chat-bubble-secondary",
+      "chat-bubble-accent",
+      "chat-bubble-neutral",
+      "chat-bubble-info",
+      "chat-bubble-success",
+      "chat-bubble-warning",
+      "chat-bubble-error"
+    ],
+    "colorPattern": "chat-bubble-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `chat-bubble-<color>` accepts any color the app registers (see get_tokens → customColors). `chat-bubble-brand` is as real as `chat-bubble-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".chat > *:not(.chat-image)",
       ".chat-end > *:not(.chat-image)",
@@ -11348,7 +11370,9 @@
       "checkbox-success",
       "checkbox-warning",
       "checkbox-error"
-    ]
+    ],
+    "colorPattern": "checkbox-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `checkbox-<color>` accepts any color the app registers (see get_tokens → customColors). `checkbox-brand` is as real as `checkbox-primary` once `brand` is declared."
   },
   {
     "name": "collapse",
@@ -11514,6 +11538,8 @@
       "data-table-warning",
       "data-table-error"
     ],
+    "colorPattern": "data-table-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `data-table-<color>` accepts any color the app registers (see get_tokens → customColors). `data-table-brand` is as real as `data-table-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".data-table-sticky .data-table-scroll",
       ".data-table-sticky thead th",
@@ -11604,7 +11630,9 @@
       "dock-success",
       "dock-warning",
       "dock-error"
-    ]
+    ],
+    "colorPattern": "dock-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `dock-<color>` accepts any color the app registers (see get_tokens → customColors). `dock-brand` is as real as `dock-primary` once `brand` is declared."
   },
   {
     "name": "drawer",
@@ -11704,9 +11732,6 @@
       "select",
       "textarea"
     ],
-    "colorVariants": [
-      "field-error"
-    ],
     "compoundSelectors": [
       ".input[data-invalid], .select[data-invalid], .textarea[data-invalid]",
       ".input[data-status=\"error\"], .select[data-status=\"error\"], .textarea[data-status=\"error\"]",
@@ -11799,7 +11824,9 @@
       "filter-success",
       "filter-warning",
       "filter-error"
-    ]
+    ],
+    "colorPattern": "filter-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `filter-<color>` accepts any color the app registers (see get_tokens → customColors). `filter-brand` is as real as `filter-primary` once `brand` is declared."
   },
   {
     "name": "footer",
@@ -11897,7 +11924,9 @@
       "input-success",
       "input-warning",
       "input-error"
-    ]
+    ],
+    "colorPattern": "input-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `input-<color>` accepts any color the app registers (see get_tokens → customColors). `input-brand` is as real as `input-primary` once `brand` is declared."
   },
   {
     "name": "join",
@@ -12004,7 +12033,9 @@
       "link-success",
       "link-warning",
       "link-error"
-    ]
+    ],
+    "colorPattern": "link-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `link-<color>` accepts any color the app registers (see get_tokens → customColors). `link-brand` is as real as `link-primary` once `brand` is declared."
   },
   {
     "name": "list",
@@ -12145,6 +12176,8 @@
       "meter-warning",
       "meter-error"
     ],
+    "colorPattern": "meter-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `meter-<color>` accepts any color the app registers (see get_tokens → customColors). `meter-brand` is as real as `meter-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".meter-xs .meter-track",
       ".meter-sm .meter-track",
@@ -12211,6 +12244,8 @@
       "multi-select-warning",
       "multi-select-error"
     ],
+    "colorPattern": "multi-select-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `multi-select-<color>` accepts any color the app registers (see get_tokens → customColors). `multi-select-brand` is as real as `multi-select-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".multi-select:focus-within",
       ".multi-select[data-disabled]"
@@ -12347,7 +12382,9 @@
       "pagination-success",
       "pagination-warning",
       "pagination-error"
-    ]
+    ],
+    "colorPattern": "pagination-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `pagination-<color>` accepts any color the app registers (see get_tokens → customColors). `pagination-brand` is as real as `pagination-primary` once `brand` is declared."
   },
   {
     "name": "phone-input",
@@ -12383,7 +12420,19 @@
       "pin-input-cell-warning",
       "pin-input-cell-xl",
       "pin-input-cell-xs"
-    ]
+    ],
+    "colorVariants": [
+      "pin-input-cell-primary",
+      "pin-input-cell-secondary",
+      "pin-input-cell-accent",
+      "pin-input-cell-neutral",
+      "pin-input-cell-info",
+      "pin-input-cell-success",
+      "pin-input-cell-warning",
+      "pin-input-cell-error"
+    ],
+    "colorPattern": "pin-input-cell-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `pin-input-cell-<color>` accepts any color the app registers (see get_tokens → customColors). `pin-input-cell-brand` is as real as `pin-input-cell-primary` once `brand` is declared."
   },
   {
     "name": "popover",
@@ -12488,7 +12537,9 @@
       "progress-success",
       "progress-warning",
       "progress-error"
-    ]
+    ],
+    "colorPattern": "progress-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `progress-<color>` accepts any color the app registers (see get_tokens → customColors). `progress-brand` is as real as `progress-primary` once `brand` is declared."
   },
   {
     "name": "prose",
@@ -12563,7 +12614,9 @@
       "radio-success",
       "radio-warning",
       "radio-error"
-    ]
+    ],
+    "colorPattern": "radio-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `radio-<color>` accepts any color the app registers (see get_tokens → customColors). `radio-brand` is as real as `radio-primary` once `brand` is declared."
   },
   {
     "name": "range",
@@ -12597,6 +12650,8 @@
       "range-warning",
       "range-error"
     ],
+    "colorPattern": "range-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `range-<color>` accepts any color the app registers (see get_tokens → customColors). `range-brand` is as real as `range-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".range[data-disabled] .range-thumb"
     ]
@@ -12636,6 +12691,8 @@
       "rating-warning",
       "rating-error"
     ],
+    "colorPattern": "rating-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `rating-<color>` accepts any color the app registers (see get_tokens → customColors). `rating-brand` is as real as `rating-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".rating-readonly .rating-item"
     ]
@@ -12756,6 +12813,8 @@
       "segment-field-warning",
       "segment-field-error"
     ],
+    "colorPattern": "segment-field-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `segment-field-<color>` accepts any color the app registers (see get_tokens → customColors). `segment-field-brand` is as real as `segment-field-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".segment-field:focus-within",
       ".segment-field[data-disabled]"
@@ -12819,7 +12878,9 @@
       "select-success",
       "select-warning",
       "select-error"
-    ]
+    ],
+    "colorPattern": "select-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `select-<color>` accepts any color the app registers (see get_tokens → customColors). `select-brand` is as real as `select-primary` once `brand` is declared."
   },
   {
     "name": "selection-list",
@@ -12881,6 +12942,8 @@
       "sidebar-warning",
       "sidebar-error"
     ],
+    "colorPattern": "sidebar-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `sidebar-<color>` accepts any color the app registers (see get_tokens → customColors). `sidebar-brand` is as real as `sidebar-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".sidebar[data-side=\"right\"]",
       ".sidebar[data-collapsed]",
@@ -12947,6 +13010,8 @@
       "slider-warning",
       "slider-error"
     ],
+    "colorPattern": "slider-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `slider-<color>` accepts any color the app registers (see get_tokens → customColors). `slider-brand` is as real as `slider-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".slider[data-orientation=\"vertical\"]",
       ".slider-control[data-orientation=\"vertical\"]",
@@ -13042,6 +13107,8 @@
       "status-warning",
       "status-error"
     ],
+    "colorPattern": "status-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `status-<color>` accepts any color the app registers (see get_tokens → customColors). `status-brand` is as real as `status-primary` once `brand` is declared.",
     "compoundSelectors": [
       "@keyframes silica-ping",
       "@media (prefers-reduced-motion: reduce)"
@@ -13076,6 +13143,8 @@
       "step-warning",
       "step-error"
     ],
+    "colorPattern": "step-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `step-<color>` accepts any color the app registers (see get_tokens → customColors). `step-brand` is as real as `step-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".step::before",
       ".step[data-content]::before",
@@ -13145,6 +13214,8 @@
       "switch-warning",
       "switch-error"
     ],
+    "colorPattern": "switch-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `switch-<color>` accepts any color the app registers (see get_tokens → customColors). `switch-brand` is as real as `switch-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".switch[data-checked] .switch-thumb"
     ]
@@ -13201,6 +13272,8 @@
       "tabs-warning",
       "tabs-error"
     ],
+    "colorPattern": "tabs-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `tabs-<color>` accepts any color the app registers (see get_tokens → customColors). `tabs-brand` is as real as `tabs-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".tabs-boxed .tabs-list",
       ".tabs-boxed .tabs-tab",
@@ -13249,6 +13322,8 @@
       "tag-input-warning",
       "tag-input-error"
     ],
+    "colorPattern": "tag-input-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `tag-input-<color>` accepts any color the app registers (see get_tokens → customColors). `tag-input-brand` is as real as `tag-input-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".tag-input:focus-within",
       ".tag-input[data-disabled]"
@@ -13286,7 +13361,9 @@
       "textarea-success",
       "textarea-warning",
       "textarea-error"
-    ]
+    ],
+    "colorPattern": "textarea-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `textarea-<color>` accepts any color the app registers (see get_tokens → customColors). `textarea-brand` is as real as `textarea-primary` once `brand` is declared."
   },
   {
     "name": "timeline",
@@ -13341,6 +13418,18 @@
       "toast-title",
       "toast-viewport"
     ],
+    "colorVariants": [
+      "toast[data-type=\"primary\"]",
+      "toast[data-type=\"secondary\"]",
+      "toast[data-type=\"accent\"]",
+      "toast[data-type=\"neutral\"]",
+      "toast[data-type=\"info\"]",
+      "toast[data-type=\"success\"]",
+      "toast[data-type=\"warning\"]",
+      "toast[data-type=\"error\"]"
+    ],
+    "colorPattern": "toast[data-type=\"<color>\"]",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `toast[data-type=\"<color>\"]` accepts any color the app registers (see get_tokens → customColors). `toast[data-type=\"brand\"]` is as real as `toast[data-type=\"primary\"]` once `brand` is declared.",
     "compoundSelectors": [
       ".toast[data-type=\"primary\"]",
       ".toast[data-type=\"secondary\"]",
@@ -13386,6 +13475,8 @@
       "toggle-group-warning",
       "toggle-group-error"
     ],
+    "colorPattern": "toggle-group-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `toggle-group-<color>` accepts any color the app registers (see get_tokens → customColors). `toggle-group-brand` is as real as `toggle-group-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".toggle-group-xs .toggle-group-item",
       ".toggle-group-sm .toggle-group-item",
@@ -13426,7 +13517,9 @@
       "toggle-success",
       "toggle-warning",
       "toggle-error"
-    ]
+    ],
+    "colorPattern": "toggle-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `toggle-<color>` accepts any color the app registers (see get_tokens → customColors). `toggle-brand` is as real as `toggle-primary` once `brand` is declared."
   },
   {
     "name": "toolbar",
@@ -13584,6 +13677,8 @@
       "wizard-warning",
       "wizard-error"
     ],
+    "colorPattern": "wizard-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `wizard-<color>` accepts any color the app registers (see get_tokens → customColors). `wizard-brand` is as real as `wizard-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".wizard-step[data-clickable]",
       ".wizard-step[data-disabled]",
@@ -13626,7 +13721,9 @@
       "wordmark-success",
       "wordmark-warning",
       "wordmark-error"
-    ]
+    ],
+    "colorPattern": "wordmark-<color>",
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `wordmark-<color>` accepts any color the app registers (see get_tokens → customColors). `wordmark-brand` is as real as `wordmark-primary` once `brand` is declared."
   },
   {
     "name": "color-utilities",

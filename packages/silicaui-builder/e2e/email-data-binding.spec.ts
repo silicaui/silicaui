@@ -31,7 +31,7 @@ test("a leaf content node's Data binding offers Value/Action but hides Collectio
 
   const canvas = page.locator(".sui-email-canvas");
   await canvas.getByText("Start writing your email…").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const bindRow = page.locator("label", { hasText: "Bind" }).first();
   const options = await bindRow.locator("select option").allTextContents();
@@ -53,7 +53,7 @@ test("a container node's Data binding offers Collection too, and its Preview ref
   // `.click()` on the <li> can land on a nested child instead of "Section"
   // itself (see email-navigator-and-tabs.spec.ts for the same gotcha).
   await page.getByRole("treeitem", { name: "Section" }).locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const bindRow = page.locator("label", { hasText: "Bind" }).first();
   const options = await bindRow.locator("select option").allTextContents();
@@ -76,7 +76,7 @@ test("a value bind's live Preview shows the host's resolved data, and clearing t
 
   const canvas = page.locator(".sui-email-canvas");
   await canvas.getByText("Start writing your email…").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const bindRow = page.locator("label", { hasText: "Bind" }).first();
   await bindRow.locator("select").selectOption("value");
@@ -114,7 +114,7 @@ test("Export HTML resolves a bound node through the host, not the static placeho
 
   const canvas = page.locator(".sui-email-canvas");
   await canvas.getByText("Start writing your email…").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const bindRow = page.locator("label", { hasText: "Bind" }).first();
   await bindRow.locator("select").selectOption("value");
@@ -175,7 +175,7 @@ test("a Collection bind's 'Omit when empty' toggle drops the node from Export HT
   // The seeded Section (a container) via the Navigator — same click-target
   // gotcha as the earlier container test (`.tree-node`, not the `treeitem` <li>).
   await page.getByRole("treeitem", { name: "Section" }).locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
   const bindRow = page.locator("label", { hasText: "Bind" }).first();
   await bindRow.locator("select").selectOption("collection");

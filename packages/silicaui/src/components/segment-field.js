@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The segmented-field chrome shared by `DateInput`, `TimeInput`,
  * `DateTimeInput`, and `DateRangeInput` — a bordered box (looks and focuses
@@ -115,12 +117,7 @@ export function segmentField(colors, prefix = "") {
 
   // Accent drives the focus ring; the border lever softens the resting border
   // so rest -> focus-within is a visible change.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--segment-field-accent": `var(--color-${name})`,
-      "--segment-field-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("segmentField", colors, prefix));
 
   return base;
 }

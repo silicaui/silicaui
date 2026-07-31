@@ -97,6 +97,59 @@ export interface InspectorPanel {
 }
 
 /**
+ * A node the Inspector can actually select and edit. An `outlet` is a layout
+ * placeholder, not a thing with properties — the rail treats it as no selection
+ * at all — so a node-scoped tab is never handed one, and saying so in the type
+ * spares every host a narrowing branch it would only ever write to satisfy the
+ * compiler.
+ */
+export type SelectableNode = Exclude<Node, { kind: "outlet" }>;
+
+/** Fields common to both tab scopes. `icon` is a registered icon name (same
+ *  loose-string convention as `HostComponentDef.icon`); an unknown one renders
+ *  the tab without an icon and warns. `order` sorts against the builder's own —
+ *  Design is 0 and Settings is 10, so `5` lands between them and an omitted
+ *  `order` lands after both. */
+export interface InspectorTabBase {
+  id: string;
+  label: string;
+  icon?: string;
+  order?: number;
+}
+
+/** A tab ABOUT THE SELECTED NODE — the default, and what the built-in Design and
+ *  Settings tabs are. It renders only when something is selected; with an empty
+ *  selection the tab still appears in the strip but its body is the same
+ *  "no selection" state the built-ins show. It gets the node and the standard
+ *  mutation ctx, so it edits through exactly the paths the built-ins use. */
+export interface InspectorNodeTab extends InspectorTabBase {
+  scope?: "node";
+  render(node: SelectableNode, ctx: InspectorPanelCtx): React.ReactNode;
+}
+
+/**
+ * A tab about the DOCUMENT OR SESSION, not any one node — a change history, a
+ * publish queue, a site-wide audit. It renders whether or not anything is
+ * selected, and keeps rendering as the selection changes underneath it.
+ *
+ * It deliberately receives no node and no mutation ctx: those are per-node
+ * primitives, and handing them to a panel-scoped tab would invite it to edit
+ * "the selection" while showing something else entirely. A panel tab that needs
+ * to write reaches the editor through the host's own state, the way the rest of
+ * the host's UI does.
+ *
+ * The node chrome — the identity header and the Duplicate/Delete footer — is
+ * hidden while a panel tab is open, because both describe a selection this tab
+ * isn't about.
+ */
+export interface InspectorPanelTab extends InspectorTabBase {
+  scope: "panel";
+  render(): React.ReactNode;
+}
+
+export type InspectorTabDef = InspectorNodeTab | InspectorPanelTab;
+
+/**
  * The data-resolution hooks come from `ResolveHost` by EXTENSION, never by
  * re-declaration. They were duplicated here once and drifted: `silicaui-html`
  * widened `resolveBinding` to `Resolved | undefined` (the unknown-ref signal)
@@ -146,9 +199,28 @@ export interface BuilderHost extends ResolveHost {
    * viewport variant is valid CSS, just dishonest in an element canvas.
    */
   viewportVariants?: "reject" | "allow";
-  /** Host-contributed inspector panels for specific node types (SEO, product-pin,
-   *  a per-module editor) — additive only, rendered beside the built-in panels. */
+  /** Host-contributed inspector SECTIONS for specific node types (SEO, product-pin,
+   *  a per-module editor) — additive only, rendered after the built-in sections
+   *  INSIDE the Settings tab. The finer of the two inspector seams: right when the
+   *  contribution is a handful of fields that belong beside a node's other
+   *  settings. For a surface big enough to deserve its own tab, or one that isn't
+   *  about a node at all, use `inspectorTabs`. */
   inspectorPanels?(node: Node): InspectorPanel[];
+  /**
+   * Host-contributed TABS in the inspector rail — top-level peers of Design and
+   * Settings, not sections within them. This is how a host adds a whole panel to
+   * the right rail.
+   *
+   * Called with the selected node, or `undefined` when nothing is selected —
+   * which is exactly why panel-scoped tabs exist. Return node-scoped tabs
+   * conditionally (only for the nodes they apply to) and panel-scoped tabs
+   * unconditionally; a host that filters everything on `node` makes its history
+   * panel unreachable the moment the author clicks empty canvas.
+   *
+   * A node-scoped tab that stops being returned while it is open falls back to
+   * Design rather than blanking the rail.
+   */
+  inspectorTabs?(node: SelectableNode | undefined): InspectorTabDef[];
   /** The media picker, invoked when an image/video field asks for a source. */
   pickAsset?(kind: "image" | "video"): Promise<AssetRef | null>;
   /** The host components the Insert palette may place as `HostNode`s (spec §A.5).

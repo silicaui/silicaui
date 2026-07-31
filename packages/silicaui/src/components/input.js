@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Input component — a single-line text field.
  *
@@ -107,12 +109,7 @@ export function input(colors, prefix = "") {
   // field.js drives validation status (error/warning/success) through the
   // accent alone, so those keep the solid border they need — the soft tint is
   // opt-in and only decorative color classes set it.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--input-accent": `var(--color-${name})`,
-      "--input-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("input", colors, prefix));
 
   return base;
 }

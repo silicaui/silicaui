@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Rating component — a row of star buttons.
@@ -63,12 +63,7 @@ export function rating(colors, prefix = "") {
     [sel("-xl")]: { "--rating-size": "2.25rem" },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--rating-accent": `var(--color-${name})`,
-      "--rating-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("rating", colors, prefix));
 
   return base;
 }

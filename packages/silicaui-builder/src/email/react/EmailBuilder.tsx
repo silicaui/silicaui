@@ -327,9 +327,8 @@ function Chrome({
             maxSize={32}
             className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-l border-base-300"
           >
-            <PanelHead>
-              <Icon name="sliders" /> Design
-            </PanelHead>
+            {/* No `PanelHead`: the Inspector's tab strip IS this rail's header,
+                same as the site builder. */}
             <EmailInspector />
           </ResizablePanel>
         </ResizablePanelGroup>

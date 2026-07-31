@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Wordmark component — a stylized logotype for a brand/product name.
  *
@@ -52,9 +54,7 @@ export function wordmark(colors, prefix = "") {
   // Setting `--wordmark-color` overrides the whole mark's base color, so a
   // `.wordmark-primary` reads as one solid accent color while `.wordmark-accent`
   // (inside any wordmark) can still layer a second, independent accent.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = { "--wordmark-color": `var(--color-${name})` };
-  }
+  Object.assign(base, colorVariantRules("wordmark", colors, prefix));
 
   return base;
 }
