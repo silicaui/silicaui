@@ -31,7 +31,7 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function openSettings(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
 }
 
 test("the frame renders on the canvas, above and below the editable body", async ({ page }) => {

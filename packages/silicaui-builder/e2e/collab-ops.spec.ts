@@ -41,7 +41,7 @@ test("a real UI edit emits semantic ops, not just a new Site", async ({ page }) 
 
   // Select a heading on the canvas and retag it through the Inspector.
   await canvas.locator("h1, h2").first().click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("settings-tag").selectOption("h3");
 
   const emitted = await ops(page);
@@ -142,7 +142,7 @@ test("a remote op is not undoable — local undo never reverts another author's 
 
   // A local edit first, so there IS something to undo.
   await canvas.locator("p").first().click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("settings-tag").selectOption("h6");
 
   await page.evaluate((t) => {
@@ -190,7 +190,7 @@ test("replaceState resyncs the canvas and records the sequence", async ({ page }
   // The next outbound batch carries the server's sequence, so the host can tell
   // what this client had seen when it produced them.
   await canvas.locator("p").first().click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("settings-tag").selectOption("h6");
 
   const meta = await page.evaluate(() => (window as Bus).__lastMeta);
@@ -205,7 +205,7 @@ test("the handle survives across editor swaps", async ({ page }) => {
 
   const canvas = page.locator(".sui-canvas");
   await canvas.locator("p").first().click();
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("settings-tag").selectOption("h6");
 
   expect(await page.evaluate(() => (window as Bus).__lastMeta)).toEqual({ baseSeq: 5 });

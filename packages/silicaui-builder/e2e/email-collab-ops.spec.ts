@@ -55,7 +55,7 @@ async function target(page: Page) {
  *  call again after a remote `replaceState` has reset the selection. */
 async function subjectField(page: Page) {
   await page.locator(".tree-node").first().click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   return page.locator("label", { hasText: "Subject" }).locator("input");
 }
 

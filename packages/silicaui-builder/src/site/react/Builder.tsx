@@ -448,14 +448,10 @@ function Chrome({
               </div>
             </>
           ) : (
-            <>
-              <PanelHead>
-                <Icon name="sliders" /> Design
-              </PanelHead>
-              <div className="flex flex-col flex-1 min-h-0">
-                <Inspector />
-              </div>
-            </>
+            /* No `PanelHead` here on purpose: the Inspector's tab strip IS this
+               rail's header. A fixed "Design" bar above it repeated the first
+               tab's name and then went stale the moment you opened another. */
+            <Inspector />
           )}
         </ResizablePanel>
       </ResizablePanelGroup>

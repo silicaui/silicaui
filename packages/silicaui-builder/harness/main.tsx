@@ -137,6 +137,54 @@ const demoHost: BuilderHost = {
       ),
     },
   ],
+  // Host TABS — top-level peers of Design/Settings, the coarse half of the
+  // inspector seam. Deliberately covers all three cases at once: a panel-scoped
+  // tab that must survive an empty selection, a node-scoped one that must come
+  // and go with the selection, a reserved id that must be rejected outright, and
+  // enough filler to overflow a 300px rail so the paging buttons have to appear.
+  inspectorTabs: (node) => [
+    {
+      id: "demo-history",
+      label: "History",
+      icon: "undo",
+      scope: "panel",
+      render: () => (
+        <div className="p-3 text-sm" data-testid="host-tab-history">
+          Change history for the whole document, independent of what is selected.
+        </div>
+      ),
+    },
+    // Node-scoped, and only for elements: proves a tab can be conditional, and
+    // that closing over a node the selection left behind falls back to Design.
+    ...(node?.kind === "element"
+      ? [
+          {
+            id: "demo-audit",
+            label: "Audit",
+            icon: "shield",
+            render: (n: typeof node, ctx: { setAttr: (k: string, v: string) => void }) => (
+              <div className="p-3 text-sm" data-testid="host-tab-audit">
+                <p className="mb-2">
+                  Auditing <span data-testid="host-tab-audit-tag">{n.tag}</span>.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-xs btn-soft"
+                  data-testid="host-tab-audit-mark"
+                  onClick={() => ctx.setAttr("data-audited", "yes")}
+                >
+                  Mark audited
+                </button>
+              </div>
+            ),
+          },
+        ]
+      : []),
+    // Rejected: "design" is the builder's own id. The built-in tab must survive.
+    { id: "design", label: "Hijack", render: () => <div data-testid="host-tab-hijack">nope</div> },
+    { id: "demo-filler-1", label: "Reports", render: () => <div className="p-3 text-sm">Reports</div> },
+    { id: "demo-filler-2", label: "Translations", render: () => <div className="p-3 text-sm">Translations</div> },
+  ],
   pickAsset: async () => ({ url: "https://picsum.photos/seed/host/400/300", alt: "Host-picked asset" }),
   // Host NODES (spec §A) — live host-owned widgets the builder places as
   // `HostNode`s. `PriceTag` renders from its props; `CheckoutWidget` is `pinned`

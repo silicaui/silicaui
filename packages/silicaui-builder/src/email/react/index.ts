@@ -40,4 +40,13 @@ export {
 } from "./saved-blocks";
 export type { SavedBlock, SavedBlockChange, SavedBlocksApi } from "./saved-blocks";
 export { EmailHostProvider, useEmailHost } from "./host-context";
-export type { EmailBuilderHost, EmailInspectorPanel, EmailInspectorPanelCtx } from "./host";
+export type {
+  EmailBuilderHost,
+  EmailInspectorPanel,
+  EmailInspectorPanelCtx,
+  // Site parity — the same two-tier inspector seam, same names with an Email prefix.
+  EmailInspectorTabDef,
+  EmailInspectorTabBase,
+  EmailInspectorNodeTab,
+  EmailInspectorPanelTab,
+} from "./host";

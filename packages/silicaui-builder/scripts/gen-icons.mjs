@@ -34,7 +34,8 @@ const USED = {
   tabs: "app-window", dropdown: "square-chevron-down",
   // chrome / ui
   lock: "lock", lockOpen: "lock-open", shield: "shield", plug: "plug", shared: "link-2", undo: "undo-2", redo: "redo-2", command: "command",
-  plus: "plus", chevron: "chevron-right", close: "x", sun: "sun", moon: "moon",
+  plus: "plus", chevron: "chevron-right", chevronLeft: "chevron-left",
+  close: "x", sun: "sun", moon: "moon",
   search: "search",
   monitor: "monitor", tablet: "tablet", smartphone: "smartphone",
   page: "file", layout: "panels-top-left", theme: "palette", dot: "circle",
@@ -100,6 +101,16 @@ export function icon(name: IconName): string {
 export function typeIcon(typeLabelText: string): IconName {
   const key = typeLabelText.toLowerCase();
   return (key in ICON_BODY ? (key as IconName) : "box");
+}
+
+/**
+ * Exact-name guard, for icon names that arrive as loose strings from OUTSIDE the
+ * builder — a host's \`inspectorTabs()\` entry, a \`HostComponentDef\`. Unlike
+ * \`typeIcon\`, it does NOT lowercase: these are real \`IconName\` keys, and folding
+ * the case would miss every camelCase one (\`chevronLeft\`, \`alignRight\`).
+ */
+export function isIconName(name: string): name is IconName {
+  return name in ICON_BODY;
 }
 `;
 

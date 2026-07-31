@@ -28,6 +28,34 @@ export interface EmailInspectorPanel {
   render(node: EmailNode, ctx: EmailInspectorPanelCtx): React.ReactNode;
 }
 
+/** Shared tab fields. Mirrors the site host's `InspectorTabBase` exactly — the
+ *  two shells expose the same seam so a host that learns one knows the other. */
+export interface EmailInspectorTabBase {
+  id: string;
+  label: string;
+  /** A registered icon name; an unknown one renders no icon and warns. */
+  icon?: string;
+  /** Sorts against the built-ins (Design 0, Settings 10); omitted lands last. */
+  order?: number;
+}
+
+/** A tab about the SELECTED NODE — the default, and what Design/Settings are.
+ *  Appears in the strip with nothing selected, but its body is the empty state. */
+export interface EmailInspectorNodeTab extends EmailInspectorTabBase {
+  scope?: "node";
+  render(node: EmailNode, ctx: EmailInspectorPanelCtx): React.ReactNode;
+}
+
+/** A tab about the DOCUMENT or session — a change history, a send-test log —
+ *  which renders whether or not anything is selected, and gets no node or
+ *  mutation ctx for the reasons the site host's `InspectorPanelTab` spells out. */
+export interface EmailInspectorPanelTab extends EmailInspectorTabBase {
+  scope: "panel";
+  render(): React.ReactNode;
+}
+
+export type EmailInspectorTabDef = EmailInspectorNodeTab | EmailInspectorPanelTab;
+
 /**
  * The data-resolution hooks come from `EmailResolveHost` by EXTENSION, never by
  * re-declaration — same rule (and same past drift) as the site host's. Feeds
@@ -42,8 +70,14 @@ export interface EmailBuilderHost extends EmailResolveHost {
   /** The flat, host-computed-ONCE catalog that powers the binding picker (§3,
    *  §6). The engine derives per-node availability itself via `emailScopeAt`. */
   dataSources?(): readonly DataSource[];
-  /** Host-contributed inspector panels for specific node kinds (a merge-tag
-   *  picker, a per-module editor) — additive only, rendered beside the
-   *  built-in Settings sections. */
+  /** Host-contributed inspector SECTIONS for specific node kinds (a merge-tag
+   *  picker, a per-module editor) — additive only, rendered after the built-in
+   *  sections INSIDE the Settings tab. The finer of the two seams; for a whole
+   *  panel, or anything not about a node, use `inspectorTabs`. */
   inspectorPanels?(node: EmailNode): EmailInspectorPanel[];
+  /** Host-contributed TABS in the inspector rail — top-level peers of Design and
+   *  Settings. Called with the selected node, or `undefined` when nothing is
+   *  selected: return node-scoped tabs conditionally and panel-scoped tabs
+   *  unconditionally. Site parity — see the site host's `inspectorTabs`. */
+  inspectorTabs?(node: EmailNode | undefined): EmailInspectorTabDef[];
 }

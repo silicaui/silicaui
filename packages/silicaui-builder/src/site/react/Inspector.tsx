@@ -14,15 +14,17 @@
 import * as React from "react";
 import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, SourceTruncation, Theme } from "@wizeworks/silicaui-html";
 import { applyCollectionLimit, rolesOf, colorValue, SURFACE_TOKENS, scopeAt, flattenSources, truncationMessage, walk } from "@wizeworks/silicaui-html";
-import { Input, Textarea, Toggle, NativeSelect, EmptyState, ToggleGroup, ToggleGroupItem } from "@wizeworks/silicaui-react";
+import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
 import { setClassTokenMany } from "../commands";
 import { useHost } from "./host-context";
-import type { AssetRef, HostPropDef, InspectorPanelCtx } from "./host";
+import type { AssetRef, HostPropDef, InspectorPanelCtx, InspectorTabDef, SelectableNode } from "./host";
 import { BREAKPOINT_CHOICES, useBreakpoint } from "./breakpoint-context";
 import { tokenStateAt } from "../class-tokens";
 import type { TokenState } from "../class-tokens";
 import { Icon } from "../../shared/react/Icon";
+import { PanelTabs } from "../../shared/react/chrome";
+import { mergeInspectorTabs, tabIcon } from "../../shared/inspector-tabs";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 import { unbackedClasses } from "../class-support";
 import {
@@ -465,17 +467,96 @@ function RadiusSwatchGroup({
 }
 
 // ── the panel ─────────────────────────────────────────────────────────────────
-type InspectorTab = "design" | "settings";
+/**
+ * The rail's own tabs. They carry `order` so host tabs can slot between them,
+ * and they go through the SAME merge and the same render path as a host's —
+ * a built-in is just a tab the builder happens to ship.
+ */
+const BUILT_IN_TABS: readonly InspectorTabDef[] = [
+  {
+    id: "design",
+    label: "Design",
+    icon: "sliders",
+    order: 0,
+    // `id` is non-null by construction: `InspectorBody` only reaches a
+    // node-scoped render once it has narrowed the selection to an id-bearing node.
+    render: (node) => <DesignTab id={node.id as string} node={node} />,
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: "settings",
+    order: 10,
+    render: (node) => <SettingsTab id={node.id as string} node={node} />,
+  },
+];
 
+/**
+ * The Inspector rail. Its header IS the tab strip — the rail has no title of its
+ * own, because the open tab is the only honest answer to "what is this panel".
+ * It used to carry a fixed "Design" header above the tabs, which duplicated the
+ * first tab's name and then contradicted the second.
+ *
+ * The tab set is recomputed per selection, so a host tab can be node-conditional.
+ * That means the ACTIVE tab can stop existing (deselect, or select a node the
+ * tab doesn't apply to); it falls back to Design rather than leaving a blank rail.
+ */
 export function Inspector() {
-  const node = useSelectedNode();
+  const selected = useSelectedNode();
+  const host = useHost();
   // Which tab is showing. Persists across selection changes (the Inspector stays
-  // mounted), so moving between nodes keeps you in Design or Settings.
-  const [tab, setTab] = React.useState<InspectorTab>("design");
+  // mounted), so moving between nodes keeps you where you were.
+  const [tabId, setTabId] = React.useState("design");
 
-  if (!node || node.kind === "outlet" || !node.id) {
+  // A node the built-in tabs can actually edit. An outlet or an id-less node is
+  // "no selection" as far as they're concerned — but NOT as far as a panel-scoped
+  // host tab is concerned, which is why this narrowing happens here and not as an
+  // early return for the whole rail.
+  const node = selected && selected.kind !== "outlet" && selected.id ? selected : undefined;
+
+  const tabs = mergeInspectorTabs(BUILT_IN_TABS, host?.inspectorTabs?.(node) ?? []);
+  const active = tabs.find((t) => t.id === tabId) ?? tabs[0];
+  // Reconcile during render rather than in an effect: an effect would paint one
+  // frame of the fallback tab while `tabId` still named the departed one, and
+  // that frame is visible as a flash on every such selection change.
+  if (active && active.id !== tabId) setTabId(active.id);
+
+  const nodeScoped = active?.scope !== "panel";
+
+  return (
+    <PanelTabs
+      tabs={tabs.map((t) => ({ id: t.id, label: t.label, icon: tabIcon(t.icon, t.id) }))}
+      value={active?.id ?? "design"}
+      onValueChange={setTabId}
+      ariaLabel="Inspector tab"
+    >
+      {/* Node chrome, shown only for node-scoped tabs — the identity of the
+          selection and the actions on it both describe something a panel-scoped
+          tab (a change history, an audit) is explicitly not about. */}
+      {nodeScoped && node && <IdentityHeader node={node} />}
+
+      <div className="flex-1 min-h-0 overflow-auto">
+        <InspectorBody tab={active} node={node} />
+      </div>
+
+      {nodeScoped && node && !node.instanceOf && <NodeFooter id={node.id!} node={node} />}
+    </PanelTabs>
+  );
+}
+
+/** Which of the three things a tab body can be: the host's/builder's content, the
+ *  instance panel that replaces node-scoped content for a linked copy, or the
+ *  empty state a node-scoped tab shows with nothing selected. */
+function InspectorBody({ tab, node }: { tab: InspectorTabDef | undefined; node: SelectableNode | undefined }) {
+  const editor = useEditor();
+  if (!tab) return null;
+
+  // Panel-scoped: about the document, not the selection. Renders regardless.
+  if (tab.scope === "panel") return <>{tab.render()}</>;
+
+  if (!node || !node.id) {
     return (
-      <div className="grid flex-1 min-h-0 place-items-center p-6">
+      <div className="grid h-full place-items-center p-6">
         <EmptyState
           size="sm"
           icon={<Icon name="sliders" />}
@@ -491,40 +572,19 @@ export function Inspector() {
   // A symbol instance is a LINKED copy — its own wrapper class/text don't reach
   // output (flatten renders the master). So it gets its own focused panel (edit the
   // master / detach / rename), not the generic style controls, which would mislead.
+  // This replaces the BODY only: the tab strip stays, so a host tab is still
+  // reachable while an instance is selected.
   if (node.instanceOf) {
     return <InstancePanel id={id} symbolId={node.instanceOf} node={node} />;
   }
 
-  return (
-    <div className="flex flex-1 min-h-0 flex-col">
-      <IdentityHeader node={node} />
-      <div className="flex-none border-b border-base-200 px-3 py-2">
-        <ToggleGroup
-          className="toggle-group-sm w-full"
-          aria-label="Inspector tab"
-          value={[tab]}
-          onValueChange={(v: string[]) => v.length && setTab(v[0] as InspectorTab)}
-        >
-          <ToggleGroupItem value="design" className="flex-1">
-            <span className="inline-flex items-center gap-1.5">
-              <Icon name="sliders" /> Design
-            </span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="settings" className="flex-1">
-            <span className="inline-flex items-center gap-1.5">
-              <Icon name="settings" /> Settings
-            </span>
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-auto">
-        {tab === "design" ? <DesignTab id={id} node={node} /> : <SettingsTab id={id} node={node} />}
-      </div>
-
-      <NodeFooter id={id} node={node} />
-    </div>
-  );
+  const ctx: InspectorPanelCtx = {
+    setProp: (key, value) => editor.setProp(id, key, value),
+    setAttr: (key, value) => editor.setAttr(id, key, value),
+    setData: (binding) => editor.setData(id, binding),
+    setClass: (className) => editor.setClass(id, className),
+  };
+  return <>{tab.render(node, ctx)}</>;
 }
 
 /**
@@ -1619,8 +1679,10 @@ function InstancePanel({ id, symbolId, node }: { id: string; symbolId: string; n
     if (draft.trim() && draft !== name) editor.renameSymbol(symbolId, draft.trim());
   };
   return (
-    <div className="flex-1 min-h-0 overflow-auto" data-testid="instance-panel">
-      <IdentityHeader node={node} />
+    // The identity header and the scroll container are the rail shell's now, so
+    // this renders as plain body content — otherwise an instance showed the
+    // header twice and nested a scroller inside a scroller.
+    <div data-testid="instance-panel">
       <Group label="Component instance">
         <p className="mb-2 text-xs text-base-content/55">
           A linked copy of <span className="font-medium text-base-content/80">{name}</span>. Edit the component to

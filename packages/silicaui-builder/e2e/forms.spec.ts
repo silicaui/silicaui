@@ -75,7 +75,7 @@ test("editing a control's props in the Inspector updates the published markup", 
   await insert(page, "input");
   const input = canvas.locator("input[data-sui-id]").first();
   await input.click(); // select
-  await page.getByRole("button", { name: "Settings" }).click(); // props live in Settings
+  await page.getByRole("tab", { name: "Settings" }).click(); // props live in Settings
 
   // The Inspector shows a "Placeholder" row (label + control); edit it and the
   // change lowers to the canvas input's placeholder attribute.

@@ -80,7 +80,7 @@ test("Inspector Design/Settings split matches the site builder's chrome, with an
   await expect(page.getByText("Text", { exact: true })).toBeVisible();
   await expect(page.getByText("Content", { exact: true })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   await expect(page.getByText("Content", { exact: true })).toBeVisible();
   await expect(page.getByText("Font size", { exact: true })).toHaveCount(0);
 
@@ -92,7 +92,7 @@ test("Inspector Design/Settings split matches the site builder's chrome, with an
   await expect(page.getByText("No settings for this element.")).toBeVisible();
 
   // Divider's Design tab, by contrast, has real fields.
-  await page.getByRole("button", { name: "Design", exact: true }).click();
+  await page.getByRole("tab", { name: "Design", exact: true }).click();
   await expect(page.getByText("Thickness (px)", { exact: true })).toBeVisible();
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -117,7 +117,7 @@ test("nothing selected shows the same empty state as the site builder; selecting
   await expect(page.getByText("Content background", { exact: true })).toBeVisible();
   await expect(page.getByText("Subject", { exact: true })).toHaveCount(0); // that's on Settings
 
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("tab", { name: "Settings", exact: true }).click();
   await expect(page.getByText("Subject", { exact: true })).toBeVisible();
   await expect(page.getByText("Canvas width (px)", { exact: true })).toBeVisible();
   await expect(page.getByText("Font family", { exact: true })).toBeVisible();
