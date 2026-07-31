@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Chat component — a message row with an avatar, header/footer, and bubble.
@@ -74,12 +74,7 @@ export function chat(colors, prefix = "") {
     },
   };
 
-  for (const name of colors) {
-    base[sel(`-bubble-${name}`)] = {
-      "--chat-bubble-bg": `var(--color-${name})`,
-      "--chat-bubble-fg": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("chat", colors, prefix));
 
   return base;
 }

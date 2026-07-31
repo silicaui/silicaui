@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Steps component — a horizontal progress tracker.
@@ -82,12 +82,7 @@ export function steps(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[step(`-${name}`)] = {
-      "--step-bg": `var(--color-${name})`,
-      "--step-fg": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("steps", colors, prefix));
 
   return base;
 }

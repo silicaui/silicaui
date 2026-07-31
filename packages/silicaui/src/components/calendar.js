@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Calendar / DatePicker component — a from-scratch month-grid date picker
@@ -232,12 +232,7 @@ export function calendar(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--calendar-accent": `var(--color-${name})`,
-      "--calendar-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("calendar", colors, prefix));
 
   return base;
 }

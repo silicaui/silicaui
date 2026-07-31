@@ -1,3 +1,4 @@
+import { colorVariantRules } from "../color-variants.js";
 import { affordanceButton, textClearance, BOX } from "../lib/field-affordance.js";
 
 /**
@@ -163,12 +164,7 @@ export function multiSelect(colors, prefix = "") {
 
   // Accent drives the focus ring + chip fill; the border lever softens the
   // resting border so rest -> focus-within is a visible change.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--multi-select-accent": `var(--color-${name})`,
-      "--multi-select-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("multiSelect", colors, prefix));
 
   return base;
 }

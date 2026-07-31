@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Toast component — transient notifications (Base UI behavior).
@@ -167,12 +167,7 @@ export function toast(colors, prefix = "") {
 
   // ---- Color variants, keyed off Base UI's `data-type` (extensible) --------
   // Each color only assigns source vars, same orthogonal model as `.alert-<name>`.
-  for (const name of colors) {
-    base[`${sel()}[data-type="${name}"]`] = {
-      "--toast-bg": `var(--color-${name})`,
-      "--toast-fg": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("toast", colors, prefix));
 
   return base;
 }

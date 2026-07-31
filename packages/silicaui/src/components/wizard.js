@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * Wizard — a multi-step flow: a numbered step indicator with connectors, a
@@ -133,12 +133,7 @@ export function wizard(colors, prefix = "") {
     },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--wz-accent": `var(--color-${name})`,
-      "--wz-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("wizard", colors, prefix));
 
   return base;
 }

@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Slider component — a rich range input (Base UI behavior).
@@ -110,12 +110,7 @@ export function slider(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--slider-accent": `var(--color-${name})`,
-      "--slider-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("slider", colors, prefix));
 
   return base;
 }

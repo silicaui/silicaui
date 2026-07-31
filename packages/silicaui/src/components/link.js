@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Link component — a styled inline anchor.
@@ -38,12 +38,7 @@ export function link(colors, prefix = "") {
     },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--link-accent": `var(--color-${name})`,
-      "--link-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("link", colors, prefix));
 
   return base;
 }

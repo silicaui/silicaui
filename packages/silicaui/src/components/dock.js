@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Dock component — a bottom navigation bar of icon+label items.
@@ -56,12 +56,7 @@ export function dock(colors, prefix = "") {
     },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--dock-accent": `var(--color-${name})`,
-      "--dock-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("dock", colors, prefix));
 
   return base;
 }

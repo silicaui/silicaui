@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Pagination component — a row of page controls.
@@ -76,12 +76,7 @@ export function pagination(colors, prefix = "") {
     [sel("-xl")]: { "--pagination-size": "3.25rem", fontSize: "1.125rem" },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--pagination-accent": `var(--color-${name})`,
-      "--pagination-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("pagination", colors, prefix));
 
   return base;
 }

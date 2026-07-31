@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Status component — a small status dot, optionally pinging.
  *
@@ -50,9 +52,7 @@ export function status(colors, prefix = "") {
     [sel("-xl")]: { "--status-size": "1.125rem" },
   };
 
-  for (const name of colors) {
-    base[sel(`-${name}`)] = { "--status-accent": `var(--color-${name})` };
-  }
+  Object.assign(base, colorVariantRules("status", colors, prefix));
 
   return base;
 }

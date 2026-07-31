@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Switch component — an accessible on/off toggle (Base UI behavior).
  *
@@ -75,9 +77,7 @@ export function switchControl(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[sel(`-${name}`)] = { "--switch-accent": `var(--color-${name})` };
-  }
+  Object.assign(base, colorVariantRules("switchControl", colors, prefix));
 
   return base;
 }

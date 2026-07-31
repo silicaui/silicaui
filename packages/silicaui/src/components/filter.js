@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Filter component — a single-select row of pill "chips" with a reset, the
@@ -97,12 +97,7 @@ export function filter(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--filter-accent": `var(--color-${name})`,
-      "--filter-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("filter", colors, prefix));
 
   return base;
 }

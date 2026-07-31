@@ -42,9 +42,15 @@ const COLOR_TOKEN_RE = /^--color-(.+)$/;
  * `--color-X` the theme defines (excluding surfaces and `-content` foregrounds).
  * This is the list tooling should render, so a user-added `brand` color flows
  * through to the palette automatically.
+ *
+ * Scans the dark overrides as well as the base tokens: a role is a role no
+ * matter which mode happens to declare it. Reading `tokens` alone made a color
+ * added while the theme was in DARK mode invisible everywhere downstream — no
+ * palette tile, no Inspector swatch, no generated utilities — even though the
+ * token was really there and the color picker could still edit it.
  */
 export function rolesOf(theme: Theme): string[] {
-  const custom = Object.keys(theme.tokens)
+  const custom = [...Object.keys(theme.tokens), ...Object.keys(theme.dark ?? {})]
     .map((k) => COLOR_TOKEN_RE.exec(k)?.[1])
     .filter(
       (n): n is string =>

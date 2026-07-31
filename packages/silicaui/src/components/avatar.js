@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Avatar component — a user/entity thumbnail: a photo, or an initials /
@@ -114,14 +114,7 @@ export function avatar(colors, prefix = "") {
 
   // ---- Color variants (extensible) -----------------------------------------
   // Paint the fallback chip and the ring; a photo avatar just ignores these.
-  for (const name of colors) {
-    const color = `var(--color-${name})`;
-    base[sel(`-${name}`)] = {
-      "--avatar-bg": color,
-      "--avatar-fg": contentVar(name),
-      "--avatar-accent": color,
-    };
-  }
+  Object.assign(base, colorVariantRules("avatar", colors, prefix));
 
   return base;
 }

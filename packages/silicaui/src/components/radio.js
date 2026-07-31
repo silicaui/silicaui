@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * The Radio component — a native `<input type="radio">` restyled.
  *
@@ -60,13 +62,7 @@ export function radio(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    // Soft border while unchecked; `:checked` repaints border + fill solid.
-    base[sel(`-${name}`)] = {
-      "--radio-accent": `var(--color-${name})`,
-      "--radio-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("radio", colors, prefix));
 
   return base;
 }

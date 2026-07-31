@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Tabs surface — the visual half of the Base-UI-backed Tabs (no portal;
@@ -142,12 +142,7 @@ export function tabs(colors, prefix = "") {
 
   // ---- Color variants (extensible) -----------------------------------------
   // Re-point the accent; underline + pills follow. Fallbacks keep theme-tracking.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--tabs-accent": `var(--color-${name})`,
-      "--tabs-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("tabs", colors, prefix));
 
   return base;
 }

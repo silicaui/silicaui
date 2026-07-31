@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Sidebar component — a persistent layout nav panel, distinct from `Drawer`
@@ -183,12 +183,7 @@ export function sidebar(colors, prefix = "") {
   };
 
   // ---- Color variants (extensible) -----------------------------------------
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--sidebar-accent": `var(--color-${name})`,
-      "--sidebar-accent-content": contentVar(name),
-    };
-  }
+  Object.assign(base, colorVariantRules("sidebar", colors, prefix));
 
   return base;
 }

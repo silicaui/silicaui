@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * TagInput — a multi-value chip field.
  *
@@ -132,12 +134,7 @@ export function tagInput(colors, prefix = "") {
 
   // Accent drives the focus ring + tag fill; the border lever softens the
   // resting border so rest -> focus-within is a visible change.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = {
-      "--tag-accent": `var(--color-${name})`,
-      "--tag-border": `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`,
-    };
-  }
+  Object.assign(base, colorVariantRules("tagInput", colors, prefix));
 
   return base;
 }

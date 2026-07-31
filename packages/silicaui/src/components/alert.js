@@ -1,4 +1,4 @@
-import { contentVar } from "../lib/auto-content.js";
+import { colorVariantRules } from "../color-variants.js";
 
 /**
  * The Alert component — a feedback surface for a contextual message.
@@ -201,16 +201,7 @@ export function alert(colors, prefix = "") {
   // ---- Color variants (extensible) -----------------------------------------
   // Each color only assigns source vars. `--alert-bg`/`--alert-fg` drive the
   // solid look; `--alert-accent`/`--alert-accent-content` drive soft/outline/dash.
-  for (const name of colors) {
-    const color = `var(--color-${name})`;
-    const content = contentVar(name);
-    base[sel(`-${name}`)] = {
-      "--alert-bg": color,
-      "--alert-fg": content,
-      "--alert-accent": color,
-      "--alert-accent-content": content,
-    };
-  }
+  Object.assign(base, colorVariantRules("alert", colors, prefix));
 
   return base;
 }

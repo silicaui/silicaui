@@ -1,3 +1,5 @@
+import { colorVariantRules } from "../color-variants.js";
+
 /**
  * DataTable chrome — the interactive shell around a `.table`.
  *
@@ -131,9 +133,7 @@ export function dataTable(colors, prefix = "") {
   };
 
   // A color class only re-points the accent var.
-  for (const name of colors) {
-    base[sel(`-${name}`)] = { "--dt-accent": `var(--color-${name})` };
-  }
+  Object.assign(base, colorVariantRules("dataTable", colors, prefix));
 
   return base;
 }
