@@ -55,6 +55,13 @@ SP_OBJECT_ID=$(az ad sp show --id "$APP_ID" --query id -o tsv)
 # Only `ref:refs/heads/main` is trusted. If the workflow ever declares
 # `environment: <name>`, the subject becomes `repo:${GH_REPO}:environment:<name>`
 # and needs its own credential added here.
+#
+# The audience is `api://AzureADTokenExchange` and is not a free choice — it is
+# the audience `azure/login` requests the OIDC token for. Registering the
+# app's sign-in audience value (`api://AzureADMyOrg`) here instead looks
+# plausible, applies cleanly, and then fails every deploy with AADSTS700212
+# "No matching federated identity record found for presented assertion
+# audience". Ask me how I know.
 echo "==> 3/4  Federated credential trusting $GH_REPO on main"
 if az ad app federated-credential list --id "$APP_ID" \
   --query "[?name=='github-main']" -o tsv | grep -q .; then
@@ -65,7 +72,7 @@ else
     \"issuer\": \"https://token.actions.githubusercontent.com\",
     \"subject\": \"repo:${GH_REPO}:ref:refs/heads/main\",
     \"description\": \"GitHub Actions deploying silicaui.com from main\",
-    \"audiences\": [\"api://AzureADMyOrg\"]
+    \"audiences\": [\"api://AzureADTokenExchange\"]
   }" -o none
   echo "  created"
 fi
