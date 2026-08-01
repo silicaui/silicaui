@@ -16,7 +16,13 @@ resources:
   - deployment.yaml
   - service.yaml
 
+# `name:` is a SELECTOR — it must equal the image name as it appears in
+# deployment.yaml, not the name being selected for. It read `site` (with a
+# `newName` doing the rewriting), which matched no container, so `newTag` was
+# inert and every build resolved to `:latest` no matter what CI substituted.
+# The old GCP workflow hid this by following `apply -k` with `kubectl set
+# image`, which pinned the tag by a second path; this one applies once, so the
+# overlay has to be right. The guard in deploy-site-azure.yml is what caught it.
 images:
-  - name: site
-    newName: ghcr.io/silicaui/silicaui/site
+  - name: ghcr.io/silicaui/silicaui/site
     newTag: latest
