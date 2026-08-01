@@ -1,7 +1,12 @@
 # ClusterIP, exactly like kanNINJA's services — reachable inside the cluster on
-# :80, never directly from the internet. Whatever fronts it (the shared Caddy,
-# or a GKE Ingress) proxies to this Service by its DNS name:
+# :80, never directly from the internet. The shared Caddy in `sparx-prod` is the
+# only thing in front of it, and it proxies cross-namespace by DNS name:
 #   site.silicaui.svc.cluster.local:80
+#
+# Nothing here names a cloud. That is the point: the ONLY provider-specific
+# object in this whole path is the `type: LoadBalancer` Service that Caddy owns
+# in the sparx repo, which is why moving GKE → AKS changed the registry and the
+# CI credential and left this file's contract untouched.
 apiVersion: v1
 kind: Service
 metadata:

@@ -1,5 +1,20 @@
-name: Deploy site
+name: Deploy site (GCP — parked)
 
+# PARKED. silicaui.com is served from AKS; deploy-site-azure.yml is the live
+# path. This file is kept, dispatch-only, as a documented rollback should the
+# platform ever go back to GKE — the same way sparx keeps deploy-gcp.yml beside
+# deploy-azure.yml rather than deleting the history of how it worked.
+#
+# TWO THINGS MAKE IT NON-FUNCTIONAL AS WRITTEN, and dispatching it is not a
+# rollback on its own:
+#   1. The manifests it applies (apps/site/deploy) now name GHCR, so a GKE
+#      rollout would need its imagePullSecret and image rewritten back to
+#      Artifact Registry.
+#   2. It targets the sparx-prod Autopilot cluster, which sparx has left. If
+#      that cluster has been torn down, this workflow has nothing to talk to.
+#
+# Below is the original description, unchanged.
+#
 # Builds the static export into a container, pushes it to Artifact Registry, and
 # rolls the `site` Deployment in the `silicaui` namespace of the sparx-prod
 # Autopilot cluster. Fronting/TLS is the shared Caddy (see
@@ -11,12 +26,9 @@ name: Deploy site
 # GCP_WIF_PROVIDER / GCP_DEPLOYER_SA.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "apps/site/**"
-      - "packages/**"
-      - ".github/workflows/deploy-site.yml"
+  # Deliberately dispatch-only. The push trigger moved to
+  # deploy-site-azure.yml; leaving it here would race a second rollout of the
+  # same site into a second cluster on every commit.
   workflow_dispatch:
 
 concurrency:

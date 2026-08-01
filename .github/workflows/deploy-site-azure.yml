@@ -1,0 +1,181 @@
+name: Deploy site (Azure)
+
+# Builds the static export into a container, pushes it to GHCR, and rolls the
+# `site` Deployment in the `silicaui` namespace of the AKS cluster that now
+# hosts the platform (aks-sparx-prod-cus, centralus). Fronting and TLS are the
+# shared Caddy in `sparx-prod` — see apps/site/deploy/caddy-silicaui.caddyfile.
+# Nothing here touches ingress.
+#
+# THIS REPLACED THE GCP PATH (deploy-site-gcp.yml, now dispatch-only). sparx
+# moved off GKE, and silicaui.com is a co-tenant of that cluster, so it moved
+# too. Three things changed and nothing else did: the registry (Artifact
+# Registry → GHCR), the credential (GCP Workload Identity Federation → Entra
+# OIDC), and the cluster coordinates. The manifests describe the same workload,
+# because a Deployment plus a ClusterIP Service names no cloud.
+#
+# Auth is keyless in both directions. GitHub's OIDC token is exchanged for a
+# short-lived Azure token by the federated credential on the `gha-silicaui` app
+# registration, which Entra matches EXACTLY against
+# `repo:silicaui/silicaui:ref:refs/heads/main` — so a fork, a branch, or a PR
+# runs under a different subject and simply cannot assume this identity. That
+# exact-match is also the reason this workflow declares no `environment:`:
+# adding one changes the subject to `…:environment:<name>` and would break
+# authentication until a matching credential exists.
+#
+# The three `vars` are IDs, not secrets. `apps/site/deploy/setup-azure.sh`
+# creates the identity and prints them.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/site/**"
+      - "packages/**"
+      - ".github/workflows/deploy-site-azure.yml"
+  workflow_dispatch:
+
+concurrency:
+  # Never two rollouts at once — the second would fight the first's
+  # `rollout status`.
+  group: deploy-site
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # mint the OIDC token Entra exchanges for an Azure token
+  packages: write # push the image to GHCR
+
+env:
+  RESOURCE_GROUP: rg-sparx-prod-cus
+  CLUSTER: aks-sparx-prod-cus
+  NAMESPACE: silicaui
+  IMAGE: ghcr.io/silicaui/silicaui/site
+
+jobs:
+  deploy:
+    name: Build & deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The site imports built entry points (`@wizeworks/silicaui-demos/meta`);
+      # every package `dist/` is gitignored, so a clean checkout must build the
+      # workspace before Next can resolve them.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build site
+        run: pnpm site:build
+
+      # The image is runtime-only: it copies the `out/` this job just produced.
+      # Building the monorepo inside Docker would duplicate the work above.
+      - name: Build & push image
+        run: |
+          TAG="sha-$(git rev-parse --short HEAD)"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo '${{ secrets.GITHUB_TOKEN }}' \
+            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+          docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" apps/site
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get cluster credentials
+        run: |
+          az aks get-credentials \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$CLUSTER" \
+            --overwrite-existing
+
+      # The namespace and the pull secret must exist BEFORE the Deployment, or
+      # the first pods land in ImagePullBackOff and the rollout burns its
+      # timeout waiting for a retry that only succeeds by luck.
+      #
+      # `create --dry-run | apply` is the idempotent form: plain `create` fails
+      # on the second run, and `apply` alone cannot build a Secret from
+      # literals. GITHUB_TOKEN is scoped to this run, so the registry
+      # credential in the cluster is refreshed on every deploy by construction.
+      - name: Ensure namespace and registry credential
+        run: |
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret docker-registry ghcr -n "$NAMESPACE" \
+            --docker-server=ghcr.io \
+            --docker-username='${{ github.actor }}' \
+            --docker-password='${{ secrets.GITHUB_TOKEN }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Pin the tag in the overlay and apply ONCE, rather than applying `latest`
+      # and correcting it with `kubectl set image` — that sequence starts a
+      # rollout on a mutable tag and then immediately starts a second one.
+      #
+      # Rewriting in place rather than `kustomize edit set image`, for the
+      # reason sparx learned the hard way: `kustomize edit` matches on the name
+      # as it appears in the manifests, so passing the destination name appends
+      # a dead entry and silently leaves the real mapping on `latest`. It also
+      # is not installed on the runner (`kubectl kustomize` builds but has no
+      # `edit`), so the failure mode is an unpinned deploy that exits 0. The
+      # guard below is what actually enforces the result.
+      - name: Pin image and apply
+        run: |
+          sed -i "s|^\( *newTag: \)latest$|\1$TAG|" apps/site/deploy/kustomization.yaml
+
+          # `- image:` as well as `image:` — kustomize emits the container as a
+          # list item, so anchoring on a bare `image:` matches nothing and the
+          # guard passes vacuously, which is the exact failure it exists to
+          # catch.
+          UNPINNED=$(kubectl kustomize apps/site/deploy \
+            | grep -E "^ *-? *image: ${IMAGE}" | grep -v ":${TAG}$" || true)
+          if [ -n "$UNPINNED" ]; then
+            echo "::error::Unpinned image survived the rewrite:"
+            echo "$UNPINNED"
+            exit 1
+          fi
+
+          kubectl apply -k apps/site/deploy
+          kubectl rollout status deployment/site -n "$NAMESPACE" --timeout=180s
+
+      # The rollout only proves the pods are ready — it says nothing about the
+      # path the public actually uses. This checks the whole chain end to end:
+      # DNS → the Azure load balancer → Caddy in `sparx-prod` → this Service in
+      # another namespace. A 502 here is exactly the state this migration was
+      # fixing (workload gone, everything in front of it fine), so failing the
+      # deploy on it is the point.
+      - name: Verify the public URL
+        run: |
+          for i in $(seq 1 10); do
+            CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://silicaui.com/ || echo 000)
+            [ "$CODE" = "200" ] && { echo "silicaui.com → 200"; exit 0; }
+            echo "attempt $i: $CODE"
+            sleep 10
+          done
+          echo "::error::silicaui.com did not return 200 after the rollout (last: $CODE)."
+          kubectl get pods -n "$NAMESPACE" -o wide
+          exit 1
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '### Deployed'
+            echo ''
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| image | \`${IMAGE}:${TAG}\` |"
+            echo "| cluster | \`${CLUSTER}\` (${RESOURCE_GROUP}) |"
+            echo "| namespace | \`${NAMESPACE}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          kubectl get pods -n "$NAMESPACE" -o wide >> "$GITHUB_STEP_SUMMARY" 2>&1 || true

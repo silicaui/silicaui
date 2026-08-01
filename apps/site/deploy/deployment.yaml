@@ -6,9 +6,10 @@ metadata:
   labels:
     app.kubernetes.io/name: silicaui-site
 spec:
-  # Two replicas so a node drain or a rollout never drops the site. It's a
-  # static nginx image, so each pod is tiny — this is cheap insurance, not
-  # real scaling.
+  # Two replicas so a rollout never drops the site. The AKS cluster is a single
+  # node today, so this buys ROLLOUT safety, not node-failure safety — with the
+  # default RollingUpdate strategy one pod keeps serving while the other is
+  # replaced. It's a static nginx image, so the second pod is nearly free.
   replicas: 2
   selector:
     matchLabels:
@@ -18,26 +19,37 @@ spec:
       labels:
         app.kubernetes.io/name: silicaui-site
     spec:
+      # The GHCR package is private, so every pull needs a credential. CI
+      # recreates this Secret from the run-scoped GITHUB_TOKEN on every deploy
+      # (.github/workflows/deploy-site-azure.yml) — the same pattern sparx uses,
+      # so the token is refreshed by construction and the cluster never holds a
+      # long-lived registry credential.
+      imagePullSecrets:
+        - name: ghcr
       containers:
         - name: site
           # CI rewrites this tag to the immutable sha-<gitsha> it just pushed
           # (see kustomization.yaml `images:`). `latest` is only a placeholder
           # so the manifest is valid on its own.
-          image: us-central1-docker.pkg.dev/sparxworks/silicaui/site:latest
+          image: ghcr.io/silicaui/silicaui/site:latest
           ports:
             - name: http
               containerPort: 8080
-          # GKE Autopilot requires explicit resource requests and schedules on
-          # them. A static file server needs almost nothing.
+          # Sized for the shared 2-vCPU AKS node, which already sits near 70% of
+          # its allocatable CPU *requests* before this workload lands. The old
+          # 100m request was written for GKE Autopilot, where the request buys a
+          # node; here it competes with the whole sparx platform for one. A
+          # static file server needs essentially nothing at rest, and the limit
+          # is burst headroom for a crawl or a launch spike.
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 25m
+              memory: 48Mi
             limits:
               cpu: 250m
-              memory: 256Mi
+              memory: 192Mi
           # nginx-unprivileged already runs as non-root (uid 101); make it
-          # explicit and lock the container down for Autopilot.
+          # explicit and drop everything the container cannot need.
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false

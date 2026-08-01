@@ -1,13 +1,13 @@
 # Ties the workload manifests together and gives CI a clean, race-free way to
 # pin the image tag it just pushed:
 #
-#   cd apps/site/deploy
-#   kustomize edit set image site=us-central1-docker.pkg.dev/sparxworks/silicaui/site:sha-<gitsha>
-#   kubectl apply -k .
+#   kubectl apply -k apps/site/deploy
+#   kubectl set image deployment/site site=ghcr.io/silicaui/silicaui/site:sha-<gitsha> -n silicaui
 #
-# This mirrors how sparx-prod itself is applied (Kustomize, content-hashed).
-# The ingress layer (a Caddy host block, OR a GKE Ingress + ManagedCertificate)
-# is deliberately NOT here yet — that's the one decision still open.
+# The ingress layer is deliberately NOT here. silicaui.com is a host block in
+# the sparx Caddyfile (`k8s/ingress/Caddyfile` in the sparx repo), which already
+# reverse-proxies to the `site` Service these manifests create. See
+# caddy-silicaui.caddyfile for the block and why it is owned over there.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -18,5 +18,5 @@ resources:
 
 images:
   - name: site
-    newName: us-central1-docker.pkg.dev/sparxworks/silicaui/site
+    newName: ghcr.io/silicaui/silicaui/site
     newTag: latest

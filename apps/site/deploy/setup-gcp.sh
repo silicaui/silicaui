@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# PARKED — see setup-azure.sh, which is the live path. This is kept beside the
+# parked deploy-site-gcp.yml so the GKE route stays documented rather than
+# half-remembered; it provisions nothing that silicaui.com currently uses.
+#
 # One-time GCP setup for the SilicaUI site's CI/CD. Run once, by someone with
 # owner/IAM-admin on the `sparxworks` project. Every step mirrors the working
 # kanNINJA precedent (kanninja-deployer + kanninja-pool). Safe to re-run: each

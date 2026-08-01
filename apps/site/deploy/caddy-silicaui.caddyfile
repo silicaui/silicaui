@@ -1,25 +1,44 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# SilicaUI host block — ADD THIS to the sparx Caddyfile (the same source that
-# owns the `kanninja.com` block), then redeploy Caddy. It does NOT belong in a
-# ConfigMap edited by hand: the live config is Kustomize-generated (hash-named),
-# so an in-cluster edit is overwritten on the next apply.
+# MIRROR — NOT THE SOURCE OF TRUTH.
 #
-# Same model as kanNINJA — a co-tenant in its own `silicaui` namespace, reached
-# cross-namespace via its ClusterIP Service. It deliberately OMITS
-# `tls { on_demand }`: the on-demand ask endpoint (api-rest /internal/
-# domain-check) only validates sparx tenants and custom domains, and would
-# REJECT silicaui.com — no cert. An explicit host block instead gets a normal
-# Caddy-managed Let's Encrypt cert (HTTP-01 / TLS-ALPN), which is what we want.
+# This is a read-only copy of the silicaui host block as it exists TODAY in the
+# sparx repo's unified routing table, `k8s/ingress/Caddyfile`. It already ships
+# there; nothing needs to be pasted anywhere for silicaui.com to route. The copy
+# lives here so this repo can explain its own ingress without a second checkout.
 #
-# Requires silicaui.com and www.silicaui.com DNS to resolve to this LB:
-#   35.254.145.54
+# It is deliberately NOT applied from this repo, and an in-cluster ConfigMap
+# edit would be pointless: the live config is Kustomize-generated and
+# hash-named, so a hand edit is overwritten on the next `kubectl apply -k`.
+# To change routing, change it in the sparx repo and redeploy Caddy there.
+#
+# THE ON-DEMAND TLS DECISION (reversed from what this file used to say):
+# an earlier version of this block omitted on-demand TLS on the theory that the
+# ask endpoint would reject silicaui.com. The opposite turned out to be the
+# operative constraint. Caddy runs as a SINGLE replica on a `Recreate` rollout,
+# so every boot has a ~15–60s window with no registered load-balancer backend,
+# and an explicit managed block fires all of its startup issuance attempts
+# inside exactly that window — a FIRST certificate can never be obtained at
+# boot. That cost a day. On-demand defers issuance to the first HTTPS request,
+# which lands on a warm, LB-registered pod, so the ACME challenge succeeds.
+# silicaui.com and www are allow-listed as static platform hosts in the ask
+# endpoint (`services/api-rest/src/routes/internal/domain-check.ts`), so
+# issuance is authorized. `{$SX_SCHEME:https}` and `tls_policy` are the
+# Caddyfile's own portability seam — https + ACME on any cluster with a public
+# IP, plain HTTP on a workstation cluster behind a tunnel.
+#
+# Requires silicaui.com and www.silicaui.com to resolve to the AKS ingress:
+#   20.12.217.0   (pip-ingress-sparx-prod-cus, rg-sparx-prod-cus-nodes)
+# kept grey-cloud / DNS-only in Cloudflare so ACME challenges reach the origin.
 # ─────────────────────────────────────────────────────────────────────────────
 
-silicaui.com {
-  import security_headers
-  reverse_proxy site.silicaui.svc.cluster.local:80
+{$SX_SCHEME:https}://silicaui.com {
+	import tls_policy
+	import security_headers
+	reverse_proxy site.silicaui.svc.cluster.local:80
 }
 
-www.silicaui.com {
-  redir https://silicaui.com{uri} permanent
+{$SX_SCHEME:https}://www.silicaui.com {
+	import tls_policy
+	import security_headers
+	redir https://silicaui.com{uri} permanent
 }
