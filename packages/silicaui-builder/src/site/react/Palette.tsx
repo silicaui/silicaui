@@ -18,7 +18,7 @@ import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
 import { useHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
-import { paletteGroups, catalogForHost } from "../palette";
+import { paletteGroups, catalogForHost, makeInsertNode } from "../palette";
 import type { PaletteItem, PaletteGroup } from "../palette";
 import { nodeName } from "../node-display";
 import { DRAG_MIME, encodeDrag } from "../../shared/dnd";
@@ -96,7 +96,7 @@ function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string 
         e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: item.key }));
         e.dataTransfer.effectAllowed = "copy";
       }}
-      onClick={() => editor.insertRelative(item.make())}
+      onClick={() => editor.insertRelative(makeInsertNode(item))}
     >
       <Icon name={item.icon} className="text-base-content/55" />
       <span className="truncate">{item.label}</span>
@@ -213,7 +213,7 @@ export function Palette() {
           onKeyDown={(e: React.KeyboardEvent) => {
             const top = results?.[0];
             if (e.key === "Enter" && top) {
-              editor.insertRelative(top.item.make());
+              editor.insertRelative(makeInsertNode(top.item));
             } else if (e.key === "Escape" && query) {
               e.stopPropagation();
               setQuery("");

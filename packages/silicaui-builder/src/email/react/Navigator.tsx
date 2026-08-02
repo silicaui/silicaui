@@ -21,6 +21,10 @@ function toTreeNode(node: EmailNode): TreeNode {
   const kids = childrenOf(node);
   return {
     id: node.id,
+    name: nodeName(node),
+    // A locked node's name isn't the author's to change; everything else can be
+    // named in place (double-click / F2).
+    renamable: !node.locked,
     icon: <Icon name={nodeIcon(node)} className="text-base-content/55" />,
     label: (
       <span className="inline-flex items-center gap-1.5 truncate">
@@ -104,6 +108,9 @@ export function Navigator() {
       onExpandedChange={setExpanded}
       selected={selectedId}
       onSelectedChange={(id) => editor.select(id)}
+      // Clearing the field drops the custom name and the row falls back to the
+      // derived one, so a rename is never a one-way door.
+      onRename={(id, value) => editor.update(id, { name: value || undefined })}
       onMove={(id, targetId, edge) => {
         if (id === targetId) return;
         const place = placement(doc.root, targetId, edge);

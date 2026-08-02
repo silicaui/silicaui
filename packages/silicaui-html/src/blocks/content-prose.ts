@@ -10,7 +10,7 @@ import { block, el, slot } from "../kit";
 
 export const contentProse = block({
   key: "content_prose",
-  name: "Content — prose section",
+  name: "Content — Prose",
   category: "content",
   version: "1.0.0",
   description: "A titled long-form section with a heading and two body columns.",

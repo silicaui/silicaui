@@ -1,95 +1,80 @@
 /**
- * Pricing — three tiers. Three plan cards, the middle one accented as the
- * "featured" plan. Each card is a real subtree (name, price, feature list,
- * action) so every line is editable in place. Container-query responsive:
- * stacks on a narrow container, three-wide past `@3xl`.
+ * Pricing — Tiers. Three plan cards with the middle one accented. The default
+ * shape of a SaaS pricing page, and the one to reach for unless the page needs
+ * something the other four do better.
+ *
+ * Container-query responsive in three tiers: one column on a phone, two at
+ * `@xl` (the featured card leads), three past `@3xl`.
+ *
+ * Every line is a real subtree, so a host fills plan names, prices, and actions
+ * by slot (`plan1`/`price1`/`cta1` …) rather than being handed one opaque card.
  */
-import { atom, block, el, slot } from "../kit";
-
-const feature = (label: string) =>
-  el("li", "flex items-center gap-2 text-sm text-base-content", {
-    children: [
-      el("span", "inline-block size-1.5 rounded-full bg-primary", {}),
-      el("span", undefined, { text: label }),
-    ],
-  });
-
-const tier = (
-  name: string,
-  price: string,
-  cadence: string,
-  features: string[],
-  cta: string,
-  featured: boolean,
-) =>
-  el(
-    "div",
-    featured
-      ? "flex flex-col gap-6 rounded-box border-2 border-primary bg-base-100 p-8 shadow-lg"
-      : "flex flex-col gap-6 rounded-box border border-base-200 bg-base-100 p-8",
-    {
-      children: [
-        el("div", "flex flex-col gap-1", {
-          children: [
-            el("p", "text-sm font-semibold text-base-content", { text: name }),
-            el("div", "flex items-baseline gap-1", {
-              children: [
-                el("span", "text-4xl font-semibold text-base-content", { text: price }),
-                el("span", "text-sm text-base-content", { text: cadence }),
-              ],
-            }),
-          ],
-        }),
-        el("ul", "flex flex-col gap-2", { children: features.map(feature) }),
-        atom("Button", featured ? "btn btn-primary mt-auto" : "btn btn-outline mt-auto", { label: cta }),
-      ],
-    },
-  );
+import { block, el } from "../kit";
+import { heading, planCard, subhead } from "./pricing-kit";
 
 export const pricingTiers = block({
-  key: "pricing_tiers",
-  name: "Pricing — three tiers",
-  category: "pricing",
-  version: "1.0.0",
-  description: "A three-column pricing table with a featured middle plan.",
-  tags: ["pricing", "plans", "marketing"],
-  colors: ["base-100", "base-200", "base-content", "primary"],
-  behaviors: [],
-  emailEligible: false,
-  root: el("section", "@container bg-base-200", {
-    children: [
-      el("div", "mx-auto w-full max-w-6xl px-6 py-16", {
+    key: "pricing_tiers",
+    name: "Pricing — Tiers",
+    category: "pricing",
+    version: "2.0.0",
+    description: "Three plan cards with a featured middle plan.",
+    tags: ["pricing", "plans", "marketing"],
+    colors: ["base-100", "base-200", "base-content", "primary"],
+    behaviors: [],
+    emailEligible: false,
+    root: el("section", "@container bg-base-200", {
         children: [
-          el("div", "mb-10 flex flex-col items-center gap-3 text-center", {
-            children: [
-              slot(
-                el("h2", "text-3xl font-semibold text-base-content", { text: "Simple, transparent pricing" }),
-                { name: "heading", type: "text", label: "Heading" },
-              ),
-              slot(
-                el("p", "max-w-xl text-base-content", {
-                  text: "Start free, then pick the plan that grows with you. Cancel anytime.",
-                }),
-                { name: "subhead", type: "text", label: "Subheadline" },
-              ),
-            ],
-          }),
-          el("div", "grid grid-cols-1 gap-6 @xl:grid-cols-2 @3xl:grid-cols-3", {
-            children: [
-              tier("Starter", "$0", "/mo", ["1 project", "Community support", "Basic analytics"], "Get started", false),
-              tier(
-                "Pro",
-                "$29",
-                "/mo",
-                ["Unlimited projects", "Priority support", "Advanced analytics", "Custom domain"],
-                "Start Pro trial",
-                true,
-              ),
-              tier("Team", "$99", "/mo", ["Everything in Pro", "5 seats included", "SSO & audit logs"], "Contact us", false),
-            ],
-          }),
+            el("div", "mx-auto w-full max-w-6xl px-6 py-16 @3xl:py-20", {
+                children: [
+                    el("div", "mb-12 flex flex-col items-center gap-3 text-center", {
+                        children: [
+                            heading("text-3xl font-semibold text-base-content @2xl:text-4xl", "Simple, transparent pricing"),
+                            subhead(
+                                "max-w-xl text-base-content",
+                                "Start free, then pick the plan that grows with you. Change or cancel at any time.",
+                            ),
+                        ],
+                    }),
+                    el("div", "grid grid-cols-1 items-start gap-6 @xl:grid-cols-2 @3xl:grid-cols-3", {
+                        children: [
+                            planCard({
+                                index: 1,
+                                name: "Starter",
+                                price: "$0",
+                                cadence: "/month",
+                                blurb: "Everything you need to put a store online.",
+                                features: ["1 project", "Community support", "Basic analytics", "SilicaUI subdomain"],
+                                cta: "Get started",
+                            }),
+                            planCard({
+                                index: 2,
+                                name: "Pro",
+                                price: "$29",
+                                cadence: "/month",
+                                blurb: "For a store that's already selling.",
+                                features: [
+                                    "Unlimited projects",
+                                    "Priority support",
+                                    "Advanced analytics",
+                                    "Custom domain",
+                                    "Abandoned-cart recovery",
+                                ],
+                                cta: "Start Pro trial",
+                                featured: true,
+                            }),
+                            planCard({
+                                index: 3,
+                                name: "Team",
+                                price: "$99",
+                                cadence: "/month",
+                                blurb: "For teams that publish together.",
+                                features: ["Everything in Pro", "5 seats included", "SSO and audit logs", "Sandbox environments"],
+                                cta: "Contact sales",
+                            }),
+                        ],
+                    }),
+                ],
+            }),
         ],
-      }),
-    ],
-  }),
+    }),
 });

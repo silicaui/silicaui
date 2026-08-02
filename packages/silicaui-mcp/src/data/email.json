@@ -10,6 +10,12 @@
       "doc": ""
     },
     {
+      "name": "name",
+      "optional": true,
+      "type": "string",
+      "doc": "The author's own name for this layer, shown in the Navigator instead of the derived one (\"Section\", \"Columns\"). Lets someone tell two identical rows apart — \"Order summary\" vs \"Legal footer\" — without opening either. Called `name`, not `label`, because `label` is already a ButtonNode's own TEXT — a content field that ships in the email. These are opposites, and one word cannot mean both. (The site schema, which has no such collision, spells the same idea `Node.label`.) Authoring metadata, exactly like `ord` below: `toEmailHtml` never reads it, so it cannot reach sent markup."
+    },
+    {
       "name": "ord",
       "optional": true,
       "type": "string",

@@ -40,8 +40,10 @@ import { useEmailHost } from "./host-context";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
 import { Icon } from "../../shared/react/Icon";
 import type { IconName } from "../../shared/icons";
-import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
-import type { DropEdge } from "../../shared/dnd";
+import { DRAG_MIME, decodeDrag, edgeFor, siblingAxis } from "../../shared/dnd";
+import type { Axis, DropEdge } from "../../shared/dnd";
+import { DropOverlay } from "../../shared/react/DropOverlay";
+import type { DropHint } from "../../shared/react/DropOverlay";
 import { nodeName, SOCIAL_PLATFORM } from "../node-display";
 import { EMAIL_PALETTE, emailPaletteItemByKey, mergeEmailCatalog } from "../palette";
 import type { EmailPaletteItem } from "../palette";
@@ -147,20 +149,13 @@ interface RenderCtx {
   dnd: DndCtx;
   /** The container currently showing a dashed drop-inside ring. */
   insideId: string | undefined;
-  /** Where a drop-line renders: at `index` among `parentId`'s children. */
-  lineGap: { parentId: string; index: number } | undefined;
 }
 
-/** Which edge of the hovered node a pointer at `clientY` targets. */
-function computeEdge(clientY: number, rect: DOMRect, node: EmailNode): DropEdge {
-  const y = clientY - rect.top;
-  if (isContainer(node)) {
-    const band = Math.min(rect.height * 0.3, 22);
-    if (y < band) return "before";
-    if (y > rect.height - band) return "after";
-    return "inside";
-  }
-  return y < rect.height / 2 ? "before" : "after";
+/** Which edge of the hovered node a pointer targets, read on the axis its
+ *  siblings actually flow along — columns sit side by side, so a Column's
+ *  before/after is a HORIZONTAL judgement while a Section's is vertical. */
+function computeEdge(e: React.DragEvent, rect: DOMRect, axis: Axis, node: EmailNode): DropEdge {
+  return edgeFor(e, rect, axis, isContainer(node));
 }
 
 /** The hover/selection decoration suffix for a node's wrapper class. */
@@ -174,11 +169,6 @@ function decorations(id: string, ctx: RenderCtx): string {
   if (id === ctx.insideId) return s + " outline outline-2 outline-dashed outline-accent -outline-offset-2";
   if (id === ctx.hoveredId && id !== ctx.selectedId) s += " outline outline-1 outline-primary/40 -outline-offset-1";
   return s;
-}
-
-/** A thin accent bar shown between siblings at the pending drop index. */
-function DropLine() {
-  return <div className="pointer-events-none h-0.5 w-full rounded-full bg-accent" aria-hidden />;
 }
 
 function interactionProps(info: NodeInfo, ctx: RenderCtx, editable = false) {
@@ -722,25 +712,19 @@ function RenderLink({
   );
 }
 
-/** Render a list of content/columns/link children (a Section's or a Column's)
- *  with drop-line gaps interleaved. */
+/** Render a list of content/columns/link children (a Section's or a Column's).
+ *  No drop marker is spliced in — it's drawn over the board by `DropOverlay`,
+ *  which is what keeps a pending drop from reflowing the node being aimed at. */
 function renderChildren(children: LayoutChild[], parentId: string, ctx: RenderCtx): React.ReactNode {
-  const gap = ctx.lineGap && ctx.lineGap.parentId === parentId ? ctx.lineGap.index : -1;
-  const out: React.ReactNode[] = [];
-  children.forEach((c, i) => {
-    if (i === gap) out.push(<DropLine key={`drop-${i}`} />);
-    out.push(
-      c.kind === "columns" ? (
-        <RenderColumns key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
-      ) : c.kind === "link" ? (
-        <RenderLink key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
-      ) : (
-        <RenderContent key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
-      ),
-    );
-  });
-  if (gap === children.length) out.push(<DropLine key="drop-end" />);
-  return out;
+  return children.map((c, i) =>
+    c.kind === "columns" ? (
+      <RenderColumns key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
+    ) : c.kind === "link" ? (
+      <RenderLink key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
+    ) : (
+      <RenderContent key={c.id} node={c} parentId={parentId} index={i} ctx={ctx} />
+    ),
+  );
 }
 
 function RenderColumn({
@@ -917,7 +901,6 @@ function RenderBody({
   width: number;
   frame?: EmailFrame;
 }) {
-  const gap = ctx.lineGap && ctx.lineGap.parentId === node.id ? ctx.lineGap.index : -1;
   // The document's `@font-face` rules, injected into the canvas so an author
   // picking a brand face SEES it while composing — same generator the projector
   // emits into the sent `<head>`, and the same resolved stack on the wrapper, so
@@ -932,7 +915,6 @@ function RenderBody({
     hoveredId: undefined,
     editingId: undefined,
     insideId: undefined,
-    lineGap: undefined,
   };
   const label = frameLabel(frame);
   return (
@@ -950,13 +932,9 @@ function RenderBody({
         </div>
       ) : (
         node.children.map((c, i) => (
-          <React.Fragment key={c.id}>
-            {i === gap && <DropLine />}
-            <RenderSection node={c} index={i} ctx={ctx} bodyId={node.id} />
-          </React.Fragment>
+          <RenderSection key={c.id} node={c} index={i} ctx={ctx} bodyId={node.id} />
         ))
       )}
-      {gap === node.children.length && <DropLine />}
       {frame?.footer?.length ? (
         <FrameRegion where="footer" sections={frame.footer} label={label} ctx={frameCtx} />
       ) : null}
@@ -976,7 +954,7 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
   const [editingId, setEditingId] = React.useState<string | undefined>(undefined);
   const [draggingId, setDraggingId] = React.useState<string | undefined>(undefined);
   const [dropHint, setDropHint] = React.useState<
-    { targetId: string; parentId: string | undefined; index: number; edge: DropEdge } | undefined
+    { targetId: string; parentId: string | undefined; index: number; edge: DropEdge; axis: Axis } | undefined
   >(undefined);
   const mobile = device === "mobile";
   const rootId = doc.root.id;
@@ -1007,16 +985,17 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
       setDraggingId(id);
     },
     onDragOver: (info, e) => {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const edge = computeEdge(e.clientY, rect, info.node);
+      const el = e.currentTarget as HTMLElement;
+      const axis = siblingAxis(el);
+      const edge = computeEdge(e, el.getBoundingClientRect(), axis, info.node);
       e.dataTransfer.dropEffect = draggingId ? "move" : "copy";
-      setDropHint({ targetId: info.id, parentId: info.parentId, index: info.index, edge });
+      setDropHint({ targetId: info.id, parentId: info.parentId, index: info.index, edge, axis });
     },
     onDrop: (info, e) => {
       const raw = e.dataTransfer.getData(DRAG_MIME);
       const payload = decodeDrag(raw);
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const edge = computeEdge(e.clientY, rect, info.node);
+      const el = e.currentTarget as HTMLElement;
+      const edge = computeEdge(e, el.getBoundingClientRect(), siblingAxis(el), info.node);
       clearDrag();
       if (!payload) return;
       const place = placement(info, edge);
@@ -1051,9 +1030,12 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
   };
 
   const insideId = dropHint?.edge === "inside" ? dropHint.targetId : undefined;
-  const lineGap =
+  // The body has no siblings — `placement` turns a before/after on it into an
+  // append INSIDE it, so drawing an edge marker there would promise a placement
+  // the drop won't honor.
+  const dropMarker: DropHint | undefined =
     dropHint && dropHint.edge !== "inside" && dropHint.parentId
-      ? { parentId: dropHint.parentId, index: dropHint.edge === "before" ? dropHint.index : dropHint.index + 1 }
+      ? { targetId: dropHint.targetId, edge: dropHint.edge, axis: dropHint.axis }
       : undefined;
 
   const ctx: RenderCtx = {
@@ -1075,7 +1057,6 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
     mobile,
     dnd,
     insideId,
-    lineGap,
   };
 
   return (
@@ -1094,6 +1075,7 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
           label={selectedNode ? nodeName(selectedNode) : undefined}
           version={doc}
         />
+        <DropOverlay boardRef={boardRef} hint={dropMarker} />
       </div>
     </div>
   );

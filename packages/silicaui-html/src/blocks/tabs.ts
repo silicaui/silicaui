@@ -29,7 +29,7 @@ const panel = (body: string, open = false) =>
 
 export const tabs = block({
   key: "tabs",
-  name: "Tabs — panels",
+  name: "Tabs — Panels",
   category: "tabs",
   version: "1.0.0",
   description: "An exclusive tab strip over stacked panels, with arrow-key navigation.",

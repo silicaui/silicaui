@@ -21,7 +21,7 @@
 //
 // Run against built output: `pnpm --filter @wizeworks/silicaui-html build`.
 import { readFileSync } from "node:fs";
-import { AA_NORMAL, THEME_PRESETS, SEMANTIC_ROLES, contrastRatio, parseColor } from "./dist/index.js";
+import { AA_NORMAL, THEME_PRESETS, SEMANTIC_ROLES, contrastRatio, parseColor, resolveThemeTokens } from "./dist/index.js";
 
 let failures = 0;
 const check = (label, ok, detail = "") => {
@@ -164,6 +164,60 @@ const MODE_INDEPENDENT = /^--(font-|radius-|border$|depth$|size-)/;
 for (const preset of THEME_PRESETS) {
   const strays = Object.keys(preset.dark ?? {}).filter((k) => MODE_INDEPENDENT.test(k));
   check(preset.name, strays.length === 0, strays.length ? `in dark: ${strays.join(", ")}` : "clean");
+}
+
+// ── 7. a light ink never survives into dark over a re-pointed role ──────────
+// The normal shape of a hand-written theme is: author `--color-primary-content`
+// once in `tokens`, then override only `--color-primary` in `dark` — because the
+// ink usually needs no thought. `resolveThemeTokens` used to carry that light ink
+// straight through the merge, see a truthy value, and skip derivation, so every
+// filled surface in dark mode painted white-on-pale at roughly 1.7:1.
+//
+// The presets themselves never tripped it (`defineTheme` emits no `-content` at
+// all, so every role derives cleanly in both modes) — which is exactly why it
+// went unnoticed: the bug only bites a CONSUMER's theme, and the builder harness
+// ships one. So this is checked against a synthetic theme in that shape rather
+// than against THEME_PRESETS.
+console.log("\nA re-pointed dark role re-derives its ink:");
+{
+  const consumerShaped = {
+    name: "consumer-shaped",
+    mode: "light",
+    tokens: {
+      "--color-base-100": "oklch(98% 0.003 250)",
+      "--color-base-content": "oklch(21% 0.012 255)",
+      "--color-primary": "oklch(42% 0.055 252)",
+      "--color-primary-content": "oklch(98% 0.004 250)", // authored for LIGHT
+      "--color-neutral": "oklch(26% 0.014 255)",
+      "--color-neutral-content": "oklch(95% 0.004 250)", // authored, never re-pointed
+    },
+    dark: {
+      "--color-base-100": "oklch(16% 0.01 255)",
+      "--color-base-content": "oklch(93% 0.006 250)",
+      "--color-primary": "oklch(72% 0.06 252)", // re-pointed, ink NOT restated
+    },
+  };
+  const light = resolveThemeTokens(consumerShaped, "light");
+  const dark = resolveThemeTokens(consumerShaped, "dark");
+
+  check(
+    "light keeps the authored ink",
+    light["--color-primary-content"] === "oklch(98% 0.004 250)",
+    light["--color-primary-content"],
+  );
+  const ratio = contrastRatio(parseColor(dark["--color-primary"]), parseColor(dark["--color-primary-content"]));
+  check(
+    "dark re-derives the ink for the re-pointed role",
+    dark["--color-primary-content"] !== light["--color-primary-content"] && ratio >= AA_NORMAL,
+    `${dark["--color-primary-content"]} on ${dark["--color-primary"]} = ${ratio.toFixed(2)}:1`,
+  );
+  // The other half of the contract: an authored ink whose role did NOT move is
+  // the author's measured decision and must be left exactly alone.
+  check(
+    "an untouched role keeps its authored ink in dark",
+    dark["--color-neutral-content"] === "oklch(95% 0.004 250)",
+    dark["--color-neutral-content"],
+  );
 }
 
 if (failures > 0) {

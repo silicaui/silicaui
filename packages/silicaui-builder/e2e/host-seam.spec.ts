@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The host adapter (builder-contract.md §5) — `catalog` merge, `validateClass`
@@ -161,7 +162,10 @@ test("a value bind's Target attribute round-trips through editor.setData", async
   // Select a genuinely different node and back — the field must reseed from
   // the persisted `data.attr` (a fresh `id` prop), not just retain whatever
   // local draft state the input happened to have.
-  await canvas.getByText("Get started").click();
+  // `.first()` — the navbar's CTA renders twice by design (the bar's copy plus
+  // the mobile menu's, sharing one `cta` slot so a host fills both at once). The
+  // desktop copy comes first and is the one this bind is authored on.
+  await canvas.getByText("Get started").first().click();
   await canvas.getByText(HEADLINE).click();
   await expect(page.getByPlaceholder("auto-detected (e.g. leave blank for text/src)")).toHaveValue("href");
 });
@@ -216,7 +220,7 @@ test("a collection bind's 'Omit when empty' toggle drops the node from the resol
   await refSelect.selectOption("empty-collection");
   await expect(page.getByText("0 items — the template renders once as a placeholder", { exact: true })).toBeVisible();
 
-  await page.locator("div.mb-2", { hasText: "Omit when empty" }).locator('[role="switch"]').click();
+  await page.locator(ROW, { hasText: "Omit when empty" }).locator('[role="switch"]').click();
   await expect(page.getByText("0 items — the node is omitted entirely", { exact: true })).toBeVisible();
 
   // The bound node (the headline) is dropped from the resolved tree entirely
@@ -296,7 +300,13 @@ test("a collection's 'How many' caps the instance, and the canvas draws that cou
   // node's children per item, so a container is what makes the count legible;
   // the canvas renders the authored template once plus a ghost per further
   // item, so the count the author lays out against is the count that ships.
+  //
+  // "Detailed" first, because this row is addressed BY POSITION: both `div`s in
+  // that path are bare layout wrappers, which the Navigator's default "Simple"
+  // depth folds away (they're only worth a row once something — like the
+  // binding this test is about to add — makes them meaningful).
   const HEADLINE = "Ship your store in an afternoon";
+  await page.getByRole("button", { name: "Detailed", exact: true }).click();
   await page.locator(".tree-node").nth(3).click();
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("data-kind").selectOption("collection");

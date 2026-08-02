@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * Phase 1 (forms-first) guard: the Insert palette can add each native form control
@@ -79,14 +80,14 @@ test("editing a control's props in the Inspector updates the published markup", 
 
   // The Inspector shows a "Placeholder" row (label + control); edit it and the
   // change lowers to the canvas input's placeholder attribute.
-  const placeholder = page.locator("div.mb-2", { hasText: "Placeholder" }).locator("input");
+  const placeholder = page.locator(ROW, { hasText: "Placeholder" }).locator("input");
   await placeholder.fill("you@example.com");
   await placeholder.blur(); // commit
   await expect(input).toHaveAttribute("placeholder", "you@example.com");
 
   // The Required toggle sets the boolean prop, which lowers to a bare `required`
   // attribute on the element. Scope to its row (Settings also has a Visibility switch).
-  await page.locator("div.mb-2", { hasText: "Required" }).locator('[role="switch"]').click();
+  await page.locator(ROW, { hasText: "Required" }).locator('[role="switch"]').click();
   await expect(input).toHaveAttribute("required", "");
 
   // Both edits flowed out through onChange.

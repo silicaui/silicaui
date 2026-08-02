@@ -8,13 +8,25 @@ async function ready(page: Page): Promise<void> {
   await page.waitForSelector(".sui-canvas");
 }
 
+/**
+ * The Wordmark under test — the one in the PAGE tree, scoped to the frame's
+ * `<main>` outlet.
+ *
+ * The scope is load-bearing, not tidiness. The frame's navbar carries a Wordmark
+ * of its own (the navbar blocks brand with the real component, so a logo can be
+ * assigned through the Inspector's one-control path), and it renders FIRST — so
+ * a bare `.wordmark` `.first()` silently targets the frame's locked backdrop
+ * instead of the node these tests just inserted and bound.
+ */
+const pageWordmark = (page: Page) => page.locator(".sui-canvas main .wordmark").first();
+
 /** Insert a Wordmark into the PAGE tree and select it. The navbar's own
  *  Wordmark lives in the layout frame — a locked backdrop in Page mode — so
  *  it's deliberately not selectable here. */
 async function insertWordmark(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Insert" }).click();
   await page.locator('[data-insert-key="wordmark"]').click();
-  await expect(page.locator(".sui-canvas .wordmark")).toHaveCount(1);
+  await expect(page.locator(".sui-canvas main .wordmark")).toHaveCount(1);
   // Inserting selects the new node, so the Inspector is already on it.
   await expect(page.getByRole("tab", { name: "Settings" })).toBeVisible();
 }
@@ -57,7 +69,7 @@ test("a Wordmark carries a logo, and a non-square mark keeps its aspect ratio", 
   // The one-control path: assign a logo without touching the tree.
   await setLogo(page, WIDE_LOGO);
 
-  const mark = canvas.locator(".wordmark img").first();
+  const mark = pageWordmark(page).locator("img");
   await expect(mark).toBeVisible();
 
   // Height locks to the type; width follows the 3:1 source. The old rule made
@@ -113,9 +125,9 @@ test("a bare bind on a Wordmark fills the NAME, never the logo URL", async ({ pa
 
   // On the CANVAS (the Inspector's preview row says the same thing — be specific
   // about which, now that the canvas resolves too).
-  await expect(canvas.locator(".wordmark").first()).toContainText("Acme Storefront");
+  await expect(pageWordmark(page)).toContainText("Acme Storefront");
   // The logo survived the name bind — still the wide mark, not a text URL.
-  await expect(canvas.locator(".wordmark img").first()).toHaveAttribute("src", WIDE_LOGO);
+  await expect(pageWordmark(page).locator("img")).toHaveAttribute("src", WIDE_LOGO);
 });
 
 /**
@@ -126,7 +138,7 @@ test("a bare bind on a Wordmark fills the NAME, never the logo URL", async ({ pa
 test("the canvas resolves bindings — a bound Wordmark shows the host's real brand", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");
-  const wordmark = canvas.locator(".wordmark").first();
+  const wordmark = pageWordmark(page);
 
   await insertWordmark(page);
   await expect(wordmark).toHaveText("SilicaUI"); // the authored placeholder
@@ -151,7 +163,7 @@ test("the canvas resolves bindings — a bound Wordmark shows the host's real br
 test("resolved text is not editable in place, but an unresolved node's authored text still is", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");
-  const wordmark = canvas.locator(".wordmark").first();
+  const wordmark = pageWordmark(page);
 
   await insertWordmark(page);
   await page.evaluate(() => {
@@ -181,7 +193,7 @@ test("resolved text is not editable in place, but an unresolved node's authored 
 test("an unresolvable ref is marked on the canvas, not silently blanked", async ({ page }) => {
   await ready(page);
   const canvas = page.locator(".sui-canvas");
-  const wordmark = canvas.locator(".wordmark").first();
+  const wordmark = pageWordmark(page);
 
   await insertWordmark(page);
   await page.evaluate(() => {

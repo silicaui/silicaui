@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The inline `{{ref}}` merge-token autocomplete (Q23) — the counterpart to
@@ -104,7 +105,7 @@ test("the Subject field's token autocomplete inserts a token that resolves in th
   await page.locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
-  const subjectInput = page.locator("label", { hasText: "Subject" }).locator("input");
+  const subjectInput = page.locator(ROW, { hasText: "Subject" }).locator("input");
   await subjectInput.click();
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type("Hi {{price");

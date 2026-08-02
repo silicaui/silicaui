@@ -45,10 +45,29 @@ export function typography(prefix = "") {
   const rules = {};
 
   // ── global element defaults (scoped + zero-specificity) ───────────────────
+  //
+  // TEXT COLOR IS `inherit` THROUGHOUT THIS FILE, NOT `var(--color-base-content)`.
+  //
+  // `[data-theme]` already sets `color: var(--color-base-content)` on the themed
+  // root (theme.js), so inheriting lands on exactly the same ink for the normal
+  // case and for a nested `[data-theme]` island. What it ALSO does — and what
+  // declaring the token cannot — is follow a container that paints itself a
+  // different surface:
+  //
+  //     <section class="bg-primary text-primary-content"> <h2>…</h2> </section>
+  //
+  // A DECLARED color beats an INHERITED one, so with `var(--color-base-content)`
+  // that `<h2>` came out base-content: dark ink on a dark primary band in light
+  // mode, pale on pale in dark. The author's fix used to be repeating
+  // `text-primary-content` on the heading — which hardcodes the ROLE, so the
+  // moment anyone switches the band to `bg-secondary` the heading is wrong again.
+  // Inheriting means the surface states the role ONCE and everything inside it
+  // follows, for any role, including one invented at runtime.
+  //
   // Shared heading treatment: balance the ragged line, inherit the head font.
   rules["[data-theme] :where(h1, h2, h3, h4, h5, h6)"] = {
     fontFamily: "var(--font-head, var(--font-sans))",
-    color: "var(--color-base-content)",
+    color: "inherit",
     textWrap: "balance",
   };
   for (const s of Object.values(STEP)) {
@@ -58,7 +77,7 @@ export function typography(prefix = "") {
   rules["[data-theme] :where(p)"] = { lineHeight: "1.6" };
   rules["[data-theme] :where(small)"] = {
     fontSize: "0.875rem",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
   // Bare `<blockquote>` — a pull-quote/testimonial treatment (distinct from
   // `.prose`'s smaller, italic, inline-quote-in-a-paragraph style).
@@ -68,14 +87,14 @@ export function typography(prefix = "") {
     borderInlineStart: "0.25rem solid var(--color-primary)",
     fontSize: "1.125rem",
     lineHeight: "1.6",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
   rules["[data-theme] :where(blockquote > footer, blockquote > cite)"] = {
     display: "block",
     marginTop: "0.5rem",
     fontSize: "0.875rem",
     fontStyle: "normal",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
 
   // ── explicit override classes (normal specificity) ────────────────────────
@@ -110,12 +129,12 @@ export function typography(prefix = "") {
     fontSize: "1.125rem",
     lineHeight: "1.6",
     fontWeight: "400",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
   rules[cls("caption")] = {
     fontSize: "0.875rem",
     lineHeight: "1.4",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
   rules[cls("blockquote")] = {
     margin: "0",
@@ -123,14 +142,14 @@ export function typography(prefix = "") {
     borderInlineStart: "0.25rem solid var(--color-primary)",
     fontSize: "1.125rem",
     lineHeight: "1.6",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
   rules[cls("blockquote-cite")] = {
     display: "block",
     marginTop: "0.5rem",
     fontSize: "0.875rem",
     fontStyle: "normal",
-    color: "var(--color-base-content)",
+    color: "inherit",
   };
 
   return rules;

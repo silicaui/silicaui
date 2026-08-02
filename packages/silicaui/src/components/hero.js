@@ -16,7 +16,15 @@ export function hero(prefix = "") {
     [sel()]: {
       display: "grid",
       width: "100%",
-      placeItems: "center",
+      // Vertically centered, horizontally STRETCHED — deliberately not the
+      // `place-items: center` this used to be. A grid item that isn't stretched
+      // shrinks to fit-content, and a block-level child has no intrinsic width,
+      // so a `<section>` dropped onto the banner collapsed to its own padding
+      // and rendered as a zero-width sliver. Stretching costs the layout nothing
+      // (`.hero-content` re-centers itself below) and makes the banner a real
+      // container that anything can be placed into.
+      alignItems: "center",
+      justifyItems: "stretch",
       backgroundSize: "cover",
       backgroundPosition: "center",
 
@@ -35,7 +43,11 @@ export function hero(prefix = "") {
       justifyContent: "center",
       flexWrap: "wrap",
       gap: "1rem",
+      // Capped and self-centering. The cap used to be centered for it by the
+      // parent's `place-items`, which no longer centers (see above) — so the
+      // auto margin now does that job explicitly, and the content stays put.
       maxWidth: "80rem",
+      marginInline: "auto",
       paddingBlock: "4rem",
       paddingInline: "1rem",
       color: "inherit",

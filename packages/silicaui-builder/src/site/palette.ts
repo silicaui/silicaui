@@ -69,49 +69,18 @@ const LAYOUT: PaletteItem[] = [
                 }),
             ]),
     },
-    {
-        key: "hero",
-        label: "Hero",
-        icon: "layout",
-        hint: "A simpler raw hero primitive — see also the Hero Split CTA section",
-        make: () =>
-            atom("Hero", "hero min-h-96 bg-base-200 rounded-box", undefined, [
-                el("div", "hero-content text-center", {
-                    children: [
-                        el("div", "flex flex-col gap-4 max-w-md", {
-                            children: [
-                                el("h1", "text-4xl font-bold", { text: "Hero headline" }),
-                                el("p", "text-base-content/70", { text: "A short supporting sentence." }),
-                                atom("Button", "btn btn-primary", { label: "Get started" }),
-                            ],
-                        }),
-                    ],
-                }),
-            ]),
-    },
-    {
-        key: "footer-primitive",
-        label: "Footer",
-        icon: "footer",
-        hint: "A simpler raw footer primitive — see also the Footer section",
-        make: () =>
-            atom("Footer", "footer bg-base-200 p-10", undefined, [
-                el("nav", undefined, {
-                    children: [
-                        atom("FooterTitle", undefined, { text: "Services" }),
-                        el("a", "link link-hover", { text: "Branding" }),
-                        el("a", "link link-hover", { text: "Design" }),
-                    ],
-                }),
-                el("nav", undefined, {
-                    children: [
-                        atom("FooterTitle", undefined, { text: "Company" }),
-                        el("a", "link link-hover", { text: "About us" }),
-                        el("a", "link link-hover", { text: "Contact" }),
-                    ],
-                }),
-            ]),
-    },
+    // The raw `hero` and `footer-primitive` items USED TO SIT HERE, labelled
+    // "Hero" and "Footer" — an inert `.hero` grid and a `.footer` grid of link
+    // columns, each wearing the palette label of a real block family. They are
+    // gone for exactly the reason the bare `Navbar` primitive went (see
+    // e2e/catalog.spec.ts): five rows reading "Hero — <Variant>" plus one
+    // reading "Hero" is a coin flip the user has no way to win, and the one they
+    // land on half the time is the one that does nothing.
+    //
+    // The `Hero`/`Footer`/`FooterTitle` component macros are untouched in
+    // @wizeworks/silicaui, -html and -react, and the `.hero`/`.footer` CSS is
+    // untouched too. Only the palette rows are gone; a host that hid them by key
+    // can drop those entries.
     {
         key: "app-shell",
         label: "App Shell",
@@ -516,19 +485,13 @@ const NAV: PaletteItem[] = [
         icon: "pagination",
         make: () => atom("Pagination", "join", { pages: 3 }),
     },
-    {
-        key: "navbar",
-        label: "Navbar",
-        icon: "header",
-        hint: "A top bar with start/end slots",
-        make: () =>
-            atom("Navbar", "navbar bg-base-100 rounded-box", undefined, [
-                el("div", "navbar-start", {
-                    children: [el("a", "text-xl font-semibold text-base-content", { text: "SilicaUI", attrs: { href: "#" } })],
-                }),
-                el("div", "navbar-end", { children: [atom("Button", "btn btn-primary btn-sm", { label: "Sign in" })] }),
-            ]),
-    },
+    // NOTE: there is deliberately no bare "Navbar" primitive here. It shipped as an
+    // inert `navbar-start`/`navbar-end` shell whose palette row read exactly
+    // "Navbar" — identical to the navbar BLOCK's row — so a user picked one of two
+    // same-named entries and got either a finished responsive header or a stub with
+    // no links and no mobile menu. The five `Navbar — <Variant>` blocks in the
+    // Sections group replace it. The `Navbar` component itself is untouched in
+    // silicaui-html / silicaui-react; only this palette entry is gone.
     {
         key: "sidebar",
         label: "Sidebar",
@@ -1195,6 +1158,51 @@ const MEDIA: PaletteItem[] = [
     },
 ];
 
+/**
+ * Per-BLOCK glyph overrides, consulted BEFORE the category map. A category glyph
+ * is the right default when a category holds one block; the five navbar layouts
+ * would otherwise draw five identical `header` rows — reproducing, in the icon
+ * column, exactly the same-looking-choices problem the family exists to remove.
+ * Values must be real `IconName`s (shared/icons.ts).
+ */
+const BLOCK_ICON_BY_KEY: Record<string, IconName> = {
+    navbar: "header", //            a bar with a rule under it — the plain header
+    navbar_center_links: "alignCenter",
+    navbar_center_logo: "wordmark",
+    navbar_mega_menu: "columns",
+    navbar_floating_pill: "toggle", // a rounded capsule — the pill silhouette
+    hero_split_cta: "sidebar", //     two panes side by side
+    hero_centered: "alignCenter",
+    hero_spotlight: "image", //       the photograph IS the layout
+    hero_signup: "mail",
+    hero_statement: "text", //        type carrying the section alone
+    feature_grid: "grid",
+    feature_media: "sidebar", //      two panes side by side
+    feature_alternating: "shuffle", // the sides swap row to row
+    feature_bento: "layout", //       unequal cells
+    feature_checklist: "check",
+    testimonial_quote: "quote",
+    testimonials_grid: "grid",
+    testimonial_carousel: "chevron", // one at a time, advance to the next
+    testimonial_logos: "gallery",
+    testimonial_portrait: "avatar", // the face IS the layout
+    pricing_tiers: "pricing",
+    pricing_toggle: "toggle",
+    pricing_duo: "columns",
+    pricing_single: "box",
+    pricing_table: "table",
+    cta_band: "cta",
+    cta_split: "sidebar",
+    cta_card: "box",
+    cta_signup: "mail",
+    cta_inline: "spacer", //          a single slim row
+    footer: "footer",
+    footer_minimal: "divider", //     one hairline and a line of links
+    footer_newsletter: "mail",
+    footer_closing_cta: "cta",
+    footer_sitemap: "columns",
+};
+
 /** Block category → the palette glyph representing it. */
 const BLOCK_ICON: Record<string, IconName> = {
     hero: "layout",
@@ -1222,13 +1230,23 @@ const BLOCK_ICON: Record<string, IconName> = {
  */
 const INTERACTIVE_CATEGORIES: ReadonlySet<string> = new Set(["tabs", "accordion", "dropdown"]);
 
-/** One palette item from a validated block Template. */
+/**
+ * One palette item from a validated block Template.
+ *
+ * A block's `name` IS its palette label, verbatim — short, unique, and shaped
+ * `Family — Variant`. This used to truncate at `" — "` because names carried a
+ * trailing sentence ("Navbar — brand, links, action"), which meant every block in
+ * a family collapsed to the same row text; the sentence now lives in
+ * `description`, which is the row's hint. Keep new block names short enough to
+ * read as a label and DISTINCT within their family — silicaui-html's verify
+ * asserts uniqueness so a duplicate fails CI rather than shipping two identical
+ * rows.
+ */
 function blockItem(b: ReturnType<typeof listBlocks>[number]): PaletteItem {
     return {
         key: `block:${b.key}`,
-        // Block names read "Short — long description"; keep the short half for the row.
-        label: b.name.split(" — ")[0] ?? b.name,
-        icon: BLOCK_ICON[b.category] ?? "box",
+        label: b.name,
+        icon: BLOCK_ICON_BY_KEY[b.key] ?? BLOCK_ICON[b.category] ?? "box",
         hint: b.description,
         make: () => b.root, // shared root; the engine deep-clones + stamps on insert
     };
@@ -1309,6 +1327,30 @@ export function paletteGroups(): PaletteGroup[] {
         { key: "interactive", label: "Interactive", items: interactiveItems() },
         { key: "blocks", label: "Sections", items: sectionItems() },
     ];
+}
+
+/**
+ * The node an insert actually places: `item.make()`, plus — for a composed
+ * section — the catalog name stamped on as its layer label.
+ *
+ * A block arrives in the tree as an anonymous `<section>` otherwise, throwing
+ * away a name the catalog already guarantees is short, Title Case and unique
+ * (blocks-contract §8). Carrying it over means the Navigator row reads "Hero —
+ * Split CTA" instead of "Section", and the label also marks the node as
+ * something the author cares about, so the tree never folds it away.
+ *
+ * Primitives are deliberately left alone — labelling every inserted `div`
+ * "Group" would just freeze the derived name in place and make renaming it
+ * look like editing rather than naming.
+ *
+ * The spread is load-bearing: `blockItem.make()` hands back the SHARED catalog
+ * root, so assigning onto it would stamp the label into every later insert of
+ * that block (the engine's `stampTree` deep-clones only after this point).
+ */
+export function makeInsertNode(item: PaletteItem): Node {
+    const node = item.make();
+    if (!item.key.startsWith("block:") || node.kind === "outlet") return node;
+    return { ...node, label: item.label };
 }
 
 /** Resolve a palette item by its key — the drop target decodes a drag this way.

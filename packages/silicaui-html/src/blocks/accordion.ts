@@ -29,7 +29,7 @@ const row = (title: string, body: string, open = false) =>
 
 export const accordion = block({
   key: "accordion",
-  name: "Accordion — sections",
+  name: "Accordion — Sections",
   category: "accordion",
   version: "1.0.0",
   description: "A multi-open disclosure list; each section expands independently.",

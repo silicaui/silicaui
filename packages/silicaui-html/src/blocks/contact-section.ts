@@ -9,7 +9,7 @@ import { atom, block, el, slot } from "../kit";
 
 export const contactSection = block({
     key: "contact_section",
-    name: "Contact — form + details",
+    name: "Contact — Form",
     category: "contact",
     version: "1.0.0",
     description: "A split contact section: copy and details beside a working, validating form.",

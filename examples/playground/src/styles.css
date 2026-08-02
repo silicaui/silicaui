@@ -8,6 +8,22 @@
     colors: primary, secondary, accent, neutral, info, success, warning, error, brand, silica, brand-duck;
 }
 
+/* Every demo this playground renders lives in sibling workspace packages, and
+   Tailwind's auto content-detection doesn't reach into pnpm-symlinked packages
+   — so without this the scanner only sees playground/src and none of the
+   demos' utility classes compile (spacing, sizing, layout all vanish while the
+   plugin's component classes still look fine). vite.config.ts aliases each of
+   these to `src`, so scan `src` — not `dist`. Same fix as
+   packages/silicaui-builder/harness/styles.css and apps/site/app/globals.css. */
+@source "../**/*.{ts,tsx}";
+@source "../../../packages/silicaui-react/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-demos/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-charts/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-table/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-editor/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-dnd/src/**/*.{ts,tsx}";
+@source "../../../packages/silicaui-panels/src/**/*.{ts,tsx}";
+
 @plugin "@wizeworks/silicaui/theme" {
     name: light;
     /* Authored in hex on purpose — and with no `-content`, so Silica auto-derives

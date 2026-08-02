@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * Breadth-wave guard (nav / feedback / data families): every new component is a
@@ -61,10 +62,11 @@ test("every nav / feedback / data component inserts and renders its structure", 
   await expect(pag).toBeVisible();
   await expect(pag.locator("button")).toHaveCount(3);
 
-  await insert(page, "navbar");
-  const navbar = canvas.locator("div.navbar[data-sui-id]").first();
-  await expect(navbar).toBeVisible();
-  await expect(navbar.locator(".navbar-start")).toHaveCount(1);
+  // No bare "Navbar" primitive here any more — it was an inert start/end shell
+  // whose palette row read the same as the navbar BLOCK's, so the two were
+  // indistinguishable at the point of choosing. The five `Navbar — <Variant>`
+  // blocks replace it and are covered by blocks.spec.ts; the `Navbar` component
+  // itself still lowers correctly, which golden.mjs locks.
 
   // ── feedback ──
   await insert(page, "alert");
@@ -164,7 +166,7 @@ test("editing a list-prop (Breadcrumb items) rewrites the rendered items", async
   await page.getByRole("tab", { name: "Settings" }).click(); // props live in Settings
 
   // The Items row is a newline textarea; four lines → four <li>.
-  const items = page.locator("div.mb-2", { hasText: "Items" }).locator("textarea");
+  const items = page.locator(ROW, { hasText: "Items" }).locator("textarea");
   await items.fill("One\nTwo\nThree\nFour");
   await items.blur(); // commit
   await expect(crumb.locator("ol > li")).toHaveCount(4);

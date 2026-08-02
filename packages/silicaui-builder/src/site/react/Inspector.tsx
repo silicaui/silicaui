@@ -234,10 +234,32 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 
 /** One labeled control row. `testid` scopes it for tests — several rows share
  *  chip labels ("Start", "3"), so a bare label lookup is ambiguous. */
+/**
+ * One labelled field.
+ *
+ * The label has to be ASSOCIATED with what it labels, not merely sit above it.
+ * This row used to be a plain `<div>` with a `<span>`, which looks identical and
+ * leaves every single-control row's input with no accessible name at all — the
+ * Settings tab's Name, ID, Content, ARIA label, Role, Tab index and DOM id
+ * fields were each announced as a bare "edit".
+ *
+ * So: a `<label>` by default, which names the one control it wraps. A row
+ * holding MORE THAN ONE control passes `group` instead, because a `<label>`
+ * names the FIRST labelable element it wraps and `<button>` is labelable — a
+ * chip row inside one would hand its entire text ("Padding X Auto 0 2 3 4…") to
+ * whichever chip came first and leave the rest with nothing. `role="group"` +
+ * `aria-labelledby` names the SET without taking any member's own name.
+ *
+ * Which is which is enforced rather than remembered: `e2e/inspector-a11y.spec.ts`
+ * sweeps the rail and fails on any `<label>` wrapping two controls, and on any
+ * control with no name at all. (The email Inspector's `Row` is the same shape,
+ * for the same reasons.)
+ */
 function Row({
   label,
   testid,
   state,
+  group,
   children,
 }: {
   label: string;
@@ -246,16 +268,32 @@ function Row({
    *  breakpoint — see `Inherited`. Rows whose control isn't breakpoint-scoped
    *  (content, links, attributes) omit it. */
   state?: TokenState;
+  /** This row holds a SET of controls (chips, swatches) rather than one field. */
+  group?: boolean;
   children: React.ReactNode;
 }) {
-  return (
-    <div className="mb-2 last:mb-0" data-testid={testid}>
-      <div className="mb-1 flex items-baseline gap-2 text-xs text-base-content">
-        <span>{label}</span>
-        {state && <Inherited state={state} />}
-      </div>
-      {children}
+  const id = React.useId();
+  const head = (
+    <div className="mb-1 flex items-baseline gap-2 text-xs text-base-content">
+      {/* Only the label text names the group — the `Inherited` badge beside it is
+          a status note ("also set at 2 sizes"), not part of the field's name. */}
+      <span id={group ? id : undefined}>{label}</span>
+      {state && <Inherited state={state} />}
     </div>
+  );
+  if (group) {
+    return (
+      <div className="mb-2 last:mb-0" data-testid={testid} role="group" aria-labelledby={id}>
+        {head}
+        {children}
+      </div>
+    );
+  }
+  return (
+    <label className="mb-2 last:mb-0 block" data-testid={testid}>
+      {head}
+      {children}
+    </label>
   );
 }
 
@@ -737,64 +775,64 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
       )}
       {node.kind === "component" && node.component === "Button" && (
         <Group label="Button">
-          <Row label="Color">
+          <Row label="Color" group>
             <SwatchGroup options={btnColors} active={activeAt(btnColors.map((o) => o.cls))} onPick={(v) => setToken(btnColors.map((o) => o.cls), v)} />
           </Row>
-          <Row label="Style">
+          <Row label="Style" group>
             <ChipGroup options={BTN_VARIANT} active={activeAt(BTN_VARIANT.map((o) => o.cls))} onPick={(v) => setToken(BTN_VARIANT.map((o) => o.cls), v)} />
           </Row>
-          <Row label="Size">
+          <Row label="Size" group>
             <ChipGroup options={BTN_SIZE} active={activeAt(BTN_SIZE.map((o) => o.cls))} onPick={(v) => setToken(BTN_SIZE.map((o) => o.cls), v)} />
           </Row>
         </Group>
       )}
 
       <Group label="Text">
-        <Row label="Color">
+        <Row label="Color" group>
           <SwatchGroup options={textColors} active={activeAt(textColors.map((o) => o.cls))} onPick={(v) => setToken(textColors.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Size">
+        <Row label="Size" group>
           <ChipGroup options={FONT_SIZE} active={activeAt(FONT_SIZE.map((o) => o.cls))} onPick={(v) => setToken(FONT_SIZE.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Weight">
+        <Row label="Weight" group>
           <ChipGroup options={WEIGHT} active={activeAt(WEIGHT.map((o) => o.cls))} onPick={(v) => setToken(WEIGHT.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Align" testid="row-text-align" state={tokenAt(ALIGN.map((o) => o.cls))}>
+        <Row label="Align" testid="row-text-align" state={tokenAt(ALIGN.map((o) => o.cls))} group>
           <ChipGroup options={ALIGN} active={activeAt(ALIGN.map((o) => o.cls))} onPick={(v) => setToken(ALIGN.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
       <Group label="Surface">
-        <Row label="Background">
+        <Row label="Background" group>
           <SwatchGroup options={bgColors} active={activeAt(bgColors.map((o) => o.cls))} onPick={(v) => setToken(bgColors.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Padding" testid="row-padding" state={tokenAt(PADDING.map((o) => o.cls))}>
+        <Row label="Padding" testid="row-padding" state={tokenAt(PADDING.map((o) => o.cls))} group>
           <ChipGroup options={PADDING} active={padAll} onPick={setPadAll} />
         </Row>
-        <Row label="Padding X" testid="row-padding-x">
+        <Row label="Padding X" testid="row-padding-x" group>
           <ChipGroup options={PAD_X} active={padX} onPick={(v) => setPadAxis("x", v)} />
         </Row>
-        <Row label="Padding Y" testid="row-padding-y">
+        <Row label="Padding Y" testid="row-padding-y" group>
           <ChipGroup options={PAD_Y} active={padY} onPick={(v) => setPadAxis("y", v)} />
         </Row>
-        <Row label="Corners">
+        <Row label="Corners" group>
           <RadiusSwatchGroup options={radiusOpts} active={activeAt(RADIUS.map((o) => o.cls))} onPick={(v) => setToken(RADIUS.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
       {isImageNode(node) && (
         <Group label="Image">
-          <Row label="Fit">
+          <Row label="Fit" group>
             <ChipGroup options={OBJECT_FIT} active={activeAt(OBJECT_FIT.map((o) => o.cls))} onPick={(v) => setToken(OBJECT_FIT.map((o) => o.cls), v)} />
           </Row>
-          <Row label="Focal point">
+          <Row label="Focal point" group>
             <FocalGrid active={activeAt(OBJECT_POSITION.map((o) => o.cls))} onPick={(v) => setToken(OBJECT_POSITION.map((o) => o.cls), v)} />
           </Row>
         </Group>
       )}
 
       <Group label="Layout">
-        <Row label="Display">
+        <Row label="Display" group>
           <div className="flex flex-wrap gap-1" data-testid="display-group">
             <button
               type="button"
@@ -819,53 +857,53 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         </Row>
 
         {display === "flex" && (
-          <Row label="Direction" testid="row-direction" state={tokenAt(DIRECTION.map((o) => o.cls))}>
+          <Row label="Direction" testid="row-direction" state={tokenAt(DIRECTION.map((o) => o.cls))} group>
             <ChipGroup options={DIRECTION} active={activeAt(DIRECTION.map((o) => o.cls))} onPick={(v) => setToken(DIRECTION.map((o) => o.cls), v)} />
           </Row>
         )}
         {display === "grid" && (
-          <Row label="Columns" testid="row-columns" state={tokenAt(GRID_COLS.map((o) => o.cls))}>
+          <Row label="Columns" testid="row-columns" state={tokenAt(GRID_COLS.map((o) => o.cls))} group>
             <ChipGroup options={GRID_COLS} active={activeAt(GRID_COLS.map((o) => o.cls))} onPick={(v) => setToken(GRID_COLS.map((o) => o.cls), v)} />
           </Row>
         )}
         {(display === "flex" || display === "grid") && (
           <>
-            <Row label="Justify" testid="row-justify" state={tokenAt(JUSTIFY.map((o) => o.cls))}>
+            <Row label="Justify" testid="row-justify" state={tokenAt(JUSTIFY.map((o) => o.cls))} group>
               <ChipGroup options={JUSTIFY} active={activeAt(JUSTIFY.map((o) => o.cls))} onPick={(v) => setToken(JUSTIFY.map((o) => o.cls), v)} />
             </Row>
-            <Row label="Align" testid="row-align" state={tokenAt(ITEMS.map((o) => o.cls))}>
+            <Row label="Align" testid="row-align" state={tokenAt(ITEMS.map((o) => o.cls))} group>
               <ChipGroup options={ITEMS} active={activeAt(ITEMS.map((o) => o.cls))} onPick={(v) => setToken(ITEMS.map((o) => o.cls), v)} />
             </Row>
-            <Row label="Gap" testid="row-gap" state={tokenAt(GAP.map((o) => o.cls))}>
+            <Row label="Gap" testid="row-gap" state={tokenAt(GAP.map((o) => o.cls))} group>
               <ChipGroup options={GAP} active={activeAt(GAP.map((o) => o.cls))} onPick={(v) => setToken(GAP.map((o) => o.cls), v)} />
             </Row>
           </>
         )}
         {display === "flex" && (
-          <Row label="Wrap" testid="row-wrap">
+          <Row label="Wrap" testid="row-wrap" group>
             <ChipGroup options={WRAP} active={activeAt(WRAP.map((o) => o.cls))} onPick={(v) => setToken(WRAP.map((o) => o.cls), v)} />
           </Row>
         )}
 
-        <Row label="Width" state={tokenAt(WIDTH.map((o) => o.cls))}>
+        <Row label="Width" state={tokenAt(WIDTH.map((o) => o.cls))} group>
           <ChipGroup options={WIDTH} active={activeAt(WIDTH.map((o) => o.cls))} onPick={(v) => setToken(WIDTH.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Max width" state={tokenAt(MAX_WIDTH.map((o) => o.cls))}>
+        <Row label="Max width" state={tokenAt(MAX_WIDTH.map((o) => o.cls))} group>
           <ChipGroup options={MAX_WIDTH} active={activeAt(MAX_WIDTH.map((o) => o.cls))} onPick={(v) => setToken(MAX_WIDTH.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Position">
+        <Row label="Position" group>
           <ChipGroup options={POSITION} active={activeAt(POSITION.map((o) => o.cls))} onPick={(v) => setToken(POSITION.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Self align" testid="row-self-align">
+        <Row label="Self align" testid="row-self-align" group>
           <ChipGroup options={SELF_ALIGN} active={activeAt(SELF_ALIGN.map((o) => o.cls))} onPick={(v) => setToken(SELF_ALIGN.map((o) => o.cls), v)} />
         </Row>
-        <Row label="Self size" testid="row-self-size">
+        <Row label="Self size" testid="row-self-size" group>
           <ChipGroup options={FLEX_CHILD} active={activeAt(FLEX_CHILD.map((o) => o.cls))} onPick={(v) => setToken(FLEX_CHILD.map((o) => o.cls), v)} />
         </Row>
       </Group>
 
       <Group label="Animate">
-        <Row label="Trigger">
+        <Row label="Trigger" group>
           <div className="flex flex-wrap gap-1">
             <button
               type="button"
@@ -896,21 +934,21 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
 
         {animateTrigger !== "" && (
           <>
-            <Row label="Preset">
+            <Row label="Preset" group>
               <ChipGroup
                 options={animatePresetList}
                 active={activeAt(animatePresetList.map((o) => o.cls))}
                 onPick={(v) => setToken(animatePresetList.map((o) => o.cls), v)}
               />
             </Row>
-            <Row label="Speed">
+            <Row label="Speed" group>
               <ChipGroup
                 options={ANIMATE_DURATION}
                 active={activeAt(ANIMATE_DURATION.map((o) => o.cls))}
                 onPick={(v) => setToken(ANIMATE_DURATION.map((o) => o.cls), v)}
               />
             </Row>
-            <Row label="Delay">
+            <Row label="Delay" group>
               <ChipGroup
                 options={ANIMATE_DELAY}
                 active={activeAt(ANIMATE_DELAY.map((o) => o.cls))}
@@ -1106,9 +1144,9 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
           </NativeSelect>
         </Row>
       )}
-      <Row label="ID">
+      <Row label="ID" group>
         <div className="flex items-center gap-1">
-          <Input className="w-full font-mono text-xs" size="sm" value={id} readOnly spellCheck={false} />
+          <Input className="w-full font-mono text-xs" size="sm" aria-label="Node ID" value={id} readOnly spellCheck={false} />
           <button
             type="button"
             title="Copy id"
@@ -1119,13 +1157,13 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
           </button>
         </div>
       </Row>
-      <Row label="Visibility">
+      <Row label="Visibility" group>
         <label className="flex items-center gap-2 text-xs text-base-content/60">
           <Toggle size="sm" checked={hidden} onChange={(e: React.ChangeEvent<HTMLInputElement>) => toggleHidden(e.target.checked)} />
           <Icon name={hidden ? "eyeOff" : "eye"} /> {hidden ? "Hidden" : "Visible"}
         </label>
       </Row>
-      <Row label="Lock">
+      <Row label="Lock" group>
         {locked === "host" ? (
           <span
             className="flex items-center gap-2 text-xs text-base-content/60"
@@ -1630,6 +1668,9 @@ function CustomDataRow({
       <Input
         className="w-2/5 font-mono text-xs"
         size="sm"
+        // A repeating pair with no row label of its own — the placeholder is the
+        // only visible cue, and a placeholder is not an accessible name.
+        aria-label="Attribute name"
         value={k}
         placeholder="key"
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setK(e.target.value)}
@@ -1638,6 +1679,7 @@ function CustomDataRow({
       <Input
         className="flex-1 text-xs"
         size="sm"
+        aria-label="Attribute value"
         value={v}
         placeholder="value"
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setV(e.target.value)}
@@ -1861,6 +1903,9 @@ function ContentField({ id, node }: { id: string; node: Node }) {
     <Group label="Content">
       <Input
         className="w-full"
+        // A `Group` heading is a section title, not a label — this field sits
+        // alone under it with nothing naming it, so say so explicitly.
+        aria-label="Content"
         value={draft}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
         onBlur={commit}
@@ -2092,11 +2137,14 @@ function AssetProp({
     }
   };
   return (
-    <Row label={field.label}>
+    // Two controls (the URL field and Browse…), so a group — and the field then
+    // needs a name of its own, since the group only names the set.
+    <Row label={field.label} group>
       <div className="flex items-center gap-1">
         <Input
           className="w-full"
           size="sm"
+          aria-label={field.label}
           value={draft}
           placeholder={field.placeholder ?? "https://…"}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
@@ -2396,6 +2444,7 @@ function ClassField({ id, cls }: { id: string; cls: string }) {
     <Group label="Classes">
       <Textarea
         className={`w-full font-mono text-xs leading-relaxed ${error ? "textarea-error" : ""}`}
+        data-testid="class-field"
         rows={3}
         spellCheck={false}
         value={draft}

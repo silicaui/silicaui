@@ -53,6 +53,14 @@ export const ALIGN: readonly VocabItem[] = [
 // index-aligned on the same scale — `setPadAxis` expands `p-4` into the opposite
 // axis by INDEX (`PADDING[i]` → `PAD_Y[i]`), which is what keeps every class a
 // literal string (the safelist can't see a composed `py-${n}`).
+//
+// The scale runs to 32 (8rem) because SECTION padding is what it's mostly used
+// for, and a hero is routinely `py-20`/`py-24` — every shipped block of ours
+// authors one. Stopping at 16 meant the control couldn't express the value the
+// starter content already had, so an author's only move was the raw Classes
+// field. (Reaching a value the control doesn't list is now separately fixed —
+// `setTokenAt` owns the whole scale — but a control that can't SAY 20 is still
+// a control that can't set the padding a hero wants.)
 export const PADDING: readonly VocabItem[] = [
   { cls: "p-0", label: "0" },
   { cls: "p-2", label: "2" },
@@ -63,6 +71,9 @@ export const PADDING: readonly VocabItem[] = [
   { cls: "p-10", label: "10" },
   { cls: "p-12", label: "12" },
   { cls: "p-16", label: "16" },
+  { cls: "p-20", label: "20" },
+  { cls: "p-24", label: "24" },
+  { cls: "p-32", label: "32" },
 ];
 export const PAD_X: readonly VocabItem[] = [
   { cls: "px-0", label: "0" },
@@ -74,6 +85,9 @@ export const PAD_X: readonly VocabItem[] = [
   { cls: "px-10", label: "10" },
   { cls: "px-12", label: "12" },
   { cls: "px-16", label: "16" },
+  { cls: "px-20", label: "20" },
+  { cls: "px-24", label: "24" },
+  { cls: "px-32", label: "32" },
 ];
 export const PAD_Y: readonly VocabItem[] = [
   { cls: "py-0", label: "0" },
@@ -85,6 +99,9 @@ export const PAD_Y: readonly VocabItem[] = [
   { cls: "py-10", label: "10" },
   { cls: "py-12", label: "12" },
   { cls: "py-16", label: "16" },
+  { cls: "py-20", label: "20" },
+  { cls: "py-24", label: "24" },
+  { cls: "py-32", label: "32" },
 ];
 export const RADIUS: readonly VocabItem[] = [
   { cls: "rounded-none", label: "None" },

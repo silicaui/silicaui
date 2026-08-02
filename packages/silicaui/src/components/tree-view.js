@@ -121,5 +121,21 @@ export function treeView(prefix = "") {
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
+
+    // Inline rename (opt-in via `onRename`): the field replaces the label in
+    // place and inherits its type, so committing a name doesn't shift the row.
+    [sel("-rename")]: {
+      flex: "1 1 auto",
+      minWidth: "0",
+      font: "inherit",
+      lineHeight: "inherit",
+      color: "var(--color-base-content)",
+      backgroundColor: "var(--color-base-100)",
+      border: "1px solid var(--color-primary)",
+      borderRadius: "var(--radius-field, 0.25rem)",
+      paddingBlock: "0.05rem",
+      paddingInline: "0.25rem",
+      outline: "0",
+    },
   };
 }

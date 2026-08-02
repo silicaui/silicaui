@@ -37,7 +37,9 @@ test("Layout mode creates a named layout, edits it, and a page opts in", async (
     await expect(page.getByRole("button", { name: "Delete layout" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Rename layout" })).toBeEnabled();
     // ...and it seeds from the real default shell rather than an empty box.
-    await expect(canvas.locator("header").getByText("Get started")).toBeVisible();
+    // `.first()` — the navbar CTA renders in the bar AND in the mobile menu (one
+    // shared `cta` slot), so the header legitimately holds two copies.
+    await expect(canvas.locator("header").getByText("Get started").first()).toBeVisible();
 
     // Editing THIS layout must not touch the default one. A class edit is the
     // sharpest probe of that: it's the same node in two independent trees, so a

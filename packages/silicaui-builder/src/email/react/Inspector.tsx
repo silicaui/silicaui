@@ -71,12 +71,66 @@ import type {
 } from "../schema";
 
 // ── field primitives ──────────────────────────────────────────────────────────
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * One labelled field.
+ *
+ * `group` is not cosmetic. A `<label>` names the FIRST labelable element it
+ * wraps, and `<button>` is labelable — so a row of chips or swatches inside a
+ * `<label>` hands the row's entire text to whichever control comes first (the
+ * Auto chip announced as "Padding Y 0 2 4 6 8 44") and leaves every other one
+ * with no context at all. It looks and behaves correctly on screen; the damage
+ * is only visible in the accessibility tree, which is why it survived.
+ *
+ * So a row holding MORE THAN ONE control is a `role="group"` named by
+ * `aria-labelledby`: that names the set without stealing any member's own name.
+ * A row wrapping exactly one control stays a real `<label>`, which is stronger
+ * than a group name (it survives a screen reader's forms mode).
+ *
+ * The rule is enforced, not remembered — `e2e/email-inspector-a11y.spec.ts`
+ * sweeps every node kind and fails on any `<label>` wrapping two controls.
+ */
+function Row({ label, children, group }: { label: string; children: React.ReactNode; group?: boolean }) {
+  const id = React.useId();
+  const text = (
+    <span id={group ? id : undefined} className="text-xs font-medium text-base-content/55">
+      {label}
+    </span>
+  );
+  if (group) {
+    return (
+      <div className="flex flex-col gap-1 px-3.5 py-2" role="group" aria-labelledby={id}>
+        {text}
+        {children}
+      </div>
+    );
+  }
   return (
     <label className="flex flex-col gap-1 px-3.5 py-2">
-      <span className="text-xs font-medium text-base-content/55">{label}</span>
+      {text}
       {children}
     </label>
+  );
+}
+
+/** A chip row — `Row` + `ChipGroup` wired together, so no call site can render
+ *  a group of chips and forget that it isn't a `<label>` (see `Row`). */
+function ChipRow<T extends string | number>({
+  label,
+  options,
+  active,
+  onPick,
+  onAuto,
+}: {
+  label: string;
+  options: ReadonlyArray<{ value: T; label: string }>;
+  active: T | "";
+  onPick: (value: T) => void;
+  onAuto?: () => void;
+}) {
+  return (
+    <Row label={label} group>
+      <ChipGroup options={options} active={active} onPick={onPick} onAuto={onAuto} />
+    </Row>
   );
 }
 
@@ -235,7 +289,9 @@ function NumberField({
   autoValue?: number;
 }) {
   return (
-    <Row label={label}>
+    // Two controls (the reset button and the field), so a group — otherwise the
+    // `<label>` names the BUTTON and the number field has no name at all.
+    <Row label={label} group>
       <div className="flex items-center gap-1.5">
         {autoValue !== undefined && (
           <button
@@ -251,6 +307,7 @@ function NumberField({
           type="number"
           size="sm"
           className="flex-1"
+          aria-label={label}
           min={min}
           max={max}
           defaultValue={defaultValue}
@@ -276,29 +333,41 @@ function chipActive<T>(value: T, options: ReadonlyArray<{ value: T }>): T | "" {
   return options.some((o) => o.value === value) ? value : "";
 }
 
-/** A wrapping row of small btn chips — visually identical to the site
- *  Inspector's `ChipGroup`, including the leading "Auto" chip when the field
- *  has a known default to reset to. */
+/**
+ * A wrapping row of small btn chips — visually identical to the site
+ * Inspector's `ChipGroup`, including the leading "Auto" chip when the field has
+ * a known default to reset to.
+ *
+ * AUTO IS AN ACTION, NOT A VALUE, and is never highlighted. On the site a chip
+ * group's "Auto" means the class is UNSET, a real third state. An email field is
+ * never unset — every one holds a concrete value — so here "Auto" only ever
+ * means "put the default back". It used to highlight whenever no chip matched,
+ * which is precisely backwards: it lit up on a deliberate custom 44px and
+ * announced it as the default. `SwatchGroup` already settled this convention;
+ * this now matches it, and `Custom` below owns "the value isn't a preset".
+ */
 function ChipGroup<T extends string | number>({
   options,
   active,
   onPick,
   onAuto,
+  onCustom,
+  customActive,
 }: {
   options: ReadonlyArray<{ value: T; label: string }>;
   active: T | "";
   onPick: (value: T) => void;
   onAuto?: () => void;
+  /** Reveal a free-entry field for a value the ladder can't express. Without
+   *  it the chips ARE the vocabulary — correct for a closed set (align, weight),
+   *  wrong for a scale (see `SizeChipField`). */
+  onCustom?: () => void;
+  customActive?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-1">
       {onAuto && (
-        <button
-          type="button"
-          title="Reset to default"
-          className={`btn btn-xs ${active === "" ? "btn-primary" : "btn-ghost"}`}
-          onClick={onAuto}
-        >
+        <button type="button" title="Reset to default" className="btn btn-xs btn-ghost" onClick={onAuto}>
           Auto
         </button>
       )}
@@ -312,6 +381,16 @@ function ChipGroup<T extends string | number>({
           {o.label}
         </button>
       ))}
+      {onCustom && (
+        <button
+          type="button"
+          title="Enter a custom value"
+          className={`btn btn-xs ${customActive ? "btn-primary" : "btn-ghost"}`}
+          onClick={onCustom}
+        >
+          Custom
+        </button>
+      )}
     </div>
   );
 }
@@ -423,19 +502,28 @@ const RADIUS_PX: ReadonlyArray<{ value: number; label: string; previewPx: number
   { value: 9999, label: "Full", previewPx: 14 },
 ];
 
-/** Corner-radius swatches — same square-preview styling as the site
- *  Inspector's `RadiusSwatchGroup` (each swatch previews its OWN real
- *  corner), over literal px instead of theme radius tokens. Leading "Auto"
- *  (crossed) swatch resets to the field's default, ring-highlighted whenever
- *  the value doesn't match one of the presets — same convention as `ChipGroup`. */
+/**
+ * Corner-radius swatches — same square-preview styling as the site Inspector's
+ * `RadiusSwatchGroup` (each swatch previews its OWN real corner), over literal
+ * px instead of theme radius tokens.
+ *
+ * Follows `SwatchGroup`'s two conventions, for its reasons: the leading "Auto"
+ * (crossed) swatch is a plain reset ACTION and never rings — it used to ring
+ * whenever the value wasn't a preset, i.e. exactly when the value was most
+ * deliberately custom — and a trailing dashed swatch previews the CURRENT
+ * radius, rings when it isn't a preset, and opens free entry (`onCustom`).
+ * 4 presets can't cover a 12px card corner otherwise.
+ */
 function RadiusSwatchGroup({
   active,
   onPick,
   onAuto,
+  onCustom,
 }: {
   active: number;
   onPick: (value: number) => void;
   onAuto?: () => void;
+  onCustom?: () => void;
 }) {
   const isPreset = RADIUS_PX.some((o) => o.value === active);
   return (
@@ -445,9 +533,7 @@ function RadiusSwatchGroup({
           type="button"
           title="Reset to default"
           onClick={onAuto}
-          className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/40 ${
-            !isPreset ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
-          }`}
+          className="grid size-[30px] place-items-center border border-base-300 bg-base-200 text-base-content/40"
         >
           <Icon name="close" className="text-[10px]" />
         </button>
@@ -464,6 +550,19 @@ function RadiusSwatchGroup({
           }`}
         />
       ))}
+      {onCustom && (
+        <button
+          type="button"
+          title="Custom radius"
+          onClick={onCustom}
+          // Previews the live value, like the custom colour swatch previews the
+          // live hex — so "what is set" is legible before you open anything.
+          style={{ borderTopLeftRadius: Math.min(active, 14) }}
+          className={`size-[30px] border border-dashed bg-base-200 ${
+            !isPreset ? "border-primary ring-1 ring-inset ring-primary" : "border-base-content/40"
+          }`}
+        />
+      )}
     </div>
   );
 }
@@ -533,7 +632,7 @@ function ColorField({
   const options = colorOptionsOf(editor.colorDefaults);
   const onAuto = autoRole ? () => onCommit(editor.colorDefaults[autoRole], true, undefined) : undefined;
   return (
-    <Row label={label}>
+    <Row label={label} group>
       <SwatchGroup
         options={options}
         active={value}
@@ -564,7 +663,7 @@ function OptionalColorField({
   const editor = useEmailEditor();
   const resolved = value ?? (autoRole ? editor.colorDefaults[autoRole] : "#000000");
   return (
-    <Row label={label}>
+    <Row label={label} group>
       <div className="flex flex-col gap-1.5">
         <SwatchGroup
           options={colorOptionsOf(editor.colorDefaults)}
@@ -588,6 +687,21 @@ function OptionalColorField({
  *  document, a value site never offered) — when that happens a compact
  *  numeric override appears so that value stays visible and editable instead
  *  of silently rounding to the nearest chip. */
+/**
+ * A size on a chip ladder, with the ladder's own values NOT the limit.
+ *
+ * The chips are a scale, and a scale a control can't step off is a control that
+ * can't express the design. Padding offers 0/8/16/24/32px, so a 12px inset or a
+ * 44px hero band had no way in at all — the number field only appeared once the
+ * value was ALREADY off the ladder, which meant an author could edit a foreign
+ * value but never author one. (A template's, or another editor's, via
+ * `applyRemoteOps`.) `Custom` opens it on demand; an off-ladder value opens it
+ * unprompted, because a value you can see but can't reach is worse.
+ *
+ * The reveal is local state, but it doesn't have to persist: the Inspector's
+ * field set remounts whenever the node changes, and by then an off-ladder commit
+ * has made `custom` true on its own.
+ */
 function SizeChipField({
   label,
   value,
@@ -602,20 +716,37 @@ function SizeChipField({
   autoValue?: number;
 }) {
   const active = chipActive(value, options);
+  const custom = active === "";
+  const [open, setOpen] = React.useState(false);
   return (
-    <Row label={label}>
+    <Row label={label} group>
       <div className="flex flex-col gap-1.5">
         <ChipGroup
           options={options}
           active={active}
-          onPick={onCommit}
-          onAuto={autoValue !== undefined ? () => onCommit(autoValue) : undefined}
+          onPick={(v) => {
+            setOpen(false);
+            onCommit(v);
+          }}
+          onAuto={
+            autoValue !== undefined
+              ? () => {
+                  setOpen(false);
+                  onCommit(autoValue);
+                }
+              : undefined
+          }
+          onCustom={() => setOpen(true)}
+          customActive={custom}
         />
-        {active === "" && (
+        {(custom || open) && (
           <Input
             type="number"
             size="sm"
             className="w-24"
+            // The row is a group, so it names the SET; the field still needs a
+            // name of its own (see `Row`).
+            aria-label={`${label} (custom)`}
             defaultValue={value}
             onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
               const n = Number(e.target.value);
@@ -639,20 +770,49 @@ function RadiusField({
   onCommit: (v: number) => void;
   autoValue?: number;
 }) {
+  const custom = !RADIUS_PX.some((o) => o.value === value);
+  const [open, setOpen] = React.useState(false);
   return (
-    <Row label={label}>
-      <RadiusSwatchGroup
-        active={value}
-        onPick={onCommit}
-        onAuto={autoValue !== undefined ? () => onCommit(autoValue) : undefined}
-      />
+    <Row label={label} group>
+      <div className="flex flex-col gap-1.5">
+        <RadiusSwatchGroup
+          active={value}
+          onPick={(v) => {
+            setOpen(false);
+            onCommit(v);
+          }}
+          onAuto={
+            autoValue !== undefined
+              ? () => {
+                  setOpen(false);
+                  onCommit(autoValue);
+                }
+              : undefined
+          }
+          onCustom={() => setOpen(true)}
+        />
+        {(custom || open) && (
+          <Input
+            type="number"
+            size="sm"
+            className="w-24"
+            min={0}
+            aria-label={`${label} (custom)`}
+            defaultValue={value}
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n)) onCommit(n);
+            }}
+          />
+        )}
+      </div>
     </Row>
   );
 }
 
 function AlignField({ value, onCommit, autoValue }: { value: Align; onCommit: (v: Align) => void; autoValue?: Align }) {
   return (
-    <Row label="Align">
+    <Row label="Align" group>
       <ChipGroup
         options={ALIGN_OPTS}
         active={value}
@@ -689,14 +849,13 @@ function TextDesignFields({ node, update }: { node: TextNode; update: (patch: Pa
         autoRole="primary"
       />
       <SizeChipField label="Font size" value={node.fontSize} options={FONT_SIZE_PX} onCommit={(fontSize) => update({ fontSize })} autoValue={16} />
-      <Row label="Weight">
-        <ChipGroup
-          options={WEIGHT_OPTS}
-          active={node.fontWeight}
-          onPick={(fontWeight) => update({ fontWeight })}
-          onAuto={() => update({ fontWeight: "normal" as FontWeight })}
-        />
-      </Row>
+      <ChipRow
+        label="Weight"
+        options={WEIGHT_OPTS}
+        active={node.fontWeight}
+        onPick={(fontWeight) => update({ fontWeight })}
+        onAuto={() => update({ fontWeight: "normal" as FontWeight })}
+      />
       <NumberField label="Line height" defaultValue={node.lineHeight} min={8} max={96} onCommit={(lineHeight) => update({ lineHeight })} autoValue={24} />
       <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="left" />
     </Group>
@@ -781,14 +940,13 @@ function ButtonDesignFields({ node, update }: { node: ButtonNode; update: (patch
           `btn-<role>` class); email has no such class, so Background and Text
           color are both explicit here. */}
       <Group label="Button">
-        <Row label="Variant">
-          <ChipGroup
-            options={BUTTON_VARIANT_OPTS}
-            active={node.variant ?? "filled"}
-            onPick={(variant) => update(buttonVariantPatch(node, variant, colors))}
-            onAuto={() => update(buttonVariantPatch(node, "filled", colors))}
-          />
-        </Row>
+        <ChipRow
+          label="Variant"
+          options={BUTTON_VARIANT_OPTS}
+          active={node.variant ?? "filled"}
+          onPick={(variant) => update(buttonVariantPatch(node, variant, colors))}
+          onAuto={() => update(buttonVariantPatch(node, "filled", colors))}
+        />
         <ColorField
           label={outline ? "Border color" : "Background"}
           value={outline ? node.borderColor ?? node.bg : node.bg}
@@ -945,7 +1103,7 @@ function VideoDesignFields({ node, update }: { node: VideoNode; update: (patch: 
     <Group label="Layout">
       <NumberField label="Width (px)" defaultValue={node.width} min={80} max={1200} onCommit={(width) => update({ width })} autoValue={400} />
       <AlignField value={node.align} onCommit={(align) => update({ align })} autoValue="center" />
-      <Row label="Play button overlay">
+      <Row label="Play button overlay" group>
         <ToggleGroup
           className="toggle-group-sm"
           aria-label="Play button overlay"
@@ -1007,7 +1165,7 @@ function ColumnDesignFields({ node, update }: { node: ColumnNode; update: (patch
 function ColumnsDesignFields({ node, update }: { node: ColumnsNode; update: (patch: Partial<ColumnsNode>) => void }) {
   return (
     <Group label="Layout">
-      <Row label="Stack on mobile">
+      <Row label="Stack on mobile" group>
         <ToggleGroup
           className="toggle-group-sm"
           aria-label="Stack on mobile"
@@ -1204,7 +1362,7 @@ function BodySettingsFields({ node, update }: { node: EmailBody; update: (patch:
       </Group>
       <WebFontFields node={node} update={update} />
       <Group label="Color scheme">
-        <Row label="Supported">
+        <Row label="Supported" group>
           <div className="flex flex-col gap-1.5">
             <ChipGroup
               options={COLOR_SCHEME_OPTS}

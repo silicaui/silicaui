@@ -1,69 +1,53 @@
 /**
- * Testimonials — grid. Three customer cards, each a quote plus an avatar and
- * attribution. Container-query responsive: one column on a narrow container,
- * three past `@3xl`.
+ * Testimonials — Grid. Three customer cards, side by side. Reach for it when the
+ * argument is breadth — different industries, different sizes, the same result —
+ * which a single pull-quote cannot make no matter how good the quote is.
+ *
+ * The quotes are NUMBERED slots (`quote1`…`quote3`), and `quote1`'s triplet is
+ * the same content a swap down to the single pull-quote layout will read.
  */
-import { atom, block, el, slot } from "../kit";
-
-const card = (quote: string, name: string, role: string) =>
-  el("figure", "flex flex-col gap-4 rounded-box border border-base-200 bg-base-100 p-6", {
-    children: [
-      el("blockquote", "text-base-content", { text: quote }),
-      el("figcaption", "mt-auto flex items-center gap-3", {
-        children: [
-          atom("Avatar", "avatar w-10 rounded-full", { alt: "" }),
-          el("div", undefined, {
-            children: [
-              el("p", "text-sm font-semibold text-base-content", { text: name }),
-              el("p", "text-xs text-base-content", { text: role }),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
+import { block, el } from "../kit";
+import { heading, quoteCard } from "./testimonial-kit";
 
 export const testimonialsGrid = block({
-  key: "testimonials_grid",
-  name: "Testimonials — grid of three",
-  category: "testimonial",
-  version: "1.0.0",
-  description: "A three-up grid of customer testimonial cards.",
-  tags: ["testimonial", "social-proof", "grid"],
-  colors: ["base-100", "base-200", "base-content"],
-  behaviors: [],
-  emailEligible: false,
-  root: el("section", "@container bg-base-200", {
-    children: [
-      el("div", "mx-auto w-full max-w-6xl px-6 py-16", {
+    key: "testimonials_grid",
+    name: "Testimonials — Grid",
+    category: "testimonial",
+    version: "2.0.0",
+    description: "A three-up grid of customer testimonial cards.",
+    tags: ["testimonial", "social-proof", "grid"],
+    colors: ["base-100", "base-200", "base-content"],
+    behaviors: [],
+    emailEligible: false,
+    root: el("section", "@container bg-base-200", {
         children: [
-          slot(
-            el("h2", "mb-10 text-center text-3xl font-semibold text-base-content", {
-              text: "Loved by teams everywhere",
+            el("div", "mx-auto w-full max-w-6xl px-6 py-16 @3xl:py-20", {
+                children: [
+                    heading("mb-10 text-center text-3xl font-semibold text-base-content @2xl:text-4xl", "Loved by teams everywhere"),
+                    el("div", "grid grid-cols-1 items-stretch gap-6 @xl:grid-cols-2 @3xl:grid-cols-3", {
+                        children: [
+                            quoteCard({
+                                index: 1,
+                                quote: "“Setup took an afternoon and support has been outstanding ever since.”",
+                                author: "Priya Nair",
+                                role: "Founder, Loom & Co",
+                            }),
+                            quoteCard({
+                                index: 2,
+                                quote: "“The editor is fast enough that our whole team actually uses it, which was never true of the last one.”",
+                                author: "Marcus Reed",
+                                role: "Design Lead, Halcyon",
+                            }),
+                            quoteCard({
+                                index: 3,
+                                quote: "“We replaced three tools with this and never looked back.”",
+                                author: "Sofia Álvarez",
+                                role: "COO, Brightline",
+                            }),
+                        ],
+                    }),
+                ],
             }),
-            { name: "heading", type: "text", label: "Heading" },
-          ),
-          el("div", "grid grid-cols-1 gap-6 @xl:grid-cols-2 @3xl:grid-cols-3", {
-            children: [
-              card(
-                "“Setup took an afternoon and support has been outstanding ever since.”",
-                "Priya Nair",
-                "Founder, Loom & Co",
-              ),
-              card(
-                "“The editor is fast enough that our whole team actually uses it.”",
-                "Marcus Reed",
-                "Design Lead, Halcyon",
-              ),
-              card(
-                "“We replaced three tools with this and never looked back.”",
-                "Sofia Álvarez",
-                "COO, Brightline",
-              ),
-            ],
-          }),
         ],
-      }),
-    ],
-  }),
+    }),
 });

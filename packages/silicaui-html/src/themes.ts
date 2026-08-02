@@ -94,17 +94,35 @@ export function colorValue(theme: Theme, name: string, mode: "light" | "dark" = 
  * that can't be parsed (a `color-mix()`, a `var()`) is left alone: @wizeworks/
  * silicaui's CSS `autoContent` fallback still covers it at paint time, which is
  * the honest outcome for a value we can't measure.
+ *
+ * "AUTHORED" IS PER MODE, and that distinction is the whole correctness of dark.
+ * A theme that authors `--color-primary-content` in `tokens` and overrides only
+ * `--color-primary` in `dark` — which is the normal shape, because the ink
+ * usually needs no thought — used to keep the LIGHT ink in dark mode: the merge
+ * carried it through, `tokens[contentKey]` was truthy, and derivation was
+ * skipped. The result was white ink on the pale dark-mode primary, on every
+ * filled surface in the theme, at roughly 1.7:1. It is the same fall-through
+ * `defineTheme` already had to fix for surfaces, one layer up.
+ *
+ * So a light ink survives into dark only while it is still ABOUT something: if
+ * the dark bag re-points the role's color, the light ink is stale by definition
+ * and gets re-derived. If the role color is unchanged in dark, the authored ink
+ * is still the author's measured decision and is left exactly alone.
  */
 export function resolveThemeTokens(theme: Theme, mode: "light" | "dark" = "light"): Record<string, string> {
-  const tokens: Record<string, string> = {
-    ...theme.tokens,
-    ...(mode === "dark" ? theme.dark : undefined),
-  };
+  const overrides = mode === "dark" ? theme.dark : undefined;
+  const tokens: Record<string, string> = { ...theme.tokens, ...overrides };
 
   for (const role of rolesOf(theme)) {
     const contentKey = `--color-${role}-content`;
-    if (tokens[contentKey]) continue;
-    const color = tokens[`--color-${role}`];
+    const colorKey = `--color-${role}`;
+
+    // Authored for THIS mode — always wins.
+    if (overrides ? contentKey in overrides : contentKey in theme.tokens) continue;
+    // Authored for light, and dark didn't move the role color: still valid.
+    if (contentKey in theme.tokens && !(overrides && colorKey in overrides)) continue;
+
+    const color = tokens[colorKey];
     if (!color) continue;
     const derived = deriveContent(color);
     if (derived) tokens[contentKey] = derived.value;

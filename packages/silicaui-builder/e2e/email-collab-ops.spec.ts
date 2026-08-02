@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The email builder's state-and-intent-out contract, driven through the REAL
@@ -56,7 +57,7 @@ async function target(page: Page) {
 async function subjectField(page: Page) {
   await page.locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
-  return page.locator("label", { hasText: "Subject" }).locator("input");
+  return page.locator(ROW, { hasText: "Subject" }).locator("input");
 }
 
 /** Make one real edit so `__lastChange` is populated (the harness only records

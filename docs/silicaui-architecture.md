@@ -307,7 +307,7 @@ arbitrary utilities.
 ```ts
 interface Template {                 // §3.1, expanded for blocks
   key: string;                       // stable slug: 'hero_split_cta'
-  name: string;                      // 'Hero — split with CTA'
+  name: string;                      // 'Hero — Split CTA' — the palette label (blocks-contract §8)
   category: string;                  // 'navigation' | 'hero' | 'pricing' | 'footer' | …
   version: string;                   // semver — the class vocabulary is a data contract (§6.4)
   description: string;

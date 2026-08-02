@@ -48,16 +48,29 @@ console.log("\n— checks —");
 check("renders a <section>", html.startsWith("<section"));
 check("establishes a container (@container)", html.includes("@container"));
 check("headline text present", html.includes("Ship your store in an afternoon"));
-check("Button atom → <button> with btn classes", html.includes('<button class="btn btn-primary btn-lg"'));
-check("Button label rendered", html.includes(">Start free</button>"));
-check("Image atom → self-closing <img> w/ aspect-video", /<img class="rounded-box w-full aspect-video"[^>]*\/>/.test(html));
+// A hero CTA NAVIGATES, so `href` lowers the Button atom to an <a>. The <button>
+// half of that fork is covered below by hero_signup, whose CTA submits a form —
+// both paths asserted against a real block rather than a synthetic node.
+check("Button atom + href → <a> with btn classes", html.includes('<a class="btn btn-primary btn-lg" href="#">'));
+check("Button label rendered", html.includes(">Start free</a>"));
+check("Image atom → self-closing <img> w/ aspect-video", /<img class="w-full rounded-box aspect-video"[^>]*\/>/.test(html));
 check("template is id-free (no id= in output)", !html.includes(" id="));
+{
+  const signupHtml = toHtml(getBlock("hero_signup"));
+  check("Button atom + type → <button type=submit>", signupHtml.includes('<button class="btn btn-primary" type="submit">'));
+}
 
 // ── prefix (external-embedder path) ─────────────────────────────────────────
 const prefixed = toHtml(heroSplitCta, { prefix: "st-" });
 check("prefix: component classes rewritten (btn → st-btn)", prefixed.includes('class="st-btn st-btn-primary st-btn-lg"'));
-check("prefix: utilities untouched (grid stays)", prefixed.includes("grid grid-cols-1"));
+check("prefix: utilities untouched (grid-cols-1 stays bare)", prefixed.includes("grid-cols-1") && !prefixed.includes("st-grid"));
 check("prefix: variant preserved (@3xl: intact)", prefixed.includes("@3xl:grid-cols-2"));
+// The UI type ramp is emitted WITH the prefix by typography(prefix), so its
+// stems have to be in COMPONENT_STEMS or a prefixed page renders unstyled
+// headlines — the silent breakage `wordmark`/`glass` were added to close, and
+// live from the moment a block reached for `.display-*`. See class-utils.ts.
+check("prefix: type ramp rewritten (display-2 → st-display-2)", prefixed.includes('class="st-display-2"'));
+check("prefix: type ramp rewritten (lead → st-lead)", prefixed.includes("st-lead"));
 
 // ── behavior lowering (faq accordion) ───────────────────────────────────────
 const faqHtml = toHtml(faqAccordion);
@@ -71,14 +84,18 @@ check("first panel open, others ship hidden", (faqHtml.match(/ hidden/g) || []).
 const featHtml = toHtml(featureGrid);
 check("collection → data-sui-repeat=features", featHtml.includes('data-sui-repeat="features"'));
 check("value → data-sui-bind=feature.title", featHtml.includes('data-sui-bind="feature.title"'));
-check("Icon atom → span with data-icon", featHtml.includes('data-icon="sparkles"'));
+// `layout`, not `sparkles`: feature_grid's glyph changed because `sparkles`
+// exists in this package's icon set but NOT in the builder's baked copy, so the
+// canvas drew an empty span while published output drew a glyph. The fixture
+// follows the block rather than pinning a name the block no longer uses.
+check("Icon atom → span with data-icon", featHtml.includes('data-icon="layout"'));
 
 // ── icon inlining: static pages are self-contained (default Lucide resolver) ──
-check("Icon inlines <svg> by default (data-icon kept)", featHtml.includes('data-icon="sparkles"') && /<span[^>]*data-icon="sparkles"[^>]*><svg[^>]*>.*<\/svg><\/span>/s.test(featHtml));
+check("Icon inlines <svg> by default (data-icon kept)", featHtml.includes('data-icon="layout"') && /<span[^>]*data-icon="layout"[^>]*><svg[^>]*>.*<\/svg><\/span>/s.test(featHtml));
 check("inlined svg sizes to 1em + currentColor", featHtml.includes('width="1em"') && featHtml.includes('stroke="currentColor"'));
 check("icons:false opts out (bare span, no svg)", (() => {
   const bare = toHtml(featureGrid, { icons: false });
-  return bare.includes('data-icon="sparkles"') && !bare.includes("<svg");
+  return bare.includes('data-icon="layout"') && !bare.includes("<svg");
 })());
 check("custom resolver map overrides default", toHtml({ kind: "component", component: "Icon", props: { name: "sparkles" } }, { icons: { sparkles: '<circle cx="12" cy="12" r="9" />' } }).includes('<circle cx="12" cy="12" r="9" />'));
 check("unknown icon name → bare span (resolver miss)", !toHtml({ kind: "component", component: "Icon", props: { name: "definitely-not-an-icon" } }).includes("<svg"));
@@ -255,11 +272,312 @@ check("lint: real blocks are clean (all authored)", listBlocks().length > 0);
 // ── block index ─────────────────────────────────────────────────────────────
 check("listBlocks() returns the full catalog", listBlocks().length >= 15);
 check("listBlocks({category}) filters", listBlocks({ category: "faq" }).length === 1);
-check("getBlock(key) resolves", getBlock("feature_grid")?.name === "Feature grid — data-bound");
+check("getBlock(key) resolves", getBlock("feature_grid")?.name === "Features — Grid");
+
+// A block's `name` IS the host palette's row label (see `blockItem` in
+// silicaui-builder's palette.ts), so a duplicate ships two identical-looking
+// rows and the user picks blind. That's precisely what the navbar family was
+// before it was split, so the invariant is guarded rather than remembered.
+{
+  const names = listBlocks().map((b) => b.name);
+  check("block names are unique (each IS a palette label)", new Set(names).size === names.length);
+  check(
+    "block names are short enough to read as a label",
+    names.every((n) => n.length <= 28),
+  );
+}
+
+// ── the navbar family ───────────────────────────────────────────────────────
+// Five layouts, and every one of them collapses. The gap this closes: a header
+// with no mobile menu is broken on a phone, and shipping one alongside four that
+// work is worse than shipping none.
+{
+  const navbars = listBlocks({ category: "nav" });
+  check("five navbar layouts are registered", navbars.length === 5);
+  for (const b of navbars) {
+    const triggers = [];
+    const panels = [];
+    walk(b.root, (n) => {
+      if (n.part === "trigger") triggers.push(n);
+      if (n.part === "panel") panels.push(n);
+    });
+    // `disclosure` pairs trigger[i] ↔ panel[i] by DOCUMENT ORDER, so an unequal
+    // count means some trigger silently toggles nothing.
+    check(`${b.key}: every trigger has a panel`, triggers.length > 0 && triggers.length === panels.length);
+    // A panel must ship closed, or it flashes open before the runtime hydrates.
+    check(`${b.key}: every panel ships hidden`, panels.every((p) => p.attrs?.hidden === true));
+    check(`${b.key}: declares the disclosure behavior`, b.behaviors.includes("disclosure"));
+  }
+}
 check(
   "slots derived from tree in order (hero)",
-  heroSplitCta.slots.map((s) => s.name).join(",") === "headline,subhead,cta,image",
+  heroSplitCta.slots.map((s) => s.name).join(",") === "headline,subhead,cta,secondary,trust,image",
 );
+
+// ── the hero family ─────────────────────────────────────────────────────────
+// Five layouts where there used to be one block plus a lookalike `.hero`
+// primitive wearing the same palette label. Two invariants earn their keep:
+//
+//  • ONE <h1>. A hero is the page's opening statement; two of them is an
+//    outline bug that no visual review reliably catches.
+//  • A SHARED slot vocabulary. Swapping heroes is the most common edit here, and
+//    a host's fill writes by NAME — so `headline` + `cta` existing in all five
+//    is what makes a swap keep the author's content instead of resetting it.
+{
+  const heroes = listBlocks({ category: "hero" });
+  check("five hero layouts are registered", heroes.length === 5);
+  for (const b of heroes) {
+    let h1s = 0;
+    walk(b.root, (n) => {
+      if (n.kind === "element" && n.tag === "h1") h1s++;
+    });
+    check(`${b.key}: exactly one <h1>`, h1s === 1);
+    const names = new Set(b.slots.map((s) => s.name));
+    check(`${b.key}: carries the shared headline + cta slots`, names.has("headline") && names.has("cta"));
+  }
+  // The one hero that submits rather than navigates must DECLARE it, or a host
+  // ships a dead form: the marker is what a runtime hydrates against.
+  check(
+    "hero_signup declares the form behavior",
+    getBlock("hero_signup")?.behaviors.includes("form") === true,
+  );
+  // Image Overlay stacks image → overlay → content in ONE `.hero` grid cell.
+  // Order is the whole mechanism (`.hero-content` clears the scrim only by
+  // coming after it), and `data-theme` is what keeps the ink off hardcoded white.
+  {
+    const spotlight = getBlock("hero_spotlight");
+    check("hero_spotlight is a dark theme island", spotlight?.root.attrs?.["data-theme"] === "dark");
+    const layers = (spotlight?.root.children ?? []).map((c) => {
+      if (typeof c === "string") return "text";
+      if (c.kind === "component") return c.component;
+      const first = (c.class ?? "").split(/\s+/)[0];
+      return first || c.tag;
+    });
+    check("hero_spotlight layers image → overlay → content", layers.join("|") === "Image|hero-overlay|hero-content");
+  }
+}
+
+// ── the five-strong families ────────────────────────────────────────────────
+// Five families were expanded from one or two blocks each, for the same reason
+// the navbar and hero families were: a category with a single entry is a single
+// answer to a question that has several, and the palette row that offers it
+// reads as "this is how a footer looks here" rather than "pick one".
+//
+// The count is pinned per family so adding a sixth is a deliberate edit in two
+// places, and each family gets the ONE invariant that its members could
+// plausibly break independently of each other.
+{
+  const familySlots = (b) => new Set(b.slots.map((s) => s.name));
+  for (const category of ["features", "testimonial", "pricing", "cta", "footer"]) {
+    check(`five ${category} layouts are registered`, listBlocks({ category }).length === 5);
+  }
+
+  // FOOTER. Two things every variant must get right, both of which are
+  // invisible in a screenshot:
+  //  • the root is a real <footer>, i.e. a `contentinfo` landmark. A <section>
+  //    that looks like a footer is not one, and "skip to footer" stops working.
+  //  • `brand` + `copyright` exist in all five, so swapping layouts keeps the
+  //    two pieces of content every footer has (a host's fill writes BY NAME).
+  for (const b of listBlocks({ category: "footer" })) {
+    check(`${b.key}: root is a <footer> landmark`, b.root.kind === "element" && b.root.tag === "footer");
+    const names = familySlots(b);
+    check(`${b.key}: carries the shared brand + copyright slots`, names.has("brand") && names.has("copyright"));
+  }
+  check(
+    "footer_newsletter declares the form behavior",
+    getBlock("footer_newsletter")?.behaviors.includes("form") === true,
+  );
+  check(
+    "footer_minimal declares the theme-toggle behavior",
+    getBlock("footer_minimal")?.behaviors.includes("theme-toggle") === true,
+  );
+  // The one dark island in the family. Same mechanism as hero_spotlight: without
+  // `data-theme` the "full-bleed dark closer" is a light section with dark
+  // buttons, and the failure only shows on a page that isn't already dark.
+  check(
+    "footer_closing_cta is a dark theme island",
+    getBlock("footer_closing_cta")?.root.attrs?.["data-theme"] === "dark",
+  );
+
+  // PRICING. Every layout is answering "what does it cost", so `heading` plus a
+  // first plan name and price is the vocabulary a swap has to preserve.
+  for (const b of listBlocks({ category: "pricing" })) {
+    const names = familySlots(b);
+    check(`${b.key}: carries heading + the first plan's name and price`, names.has("heading") && names.has("plan1") && names.has("price1"));
+  }
+  // Billing Toggle is the only one with parts, and `tabs` pairs tab[i] ↔ panel[i]
+  // by DOCUMENT ORDER — an unequal count means a tab silently switches nothing.
+  {
+    const toggle = getBlock("pricing_toggle");
+    check("pricing_toggle declares the tabs behavior", toggle?.behaviors.includes("tabs") === true);
+    const tabParts = [];
+    const panelParts = [];
+    walk(toggle.root, (n) => {
+      if (n.part === "tab") tabParts.push(n);
+      if (n.part === "panel") panelParts.push(n);
+    });
+    check("pricing_toggle: every tab has a panel", tabParts.length > 0 && tabParts.length === panelParts.length);
+    // Exactly one panel starts open. Both open ships two contradictory prices to
+    // a no-JS reader; none open ships an empty section.
+    check(
+      "pricing_toggle: exactly one panel starts open",
+      panelParts.filter((p) => p.attrs?.hidden !== true).length === 1,
+    );
+  }
+
+  // CTA. `headline` + `primary` are the whole point of the family — a call to
+  // action with no action is the one way these five could each be wrong alone.
+  for (const b of listBlocks({ category: "cta" })) {
+    const names = familySlots(b);
+    check(`${b.key}: carries headline + primary`, names.has("headline") && names.has("primary"));
+  }
+  check("cta_signup declares the form behavior", getBlock("cta_signup")?.behaviors.includes("form") === true);
+  // The band is the only filled surface in the family, and a `btn-primary` on
+  // `bg-primary` is invisible. Guarded because it looks right in source.
+  {
+    const solids = [];
+    walk(getBlock("cta_band").root, (n) => {
+      if (n.kind === "component" && n.component === "Button") solids.push(n.class ?? "");
+    });
+    check(
+      "cta_band never puts a btn-primary on its primary surface",
+      solids.length > 0 && solids.every((c) => !c.split(/\s+/).includes("btn-primary")),
+    );
+  }
+
+  // FEATURES. All five answer "what does it do", so `heading` plus the first
+  // feature's title and body is the shared vocabulary — except the bound grid,
+  // whose per-item copy comes from the host's collection, not from slots.
+  for (const b of listBlocks({ category: "features" })) {
+    check(`${b.key}: carries the heading slot`, familySlots(b).has("heading"));
+  }
+  check(
+    "feature_grid still repeats over a collection (it is the family's bound layout)",
+    (() => {
+      let bound = false;
+      walk(getBlock("feature_grid").root, (n) => {
+        if (n.data?.kind === "collection") bound = true;
+      });
+      return bound;
+    })(),
+  );
+  // An icon named in a block must exist in BOTH icon sets — this one is html's.
+  // `feature_grid` shipped `sparkles`, which the builder's baked copy
+  // (silicaui-builder/src/shared/icons.ts) does not have, so the canvas drew an
+  // empty span while published output drew a glyph. The builder-side half of
+  // this pairing is asserted in its own e2e run.
+  {
+    const missing = [];
+    for (const b of listBlocks()) {
+      walk(b.root, (n) => {
+        const name = n.kind === "component" && n.component === "Icon" ? n.props?.name : undefined;
+        if (typeof name === "string" && !iconSvg(name)) missing.push(`${b.key}:${name}`);
+      });
+    }
+    check(`every Icon named in a block resolves${missing.length ? ` (missing ${missing.join(", ")})` : ""}`, missing.length === 0);
+  }
+
+  // A FILLED SURFACE MUST NAME ITS INK ON THE SAME NODE, catalog-wide.
+  //
+  // `bg-primary` without `text-primary-content` beside it leaves everything
+  // inside inheriting the ambient `base-content` — dark ink on a dark primary
+  // band in light mode, pale on pale in dark. v1 of `cta_band` shipped that.
+  //
+  // The invariant is deliberately "the SURFACE names the role", not "every
+  // heading names the role". Repeating `text-primary-content` down the subtree
+  // hardcodes `primary` into a dozen places, so switching the band to
+  // `bg-secondary` leaves them all wrong — the exact bug in a new outfit.
+  // Naming it once and letting children inherit is what makes the section
+  // re-colorable, and it is why typography.js gives headings `color: inherit`.
+  //
+  // Only FILLED ROLE surfaces are checked: `bg-base-*` is what the ramp already
+  // assumes, and a `[data-theme]` island re-points `base-content` by itself.
+  //
+  // And only surfaces that CARRY TEXT. A `bg-primary` bullet dot or a rule is a
+  // 6px painted box with nothing inside it, and demanding an ink token on those
+  // is the kind of false positive that trains people to skip the probe.
+  {
+    const FILLED = /^bg-(primary|secondary|accent|neutral|info|success|warning|danger|error)$/;
+    const carriesText = (node) => {
+      let found = false;
+      walk(node, (n) => {
+        for (const c of n.children ?? []) {
+          if (typeof c === "string" && c.trim()) found = true;
+        }
+        // A component that renders its own copy (a Button's `label`, a
+        // Wordmark's `text`) counts too — it is text on the surface even though
+        // the tree stores it as a prop rather than a child.
+        if (n.kind === "component" && (n.props?.label != null || n.props?.text != null)) found = true;
+      });
+      return found;
+    };
+    const offenders = [];
+    for (const b of listBlocks()) {
+      walk(b.root, (n) => {
+        const tokens = (n.class ?? "").split(/\s+/).filter(Boolean);
+        const surface = tokens.find((t) => FILLED.test(t));
+        if (!surface || !carriesText(n)) return;
+        const role = surface.slice("bg-".length);
+        if (!tokens.includes(`text-${role}-content`)) offenders.push(`${b.key}:${surface}`);
+      });
+    }
+    check(
+      `every filled role surface carrying text names its ink${offenders.length ? ` (bare: ${offenders.join(", ")})` : ""}`,
+      offenders.length === 0,
+    );
+  }
+
+  // TESTIMONIAL. `quote` is the family; a proof section with no quoted words is
+  // a logo strip. The single-quote layouts use the bare name and the multi-quote
+  // ones number from 1, so a swap in either direction keeps the first one.
+  for (const b of listBlocks({ category: "testimonial" })) {
+    const names = familySlots(b);
+    check(`${b.key}: carries a first quote`, names.has("quote") || names.has("quote1"));
+  }
+  check(
+    "testimonial_carousel declares the carousel behavior",
+    getBlock("testimonial_carousel")?.behaviors.includes("carousel") === true,
+  );
+  // THE BARE-<blockquote> TRAP, guarded catalog-wide. `typography.js` styles
+  // `[data-theme] :where(blockquote)` with a `primary` inline-start rule and
+  // 1.25rem of matching padding. That is a good default and it silently wrecks a
+  // CENTERED pull-quote — the padding shifts the text off-centre and the bar
+  // hangs down one side. v1 of `testimonial_quote` shipped exactly that, and it
+  // is invisible in a diff. Every blockquote in the library must therefore SAY
+  // which it wants, so the ambient rule is never inherited by accident.
+  {
+    const undeclared = [];
+    for (const b of listBlocks()) {
+      walk(b.root, (n) => {
+        if (n.kind !== "element" || n.tag !== "blockquote") return;
+        const tokens = (n.class ?? "").split(/\s+/);
+        if (!tokens.includes("border-0") && !tokens.some((t) => t.startsWith("border-s-"))) {
+          undeclared.push(b.key);
+        }
+      });
+    }
+    check(
+      `every <blockquote> declares its own rule${undeclared.length ? ` (bare in ${[...new Set(undeclared)].join(", ")})` : ""}`,
+      undeclared.length === 0,
+    );
+  }
+  // It is the first block to use `carousel` at all, so this is also the coverage
+  // that the macro still expands to the parts the runtime hydrates against.
+  {
+    const html = toHtml(getBlock("testimonial_carousel").root);
+    check('testimonial_carousel expands to a carousel behavior root', html.includes('data-sui-behavior="carousel"'));
+    for (const role of ["track", "slide", "prev", "next", "dot"]) {
+      check(`testimonial_carousel expands a ${role} part`, html.includes(`data-sui-part="${role}"`));
+    }
+  }
+  // Autoplay would move the words someone is reading, and the runtime suppresses
+  // it under prefers-reduced-motion — so switching it on ships a section that
+  // behaves differently for different readers.
+  check(
+    "testimonial_carousel does not autoplay",
+    !toHtml(getBlock("testimonial_carousel").root).includes('"autoplay"'),
+  );
+}
 
 // ── Wordmark: the brand lockup (golden markup) ────────────────────────────
 {
