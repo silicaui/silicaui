@@ -1,0 +1,46 @@
+name: Setup workspace
+description: pnpm + Node + a frozen install. Assumes checkout has already run.
+
+# The five-step preamble this replaces used to be copy-pasted into every job
+# (two in ci.yml, one in release.yml, one in each deploy workflow). Bumping an
+# action pin or the Node major meant editing four files in lockstep, and the
+# comment explaining the workspace build had already been duplicated three times.
+#
+# `actions/checkout` deliberately stays at the call sites: a local composite
+# action cannot be resolved until the repository is on disk.
+#
+# This does NOT build. Exactly one job builds the workspace and hands `dist`
+# to the rest as an artifact — see the `build` job in ci.yml.
+
+inputs:
+  node-version:
+    description: Node major to install. The one place this number lives.
+    required: false
+    default: "22"
+  registry-url:
+    description: >-
+      npm registry to write into .npmrc. Only the release job sets it — that is
+      what wires NODE_AUTH_TOKEN through to `npm publish`. Empty leaves it unset.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # No `version:` input on purpose. action-setup v4 reads the root package.json
+    # `packageManager` field (pnpm@9.12.0), so pnpm's version already has exactly
+    # one source of truth; passing it here would create a second one to drift.
+    - uses: pnpm/action-setup@v4
+
+    # Must follow action-setup: `cache: pnpm` shells out to `pnpm store path` to
+    # locate the store, so the binary has to be on PATH first. That cache is
+    # already doing its job — installs measure 3-4s against a ~216 MB store.
+    - uses: actions/setup-node@v5
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: ${{ inputs.registry-url }}
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

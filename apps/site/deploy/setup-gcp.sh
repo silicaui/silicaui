@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# PARKED — see setup-azure.sh, which is the live path. This is kept beside the
-# parked deploy-site-gcp.yml so the GKE route stays documented rather than
-# half-remembered; it provisions nothing that silicaui.com currently uses.
+# PARKED — see setup-azure.sh, which is the live path. Kept so the GKE route stays
+# documented rather than half-remembered; it provisions nothing that silicaui.com
+# currently uses. The workflow that consumed it (deploy-site-gcp.yml) was deleted
+# once it could no longer execute — the manifests name GHCR now and the target
+# cluster is one sparx has left. `git log -- .github/workflows/deploy-site-gcp.yml`
+# has it if the GKE path is ever revived.
 #
 # One-time GCP setup for the SilicaUI site's CI/CD. Run once, by someone with
 # owner/IAM-admin on the `sparxworks` project. Every step mirrors the working

@@ -1,5 +1,17 @@
 name: CI
 
+# One workflow, one DAG, one run per push. This used to be three workflows racing
+# each other on `push: main` — CI, Release, and Deploy all started at the same moment,
+# each did its own `pnpm install && pnpm build`, and neither Release nor Deploy ever
+# observed whether CI went green. Publishing to npm and rolling silicaui.com are now
+# `needs:`-gated jobs in the same graph, so a red build simply cannot reach either.
+#
+# `workflow_run` was the obvious alternative and is rejected on three counts: it
+# executes the DEFAULT BRANCH's copy of the workflow (so a change to the release logic
+# cannot be tested on a branch), it does not inherit the triggering run's conclusion,
+# and its `github.sha` is the default-branch head rather than the commit that triggered
+# it. `needs:` has none of those seams.
+
 on:
   pull_request:
   push:
@@ -8,70 +20,373 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a run on main: it can be mid-`npm publish` or mid-rollout. Cancelling
+  # superseded PR runs is still the right call and is what this was originally for.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
+  # Correctness-only lint. Also runs the RuleTester for the local
+  # no-dom-in-state-initializer rule, which catches the SSR hydration bug class that
+  # eslint-plugin-ssr-friendly structurally cannot see.
+  #
+  # Its own job because it needs nothing built — eslint.config.mjs is not type-aware
+  # and ignores dist/**. Behind the build it reported a 9s failure at the ~130s mark;
+  # in parallel it reports at ~30s.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+
+  # THE build. Every downstream job consumes this artifact instead of rebuilding —
+  # `pnpm build` is 47s and used to run four times per push to main.
   build:
-    name: Build & typecheck
+    name: Build packages
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: pnpm build
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      # A tarball rather than `path: packages/*/dist`. upload-artifact roots the
+      # archive at the matched files' least-common-ancestor, so the internal layout
+      # silently changes shape if the set of matching packages ever narrows to one.
+      # Tar pins the paths. It is only ~8 MB, so this costs a few seconds either way.
+      - name: Pack dist
+        run: tar -czf dist.tgz packages/*/dist
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/upload-artifact@v4
         with:
-          node-version: 20
-          cache: pnpm
+          name: dist
+          path: dist.tgz
+          retention-days: 1
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+  # Every package's own probe suite plus the byte-identical HTML golden, then the
+  # cross-package type check. Both genuinely need the build output:
+  # scripts/verify-packaging.mjs reads packages/*/dist/index.js, and the package
+  # tsconfigs are `include: ["src"]` so sibling types resolve through package.json#types.
+  checks:
+    name: Verify & typecheck
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - run: tar -xzf dist.tgz
 
-      - name: Build packages
-        run: pnpm build
+      - run: pnpm verify
+      - run: pnpm typecheck
 
-      # Every package's own probe suite plus the byte-identical HTML golden.
-      # These existed for a while but nothing ran them in CI, so a regression
-      # they were written to catch could still land on main.
-      - name: Verify
-        run: pnpm verify
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      # Correctness-only lint. Also runs the RuleTester for the local
-      # no-dom-in-state-initializer rule, which catches the SSR hydration bug
-      # class that eslint-plugin-ssr-friendly structurally cannot see.
-      - name: Lint
-        run: pnpm lint
-
+  # Smoke-builds the docs site, which is also the only integration test that the built
+  # packages actually import and compile inside a real Next app. The deploy job below
+  # ships THIS export rather than producing a second one — `apps/site/Dockerfile` only
+  # copies `out/`, so there is nothing else it needs from the toolchain.
   site:
-    name: Build site (smoke test)
+    name: Build site
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: pnpm
+          name: dist
+      - run: tar -xzf dist.tgz
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - run: pnpm site:build
 
-      # The site imports built entry points (`@wizeworks/silicaui-demos/meta`),
-      # and every package `dist/` is gitignored — so a clean checkout has to
-      # build the workspace before Next can resolve them.
-      - name: Build packages
-        run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-out
+          path: apps/site/out
+          retention-days: 1
 
-      - name: Build site
-        run: pnpm site:build
+  # A `find`, no install, no build — so an ordinary push to main skips the release job
+  # outright instead of paying a full setup to discover there is nothing to ship.
+  #
+  # It is also the loop breaker. `changeset version` deletes every .changeset/*.md, so
+  # even if the version commit below did re-trigger this workflow, this reports 0 and
+  # `release` never runs. (`paths-ignore` cannot do that job: a version commit touches
+  # packages/*/package.json and packages/*/CHANGELOG.md, which ordinary commits touch
+  # too, so any filter wide enough to swallow it would swallow real releases.)
+  changesets:
+    name: Pending changesets
+    runs-on: ubuntu-latest
+    outputs:
+      pending: ${{ steps.count.outputs.pending }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: count
+        run: |
+          n=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l)
+          echo "pending=$n" >> "$GITHUB_OUTPUT"
+          echo "Pending changesets: $n"
+
+  # Versions, publishes, tags and announces in a single pass.
+  #
+  # There is deliberately no "Version Packages" PR any more. Every one of them was
+  # merged within seconds of being opened, unreviewed, and creating it failed outright
+  # on ~40% of runs because this org disables "Allow GitHub Actions to create and
+  # approve pull requests" — leaving a pushed branch and no PR for a human to clean up.
+  # The bump is mechanically derived from changesets that were already reviewed in
+  # their own PRs, and guard-version.mjs is the check that actually mattered.
+  #
+  # Single-pass is not a preference, it is a requirement: a push made with GITHUB_TOKEN
+  # does not trigger `push` workflows, so a "commit the bump and let the next run
+  # publish it" design would silently never publish.
+  release:
+    name: Release
+    # `build` is implied by checks/site, but this job downloads its artifact directly
+    # so the dependency is named directly too.
+    needs: [lint, build, checks, site, changesets]
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && needs.changesets.outputs.pending != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the version commit, its tags, and the GitHub Release
+    steps:
+      # Full history: the `git pull --rebase` below is unreliable against a depth-1
+      # clone, and this is the one job that writes back to the repository.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          registry-url: https://registry.npmjs.org
+
+      # Publishing the dist that CI verified, rather than a fresh one. Safe because
+      # nothing embeds its version at build time — silicaui-mcp's readOwnVersion()
+      # reads package.json at runtime — so a dist built before `changeset version`
+      # is byte-for-byte what a rebuild after it would produce.
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - run: tar -xzf dist.tgz
+
+      - name: Apply changesets
+        run: pnpm changeset version
+
+      # Here, between `version` and `publish`: the first moment the computed versions
+      # exist and the last moment before anything is committed, pushed, or shipped. A
+      # runaway 1.0.0 fails the run with main untouched and npm untouched.
+      - name: Guard version
+        run: node scripts/guard-version.mjs
+
+      # Commit LOCALLY, and settle the commit's final shape, before publishing —
+      # `changeset publish` tags whatever HEAD is at the moment it runs, so publishing
+      # first would leave every `@wizeworks/silicaui@0.44.0` tag pointing at the commit
+      # *before* the bump, where package.json still reads the old version. Rebasing
+      # here rather than after publish for the same reason: a rebase rewrites the
+      # commit, and a tag created beforehand would be left pointing at the orphan.
+      #
+      # Nothing is pushed yet, so if the publish below fails, main is untouched and the
+      # run is re-runnable from a clean checkout: the changesets are still on main,
+      # `version` recomputes the same numbers, and `publish` skips whatever already
+      # made it to the registry.
+      #
+      # `git add .changeset packages` rather than `-A`: `changeset version` only touches
+      # those two trees, and the dist tarball untarred above sits in the working root.
+      - name: Commit the version bump
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .changeset packages
+          git commit -m "chore: version packages"
+          git pull --rebase origin main
+
+      - name: Publish to npm
+        run: pnpm release
+        env:
+          # changesets/cli's own npm publish calls check for NPM_TOKEN by that exact
+          # name — NODE_AUTH_TOKEN alone makes it fall back to OIDC trusted publishing,
+          # which has no trust relationship configured for this scope. Set both so the
+          # npm CLI authenticates either way.
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Only now does main move. `--tags` restores something that was quietly lost:
+      # when the publish step was hand-rolled to replace changesets/action, it also
+      # dropped that action's tag push, so roughly forty published versions have no tag.
+      #
+      # A push made with GITHUB_TOKEN does not trigger `push` workflows, so this commit
+      # does not re-enter CI. The `changesets` gate job is the backstop if that ever
+      # changes — it will count zero and skip this job.
+      - name: Push the version commit and tags
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main
+          git push origin --tags
+
+      # One release for the family, not twelve near-identical ones: all twelve packages
+      # are `fixed` in .changeset/config.json, so their versions are identical by
+      # construction. The per-package tags pushed above keep
+      # `git checkout @wizeworks/silicaui@0.44.0` working.
+      - name: Cut the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./packages/silicaui/package.json').version")
+          node scripts/release-notes.mjs --version "$V" > /tmp/notes.md
+          gh release create "v$V" --title "v$V" --notes-file /tmp/notes.md
+          {
+            echo "### Released \`v$V\`"
+            echo
+            cat /tmp/notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Builds the static export into a container, pushes it to GHCR, and rolls the `site`
+  # Deployment in the `silicaui` namespace of the AKS cluster that hosts the platform
+  # (aks-sparx-prod-cus, centralus). Fronting and TLS are the shared Caddy in
+  # `sparx-prod` — see apps/site/deploy/caddy-silicaui.caddyfile. Nothing here touches
+  # ingress.
+  #
+  # Auth is keyless in both directions. GitHub's OIDC token is exchanged for a
+  # short-lived Azure token by the federated credential on the `gha-silicaui` app
+  # registration, which Entra matches EXACTLY against
+  # `repo:silicaui/silicaui:ref:refs/heads/main` — so a fork, a branch, or a PR runs
+  # under a different subject and simply cannot assume this identity. That exact match
+  # is also why this job declares no `environment:`: adding one changes the subject to
+  # `…:environment:<name>` and would break authentication until a matching credential
+  # exists.
+  #
+  # The three `vars` are IDs, not secrets. `apps/site/deploy/setup-azure.sh` creates the
+  # identity and prints them.
+  #
+  # This job runs no toolchain at all. It downloads the `out/` the `site` job already
+  # produced and verified, so the bytes that ship are exactly the bytes CI tested — and
+  # the second full Next export this used to run (153s) is gone.
+  deploy:
+    name: Deploy site
+    needs: [lint, checks, site]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # mint the OIDC token Entra exchanges for an Azure token
+      packages: write # push the image to GHCR
+    env:
+      RESOURCE_GROUP: rg-sparx-prod-cus
+      CLUSTER: aks-sparx-prod-cus
+      NAMESPACE: silicaui
+      IMAGE: ghcr.io/silicaui/silicaui/site
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-out
+          path: apps/site/out
+
+      # The image is runtime-only: it copies the `out/` above. Building the monorepo
+      # inside Docker would duplicate work CI has already done.
+      - name: Build & push image
+        run: |
+          TAG="sha-${GITHUB_SHA::7}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo '${{ secrets.GITHUB_TOKEN }}' \
+            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+          docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" apps/site
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get cluster credentials
+        run: |
+          az aks get-credentials \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$CLUSTER" \
+            --overwrite-existing
+
+      # The namespace and the pull secret must exist BEFORE the Deployment, or the first
+      # pods land in ImagePullBackOff and the rollout burns its timeout waiting for a
+      # retry that only succeeds by luck.
+      #
+      # `create --dry-run | apply` is the idempotent form: plain `create` fails on the
+      # second run, and `apply` alone cannot build a Secret from literals. GITHUB_TOKEN
+      # is scoped to this run, so the registry credential in the cluster is refreshed on
+      # every deploy by construction.
+      - name: Ensure namespace and registry credential
+        run: |
+          kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret docker-registry ghcr -n "$NAMESPACE" \
+            --docker-server=ghcr.io \
+            --docker-username='${{ github.actor }}' \
+            --docker-password='${{ secrets.GITHUB_TOKEN }}' \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # Pin the tag in the overlay and apply ONCE, rather than applying `latest` and
+      # correcting it with `kubectl set image` — that sequence starts a rollout on a
+      # mutable tag and then immediately starts a second one.
+      #
+      # Rewriting in place rather than `kustomize edit set image`, for the reason sparx
+      # learned the hard way: `kustomize edit` matches on the name as it appears in the
+      # manifests, so passing the destination name appends a dead entry and silently
+      # leaves the real mapping on `latest`. It also is not installed on the runner
+      # (`kubectl kustomize` builds but has no `edit`), so the failure mode is an
+      # unpinned deploy that exits 0. The guard below is what actually enforces the
+      # result.
+      - name: Pin image and apply
+        run: |
+          sed -i "s|^\( *newTag: \)latest$|\1$TAG|" apps/site/deploy/kustomization.yaml
+
+          # `- image:` as well as `image:` — kustomize emits the container as a list
+          # item, so anchoring on a bare `image:` matches nothing and the guard passes
+          # vacuously, which is the exact failure it exists to catch.
+          UNPINNED=$(kubectl kustomize apps/site/deploy \
+            | grep -E "^ *-? *image: ${IMAGE}" | grep -v ":${TAG}$" || true)
+          if [ -n "$UNPINNED" ]; then
+            echo "::error::Unpinned image survived the rewrite:"
+            echo "$UNPINNED"
+            exit 1
+          fi
+
+          kubectl apply -k apps/site/deploy
+          kubectl rollout status deployment/site -n "$NAMESPACE" --timeout=180s
+
+      # The rollout only proves the pods are ready — it says nothing about the path the
+      # public actually uses. This checks the whole chain end to end: DNS → the Azure
+      # load balancer → Caddy in `sparx-prod` → this Service in another namespace. A 502
+      # here is exactly the state the AKS migration was fixing (workload gone,
+      # everything in front of it fine), so failing the deploy on it is the point.
+      - name: Verify the public URL
+        run: |
+          for i in $(seq 1 10); do
+            CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://silicaui.com/ || echo 000)
+            [ "$CODE" = "200" ] && { echo "silicaui.com → 200"; exit 0; }
+            echo "attempt $i: $CODE"
+            sleep 10
+          done
+          echo "::error::silicaui.com did not return 200 after the rollout (last: $CODE)."
+          kubectl get pods -n "$NAMESPACE" -o wide
+          exit 1
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '### Deployed'
+            echo ''
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| image | \`${IMAGE}:${TAG}\` |"
+            echo "| cluster | \`${CLUSTER}\` (${RESOURCE_GROUP}) |"
+            echo "| namespace | \`${NAMESPACE}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          kubectl get pods -n "$NAMESPACE" -o wide >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
