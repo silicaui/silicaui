@@ -50,8 +50,5 @@
     "design-system",
     "daisyui",
     "silica"
-  ],
-  "devDependencies": {
-    "@wizeworks/silicaui-html": "workspace:*"
-  }
+  ]
 }

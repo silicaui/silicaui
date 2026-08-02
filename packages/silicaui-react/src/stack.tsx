@@ -1,12 +1,21 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
+import type { SilicaSize } from "./lib/tokens";
 
 export type StackPeek = "top" | "bottom" | "start" | "end";
 
 export interface StackProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Which way the deck peeks. `top` (default), `bottom`, `start`, or `end`. */
   peek?: StackPeek;
+  /**
+   * How far the deck fans, as a share of the card's own size — `xs` (2%)
+   * through `xl` (9%), default `md` (5%). It scales with the card, so one
+   * value reads the same on a 128px thumbnail and a 600px hero card. For a
+   * distance off this ramp, set the property directly:
+   * `className="[--stack-peek:4%]"` (any length works, including `12px`).
+   */
+  size?: SilicaSize;
   /** Make the deck clickable — sends the front card to the back to reveal the next. */
   interactive?: boolean;
 }
@@ -16,14 +25,18 @@ export interface StackProps extends React.HTMLAttributes<HTMLDivElement> {
  * With `interactive`, clicking (or Enter/Space) cycles the front card to the
  * back so you can flip through the deck; the re-stack animates.
  *
- *   <Stack interactive>
- *     <Card className="bg-primary text-primary-content"><CardBody>1</CardBody></Card>
- *     <Card className="bg-secondary text-secondary-content"><CardBody>2</CardBody></Card>
- *     <Card className="bg-accent text-accent-content"><CardBody>3</CardBody></Card>
+ * Children stretch to the deck's WIDTH but keep their own height, so size the
+ * deck's width here and each card's height on the card:
+ *
+ *   <Stack interactive className="w-48">
+ *     <Card className="h-32 bg-primary text-primary-content"><CardBody>1</CardBody></Card>
+ *     <Card className="h-32 bg-secondary text-secondary-content"><CardBody>2</CardBody></Card>
+ *     <Card className="h-32 bg-accent text-accent-content"><CardBody>3</CardBody></Card>
  *   </Stack>
  */
 export function Stack({
   peek = "top",
+  size = "md",
   interactive = false,
   className,
   children,
@@ -73,7 +86,12 @@ export function Stack({
 
   return (
     <div
-      className={cx(sc("stack"), peek !== "top" && sc(`stack-${peek}`), className)}
+      className={cx(
+        sc("stack"),
+        peek !== "top" && sc(`stack-${peek}`),
+        size !== "md" && sc(`stack-${size}`),
+        className,
+      )}
       {...rest}
       {...interactiveProps}
     >

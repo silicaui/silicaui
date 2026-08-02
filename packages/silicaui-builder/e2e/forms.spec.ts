@@ -31,7 +31,7 @@ async function ready(page: Page): Promise<void> {
 
 /** Open the Insert tab and click a palette row to insert it into the page. */
 async function insert(page: Page, key: string): Promise<void> {
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator(`[data-insert-key="${key}"]`).click();
 }
 

@@ -54,11 +54,11 @@ test("a Linked card inserts as a group with its blocks INSIDE it", async ({ page
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="link-card"]').click();
   // Back to the layer tree — the left rail is one panel, and everything below
   // selects nodes through it.
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
 
   // The group draws a persistent boundary + link glyph — it emits nothing in
   // the sent HTML, so without this an author can't tell the card's blocks are
@@ -80,11 +80,11 @@ test("inside a collection repeat, each card links to ITS OWN url while its image
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="link-card"]').click();
   // Back to the layer tree — the left rail is one panel, and everything below
   // selects nodes through it.
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
 
   // Each child binds its OWN field — picked on the canvas, since selecting a
   // container in the tree collapses it out from under its descendants.

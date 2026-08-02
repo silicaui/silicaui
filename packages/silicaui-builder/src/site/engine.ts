@@ -24,6 +24,21 @@ import type { Op, OpTarget, SymbolDetachment } from "./ops";
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((x, i) => x === b[i]);
 
+/** Same roster, field for field — so a presence heartbeat that carries no news
+ *  doesn't re-render every ring on the canvas. */
+const samePeers = (a: readonly Peer[], b: readonly Peer[]): boolean =>
+  a.length === b.length &&
+  a.every((x, i) => {
+    const y = b[i]!;
+    return (
+      x.id === y.id &&
+      x.name === y.name &&
+      x.color === y.color &&
+      sameIds(x.selection ?? [], y.selection ?? []) &&
+      sameIds(x.claim ?? [], y.claim ?? [])
+    );
+  });
+
 /** Constructor-time options — the host's class policy (§9 of
  *  builder-contract.md). Composed with the engine's built-in denylist floor;
  *  see `composeValidators`. */
@@ -64,7 +79,44 @@ export type ChangeKind =
   | "active"
   | "page"
   | "symbols"
+  | "peers"
   | "replace";
+
+/**
+ * Another person in this document — the presence a collaborative host relays,
+ * handed to the engine so the canvas can DRAW it and the mutation path can
+ * HONOR it. See `setPeers`.
+ *
+ * One list rather than the two the ask proposed (`peerSelections` + `claims`),
+ * because a claim with no name and no color is a dead end: the editor has to
+ * tell the author WHO is holding a subtree, and two lists keyed by different
+ * things drift the moment one updates without the other. A host that only wants
+ * attribution passes `selection` and omits `claim`.
+ */
+export interface Peer {
+  /** Stable for the lifetime of this person's connection (a socket id). */
+  id: string;
+  /** What the editor calls them on screen. */
+  name: string;
+  /**
+   * The ring/label color. Any CSS color; defaults to a stable one derived from
+   * `id`, so a host that tracks no colors still gets distinguishable peers.
+   *
+   * NOT a theme role. Peer identity has to stay legible against whatever palette
+   * the tenant is editing — a peer painted `primary` disappears into a document
+   * that is mostly primary, and worse, two peers would be the same color.
+   */
+  color?: string;
+  /** Node ids this person has selected. Drawn, never enforced. */
+  selection?: readonly string[];
+  /**
+   * Node ids this person is HOLDING — each covers that node and its whole
+   * subtree. Advisory and self-expiring by nature: the host decides when a claim
+   * starts and ends (a focus, a keystroke, a timeout), the engine only refuses
+   * local edits inside one while it stands.
+   */
+  claim?: readonly string[];
+}
 
 /**
  * Host-owned undo/redo, for a collaborative session — see `setHistoryDelegate`.
@@ -87,10 +139,6 @@ export interface PageMeta {
   id: string;
   name: string;
   slug: string;
-  /** Which shell wraps this page — `undefined` = the site default, `null` = no
-   *  frame, a string = a named one. Carried on the meta (not just the `Page`) so
-   *  the switcher can show and change it without cloning the whole site. */
-  frameId?: string | null;
 }
 
 /** The current page roster + which one is active — a referentially-stable view
@@ -288,6 +336,14 @@ export class Editor {
   // Currently-selected node id (canvas outline, inspector target). Not part of the
   // document — a view concern — so it rides its own "selection" change kind and is
   // never snapshotted into history.
+  // ── other editors ──────────────────────────────────────────────────────────
+  // Presence, not document state: never extracted, never relayed, never undone.
+  // `claimIndex` is the flattened claim → holder map `setPeers` rebuilds, so the
+  // per-node question the canvas and Navigator ask on every row is a Map hit
+  // rather than a scan of the roster.
+  private peers_: readonly Peer[] = [];
+  private claimIndex = new Map<string, Peer>();
+
   private selectedId: string | undefined;
   // The full selection, in add order;  is always its last member.
   private selection_: string[] = [];
@@ -303,8 +359,6 @@ export class Editor {
   // The symbol master currently being edited (when `active === "symbol"`). Edits to
   // it flow to every instance because instances render THIS master, not a copy.
   private editingSymbolId: string | undefined;
-  // Which NAMED layout Layout mode edits; undefined = the site default frame.
-  private editingFrameId: string | undefined;
   // Cached, referentially-stable symbol roster for the Components palette + hooks —
   // swapped (never mutated) only when a symbol is added/removed/renamed.
   private symbolsViewCache: readonly SymbolDef[] = [];
@@ -434,10 +488,7 @@ export class Editor {
    *  or a symbol master. A dangling symbol pointer (e.g. after undo removed it)
    *  falls back to the page body so the spine always has a valid target. */
   private activeRoot(): Node {
-    if (this.active === "frame") {
-      const frame = this.editingFrame();
-      if (frame) return frame.root;
-    }
+    if (this.active === "frame" && this.site.frame) return this.site.frame.root;
     if (this.active === "symbol" && this.editingSymbolId) {
       const sym = this.site.symbols?.[this.editingSymbolId];
       if (sym) return sym.root;
@@ -481,14 +532,7 @@ export class Editor {
    *  change and after undo/redo, so `pagesView` swaps only when it truly changes. */
   private syncPages(): void {
     this.pagesViewCache = {
-      // Spread `frameId` only when the page actually carries it, so `"frameId" in
-      // meta` still distinguishes "the site default" from an explicit `null`.
-      pages: this.site.pages.map((p) => ({
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        ...("frameId" in p ? { frameId: p.frameId } : {}),
-      })),
+      pages: this.site.pages.map((p) => ({ id: p.id, name: p.name, slug: p.slug })),
       activeId: this.activePageId,
     };
   }
@@ -692,6 +736,95 @@ export class Editor {
     return locate(this.activeRoot(), id)?.node;
   }
 
+  // ── other editors (presence) ───────────────────────────────────────────────
+  /**
+   * Who else is in this document, and where. Replaces the whole roster — a host
+   * relaying presence has the full list every time, and a diff API would only
+   * make it reconstruct one.
+   *
+   * Two things come out of this, and only the second is new behaviour:
+   *
+   *  - **Selections are drawn.** The canvas rings the nodes each peer has
+   *    selected and names the holder, and the Navigator marks the rows. Without
+   *    it, two authors on one page watch a heading rewrite itself under the
+   *    cursor with nothing on screen connecting that to a name in the toolbar.
+   *  - **Claims are refused.** A local edit inside a claimed subtree is a no-op,
+   *    the way a `locked` node's is.
+   *
+   * A claim is the SOFT half of a lock and deliberately not `setLocked`, which
+   * is permanent policy written into the document and relayed as an op.
+   * A claim is neither: it lives only in this editor's memory, it never touches
+   * the tree, it never records an op, and it never lands on the undo stack. It
+   * means "someone is typing in here right now", so the host is free to expire
+   * it on a timeout — a lock that outlived its holder's tab would be a support
+   * ticket.
+   *
+   * It is deliberately NOT correctness machinery. Per-node last-write-wins, the
+   * op log and draft history already keep the DOCUMENT right under concurrent
+   * edits; the claim exists to stop two people making a mess they then have to
+   * untangle by hand. Nothing here is relayed, so a claim can never be the
+   * reason a remote op is dropped — `applyRemoteOps` ignores claims entirely,
+   * including the claim held by the very peer whose ops are arriving.
+   *
+   * Emits `"peers"`, a view kind: no history, no ops, no `onChange` document.
+   */
+  setPeers(peers: readonly Peer[]): void {
+    // A fresh array every relay tick is the normal case, so compare by content —
+    // otherwise every presence heartbeat re-renders the whole canvas chrome.
+    if (samePeers(this.peers_, peers)) return;
+    this.peers_ = peers.map((p) => ({ ...p }));
+    this.claimIndex = new Map();
+    for (const peer of this.peers_) {
+      // First claim on a node wins. Two peers claiming one subtree is a host bug
+      // (a claim is exclusive by definition), and picking a stable answer beats
+      // flickering between two names on every tick.
+      for (const nodeId of peer.claim ?? []) if (!this.claimIndex.has(nodeId)) this.claimIndex.set(nodeId, peer);
+    }
+    this.emit("peers");
+  }
+
+  /** The current roster, as last set. Referentially stable between changes. */
+  get peers(): readonly Peer[] {
+    return this.peers_;
+  }
+
+  /**
+   * Who is holding `id` — the peer whose claim covers this node or any ancestor
+   * of it — or `undefined` when it's free.
+   *
+   * Tree-scoped like everything else here: a claim on a frame node says nothing
+   * while the spine is on a page body, because the id isn't in the tree being
+   * edited. Cheap to call per node (the common case is an empty index, checked
+   * first), which is what lets the Navigator and the canvas ask about every row.
+   */
+  claimOn(id: string): Peer | undefined {
+    if (this.claimIndex.size === 0) return undefined;
+    const direct = this.claimIndex.get(id);
+    if (direct) return direct;
+    for (const ancestor of ancestorPath(this.activeRoot(), id)) {
+      if (ancestor.kind === "outlet" || !ancestor.id) continue;
+      const held = this.claimIndex.get(ancestor.id);
+      if (held) return held;
+    }
+    return undefined;
+  }
+
+  /**
+   * `locate` for a WRITE: `undefined` when the node is missing OR inside a
+   * subtree a peer is holding.
+   *
+   * Every node mutation resolves its target through this rather than `locate`,
+   * so a claim is honored once for the whole editing spine instead of at
+   * eighteen call sites — and a mutation added later gets it by writing the same
+   * line everything else does. Reads keep using `locate`: you can always look at
+   * what someone else is editing, and an Inspector that went blank would be a
+   * worse answer than one that says who has it.
+   */
+  private locateEditable(id: string): Located | undefined {
+    if (this.claimOn(id)) return undefined;
+    return locate(this.activeRoot(), id);
+  }
+
   // ── active tree / frame ────────────────────────────────────────────────────
   /** Which tree the spine currently edits. */
   get activeTree(): ActiveTree {
@@ -746,7 +879,7 @@ export class Editor {
   createSymbol(name: string, fromId?: string): string | undefined {
     const target = fromId ?? this.selectedId;
     if (!target) return undefined;
-    const found = locate(this.activeRoot(), target);
+    const found = this.locateEditable(target);
     if (!found || !found.parent) return undefined; // can't symbolize the root
     const label = name.trim() || "Component";
     const symId = defaultMakeId();
@@ -849,7 +982,7 @@ export class Editor {
    * by the MASTER node's id. Undoable. No-op on a non-instance.
    */
   setInstanceOverrideText(instanceId: string, masterNodeId: string, text: string | undefined): void {
-    const found = locate(this.activeRoot(), instanceId);
+    const found = this.locateEditable(instanceId);
     if (!found || !found.node.instanceOf) return;
     const node = found.node;
     this.commit("props", () => {
@@ -875,7 +1008,7 @@ export class Editor {
    *  clone of the master WITH this instance's overrides baked in (severing the
    *  propagation link but keeping what you customized). Undoable. */
   detachInstance(id: string): string | undefined {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found || !found.parent || !found.node.instanceOf) return undefined;
     const master = this.site.symbols?.[found.node.instanceOf]?.root;
     if (!master) return undefined;
@@ -1053,10 +1186,6 @@ export class Editor {
   private forEachTree(fn: (root: Node, target: OpTarget) => void): void {
     for (const p of this.site.pages) fn(p.root, { scope: "page", id: p.id });
     if (this.site.frame) fn(this.site.frame.root, { scope: "frame" });
-    // Named layouts are editable trees like any other — a symbol instance can
-    // live in one, so a detach cascade that skipped them would leave dangling
-    // references in exactly the layouts nobody was looking at.
-    for (const [id, f] of Object.entries(this.site.frames ?? {})) fn(f.root, { scope: "frame", id });
     for (const s of Object.values(this.site.symbols ?? {})) fn(s.root, { scope: "symbol", id: s.id });
   }
 
@@ -1078,11 +1207,7 @@ export class Editor {
   /** The tree the editing spine is currently pointed at — the target for any op
    *  produced by a node edit, since every node edit runs against `activeRoot`. */
   private activeTarget(): OpTarget {
-    if (this.active === "frame" && this.editingFrame()) {
-      // The id RIDES ALONG only for a named layout. Omitted for the default one,
-      // so ops keep the shape every peer (and every stored op) already expects.
-      return this.editingFrameId ? { scope: "frame", id: this.editingFrameId } : { scope: "frame" };
-    }
+    if (this.active === "frame" && this.site.frame) return { scope: "frame" };
     if (this.active === "symbol" && this.editingSymbolId && this.site.symbols?.[this.editingSymbolId]) {
       return { scope: "symbol", id: this.editingSymbolId };
     }
@@ -1110,7 +1235,7 @@ export class Editor {
   /** The tree an op addresses, or undefined if it names one that's gone. */
   private rootFor(target: OpTarget): Node | undefined {
     if (target.scope === "page") return this.site.pages.find((p) => p.id === target.id)?.root;
-    if (target.scope === "frame") return (target.id ? this.site.frames?.[target.id] : this.site.frame)?.root;
+    if (target.scope === "frame") return this.site.frame?.root;
     if (target.scope === "symbol") return this.site.symbols?.[target.id]?.root;
     return undefined; // "site" addresses no tree
   }
@@ -1166,30 +1291,8 @@ export class Editor {
         this.site.savedThemes = structuredClone(op.savedThemes);
         return true;
       case "frame.setEditable": {
-        // Honors the target's frame id, so a remote edit to a NAMED layout can't
-        // land on the default one.
-        const frame = op.target.scope === "frame" && op.target.id ? this.site.frames?.[op.target.id] : this.site.frame;
-        if (!frame) return false;
-        frame.editable = op.editable;
-        return true;
-      }
-      case "frame.create":
-        (this.site.frames ??= {})[op.frameId] = structuredClone(op.frame);
-        return true;
-      case "frame.rename": {
-        const frame = this.site.frames?.[op.frameId];
-        if (!frame) return false;
-        frame.name = op.name;
-        return true;
-      }
-      case "frame.delete": {
-        if (!this.site.frames?.[op.frameId]) return false;
-        // Same fallback the local path takes: to the DEFAULT, never to `null`.
-        for (const p of this.site.pages) if (p.frameId === op.frameId) delete p.frameId;
-        delete this.site.frames[op.frameId];
-        if (Object.keys(this.site.frames).length === 0) delete this.site.frames;
-        if (this.editingFrameId === op.frameId) this.editingFrameId = undefined;
-        this.syncPages();
+        if (!this.site.frame) return false;
+        this.site.frame.editable = op.editable;
         return true;
       }
       case "symbol.set":
@@ -1228,17 +1331,6 @@ export class Editor {
         const page = this.site.pages.find((p) => p.id === op.pageId);
         if (!page) return false;
         page.slug = op.slug;
-        return true;
-      }
-      case "page.setFrame": {
-        const page = this.site.pages.find((p) => p.id === op.pageId);
-        if (!page) return false;
-        // The tri-state matters: ABSENT means "the site default", which is not
-        // the same as `null` ("no frame"). Deleting the key is the only way to
-        // express the former, so a remote "back to default" doesn't leave the
-        // page pinned to nothing.
-        if (op.frameId === undefined) delete page.frameId;
-        else page.frameId = op.frameId;
         return true;
       }
       case "page.reorder": {
@@ -1589,39 +1681,6 @@ export class Editor {
   }
 
   /**
-   * Choose which shell wraps a page. Undoable.
-   *
-   *   `undefined` → the site default (`Site.frame`)
-   *   `null`      → NO frame: the page renders bare, header and footer included
-   *   a string    → the named frame at `Site.frames[frameId]`
-   *
-   * The middle one is the feature: a campaign or landing page with no site
-   * chrome was unrepresentable while every page took the single site frame.
-   *
-   * Note `undefined` and `null` are DIFFERENT answers here, so this deliberately
-   * doesn't take an optional argument — `setPageFrame(id)` and
-   * `setPageFrame(id, null)` would read alike and mean opposite things.
-   */
-  setPageFrame(id: string, frameId: string | null | undefined): void {
-    const page = this.site.pages.find((p) => p.id === id);
-    if (!page) return;
-    const current = "frameId" in page ? page.frameId : undefined;
-    if (current === frameId) return;
-    this.transact(["page"], true, () => {
-      if (frameId === undefined) delete page.frameId;
-      else page.frameId = frameId;
-      this.syncPages();
-      this.record({ target: { scope: "site" }, kind: "page.setFrame", pageId: id, frameId });
-    });
-  }
-
-  /** The frames a page can be pointed at — an alias of `layouts`, kept because
-   *  "which frame" is the schema's word and "layout" is the author's. */
-  get frameChoices(): { id: string | undefined; name: string }[] {
-    return this.layouts;
-  }
-
-  /**
    * Reorder the page roster to `pageIds` (authoring order — what the switcher
    * lists). Ids not named keep their relative order at the end; unknown ids are
    * ignored. Undoable.
@@ -1654,107 +1713,18 @@ export class Editor {
    * state that no engine method could previously write.
    */
   setFrameEditable(editable: boolean): void {
-    const frame = this.editingFrame();
+    const frame = this.site.frame;
     if (!frame || frame.editable === editable) return;
-    const target = this.editingFrameId ? { scope: "frame" as const, id: this.editingFrameId } : { scope: "frame" as const };
     this.transact(["structure"], true, () => {
       frame.editable = editable;
-      this.record({ target, kind: "frame.setEditable", editable });
+      this.record({ target: { scope: "frame" }, kind: "frame.setEditable", editable });
     });
   }
 
-  // ── named layouts ──────────────────────────────────────────────────────────
-  /** The frame Layout mode is editing: a named one when `editingFrameId` is set,
-   *  otherwise the site default. */
-  private editingFrame(): Frame | undefined {
-    return this.editingFrameId ? this.site.frames?.[this.editingFrameId] : this.site.frame;
-  }
-
-  /** Which named layout is open, or `undefined` for the site default. */
-  get editingLayoutId(): string | undefined {
-    return this.editingFrameId;
-  }
-
-  /** The root of the layout Layout mode is editing — the named one if open, else
-   *  the site default. What chrome targeting "the current shell" reads. */
+  /** The root of the site's shell — what chrome targeting "the current shell"
+   *  reads in Layout mode. */
   frameRoot(): Node | undefined {
-    return this.editingFrame()?.root;
-  }
-
-  /** Every layout a page can be pointed at, in switcher order: the site default
-   *  first, then each named one. */
-  get layouts(): { id: string | undefined; name: string }[] {
-    return [
-      { id: undefined, name: "Default" },
-      ...Object.entries(this.site.frames ?? {}).map(([id, f]) => ({ id, name: f.name ?? id })),
-    ];
-  }
-
-  /**
-   * Point Layout mode at a layout — a named one, or `undefined` for the site
-   * default. A view concern (like the page switcher), so it takes no history and
-   * emits no ops; selection clears because an id in one tree means nothing in
-   * another. A dangling id falls back to the default.
-   */
-  editLayout(frameId: string | undefined): void {
-    const next = frameId && this.site.frames?.[frameId] ? frameId : undefined;
-    if (next === this.editingFrameId) return;
-    this.transact(["active"], false, () => {
-      this.editingFrameId = next;
-      this.select(undefined);
-    });
-  }
-
-  /**
-   * Create a named layout and OPEN it. Seeded from the same default shell a new
-   * site gets (navbar + outlet + footer), so it starts as something to edit
-   * rather than an empty box with a mystery Outlet. Returns its id. Undoable.
-   */
-  createLayout(name: string): string {
-    const frameId = defaultMakeId();
-    const label = name.trim() || "Layout";
-    const frame: Frame = { root: stampTree(defaultFrameRoot()), editable: true, name: label };
-    return this.transact(["structure", "page"], true, () => {
-      (this.site.frames ??= {})[frameId] = frame;
-      this.record({ target: { scope: "site" }, kind: "frame.create", frameId, frame });
-      this.editingFrameId = frameId;
-      this.active = "frame";
-      this.select(undefined);
-      return frameId;
-    });
-  }
-
-  /** Rename a named layout. The id is untouched, so pages pointing at it keep
-   *  working — that's why the key and the label are separate. Undoable. */
-  renameLayout(frameId: string, name: string): void {
-    const frame = this.site.frames?.[frameId];
-    const value = name.trim();
-    if (!frame || !value || frame.name === value) return;
-    this.transact(["page"], true, () => {
-      frame.name = value;
-      this.record({ target: { scope: "site" }, kind: "frame.rename", frameId, name: value });
-    });
-  }
-
-  /**
-   * Delete a named layout. Every page using it falls back to the site DEFAULT —
-   * not to `null`, which would silently turn ordinary pages into bare landing
-   * pages, a much louder change than the author asked for. Undoable.
-   */
-  deleteLayout(frameId: string): void {
-    if (!this.site.frames?.[frameId]) return;
-    const reassign = this.site.pages.filter((p) => p.frameId === frameId).map((p) => p.id);
-    this.transact(["structure", "page"], true, () => {
-      for (const p of this.site.pages) if (p.frameId === frameId) delete p.frameId;
-      delete this.site.frames![frameId];
-      if (Object.keys(this.site.frames!).length === 0) delete this.site.frames;
-      this.record({ target: { scope: "site" }, kind: "frame.delete", frameId, reassign });
-      if (this.editingFrameId === frameId) {
-        this.editingFrameId = undefined;
-        this.select(undefined);
-      }
-      this.syncPages();
-    });
+    return this.site.frame?.root;
   }
 
   // ── node edits ─────────────────────────────────────────────────────────────
@@ -1762,7 +1732,7 @@ export class Editor {
    *  composed floor+host policy (§9) first — a rejected string is a no-op and
    *  the reason comes back so the UI (e.g. `ClassField`) can surface it. */
   setClass(id: string, className: string): { ok: true } | { ok: false; reason: string } {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return { ok: true };
     const value = className.trim();
     if (value) {
@@ -1815,7 +1785,7 @@ export class Editor {
     value: string,
     prefix = "",
   ): { ok: true } | { ok: false; reason: string } {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return { ok: true };
     const next = setTokenAt(found.node.class, group, value, prefix);
     if (next === (found.node.class ?? "")) return { ok: true };
@@ -1874,7 +1844,7 @@ export class Editor {
 
   /** Set (or clear, with undefined) a component OR host node's typed prop. */
   setProp(id: string, key: string, value: unknown): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found || (found.node.kind !== "component" && found.node.kind !== "host")) return;
     const node = found.node;
     this.commit("props", () => {
@@ -1895,7 +1865,7 @@ export class Editor {
 
   /** Set (or clear, with undefined) an element node's whitelisted attribute. */
   setAttr(id: string, key: string, value: string | number | boolean | undefined): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found || found.node.kind !== "element") return;
     const node = found.node;
     this.commit("props", () => {
@@ -1918,7 +1888,7 @@ export class Editor {
    * same field `editableText` reads, so the Inspector's Content field round-trips.
    */
   setText(id: string, text: string): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return;
     const node = found.node;
     this.commit("props", () => {
@@ -1951,7 +1921,7 @@ export class Editor {
    * follows, and the reason a peer replaying the op can't diverge.
    */
   setChildren(id: string, children: readonly Child[]): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found || found.node.kind === "host") return; // a host node is a leaf
     const node = found.node;
     const stamped = children.map((c) => (typeof c === "string" ? c : stampTree(c)));
@@ -1963,7 +1933,7 @@ export class Editor {
 
   /** Rename a node's Navigator layer label (or clear it). */
   setLabel(id: string, label: string): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return;
     this.commit("props", () => {
       const value = label.trim();
@@ -1979,7 +1949,7 @@ export class Editor {
    * retagged node keeps its look. No-op on components/outlets or a blank tag.
    */
   setTag(id: string, tag: string): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found || found.node.kind !== "element") return;
     const value = tag.trim();
     if (!value) return;
@@ -1997,7 +1967,7 @@ export class Editor {
    * Lowers to `data-sui-bind` / `-repeat` / `-action` (+ `href`) in `toHtml`.
    */
   setData(id: string, binding: DataBinding | undefined): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return;
     const node = found.node;
     this.commit("props", () => {
@@ -2013,7 +1983,7 @@ export class Editor {
    * Scroll trigger. Lowers to `data-sui-behavior` / `-params` in `toHtml`.
    */
   setBehavior(id: string, marker: BehaviorMarker | undefined): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return;
     const node = found.node;
     this.commit("props", () => {
@@ -2031,7 +2001,7 @@ export class Editor {
    * region. Undoable. No-op on a missing node.
    */
   setLocked(id: string, owner: "host" | "author" | undefined): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found) return;
     const node = found.node;
     this.commit("props", () => {
@@ -2049,7 +2019,7 @@ export class Editor {
    * children.
    */
   insert(node: Node, parentId: string, index?: number): string | undefined {
-    const parentLoc = locate(this.activeRoot(), parentId);
+    const parentLoc = this.locateEditable(parentId);
     if (!parentLoc || !isContainer(parentLoc.node)) return undefined;
     const stamped = stampTree(node);
     const newId = stamped.kind === "outlet" ? undefined : stamped.id;
@@ -2104,7 +2074,7 @@ export class Editor {
    *  it was selected. A locked node — author- or host-owned — is refused here, so
    *  every remove path (Navigator, delete key, host) honors the lock at once. */
   remove(id: string): void {
-    const found = locate(this.activeRoot(), id);
+    const found = this.locateEditable(id);
     if (!found || !found.parent) return; // missing or root
     if (found.node.locked) return; // locked — non-deletable (host-nodes spec §B.2)
     const parentId = found.parent.id;
@@ -2132,8 +2102,8 @@ export class Editor {
    */
   move(id: string, parentId: string, index: number): void {
     if (id === parentId) return;
-    const found = locate(this.activeRoot(), id);
-    const parentLoc = locate(this.activeRoot(), parentId);
+    const found = this.locateEditable(id);
+    const parentLoc = this.locateEditable(parentId);
     if (!found || !found.parent || !parentLoc || !isContainer(parentLoc.node)) return;
     if (found.node.locked) return; // locked — non-movable (host-nodes spec §B.2)
     if (contains(this.activeRoot(), id, parentId)) return; // cycle guard
@@ -2157,7 +2127,9 @@ export class Editor {
 
   /** Duplicate a node in place (fresh ids), inserting the copy right after it.
    *  A locked node CAN be duplicated; the copy is author-owned, so its lock is
-   *  cleared (host-nodes spec §B.2). */
+   *  cleared (host-nodes spec §B.2). A CLAIMED one can too, for the same reason
+   *  and one more: the copy lands beside the subtree rather than in it, so it
+   *  changes nothing the holder is looking at (`locate`, not `locateEditable`). */
   duplicate(id: string): string | undefined {
     const found = locate(this.activeRoot(), id);
     if (!found || !found.parent) return undefined; // can't duplicate the root

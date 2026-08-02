@@ -12,10 +12,10 @@
 import * as React from "react";
 import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/silicaui-html";
 import { renderSite } from "@wizeworks/silicaui-html";
-import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizeworks/silicaui-react";
+import { Button, ToggleGroup, Kbd, EmptyState } from "@wizeworks/silicaui-react";
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import { Editor } from "../engine";
-import type { HistoryDelegate, PageMeta } from "../engine";
+import type { HistoryDelegate, PageMeta, Peer } from "../engine";
 import type { Op, OpMeta } from "../ops";
 import { DraftStore } from "../../shared/persistence";
 import { EditorProvider, StudioThemeProvider, useActiveTree, useEditingSymbol, useEditor, useHistory, usePages, useTheme } from "./editor-context";
@@ -38,7 +38,8 @@ import { Inspector } from "./Inspector";
 import { BreakpointProvider } from "./breakpoint-context";
 import { useThemeWebfonts } from "./google-fonts-loader";
 import { Icon } from "../../shared/react/Icon";
-import { IconItem, PanelHead } from "../../shared/react/chrome";
+import { IconItem, PanelHead, PanelTabs } from "../../shared/react/chrome";
+import type { PanelTabSpec } from "../../shared/react/chrome";
 import type { LayerDepth } from "../layer-tree";
 
 type Mode = "page" | "layout" | "component" | "theme";
@@ -72,29 +73,44 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
 }
 
 /**
- * How much of the layer tree to list. "Simple" hides the layout-only wrappers
- * that make a document read like markup; "All layers" is the full structure,
- * one click away — progressive disclosure over one tree, never a second panel.
+ * How much of the layer tree to list. Simple (the default) hides the layout-only
+ * wrappers that make a document read like markup; pressed shows the full
+ * structure — progressive disclosure over one tree, never a second panel.
  *
- * A pill group, like the Layers/Insert pair above it: this switches the MODE of
- * one surface rather than paging between two, which is what a tab would mean.
+ * IT IS ONE ICON OFF THE END OF THE LAYERS/INSERT TAB STRIP, not a bar. It used to be a
+ * full-width `Simple | Detailed` pill group on its own row, and that was wrong
+ * twice over. It spent a whole 40px band of a rail whose only scarce resource is
+ * vertical space, on a control most people set once; and two labelled halves
+ * directly under the Layers/Insert tabs read as a SECOND navigation decision,
+ * when this is a filter applied TO the tree those tabs already chose. Folding it
+ * into the header says so structurally: it sits with the tab it modifies, and
+ * costs nothing.
+ *
+ * The accessible name is fixed and the state is `aria-pressed` — a toggle whose
+ * LABEL flips is a control that changes identity under a screen reader, and you
+ * can never tell whether the words describe the current state or the next one.
+ * The `title` carries the plain-English version of both states for the mouse.
  */
-function LayerDepthBar({ value, onChange }: { value: LayerDepth; onChange: (v: LayerDepth) => void }) {
+function LayerDepthToggle({ value, onChange }: { value: LayerDepth; onChange: (v: LayerDepth) => void }) {
+  const detailed = value === "all";
   return (
-    <div className="flex-none px-2 pt-2">
-      <ToggleGroup
-        className="toggle-group-xs w-full"
-        aria-label="Layer detail"
-        value={[value]}
-        onValueChange={(v: string[]) => v.length && onChange(last(v, value) as LayerDepth)}
-      >
-        {/* Deliberately NOT "All layers": the tab directly above this is
-            "Layers", and a by-name lookup for it would match both. Two
-            parallel adjectives read better here anyway. */}
-        <ToggleGroupItem value="simple" className="flex-1">Simple</ToggleGroupItem>
-        <ToggleGroupItem value="all" className="flex-1">Detailed</ToggleGroupItem>
-      </ToggleGroup>
-    </div>
+    <Button
+      type="button"
+      size="xs"
+      shape="square"
+      // A real component state, not a hand-mixed tint: ghost when off, and the
+      // `soft` primary the rest of the chrome uses for "this filter is armed".
+      variant={detailed ? "soft" : "ghost"}
+      color={detailed ? "primary" : undefined}
+      className="flex-none"
+      aria-pressed={detailed}
+      aria-label="Show layout wrappers"
+      title={detailed ? "Showing every layer — click for the simple tree" : "Show every layer, including layout wrappers"}
+      data-testid="layer-depth"
+      onClick={() => onChange(detailed ? "simple" : "all")}
+    >
+      <Icon name="code" />
+    </Button>
   );
 }
 
@@ -159,6 +175,16 @@ function Chrome({
   // never enters the document.
   const [layerDepth, setLayerDepth] = React.useState<LayerDepth>("simple");
   const [publishing, setPublishing] = React.useState(false);
+
+  // Component mode with no master open has no tree to list and nothing to insert
+  // INTO, so Insert isn't offered — and if it was the open tab when the author
+  // closed the component, the rail falls back to Layers rather than showing a
+  // dead panel. (Theme mode has no node rails at all.)
+  const showTree = mode !== "component" || Boolean(editingSymbol);
+  const leftTabs: PanelTabSpec[] = showTree
+    ? [{ id: "layers", label: "Layers", icon: "list" }, { id: "insert", label: "Insert", icon: "plus" }]
+    : [{ id: "layers", label: "Layers", icon: "list" }];
+  const activeLeftTab = leftTabs.some((t) => t.id === leftTab) ? leftTab : "layers";
 
   // Publish = hand the host the whole site: the structured `Site` (to store +
   // re-open) AND every page composed to production HTML (to deploy). The builder
@@ -387,58 +413,45 @@ function Chrome({
                 <ThemeEditor />
               </div>
             </>
-          ) : mode === "component" ? (
-            <>
-              {/* The component library sits above Layers/Insert; the tree tools show
-                  only once a component is open (there's a master to edit). */}
-              <ComponentsPanel />
-              {editingSymbol && (
-                <>
-                  <PanelHead>
-                    <ToggleGroup
-                      className="toggle-group-xs w-full"
-                      aria-label="Left panel"
-                      value={[leftTab]}
-                      onValueChange={(v: string[]) => v.length && setLeftTab(last(v, leftTab) as "layers" | "insert")}
-                    >
-                      <IconItem value="layers" icon="list" className="flex-1">Layers</IconItem>
-                      <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
-                    </ToggleGroup>
-                  </PanelHead>
-                  {leftTab === "layers" && <LayerDepthBar value={layerDepth} onChange={setLayerDepth} />}
-                  <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
-                    {leftTab === "layers"
-                      ? <Navigator key={`component:${editingSymbol.id}`} depth={layerDepth} />
-                      : <Palette />}
-                  </div>
-                </>
-              )}
-            </>
           ) : (
-            <>
-              {/* Pages (or, in Layout mode, layouts) sit above Layers/Insert —
-                  a navigation peer to the tree, switching what it shows. */}
-              {mode === "layout" ? <LayoutsPanel /> : <PagesPanel />}
-              <PanelHead>
-                <ToggleGroup
-                  className="toggle-group-xs w-full"
-                  aria-label="Left panel"
-                  value={[leftTab]}
-                  onValueChange={(v: string[]) => v.length && setLeftTab(last(v, leftTab) as "layers" | "insert")}
-                >
-                  <IconItem value="layers" icon="list" className="flex-1">Layers</IconItem>
-                  <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
-                </ToggleGroup>
-              </PanelHead>
-              {leftTab === "layers" && <LayerDepthBar value={layerDepth} onChange={setLayerDepth} />}
-              <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
-                {/* Remount the Navigator on a Page/Layout switch AND on a page
-                    switch so its expanded set reseeds for the tree now in view. */}
-                {leftTab === "layers"
-                  ? <Navigator key={`${mode}:${activeId}`} depth={layerDepth} />
-                  : <Palette />}
-              </div>
-            </>
+            /* Layers / Insert ARE this rail's header — the same first-class
+               underline strip the Inspector uses on the right, not a pill group
+               under a separate title bar. They are the two PAGES of the rail, and
+               the switcher above them (Pages, Layouts, Components) belongs to the
+               Layers page: it chooses which tree the layers show, so it is a
+               child of that tab rather than a fixture that outranks both. */
+            <PanelTabs
+              tabs={leftTabs}
+              value={activeLeftTab}
+              onValueChange={(id) => setLeftTab(id as "layers" | "insert")}
+              ariaLabel="Left panel"
+              testIdPrefix="left-tab"
+              actions={activeLeftTab === "layers" && showTree
+                ? <LayerDepthToggle value={layerDepth} onChange={setLayerDepth} />
+                : undefined}
+            >
+              {activeLeftTab === "layers" ? (
+                <>
+                  {mode === "component" ? <ComponentsPanel /> : mode === "layout" ? <LayoutsPanel /> : <PagesPanel />}
+                  {/* Remount the Navigator on a Page/Layout/Component switch AND on
+                      a page switch so its expanded set reseeds for the tree now in
+                      view. In Component mode with nothing open there is no master
+                      to list — the picker above is the whole panel. */}
+                  {showTree && (
+                    <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
+                      <Navigator
+                        key={mode === "component" ? `component:${editingSymbol!.id}` : `${mode}:${activeId}`}
+                        depth={layerDepth}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
+                  <Palette />
+                </div>
+              )}
+            </PanelTabs>
           )}
         </ResizablePanel>
         <ResizeHandle />
@@ -497,7 +510,9 @@ function Chrome({
 
       {/* footer — the STATUS BAR. Everything in it is a fact about the session
           (which surface, which width), never a control; that's why `mode` and
-          `device` read here rather than beside the toggles that set them. */}
+          `device` read here rather than beside the toggles that set them. A fact
+          may DISCLOSE its own detail (see `statusBarSlot` / `StatusItem`); what
+          it may not do is act. */}
       <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content">
         <span className="text-primary font-semibold capitalize">{mode}</span>
 
@@ -506,8 +521,7 @@ function Chrome({
             lock holder. The header's `toolbarStatusSlot` is the same kind of
             content one floor up, for a host that wants it at eye level; this is
             where status BELONGS, and the engine's own two children are the
-            argument. Non-interactive only: a 28px strip is nowhere to put a
-            control, and keeping it text costs no tab stop.
+            argument.
             Unreachable for a host otherwise — `<footer>` is engine-owned, so the
             alternatives are a second status bar stacked below `<Builder>` or a
             portal into our markup at a computed index (breaking the first time
@@ -642,14 +656,52 @@ export interface BuilderProps {
    * header slot for the one or two things that must be at eye level, this for the
    * rest — or this alone.
    *
-   * Non-interactive content only, and more strictly than in the header: the strip
-   * is 28px tall, and the engine's own children are plain text. A host can't
-   * reach this position any other way — `<footer>` is engine-owned, and the
-   * alternatives are a second status bar stacked under `<Builder>` or a portal
-   * into our markup at a computed index, which breaks silently the first time the
-   * footer's children change.
+   * Facts, not controls — but a fact MAY be a disclosure for its own detail.
+   * Clicking "3 broken" to see which three is reading the same fact at more
+   * depth, not a second action, and it is what every status bar in every IDE
+   * does; the strip stops being a status bar the moment the number and the list
+   * are two floors apart. What stays out is anything that ACTS — send, save,
+   * publish, navigate away — which belongs in `toolbarSlot` beside Publish,
+   * where a person looks for actions. `StatusItem` is that affordance in one
+   * component: a `<span>` with no `onClick`, a ghost `btn-xs` (24px inside the
+   * 28px strip, so the row height never moves) with one.
+   *
+   * A host can't reach this position any other way — `<footer>` is
+   * engine-owned, and the alternatives are a second status bar stacked under
+   * `<Builder>` or a portal into our markup at a computed index, which breaks
+   * silently the first time the footer's children change.
    */
   statusBarSlot?: React.ReactNode;
+  /**
+   * The other people in this document, from whatever presence channel the host
+   * already runs. Pass the full roster on every change; the engine diffs it.
+   *
+   * ```tsx
+   * <Builder peers={[{ id: sock, name: 'Ana', selection: [nodeId], claim: [nodeId] }]} />
+   * ```
+   *
+   * Two effects, and they are deliberately separable:
+   *
+   *  - `selection` is DRAWN — a named ring on the canvas and a marker in the
+   *    Navigator. Pass it alone and the editor gains attribution and nothing
+   *    else: co-editing already works, but two authors on one page watch a
+   *    heading rewrite itself under the cursor with nothing on screen connecting
+   *    that to a name in the toolbar.
+   *  - `claim` is ENFORCED — the local editor greys that subtree, names the
+   *    holder, and refuses to mutate anything inside it, while everything around
+   *    it stays editable.
+   *
+   * A claim is advisory and the host owns its lifetime: start one on focus, end
+   * it on blur or a timeout. It is not `setLocked` and not correctness
+   * machinery — per-node last-write-wins, the op log and draft history already
+   * keep the document right. It exists to stop two people making a mess they
+   * then have to untangle by hand. Nothing is relayed and nothing lands on the
+   * undo stack, so a claim can never be why a remote op was dropped.
+   *
+   * The engine has the same thing imperatively (`editor.setPeers`), which is
+   * what this prop calls; use whichever matches how presence reaches you.
+   */
+  peers?: readonly Peer[];
   /**
    * Whether to show the canvas data on/off toggle. Defaults to true. A host whose
    * authors are non-technical can hide it: the control's effect is invisible on a
@@ -728,6 +780,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
   toolbarSlot,
   toolbarStatusSlot,
   statusBarSlot,
+  peers,
   dataToggle = true,
   initialMode = "page",
   onModeChange,
@@ -761,6 +814,15 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
     }),
     [],
   );
+
+  // Presence, pushed into the engine so the canvas can draw it and the mutation
+  // path can refuse a claimed subtree. Runs on every editor swap as well as
+  // every roster change: a restore mints a NEW editor, and one that didn't know
+  // who else was here would let the author edit straight into someone's claim.
+  // `setPeers` diffs by content, so a heartbeat carrying no news is free.
+  React.useEffect(() => {
+    editor?.setPeers(peers ?? []);
+  }, [editor, peers]);
 
   // Boot: restore a saved draft if one exists, else seed from the `document` prop.
   React.useEffect(() => {

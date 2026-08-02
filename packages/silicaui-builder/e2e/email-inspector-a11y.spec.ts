@@ -51,7 +51,7 @@ async function hijackingLabels(page: Page, sel: string) {
 }
 
 async function insert(page: Page, key: string): Promise<void> {
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator(`[data-insert-key="${key}"]`).click();
 }
 

@@ -24,9 +24,9 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function insertBlock(page: Page, key: string): Promise<void> {
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator(`[data-insert-key="block:${key}"]`).click();
-  await page.getByRole("button", { name: "Layers" }).click(); // back to selection view
+  await page.getByRole("tab", { name: "Layers" }).click(); // back to selection view
 }
 
 test("Component mode: create a blank component from scratch, edit it, and place it", async ({ page }) => {
@@ -53,9 +53,9 @@ test("Component mode: create a blank component from scratch, edit it, and place 
 
   // Back on a page, the new component is insertable and renders its master.
   await page.getByRole("button", { name: "Page", exact: true }).click();
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key^="symbol:"]').click();
-  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   await expect(canvas.getByText("Promo banner")).toBeVisible();
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -70,9 +70,9 @@ test("drill into an instance on the canvas and override text in place", async ({
   await page.getByRole("button", { name: "Save as component" }).click();
 
   // Add a second instance so we can prove the override is per-instance.
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key^="symbol:"]').click();
-  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   await expect(canvas.getByText("Simple, transparent pricing")).toHaveCount(2);
 
   // Double-click the heading INSIDE the first instance → inline edit → override.
@@ -115,14 +115,14 @@ test("save-as-component creates an instance, propagates a master edit, and detac
   await expect(canvas.getByText("Simple, transparent pricing")).toBeVisible();
 
   // The component now appears in the Insert palette's Components group.
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const symbolRow = page.locator('[data-insert-key^="symbol:"]');
   await expect(symbolRow).toHaveCount(1);
   const symbolKey = await symbolRow.getAttribute("data-insert-key");
 
   // Insert a SECOND instance of it (click-insert appends relative to selection).
   await symbolRow.click();
-  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   // Two instances now render the same pricing copy.
   await expect(canvas.getByText("Simple, transparent pricing")).toHaveCount(2);
 
@@ -164,7 +164,7 @@ test("save-as-component creates an instance, propagates a master edit, and detac
   await expect(canvas.getByText("Just this one")).toHaveCount(1); // detached copy kept its text
   await expect(canvas.getByText("Shared pricing headline")).toHaveCount(1); // the still-linked instance
   // The component still exists in the palette (one instance remains linked).
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await expect(page.locator(`[data-insert-key="${symbolKey}"]`)).toHaveCount(1);
 
   expect(errors, errors.join("\n")).toHaveLength(0);

@@ -42,7 +42,7 @@ async function insert(page: Page, key: string): Promise<void> {
 test("Dialog family (Dialog/Drawer/AlertDialog) insert with a real trigger + visible content, no button-in-button", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const canvas = page.locator(".sui-canvas");
 
   await insert(page, "dialog");
@@ -68,7 +68,7 @@ test("Dialog family (Dialog/Drawer/AlertDialog) insert with a real trigger + vis
 test("Popover / Tooltip / CommandPalette / PreviewCard insert and their content is visible on canvas", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const canvas = page.locator(".sui-canvas");
 
   await insert(page, "popover");
@@ -90,7 +90,7 @@ test("Popover / Tooltip / CommandPalette / PreviewCard insert and their content 
 test("TreeView / Wizard / Collapsible insert with correct nested structure", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const canvas = page.locator(".sui-canvas");
 
   await insert(page, "tree-view");
@@ -116,7 +116,7 @@ test("TreeView / Wizard / Collapsible insert with correct nested structure", asy
 test("Carousel / AppShell insert with correct nested structure", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const canvas = page.locator(".sui-canvas");
 
   await insert(page, "carousel");
@@ -161,7 +161,7 @@ for (const [label, keys] of Object.entries(SMOKE_BATCHES)) {
   test(`smoke: ${label} insert without React warnings`, async ({ page }) => {
     const errors = trackErrors(page);
     await ready(page);
-    await page.getByRole("button", { name: "Insert" }).click();
+    await page.getByRole("tab", { name: "Insert" }).click();
     const canvas = page.locator(".sui-canvas");
 
     for (const key of keys) {

@@ -30,7 +30,7 @@ import {
   sanitizeElement,
   walk,
 } from "@wizeworks/silicaui-html";
-import { useActiveRoot, useActiveTree, useDocument, useEditor, useSelectedNode, useSelection, useSelectionSet } from "./editor-context";
+import { useActiveRoot, useActiveTree, useDocument, useEditor, usePeers, useSelectedNode, useSelection, useSelectionSet } from "./editor-context";
 import { useHost } from "./host-context";
 import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
@@ -44,6 +44,8 @@ import { paletteGroups, paletteItemByKey, catalogForHost, makeInsertNode } from 
 import type { PaletteGroup } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
+import { PeerOverlay } from "../../shared/react/PeerOverlay";
+import { claimedNodeIds, nodeById, peerColor, peerSelectionIndex } from "../peers";
 
 const DEFAULT_GROUPS = paletteGroups();
 
@@ -273,6 +275,18 @@ interface RenderCtx {
   /** Nodes production would DROP (`visible:false`, or `omitWhenEmpty` at zero
    *  items) but the canvas keeps selectable. Rendered ghosted. */
   hiddenIds?: ReadonlySet<string>;
+  /**
+   * Nodes another editor is HOLDING — the claim roots and everything under them,
+   * flattened, so a per-node lookup is a Set hit rather than an ancestor walk on
+   * each of the hundreds of nodes on a page.
+   *
+   * They still render and still SELECT (you can look at what someone else is
+   * editing, and the Inspector then says who has it) — what they lose is the
+   * write affordances: no in-place text editing, no drag, no drop target. The
+   * engine refuses the mutations anyway; this is so the author finds out by the
+   * cursor rather than by a click that does nothing.
+   */
+  claimedIds?: ReadonlySet<string>;
   /** Collection-bound node id → how many items it will actually render (see
    *  `useResolved`). Drives the repeat GHOSTS — the canvas half of §12's
    *  per-instance `limit`. */
@@ -307,6 +321,12 @@ function ring(id: string | undefined, ctx: RenderCtx): string {
 function decorations(id: string | undefined, ctx: RenderCtx): string {
   let s = "";
   if (id && id === ctx.dnd.draggingId) s += " opacity-40";
+  // Held by another editor. `cursor-not-allowed` is the load-bearing half — it
+  // says "not yours" on hover, before the click. Deliberately NOT dimmed: this is
+  // real content the author still has to read to work AROUND it, and this editor
+  // reserves fading for things that genuinely aren't to be read (the drag ghost,
+  // a node production will drop). The named peer ring already says who has it.
+  if (id && ctx.claimedIds?.has(id)) s += " cursor-not-allowed select-none";
   // SECONDARY selection. The `SelectionOverlay` draws one measured ring for the
   // primary node; the rest of the set gets an inline outline instead of N more
   // overlays, which would each need their own geometry subscription for no
@@ -557,15 +577,23 @@ function CanvasNode({
       }
     } else if (id) {
       const info: NodeInfo = { id, parentId, index, node };
-      const draggable = parentId !== undefined; // the root can't be moved
+      // Another editor is holding this subtree. It stays SELECTABLE — looking at
+      // what someone else is working on is fine, and the Inspector is where the
+      // author finds out who has it — but every write affordance goes: no drag,
+      // no drop target, no in-place text edit. The engine refuses those anyway;
+      // dropping them here is how the author learns before the click, rather than
+      // from a gesture that silently does nothing.
+      const claimed = ctx.claimedIds?.has(id) ?? false;
+      const draggable = parentId !== undefined && !claimed; // the root can't be moved
       inter["data-sui-id"] = id;
       // A stable hook for the unresolved state — chrome styling, e2e, and a
       // host's own tooling shouldn't have to pattern-match utility classes.
       if (ctx.unresolvedIds?.has(id)) inter["data-sui-unresolved"] = node.data?.ref ?? "";
+      if (claimed) inter["data-sui-claimed"] = "";
       inter.draggable = draggable;
       inter.onClick = (e: React.MouseEvent) => ctx.onSelect(id, e);
       inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(id, e);
-      if (inlineEditable(node)) {
+      if (inlineEditable(node) && !claimed) {
         inter.onDoubleClick = (e: React.MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
@@ -580,11 +608,17 @@ function CanvasNode({
       inter.onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        // A held subtree is not a drop target. Swallowing the event rather than
+        // letting it bubble matters: without this the drop lands on the nearest
+        // unclaimed ANCESTOR, so dragging onto someone's block quietly inserts
+        // beside it — a worse outcome than nothing happening.
+        if (claimed) return;
         ctx.dnd.onDragOver(info, e);
       };
       inter.onDrop = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (claimed) return;
         ctx.dnd.onDrop(info, e);
       };
       inter.onDragEnd = (e: React.DragEvent) => {
@@ -951,6 +985,24 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
     () => new Map([...shellR.repeatCounts, ...pageR.repeatCounts]),
     [shellR, pageR],
   );
+  // ── other editors ──────────────────────────────────────────────────────────
+  // Both derivations are one pass over the roster + one walk of the claimed
+  // subtrees, memoized on `doc` as well as `peers`: a claim covers descendants,
+  // so an insert under a claimed node changes the flattened set with no presence
+  // tick at all.
+  const peers = usePeers();
+  const claimedIds = React.useMemo(() => new Set(claimedNodeIds(root, peers).keys()), [peers, root]);
+  const peerMarks = React.useMemo(() => {
+    const index = peerSelectionIndex(peers);
+    return [...index].flatMap(([nodeId, on]) => {
+      const first = on[0];
+      // A selection on a node that isn't in the tree we're showing (another page,
+      // the frame while we're on a body) is not an error — it's just not here.
+      if (!first || !nodeById(root, nodeId)) return [];
+      return [{ id: first.id, nodeId, name: first.name, color: peerColor(first), also: on.length - 1 }];
+    });
+  }, [peers, root]);
+
   const customCss = React.useMemo(() => customColorCss(theme, ".sui-canvas"), [theme]);
   // Every named role reaches the canvas the same way it reaches the board.
   void rolesOf(theme);
@@ -1102,6 +1154,7 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
       : undefined,
     unresolvedIds,
     hiddenIds,
+    claimedIds,
     repeatCounts,
   };
 
@@ -1134,6 +1187,11 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
           label={selectedNode ? nodeName(selectedNode) : undefined}
           version={doc}
         />
+        {/* Other editors' selections, under the local ring. Drawn from the same
+            measured geometry, dashed and in each peer's own color, so "Ana is in
+            this block" is visible on the canvas rather than inferable from a
+            count in the toolbar. */}
+        <PeerOverlay boardRef={boardRef} marks={peerMarks} version={doc} />
         <DropOverlay boardRef={boardRef} hint={dropMarker} />
       </div>
     </div>

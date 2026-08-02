@@ -24,7 +24,7 @@ const pageWordmark = (page: Page) => page.locator(".sui-canvas main .wordmark").
  *  Wordmark lives in the layout frame — a locked backdrop in Page mode — so
  *  it's deliberately not selectable here. */
 async function insertWordmark(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="wordmark"]').click();
   await expect(page.locator(".sui-canvas main .wordmark")).toHaveCount(1);
   // Inserting selects the new node, so the Inspector is already on it.

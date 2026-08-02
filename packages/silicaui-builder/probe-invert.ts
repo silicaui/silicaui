@@ -140,8 +140,6 @@ roundTrip("removePage", (ed) => {
 });
 roundTrip("renamePage", (ed) => ed.renamePage("pg_home", "Start"));
 roundTrip("setPageSlug", (ed) => ed.setPageSlug("pg_home", "/start"));
-roundTrip("setPageFrame(null)", (ed) => ed.setPageFrame("pg_home", null));
-roundTrip("setPageFrame(named)", (ed) => ed.setPageFrame("pg_home", "docs"));
 roundTrip("reorderPages", (ed) => {
   ed.addPage("Two");
   ed.reorderPages(ed.pagesView.pages.map((p) => p.id).reverse());
@@ -225,57 +223,6 @@ console.log("\ncontract");
   check("...with a freshly-minted replacement id", planned?.kind === "symbol.delete" && idOf(planned.detach[0]!.node) !== planned.detach[0]!.nodeId);
   check("...and the symbol is STILL THERE (it planned, it didn't delete)", ed.symbol(sym) !== undefined);
   check("an unknown symbol plans nothing", ed.planSymbolDelete("nope") === undefined);
-}
-
-console.log("\nnamed layouts");
-roundTrip("createLayout", (ed) => ed.createLayout("Docs"));
-roundTrip("renameLayout", (ed) => {
-  const id = ed.createLayout("Docs");
-  ed.renameLayout(id, "Documentation");
-});
-roundTrip("deleteLayout (and the pages it reassigns)", (ed) => {
-  const id = ed.createLayout("Docs");
-  ed.setPageFrame("pg_home", id);
-  ed.deleteLayout(id);
-});
-roundTrip("editing a NAMED layout's tree", (ed) => {
-  const id = ed.createLayout("Docs");
-  ed.editLayout(id);
-  ed.setActiveTree("frame");
-  ed.setClass(idOf(ed.frameRoot()!)!, "shell bg-base-300");
-});
-{
-  const seed = seedSite();
-  const { ed } = taped(seed);
-  const id = ed.createLayout("Docs");
-  ed.setPageFrame("pg_home", id);
-  check("a page can point at a named layout", ed.extractSite().pages[0]!.frameId === id);
-  ed.deleteLayout(id);
-  check("deleting the layout returns the page to the DEFAULT, not to bare", ed.extractSite().pages[0]!.frameId === undefined);
-  check("...and the layout is gone", ed.layouts.length === 1);
-}
-{
-  // The op target has to carry the layout id, or a peer applies the edit to the
-  // DEFAULT shell — silently rewriting the wrong tree on every other client.
-  const seed = seedSite();
-  const { ed, ops } = taped(seed);
-  const id = ed.createLayout("Docs");
-  ed.editLayout(id);
-  ed.setActiveTree("frame");
-  const start = ops.length;
-  ed.setClass(idOf(ed.frameRoot()!)!, "shell bg-base-300");
-  const emitted = ops.slice(start).filter((o) => o.kind === "node.setClass");
-  check(
-    "a named-layout edit targets that layout by id",
-    emitted.length > 0 && emitted.every((o) => o.target.scope === "frame" && o.target.id === id),
-    JSON.stringify(emitted.map((o) => o.target)),
-  );
-
-  const peer = new Editor(structuredClone(seed));
-  peer.applyRemoteOps(ops);
-  const site = peer.extractSite();
-  check("a peer applies it to the NAMED layout", JSON.stringify(site.frames?.[id]?.root).includes("bg-base-300"));
-  check("...and leaves the DEFAULT shell untouched", !JSON.stringify(site.frame?.root).includes("bg-base-300"));
 }
 
 console.log(failures === 0 ? "\nALL INVERT PROBES PASSED" : `\n${failures} INVERT PROBE(S) FAILED`);

@@ -33,6 +33,13 @@ export type {
   SelectableNode,
   AssetRef,
 } from "./host";
+// Other editors. `Peer` is what `<Builder peers>` / `editor.setPeers` take;
+// `peerColor` is exported so a host's own presence UI (a toolbar avatar stack, a
+// "3 editing" pill) paints the same person the same color the canvas ring does —
+// two different colors for one person is worse than no color at all.
+export type { Peer } from "../engine";
+export { peerColor } from "../peers";
+export { usePeers, useClaim } from "./editor-context";
 export { useHost } from "./host-context";
 export {
   EditorProvider,
@@ -71,3 +78,8 @@ export {
   selectParent,
   selectSibling,
 } from "../commands";
+// The status-bar item shape. `statusBarSlot` takes any node, but a host that
+// wants a count to reveal what it counts should use this rather than a bare
+// `<button>`: it keeps the 28px strip's height, carries the disclosure ARIA, and
+// stays a plain `<span>` for the ordinary non-interactive case.
+export { StatusItem } from "../../shared/react/chrome";

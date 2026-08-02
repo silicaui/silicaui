@@ -22,6 +22,10 @@
       "types": "./dist/blocks/index.d.ts",
       "import": "./dist/blocks/index.js"
     },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "import": "./dist/theme.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.js",
@@ -35,6 +39,10 @@
       "./blocks": {
         "types": "./dist/blocks/index.d.ts",
         "import": "./dist/blocks/index.js"
+      },
+      "./theme": {
+        "types": "./dist/theme.d.ts",
+        "import": "./dist/theme.js"
       }
     }
   },
@@ -45,10 +53,19 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-data-sources.mjs && node verify-theme-fonts.mjs && node verify-theme-presets.mjs && node verify-csp.mjs && node verify-scannable.mjs && node verify-contrast.mjs",
+    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-data-sources.mjs && node verify-theme-fonts.mjs && node verify-theme-presets.mjs && node verify-csp.mjs && node verify-scannable.mjs && node verify-contrast.mjs && node verify-theme-css.mjs",
     "golden": "node golden.mjs"
   },
+  "peerDependencies": {
+    "@wizeworks/silicaui": ">=0.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@wizeworks/silicaui": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@wizeworks/silicaui": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   },

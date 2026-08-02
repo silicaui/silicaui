@@ -46,7 +46,7 @@ export type { MakeId } from "./stamp";
 export { generateKeyBetween, compareOrd, ordNeighbors, ordAt, assignOrds, stripOrds } from "./ord";
 
 // The multi-page site container (§3): pages sharing one theme + frame.
-export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage, renderSite, frameFor, frameDiagnostic } from "./site";
+export { makePage, pageBody, slugify, siteFromDocument, pageDocument, renderPage, renderSite } from "./site";
 export type { RenderedPage } from "./site";
 
 // The block linter (§6.3).

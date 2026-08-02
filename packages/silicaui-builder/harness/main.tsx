@@ -1,8 +1,8 @@
 import "./styles.css";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { Builder, useEditor } from "@wizeworks/silicaui-builder/react";
-import type { BuilderHandle, BuilderHost, Editor, Op, OpMeta } from "@wizeworks/silicaui-builder/react";
+import { Builder, StatusItem, useEditor } from "@wizeworks/silicaui-builder/react";
+import type { BuilderHandle, BuilderHost, Editor, Op, OpMeta, Peer } from "@wizeworks/silicaui-builder/react";
 import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
 import type {
   EmailBuilderHandle,
@@ -453,6 +453,10 @@ const bus = window as unknown as {
   // currently holds, and every intent the builder reported.
   __savedBlocks?: readonly SavedBlock[];
   __savedBlockChanges: SavedBlockChange[];
+  // Presence, pushed in the way a real host's relay would: a full roster, from
+  // outside the editor. A spec can't produce a second client, so this is how one
+  // is stood in for.
+  __setPeers?: (peers: readonly Peer[]) => void;
 };
 bus.__changeCount = 0;
 bus.__ops = [];
@@ -467,6 +471,32 @@ bus.__savedBlockChanges = [];
  * declares, which is what a stale document (or a host whose catalog and
  * resolver disagree) actually produces in the wild.
  */
+/**
+ * The status-bar disclosure — a count that reveals what it counts, which is the
+ * one interactive thing the strip allows. Modelled on a host's pre-publish
+ * check: the number is ambient, and pressing it is how you find out which three.
+ */
+function StatusBarSlot() {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <StatusItem
+        data-testid="status-bar-slot"
+        onClick={() => setOpen((v) => !v)}
+        expanded={open}
+        controls="harness-status-detail"
+      >
+        3 editing · saved, not live yet
+      </StatusItem>
+      {open && (
+        <span id="harness-status-detail" data-testid="status-bar-detail" className="text-base-content">
+          Ana, Ben, Cai
+        </span>
+      )}
+    </>
+  );
+}
+
 function ToolbarSlot() {
   const editor = useEditor();
   React.useEffect(() => {
@@ -611,7 +641,26 @@ if (editorMode === "email") {
 } else {
   root.render(
     <React.StrictMode>
-      <Builder
+      <SiteHarness />
+    </React.StrictMode>,
+  );
+}
+
+/**
+ * The site builder, plus the one thing a host drives from OUTSIDE the editor:
+ * presence. A real host pushes `peers` from its own relay socket; the harness
+ * pushes it from `window.__setPeers` so a spec can put someone else in the
+ * document mid-test, which is the only way to exercise a ring drawn for a
+ * client that isn't this one.
+ */
+function SiteHarness() {
+  const [peers, setPeers] = React.useState<readonly Peer[]>([]);
+  React.useEffect(() => {
+    bus.__setPeers = setPeers;
+  }, []);
+  return (
+    <Builder
+        peers={peers}
         ref={(h) => {
           bus.__handle = h ?? undefined;
         }}
@@ -636,9 +685,8 @@ if (editorMode === "email") {
             All changes saved
           </span>
         }
-        statusBarSlot={<span data-testid="status-bar-slot">3 editing · saved, not live yet</span>}
-      />
-    </React.StrictMode>,
+        statusBarSlot={<StatusBarSlot />}
+    />
   );
 }
 

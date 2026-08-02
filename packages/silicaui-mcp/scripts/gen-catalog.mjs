@@ -34,7 +34,13 @@ if (!existsSync(demosDir)) {
 // `mention()` do that conversion at the point data is written to the catalog,
 // never at the point a path is built from a folder name.
 const scoped = (n) => `@wizeworks/${n}`;
-const mention = (s) => s.replace(/\bsilicaui(-[a-z]+)?\b/g, (m) => `@wizeworks/${m}`);
+// IDEMPOTENT on purpose. Source prose written before the scope rename says
+// "silicaui-behaviors" and needs scoping; prose written after it already says
+// "@wizeworks/silicaui-behaviors" and must be left alone. Without the lookbehind
+// the second kind got scoped a second time, and nine component descriptions
+// shipped naming `@wizeworks/@wizeworks/silicaui-charts` — a package that does
+// not exist, in the one file whose whole job is to not invent names.
+const mention = (s) => s.replace(/(?<!@wizeworks\/)\bsilicaui(-[a-z]+)?\b/g, (m) => `@wizeworks/${m}`);
 
 function writeJson(name, data) {
   writeFileSync(path.join(dataDir, name), JSON.stringify(data, null, 2) + "\n");
@@ -66,7 +72,7 @@ console.log("packages.json");
 const PACKAGES = [
   { name: "silicaui", purpose: "Tailwind v4 plugin — design tokens + component CSS classes (the vocabulary every other package builds on).", install: "pnpm add -D silicaui tailwindcss" },
   { name: "silicaui-react", purpose: "Typed React components over the silicaui classes, built on Base UI.", install: "pnpm add silicaui-react" },
-  { name: "silicaui-html", purpose: "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output).", install: "pnpm add silicaui-html" },
+  { name: "silicaui-html", purpose: "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output). The `/theme` subpath turns a Theme into CSS off the RENDER path: `customColorCss(theme)` emits every rule a build-time `@plugin \"silicaui\" { colors: … }` registration would have — for a color NAMED AT RUNTIME by a tenant in a theme editor, which no build-time list can carry — and `themeTokenCss(theme, selector, mode)` emits the custom properties those rules read (ship both, or the rules paint nothing). Needs silicaui, an optional peer; the root import stays dependency-free.", install: "pnpm add silicaui-html" },
   { name: "silicaui-behaviors", purpose: "Zero-dependency runtime that hydrates data-sui-* markers with interactivity (the vanilla-JS counterpart to silicaui-react's Base UI behavior).", install: "pnpm add silicaui-behaviors" },
   { name: "silicaui-builder", purpose: "The visual document editor/engine that powers the SilicaUI sitebuilder — also consumable directly: the framework-neutral engine at the root import, the `Builder` React component + `BuilderHost` interface (catalog/inspectorPanels/pickAsset) at `/react`, and the email editor at `/email` and `/email/react` (its own `EmailBuilderHost` seam, plus a host-owned `frame` for fixed chrome composed around — never into — the authored email, `locked` nodes for undeletable in-document blocks, a `link` group node that gives one destination to the blocks inside it — so a card in a `collection` repeat deep-links to its own record, projected as per-child inline anchors rather than one anchor around the card, which Outlook drops — and a controlled `savedBlocks`/`onSavedBlocksChange` pair so the reusable-block library can live on the account instead of one browser).", install: "pnpm add silicaui-builder silicaui-react" },
   { name: "silicaui-charts", purpose: "Apache ECharts wrapped and auto-themed to Silica's design tokens.", install: "pnpm add silicaui-charts silicaui-react" },
@@ -879,43 +885,46 @@ try {
 //                                  generation time, so the allowlist can't
 //                                  drift from what the projector enforces
 console.log("schema.json");
+
+/** Every interface in one file, by name, with members + own doc. Module-scope
+ *  because two sections need it (the node-tree schema below, and themes.json
+ *  after it, which publishes the `Theme` interface from this same file). */
+const parseTypes = (relPath) => {
+  const filePath = path.join(packagesRoot, relPath);
+  const src = readFileSync(filePath, "utf8");
+  const sf = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const out = {};
+  ts.forEachChild(sf, (node) => {
+    if (!ts.isInterfaceDeclaration(node)) return;
+    out[node.name.text] = {
+      doc: getLeadingDoc(src, node, sf),
+      extends: (node.heritageClauses ?? []).flatMap((h) => h.types.map((t) => t.expression.getText(sf))),
+      members: node.members
+        // METHOD signatures too, not just properties — `ResolveHost`'s whole
+        // surface is `resolveBinding?(ref, scope): Resolved | undefined`, so a
+        // property-only walk published the host contract as an EMPTY member
+        // list: the one interface an agent most needs, silently blank.
+        .filter((m) => (ts.isPropertySignature(m) || ts.isMethodSignature(m)) && m.name)
+        .map((m) => ({
+          name: m.name.getText(sf),
+          optional: !!m.questionToken,
+          type: ts.isMethodSignature(m)
+            ? `(${m.parameters.map((p) => p.getText(sf)).join(", ")}) => ${m.type ? m.type.getText(sf) : "void"}`
+            : m.type
+              ? m.type.getText(sf)
+              : "unknown",
+          doc: getLeadingDoc(src, m, sf),
+        })),
+    };
+  });
+  return { src, sf, types: out };
+};
+
 let htmlSchema = null;
 try {
   const { RAW_ELEMENTS, GLOBAL_ATTRS } = await import(
     pathToFileURL(path.join(packagesRoot, "silicaui-html/dist/index.js")).href
   );
-
-  /** Every interface/type-alias in one file, by name, with members + own doc. */
-  const parseTypes = (relPath) => {
-    const filePath = path.join(packagesRoot, relPath);
-    const src = readFileSync(filePath, "utf8");
-    const sf = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-    const out = {};
-    ts.forEachChild(sf, (node) => {
-      if (!ts.isInterfaceDeclaration(node)) return;
-      out[node.name.text] = {
-        doc: getLeadingDoc(src, node, sf),
-        extends: (node.heritageClauses ?? []).flatMap((h) => h.types.map((t) => t.expression.getText(sf))),
-        members: node.members
-          // METHOD signatures too, not just properties — `ResolveHost`'s whole
-          // surface is `resolveBinding?(ref, scope): Resolved | undefined`, so a
-          // property-only walk published the host contract as an EMPTY member
-          // list: the one interface an agent most needs, silently blank.
-          .filter((m) => (ts.isPropertySignature(m) || ts.isMethodSignature(m)) && m.name)
-          .map((m) => ({
-            name: m.name.getText(sf),
-            optional: !!m.questionToken,
-            type: ts.isMethodSignature(m)
-              ? `(${m.parameters.map((p) => p.getText(sf)).join(", ")}) => ${m.type ? m.type.getText(sf) : "void"}`
-              : m.type
-                ? m.type.getText(sf)
-                : "unknown",
-            doc: getLeadingDoc(src, m, sf),
-          })),
-      };
-    });
-    return { src, sf, types: out };
-  };
 
   const schema = parseTypes("silicaui-html/src/schema.ts");
   const resolve = parseTypes("silicaui-html/src/resolve.ts");
@@ -1027,9 +1036,224 @@ try {
   );
 }
 
+// ── themes.json ──────────────────────────────────────────────────────────
+// The THEME layer, which the catalog did not advertise at all.
+//
+// `get_tokens` returned a `light` map and a `dark` map and never said how
+// either one is ACTIVATED, so `data-theme` — the single attribute the whole
+// system turns on, and the only sanctioned way to give a section a different
+// palette — appeared nowhere in this server. An agent that knew the eight
+// semantic roles and not the island had exactly one way to render a dark
+// section: hardcoded hex or a bespoke stylesheet. Both look right in a
+// screenshot and are permanently un-themeable, which is the same
+// fails-plausibly profile the node-tree schema section exists for.
+//
+// Same discipline as every section above — values derived, never described:
+//
+//   - the selectors        → by CALLING the plugin's own `buildBase()` and
+//                            reading the `[data-theme…]` keys it emits
+//   - the plugin options   → read off theme-plugin.js's own `options` accesses
+//   - the `Theme` shape    → TS AST over silicaui-html/src/schema.ts
+//   - the presets          → the real exported THEME_PRESETS, each one RESOLVED
+//                            through `resolveThemeTokens` (so a published map
+//                            is what a browser computes, dark deltas merged and
+//                            `-content` inks derived — not the authored bag)
+//   - contrast warnings    → `contrastWarnings` actually run, per mode
+//   - each preset's prose  → the comment above its own `name:` in themes.ts
+console.log("themes.json");
+let themesCatalog = null;
+try {
+  const { THEME_PRESETS, resolveThemeTokens, contrastWarnings, rolesOf, SURFACE_TOKENS, SEMANTIC_ROLES } =
+    await import(pathToFileURL(path.join(packagesRoot, "silicaui-html/dist/index.js")).href);
+  const { buildBase } = await import(pathToFileURL(path.join(packagesRoot, "silicaui/src/theme.js")).href);
+
+  // The real emitted selectors. A hand-written `[data-theme="dark"]` here would
+  // be a description of the CSS; this IS the CSS.
+  const base = buildBase();
+  const themeSelectors = Object.keys(base).filter((k) => k.startsWith("[data-theme"));
+  const builtInThemes = themeSelectors
+    .map((s) => /^\[data-theme="([^"]+)"\]$/.exec(s)?.[1])
+    .filter(Boolean);
+  // What the bare `[data-theme]` rule actually paints — the reason putting the
+  // attribute on a wrapper is enough, with no per-section CSS.
+  const surfaceProperties = Object.keys(base["[data-theme]"] ?? {});
+
+  // The `@plugin "@wizeworks/silicaui/theme"` option names, read off the
+  // plugin's own accesses rather than restated. `--*` token entries are
+  // collected by an Object.entries loop there and so aren't (and can't be) a
+  // fixed list — that's stated in prose instead.
+  const themePluginRel = "silicaui/src/theme-plugin.js";
+  const themePluginSrc = readFileSync(path.join(packagesRoot, themePluginRel), "utf8");
+  const pluginOptions = [
+    ...new Set(
+      [
+        ...themePluginSrc.matchAll(/options\.([a-zA-Z][a-zA-Z0-9]*)/g),
+        ...themePluginSrc.matchAll(/options\["([^"]+)"\]/g),
+      ].map((m) => m[1]),
+    ),
+  ].sort();
+  if (!pluginOptions.length) {
+    console.warn(`  ! no @plugin options extracted from ${themePluginRel} — the regex above is now wrong`);
+  }
+
+  // The `Theme` interface itself, plus the small function surface a host drives
+  // it with. Both from source: an agent handed a theme object needs the field
+  // names, and a builder/CMS needs to know `resolveThemeTokens` exists rather
+  // than re-implementing the dark merge (which is where the stale-ink bug its
+  // JSDoc describes came from in the first place).
+  const htmlSchemaTypes = parseTypes("silicaui-html/src/schema.ts").types;
+  const themesRel = "silicaui-html/src/themes.ts";
+  const themesPath = path.join(packagesRoot, themesRel);
+  const themeApi = ["rolesOf", "colorValue", "resolveThemeTokens", "contrastWarnings", "presetByName"].map((fn) => ({
+    name: fn,
+    doc: mention(extractExportDoc(themesPath, fn)),
+  }));
+  const runtimeCssRel = "silicaui-html/src/theme.ts";
+  const runtimeCssPath = path.join(packagesRoot, runtimeCssRel);
+  const runtimeCss = ["themeTokenCss", "customColorCss"].map((fn) => ({
+    name: fn,
+    doc: mention(extractExportDoc(runtimeCssPath, fn)),
+  }));
+
+  // Each preset's character — the comment sitting above its own `name:` inside
+  // the `defineTheme({ … })` call. It's the only prose that says what a preset
+  // is FOR, and twenty names alone ("clay", "dune", "frost") are unpickable
+  // without it.
+  const themesSrc = readFileSync(themesPath, "utf8");
+  const themesSf = ts.createSourceFile(themesPath, themesSrc, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const characterByName = {};
+  ts.forEachChild(themesSf, (node) => {
+    if (!ts.isVariableStatement(node)) return;
+    for (const decl of node.declarationList.declarations) {
+      if (decl.name.getText(themesSf) !== "THEME_PRESETS" || !ts.isArrayLiteralExpression(decl.initializer)) continue;
+      for (const el of decl.initializer.elements) {
+        const obj = ts.isCallExpression(el) ? el.arguments[0] : null;
+        if (!obj || !ts.isObjectLiteralExpression(obj)) continue;
+        const nameProp = obj.properties.find((p) => p.name?.getText(themesSf) === "name");
+        if (!nameProp) continue;
+        const key = nameProp.initializer.getText(themesSf).replace(/^["']|["']$/g, "");
+        const ranges = ts.getLeadingCommentRanges(themesSrc, nameProp.getFullStart()) ?? [];
+        // These ARE line comments, so `//` is a marker rather than part of a code
+        // example — stripped here, where that's known, and not in the shared
+        // `cleanComment` (which would rewrite every JSDoc containing one).
+        characterByName[key] = mention(
+          ranges
+            .map((r) => themesSrc.slice(r.pos, r.end))
+            .join("\n")
+            .split("\n")
+            .map((l) => l.replace(/^\s*\/\/\s?/, ""))
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim(),
+        );
+      }
+    }
+  });
+
+  const SHAPE_KEYS = new Set(["--radius-selector", "--radius-field", "--radius-box", "--border", "--depth"]);
+  const presets = THEME_PRESETS.map((theme) => {
+    const light = resolveThemeTokens(theme, "light");
+    const dark = resolveThemeTokens(theme, "dark");
+    const character = characterByName[theme.name] ?? "";
+    if (!character) console.warn(`  ! preset "${theme.name}" has no character comment above its \`name:\` in ${themesRel}`);
+    return {
+      name: theme.name,
+      character,
+      applyAs: `data-theme="${theme.name}"`,
+      mode: theme.mode ?? "light",
+      roles: rolesOf(theme),
+      // Provenance for a publish-time self-hosting step. A preset with no
+      // `fonts` inherits @wizeworks/silicaui's own system stack on purpose.
+      fonts: theme.fonts && Object.keys(theme.fonts).length ? theme.fonts : null,
+      shape: Object.fromEntries(Object.entries(theme.tokens).filter(([k]) => SHAPE_KEYS.has(k))),
+      light,
+      dark,
+      // Run, not asserted. Empty is the healthy state; a non-empty entry is a
+      // real legibility fact about a shipped preset, and hiding it would make
+      // this catalog the thing that vouched for it.
+      contrastWarnings: { light: contrastWarnings(theme, "light"), dark: contrastWarnings(theme, "dark") },
+    };
+  });
+  const unhealthy = presets.filter((p) => p.contrastWarnings.light.length || p.contrastWarnings.dark.length);
+  if (unhealthy.length) {
+    console.warn(
+      `  ! ${unhealthy.length} preset(s) ship a role whose ink fails WCAG AA — published as-is under contrastWarnings: ${unhealthy
+        .map((p) => p.name)
+        .join(", ")}`,
+    );
+  }
+
+  themesCatalog = {
+    note:
+      "A THEME is a set of token values applied through the `data-theme` attribute. It is the ONLY sanctioned way to change a palette: put the attribute on an element and everything inside resolves against that theme's tokens, with no per-theme CSS, no restyled components, and no literal hex anywhere. Colors, radii, border width, depth and the type faces all travel with it.",
+    mechanism: {
+      attribute: "data-theme",
+      selectors: themeSelectors,
+      builtIn: builtInThemes,
+      builtInNote:
+        "`light` and `dark` ship with the plugin — no registration needed. `[data-theme=\"light\"]` is emitted EXPLICITLY so a light island can sit inside a dark page as easily as the reverse. Every other name comes from a preset or an app's own `@plugin` block (see `declaring`).",
+      apply:
+        'Put it on <html> to theme a whole page: `<html data-theme="dark">`. Put it on any wrapper to theme one section: `<section data-theme="dark"> … </section>`. Nesting works and is the intended idiom — an island resolves against the nearest ancestor that carries the attribute.',
+      paints: surfaceProperties,
+      paintsNote:
+        "The bare `[data-theme]` rule paints these on the element itself, which is why a wrapper is sufficient and a section needs no CSS of its own. It is scoped to `[data-theme]` deliberately: Silica never repaints a host page that did not opt in, so it stays embeddable under another design system.",
+      darkMode:
+        "There is no `.dark` class and no separate dark stylesheet — dark IS a theme. Switch by setting `data-theme=\"dark\"` (usually on <html>, from a toggle or the server). To follow the OS instead, declare a theme with `prefersdark` (see `declaring`), which applies it under `@media (prefers-color-scheme: dark)` for a root that carries no explicit `data-theme`.",
+      presetModes:
+        "A NAMED preset carries both modes, and which one shows is the host's dark strategy rather than anything the name encodes: emit `themeTokenCss(theme, selector, mode)` twice, once per mode, under whichever selectors that strategy uses. `[data-theme=\"light\"]`/`[data-theme=\"dark\"]` above is simply the built-in strategy, not the only one.",
+      contentInk:
+        "Inside an island, `--color-base-content` and each role's `-content` are already the legible ink for that theme's surfaces. That is what makes `<Button variant=\"outline\">` resolve correctly in a dark section with no per-theme prop — and what a hardcoded hex or a `/opacity` ink permanently opts out of.",
+      never:
+        "Do NOT hand-write per-theme CSS, an inline `style` on a control, or a literal hex to get a different palette — none of them can respond to the theme they end up inside. A component's `color`/`variant` props plus an ancestor `data-theme` are the whole mechanism.",
+    },
+    declaring: {
+      plugin: "@wizeworks/silicaui/theme",
+      sourceFile: themePluginRel,
+      options: pluginOptions,
+      tokenNote:
+        "Any Silica token can also be set in the same block — `--color-*`, `--radius-*`, `--size-field`, `--border`, `--depth`, … (get_tokens lists them). Those entries are collected generically, so the list is open; the four named options above are the plugin's own switches.",
+      doc: mention(extractFirstDoc(path.join(packagesRoot, themePluginRel))),
+      contentNote:
+        "A `--color-X` with no matching `--color-X-content` gets a legible foreground auto-derived by measured contrast — declare one only to override that choice.",
+      partialNote:
+        "Partial overrides are fine: unspecified tokens fall through to the built-in theme via the cascade. Load the theme plugin AFTER `@plugin \"@wizeworks/silicaui\"` so source order puts your values on top.",
+    },
+    themeObject: {
+      typeName: "Theme",
+      sourceFile: "silicaui-html/src/schema.ts",
+      note:
+        "The runtime/serializable form of a theme — what a builder, CMS or multi-tenant host stores and edits, as opposed to the build-time `@plugin` form above. `@wizeworks/silicaui-html` owns the type so the theme editor, the property panel and any headless consumer agree on what roles exist.",
+      doc: htmlSchemaTypes.Theme?.doc ?? "",
+      fields: htmlSchemaTypes.Theme?.members ?? [],
+      fontSelection: htmlSchemaTypes.ThemeFontSelection?.members ?? [],
+      surfaceTokens: [...SURFACE_TOKENS],
+      semanticRoles: [...SEMANTIC_ROLES],
+      rolesNote:
+        "The role list is OPEN. `rolesOf(theme)` returns the eight semantic roles PLUS any custom `--color-X` the theme declares — scanning the dark bag as well as the base one, since a color added while the theme was in dark mode is still a role. Never hardcode a closed list against a Theme.",
+      api: themeApi,
+      runtimeCss: {
+        entrypoint: "@wizeworks/silicaui-html/theme",
+        sourceFile: runtimeCssRel,
+        note:
+          "For a color NAMED AT RUNTIME — a tenant inventing `sunset` in a theme editor months after the bundle shipped — no build-time `colors:` list can carry it. These two emit the same rules the plugin would have, by calling Silica's own generators, so a runtime color is byte-for-byte a declared one. Ship BOTH: `customColorCss` emits the rules, `themeTokenCss` declares the custom properties they read, and the rules have no fallback, so shipping one without the other paints nothing.",
+        functions: runtimeCss,
+      },
+    },
+    presets,
+  };
+  writeJson("themes.json", themesCatalog);
+} catch (err) {
+  console.warn(
+    `  ! failed to load the theme presets (build it first: pnpm --filter @wizeworks/silicaui-html build): ${err.message}`,
+  );
+}
+
 console.log(
   `\n✅ catalog generated (${allComponents.length} components [${components.length} react, ${htmlComponents.length} html, ${cssComponents.length} css], ${Object.keys(classesByComponent).length} class groups, ${Object.keys(BEHAVIOR_FILES).length} behaviors, ${emailCatalog ? emailCatalog.kinds.length : 0} email node kinds)`,
 );
 console.log(
   `   node-tree schema: ${htmlSchema ? `${htmlSchema.kinds.length} node kinds, ${htmlSchema.dataBindings.length} binding kinds, ${htmlSchema.elementFloor.tags.length} allowed tags` : "MISSING"}`,
+);
+console.log(
+  `   themes: ${themesCatalog ? `${themesCatalog.presets.length} presets, ${themesCatalog.mechanism.selectors.length} [data-theme] selectors` : "MISSING"}`,
 );

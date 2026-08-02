@@ -50,3 +50,5 @@ export type {
   EmailInspectorNodeTab,
   EmailInspectorPanelTab,
 } from "./host";
+// Site parity — the same status-bar item, for the email shell's `statusBarSlot`.
+export { StatusItem } from "../../shared/react/chrome";

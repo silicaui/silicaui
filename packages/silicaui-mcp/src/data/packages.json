@@ -11,7 +11,7 @@
   },
   {
     "name": "@wizeworks/silicaui-html",
-    "purpose": "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output).",
+    "purpose": "Framework-neutral node-tree schema + HTML projection + composed blocks (for non-React output). The `/theme` subpath turns a Theme into CSS off the RENDER path: `customColorCss(theme)` emits every rule a build-time `@plugin \"@wizeworks/silicaui\" { colors: … }` registration would have — for a color NAMED AT RUNTIME by a tenant in a theme editor, which no build-time list can carry — and `themeTokenCss(theme, selector, mode)` emits the custom properties those rules read (ship both, or the rules paint nothing). Needs @wizeworks/silicaui, an optional peer; the root import stays dependency-free.",
     "install": "pnpm add @wizeworks/silicaui-html"
   },
   {
