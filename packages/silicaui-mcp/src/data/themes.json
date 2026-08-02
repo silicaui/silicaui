@@ -1,0 +1,2130 @@
+{
+  "note": "A THEME is a set of token values applied through the `data-theme` attribute. It is the ONLY sanctioned way to change a palette: put the attribute on an element and everything inside resolves against that theme's tokens, with no per-theme CSS, no restyled components, and no literal hex anywhere. Colors, radii, border width, depth and the type faces all travel with it.",
+  "mechanism": {
+    "attribute": "data-theme",
+    "selectors": [
+      "[data-theme=\"light\"]",
+      "[data-theme=\"dark\"]",
+      "[data-theme]"
+    ],
+    "builtIn": [
+      "light",
+      "dark"
+    ],
+    "builtInNote": "`light` and `dark` ship with the plugin — no registration needed. `[data-theme=\"light\"]` is emitted EXPLICITLY so a light island can sit inside a dark page as easily as the reverse. Every other name comes from a preset or an app's own `@plugin` block (see `declaring`).",
+    "apply": "Put it on <html> to theme a whole page: `<html data-theme=\"dark\">`. Put it on any wrapper to theme one section: `<section data-theme=\"dark\"> … </section>`. Nesting works and is the intended idiom — an island resolves against the nearest ancestor that carries the attribute.",
+    "paints": [
+      "backgroundColor",
+      "color",
+      "fontFamily",
+      "fontSize"
+    ],
+    "paintsNote": "The bare `[data-theme]` rule paints these on the element itself, which is why a wrapper is sufficient and a section needs no CSS of its own. It is scoped to `[data-theme]` deliberately: Silica never repaints a host page that did not opt in, so it stays embeddable under another design system.",
+    "darkMode": "There is no `.dark` class and no separate dark stylesheet — dark IS a theme. Switch by setting `data-theme=\"dark\"` (usually on <html>, from a toggle or the server). To follow the OS instead, declare a theme with `prefersdark` (see `declaring`), which applies it under `@media (prefers-color-scheme: dark)` for a root that carries no explicit `data-theme`.",
+    "presetModes": "A NAMED preset carries both modes, and which one shows is the host's dark strategy rather than anything the name encodes: emit `themeTokenCss(theme, selector, mode)` twice, once per mode, under whichever selectors that strategy uses. `[data-theme=\"light\"]`/`[data-theme=\"dark\"]` above is simply the built-in strategy, not the only one.",
+    "contentInk": "Inside an island, `--color-base-content` and each role's `-content` are already the legible ink for that theme's surfaces. That is what makes `<Button variant=\"outline\">` resolve correctly in a dark section with no per-theme prop — and what a hardcoded hex or a `/opacity` ink permanently opts out of.",
+    "never": "Do NOT hand-write per-theme CSS, an inline `style` on a control, or a literal hex to get a different palette — none of them can respond to the theme they end up inside. A component's `color`/`variant` props plus an ancestor `data-theme` are the whole mechanism."
+  },
+  "declaring": {
+    "plugin": "@wizeworks/silicaui/theme",
+    "sourceFile": "silicaui/src/theme-plugin.js",
+    "options": [
+      "color-scheme",
+      "default",
+      "name",
+      "prefersdark"
+    ],
+    "tokenNote": "Any Silica token can also be set in the same block — `--color-*`, `--radius-*`, `--size-field`, `--border`, `--depth`, … (get_tokens lists them). Those entries are collected generically, so the list is open; the four named options above are the plugin's own switches.",
+    "doc": "Silica theme customization — define or override a theme entirely in CSS. @plugin \"@wizeworks/silicaui/theme\" { name: midnight; color-scheme: dark; default: true; // apply at :root (make it the default theme) prefersdark: true; // auto-apply when the OS prefers dark --color-primary: #7c3aed; --color-base-100: #0b1020; // …any Silica token: --radius-field, --size-field, --depth, etc. } Load it AFTER `@plugin \"@wizeworks/silicaui\"` so your values win by source order. Partial overrides are fine — unspecified tokens fall through to the built-in theme's values via the cascade. Any `--color-X` without a matching `--color-X-content` gets an auto-derived legible foreground.",
+    "contentNote": "A `--color-X` with no matching `--color-X-content` gets a legible foreground auto-derived by measured contrast — declare one only to override that choice.",
+    "partialNote": "Partial overrides are fine: unspecified tokens fall through to the built-in theme via the cascade. Load the theme plugin AFTER `@plugin \"@wizeworks/silicaui\"` so source order puts your values on top."
+  },
+  "themeObject": {
+    "typeName": "Theme",
+    "sourceFile": "silicaui-html/src/schema.ts",
+    "note": "The runtime/serializable form of a theme — what a builder, CMS or multi-tenant host stores and edits, as opposed to the build-time `@plugin` form above. `@wizeworks/silicaui-html` owns the type so the theme editor, the property panel and any headless consumer agree on what roles exist.",
+    "doc": "A native @wizeworks/silicaui theme — a token set applied via `[data-theme]` (§5).",
+    "fields": [
+      {
+        "name": "name",
+        "optional": false,
+        "type": "string",
+        "doc": "The `[data-theme]` value applied to the canvas/site root."
+      },
+      {
+        "name": "tokens",
+        "optional": false,
+        "type": "Record<string, string>",
+        "doc": "Base (light) tokens: --color-*, --color-*-content, --radius-*, --size-*, …"
+      },
+      {
+        "name": "dark",
+        "optional": true,
+        "type": "Record<string, string>",
+        "doc": "Per-mode override deltas for dark."
+      },
+      {
+        "name": "mode",
+        "optional": true,
+        "type": "\"light\" | \"dark\"",
+        "doc": "Which mode this expresses; either is renderable."
+      },
+      {
+        "name": "fonts",
+        "optional": true,
+        "type": "{ sans?: ThemeFontSelection; head?: ThemeFontSelection }",
+        "doc": "Which webfont each font token was picked from, when it's a Google Font — absent for a system-stack pick or an untouched/legacy theme. See `ThemeFontSelection`."
+      }
+    ],
+    "fontSelection": [
+      {
+        "name": "family",
+        "optional": false,
+        "type": "string",
+        "doc": "The catalog family name, e.g. \"Inter\" — or a pinned system label like \"System\"."
+      },
+      {
+        "name": "source",
+        "optional": false,
+        "type": "\"system\" | \"google\"",
+        "doc": ""
+      },
+      {
+        "name": "weights",
+        "optional": true,
+        "type": "number[]",
+        "doc": "Weights to load/self-host, e.g. [400, 600, 700]. Absent for a system source."
+      }
+    ],
+    "surfaceTokens": [
+      "base-100",
+      "base-200",
+      "base-300",
+      "base-content"
+    ],
+    "semanticRoles": [
+      "primary",
+      "secondary",
+      "accent",
+      "neutral",
+      "info",
+      "success",
+      "warning",
+      "error"
+    ],
+    "rolesNote": "The role list is OPEN. `rolesOf(theme)` returns the eight semantic roles PLUS any custom `--color-X` the theme declares — scanning the dark bag as well as the base one, since a color added while the theme was in dark mode is still a role. Never hardcode a closed list against a Theme.",
+    "api": [
+      {
+        "name": "rolesOf",
+        "doc": "The role names a theme exposes — the canonical semantic roles PLUS any custom `--color-X` the theme defines (excluding surfaces and `-content` foregrounds). This is the list tooling should render, so a user-added `brand` color flows through to the palette automatically. Scans the dark overrides as well as the base tokens: a role is a role no matter which mode happens to declare it. Reading `tokens` alone made a color added while the theme was in DARK mode invisible everywhere downstream — no palette tile, no Inspector swatch, no generated utilities — even though the token was really there and the color picker could still edit it."
+      },
+      {
+        "name": "colorValue",
+        "doc": "The effective value of a `--color-<name>` token for the given mode, following the same resolution the canvas uses: a dark-mode delta wins over the base token. Returns `undefined` if the theme doesn't define it (the component-level `-content` fallback or the registered default then applies)."
+      },
+      {
+        "name": "resolveThemeTokens",
+        "doc": "A theme's EFFECTIVE token map for one mode: the base tokens with the dark delta merged over them, and a contrast-derived `--color-<role>-content` filled in for every role that doesn't declare one. This is the seam every surface that PAINTS a theme should go through — the canvas, a preview swatch, a publish pipeline. Deriving here rather than baking `-content` into the stored `Theme` is deliberate: - a stored pair goes STALE the moment the author edits the role color, and nothing in the schema records whether the pair was authored or derived, so a later \"refresh\" would have to guess whether it may overwrite; - a color invented at runtime gets the same treatment as a shipped one, with no separate path; - the `Theme` an author edits stays the small set of decisions they made. An explicitly authored `-content` always wins — this only FILLS gaps. A color that can't be parsed (a `color-mix()`, a `var()`) is left alone: @wizeworks/ @wizeworks/silicaui's CSS `autoContent` fallback still covers it at paint time, which is the honest outcome for a value we can't measure. \"AUTHORED\" IS PER MODE, and that distinction is the whole correctness of dark. A theme that authors `--color-primary-content` in `tokens` and overrides only `--color-primary` in `dark` — which is the normal shape, because the ink usually needs no thought — used to keep the LIGHT ink in dark mode: the merge carried it through, `tokens[contentKey]` was truthy, and derivation was skipped. The result was white ink on the pale dark-mode primary, on every filled surface in the theme, at roughly 1.7:1. It is the same fall-through `defineTheme` already had to fix for surfaces, one layer up. So a light ink survives into dark only while it is still ABOUT something: if the dark bag re-points the role's color, the light ink is stale by definition and gets re-derived. If the role color is unchanged in dark, the authored ink is still the author's measured decision and is left exactly alone."
+      },
+      {
+        "name": "contrastWarnings",
+        "doc": "Every role in `theme` whose foreground — authored or derived — fails WCAG AA for body text, with the measured ratio. Empty is the healthy state. A theme editor surfaces this as a warning on the offending swatch; a publish pipeline can treat it as a gate. It exists because \"the best available ink\" and \"a legible ink\" are different claims, and a mid-tone high-chroma color can fail both black and white — the author has to know that, not discover it from a customer."
+      },
+      {
+        "name": "presetByName",
+        "doc": "Look up a preset by name (the value used as `[data-theme]`)."
+      }
+    ],
+    "runtimeCss": {
+      "entrypoint": "@wizeworks/silicaui-html/theme",
+      "sourceFile": "silicaui-html/src/theme.ts",
+      "note": "For a color NAMED AT RUNTIME — a tenant inventing `sunset` in a theme editor months after the bundle shipped — no build-time `colors:` list can carry it. These two emit the same rules the plugin would have, by calling Silica's own generators, so a runtime color is byte-for-byte a declared one. Ship BOTH: `customColorCss` emits the rules, `themeTokenCss` declares the custom properties they read, and the rules have no fallback, so shipping one without the other paints nothing.",
+      "functions": [
+        {
+          "name": "themeTokenCss",
+          "doc": "A theme's tokens as a CSS rule — the `--color-*` / `--radius-*` / `--font-*` custom properties a `[data-theme]` island resolves against. Goes through `resolveThemeTokens`, so every role carries a contrast-MEASURED `-content` foreground rather than falling back to @wizeworks/silicaui's CSS lightness threshold. A color the author invents is measured the same way a shipped preset is. @param selector The rule's selector. Defaults to `:root`; pass `[data-theme=\"acme\"]` for a named island, or a container selector to scope a preview. @param mode Which side of the theme to emit. A theme carrying a `dark` delta is two calls, one per mode, under whichever selectors the host's dark strategy uses — this function takes no view on that."
+        },
+        {
+          "name": "customColorCss",
+          "doc": "CSS for a theme's CUSTOM colors — the rules a build-time `@plugin \"@wizeworks/silicaui\" { colors: … }` would have emitted for names that were coined after the build. Returns `\"\"` when the theme adds no custom colors, which is the common case — so a host can call this unconditionally on every render and inject the result without a length check. @param scope Optional selector every rule is nested under. Omit it on a published page (the rules SHOULD be global, exactly like the declared colors they stand in for). Pass one — the builder passes `.sui-canvas` — to confine a preview's colors to the previewed region so they never repaint the editor's own chrome."
+        }
+      ]
+    }
+  },
+  "presets": [
+    {
+      "name": "quartz",
+      "character": "The default, and the only preset that states no type or shape: it is the house baseline, so it renders in @wizeworks/silicaui's own stack at @wizeworks/silicaui's own radii. One cool-mineral hue family (Chalk/Flint/Slate/Obsidian, 250-255) for structure, a single higher-chroma accent (Quartz, 211) reserved for interaction, and the four semantic roles kept to their functional hues but the same chroma discipline: Azurite/Malachite/Citrine/Garnet. Matches @wizeworks/silicaui's `colors.js` LIGHT/DARK exactly — keep the two in sync.",
+      "applyAs": "data-theme=\"quartz\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": null,
+      "shape": {},
+      "light": {
+        "--color-base-100": "oklch(98% 0.003 250)",
+        "--color-base-200": "oklch(95% 0.004 250)",
+        "--color-base-300": "oklch(90% 0.006 250)",
+        "--color-base-content": "oklch(21% 0.012 255)",
+        "--color-primary": "oklch(42% 0.055 252)",
+        "--color-secondary": "oklch(55% 0.035 255)",
+        "--color-accent": "oklch(64% 0.13 211)",
+        "--color-neutral": "oklch(26% 0.014 255)",
+        "--color-info": "oklch(68% 0.1 232)",
+        "--color-success": "oklch(70% 0.12 150)",
+        "--color-warning": "oklch(80% 0.11 85)",
+        "--color-error": "oklch(58% 0.17 25)",
+        "--color-primary-content": "oklch(98% 0.01 252)",
+        "--color-secondary-content": "oklch(98% 0.01 255)",
+        "--color-accent-content": "oklch(15% 0.02 211)",
+        "--color-neutral-content": "oklch(98% 0.01 255)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 85)",
+        "--color-error-content": "oklch(100% 0 0)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(16% 0.01 255)",
+        "--color-base-200": "oklch(13.5% 0.01 255)",
+        "--color-base-300": "oklch(11% 0.01 255)",
+        "--color-base-content": "oklch(93% 0.006 250)",
+        "--color-primary": "oklch(72% 0.06 252)",
+        "--color-secondary": "oklch(78% 0.035 255)",
+        "--color-accent": "oklch(72% 0.13 211)",
+        "--color-neutral": "oklch(32% 0.016 255)",
+        "--color-info": "oklch(74% 0.09 232)",
+        "--color-success": "oklch(75% 0.11 150)",
+        "--color-warning": "oklch(83% 0.1 85)",
+        "--color-error": "oklch(66% 0.18 25)",
+        "--color-primary-content": "oklch(15% 0.02 252)",
+        "--color-secondary-content": "oklch(15% 0.02 255)",
+        "--color-accent-content": "oklch(15% 0.02 211)",
+        "--color-neutral-content": "oklch(98% 0.01 255)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 85)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "ocean",
+      "character": "Marine blues over a faintly cool white. Soft edges, humanist sans — the approachable end of professional.",
+      "applyAs": "data-theme=\"ocean\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Sora",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.006 230)",
+        "--color-base-200": "oklch(96% 0.012 230)",
+        "--color-base-300": "oklch(91% 0.02 230)",
+        "--color-base-content": "oklch(28% 0.03 245)",
+        "--color-primary": "oklch(58% 0.15 235)",
+        "--color-secondary": "oklch(66% 0.13 200)",
+        "--color-accent": "oklch(72% 0.14 190)",
+        "--color-neutral": "oklch(38% 0.03 240)",
+        "--color-info": "oklch(70% 0.16 232)",
+        "--color-success": "oklch(72% 0.19 150)",
+        "--color-warning": "oklch(80% 0.17 80)",
+        "--color-error": "oklch(63% 0.24 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Sora\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 235)",
+        "--color-secondary-content": "oklch(15% 0.02 200)",
+        "--color-accent-content": "oklch(15% 0.02 190)",
+        "--color-neutral-content": "oklch(98% 0.01 240)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(21% 0.02 245)",
+        "--color-base-200": "oklch(19% 0.02 245)",
+        "--color-base-300": "oklch(16% 0.02 245)",
+        "--color-base-content": "oklch(91% 0.02 230)",
+        "--color-primary": "oklch(76% 0.12 235)",
+        "--color-secondary": "oklch(80% 0.1 200)",
+        "--color-accent": "oklch(84% 0.12 190)",
+        "--color-neutral": "oklch(38% 0.028 240)",
+        "--color-info": "oklch(72% 0.15 232)",
+        "--color-success": "oklch(74% 0.18 150)",
+        "--color-warning": "oklch(82% 0.16 80)",
+        "--color-error": "oklch(68% 0.21 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Sora\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 235)",
+        "--color-secondary-content": "oklch(15% 0.02 200)",
+        "--color-accent-content": "oklch(15% 0.02 190)",
+        "--color-neutral-content": "oklch(98% 0.01 240)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "grape",
+      "character": "Saturated violet into magenta, on a barely-tinted lilac white. Geometric sans, generous corners — confident and a little loud.",
+      "applyAs": "data-theme=\"grape\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Outfit",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.625rem",
+        "--radius-box": "1rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.004 300)",
+        "--color-base-200": "oklch(97% 0.008 300)",
+        "--color-base-300": "oklch(92% 0.014 300)",
+        "--color-base-content": "oklch(26% 0.03 300)",
+        "--color-primary": "oklch(56% 0.24 300)",
+        "--color-secondary": "oklch(64% 0.2 340)",
+        "--color-accent": "oklch(70% 0.17 200)",
+        "--color-neutral": "oklch(34% 0.03 300)",
+        "--color-info": "oklch(70% 0.16 232)",
+        "--color-success": "oklch(72% 0.19 150)",
+        "--color-warning": "oklch(80% 0.17 80)",
+        "--color-error": "oklch(63% 0.24 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.625rem",
+        "--radius-box": "1rem",
+        "--depth": "1",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Outfit\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 300)",
+        "--color-secondary-content": "oklch(15% 0.02 340)",
+        "--color-accent-content": "oklch(15% 0.02 200)",
+        "--color-neutral-content": "oklch(98% 0.01 300)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(22% 0.02 300)",
+        "--color-base-200": "oklch(20% 0.02 300)",
+        "--color-base-300": "oklch(17% 0.02 300)",
+        "--color-base-content": "oklch(92% 0.015 300)",
+        "--color-primary": "oklch(66% 0.22 300)",
+        "--color-secondary": "oklch(76% 0.17 340)",
+        "--color-accent": "oklch(82% 0.13 200)",
+        "--color-neutral": "oklch(39% 0.028 300)",
+        "--color-info": "oklch(72% 0.15 232)",
+        "--color-success": "oklch(74% 0.18 150)",
+        "--color-warning": "oklch(82% 0.16 80)",
+        "--color-error": "oklch(68% 0.21 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.625rem",
+        "--radius-box": "1rem",
+        "--depth": "1",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Outfit\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 300)",
+        "--color-secondary-content": "oklch(15% 0.02 340)",
+        "--color-accent-content": "oklch(15% 0.02 200)",
+        "--color-neutral-content": "oklch(98% 0.01 300)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "sunset",
+      "character": "Late-afternoon warmth: orange into red, gold as the highlight, on cream. Serif headings over a soft workhorse sans.",
+      "applyAs": "data-theme=\"sunset\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Work Sans",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Fraunces",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.01 70)",
+        "--color-base-200": "oklch(97% 0.016 70)",
+        "--color-base-300": "oklch(92% 0.026 60)",
+        "--color-base-content": "oklch(28% 0.04 40)",
+        "--color-primary": "oklch(64% 0.2 45)",
+        "--color-secondary": "oklch(60% 0.22 15)",
+        "--color-accent": "oklch(75% 0.16 90)",
+        "--color-neutral": "oklch(36% 0.03 45)",
+        "--color-info": "oklch(70% 0.16 232)",
+        "--color-success": "oklch(72% 0.19 150)",
+        "--color-warning": "oklch(80% 0.17 80)",
+        "--color-error": "oklch(63% 0.24 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Work Sans\", sans-serif",
+        "--font-head": "\"Fraunces\", serif",
+        "--color-primary-content": "oklch(15% 0.02 45)",
+        "--color-secondary-content": "oklch(0% 0 0)",
+        "--color-accent-content": "oklch(15% 0.02 90)",
+        "--color-neutral-content": "oklch(98% 0.01 45)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(22% 0.02 40)",
+        "--color-base-200": "oklch(20% 0.02 40)",
+        "--color-base-300": "oklch(17% 0.02 40)",
+        "--color-base-content": "oklch(93% 0.02 60)",
+        "--color-primary": "oklch(70% 0.18 45)",
+        "--color-secondary": "oklch(72% 0.18 15)",
+        "--color-accent": "oklch(84% 0.14 90)",
+        "--color-neutral": "oklch(38% 0.028 45)",
+        "--color-info": "oklch(72% 0.15 232)",
+        "--color-success": "oklch(74% 0.18 150)",
+        "--color-warning": "oklch(82% 0.16 80)",
+        "--color-error": "oklch(68% 0.21 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Work Sans\", sans-serif",
+        "--font-head": "\"Fraunces\", serif",
+        "--color-primary-content": "oklch(15% 0.02 45)",
+        "--color-secondary-content": "oklch(15% 0.02 15)",
+        "--color-accent-content": "oklch(15% 0.02 90)",
+        "--color-neutral-content": "oklch(98% 0.01 45)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "obsidian",
+      "character": "Near-monochrome charcoal with one electric cyan reserved for interaction. Square corners, no depth, a technical grotesk — reads like tooling.",
+      "applyAs": "data-theme=\"obsidian\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Space Grotesk",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(97% 0.002 250)",
+        "--color-base-200": "oklch(94% 0.003 250)",
+        "--color-base-300": "oklch(88% 0.005 250)",
+        "--color-base-content": "oklch(18% 0.008 250)",
+        "--color-primary": "oklch(30% 0.02 250)",
+        "--color-secondary": "oklch(46% 0.015 250)",
+        "--color-accent": "oklch(52% 0.12 210)",
+        "--color-neutral": "oklch(22% 0.01 250)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Space Grotesk\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 250)",
+        "--color-secondary-content": "oklch(98% 0.01 250)",
+        "--color-accent-content": "oklch(98% 0.01 210)",
+        "--color-neutral-content": "oklch(98% 0.01 250)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(14% 0.006 250)",
+        "--color-base-200": "oklch(11% 0.006 250)",
+        "--color-base-300": "oklch(8% 0.006 250)",
+        "--color-base-content": "oklch(94% 0.004 250)",
+        "--color-primary": "oklch(88% 0.02 250)",
+        "--color-secondary": "oklch(66% 0.015 250)",
+        "--color-accent": "oklch(80% 0.12 210)",
+        "--color-neutral": "oklch(30% 0.012 250)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Space Grotesk\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 250)",
+        "--color-secondary-content": "oklch(15% 0.015 250)",
+        "--color-accent-content": "oklch(15% 0.02 210)",
+        "--color-neutral-content": "oklch(98% 0.01 250)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "marble",
+      "character": "Cool white and slate with an antique-brass accent. High-contrast serif headings, hairline borders, flat surfaces — classical and unhurried.",
+      "applyAs": "data-theme=\"marble\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Cormorant Garamond",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.125rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.125rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.002 260)",
+        "--color-base-200": "oklch(97% 0.003 260)",
+        "--color-base-300": "oklch(92% 0.005 260)",
+        "--color-base-content": "oklch(20% 0.01 260)",
+        "--color-primary": "oklch(34% 0.04 265)",
+        "--color-secondary": "oklch(48% 0.05 250)",
+        "--color-accent": "oklch(50% 0.08 75)",
+        "--color-neutral": "oklch(24% 0.008 260)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.125rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.125rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Cormorant Garamond\", serif",
+        "--color-primary-content": "oklch(98% 0.01 265)",
+        "--color-secondary-content": "oklch(98% 0.01 250)",
+        "--color-accent-content": "oklch(98% 0.01 75)",
+        "--color-neutral-content": "oklch(98% 0.008 260)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(17% 0.006 260)",
+        "--color-base-200": "oklch(14% 0.006 260)",
+        "--color-base-300": "oklch(11% 0.006 260)",
+        "--color-base-content": "oklch(93% 0.004 260)",
+        "--color-primary": "oklch(78% 0.05 265)",
+        "--color-secondary": "oklch(72% 0.05 250)",
+        "--color-accent": "oklch(80% 0.09 75)",
+        "--color-neutral": "oklch(32% 0.01 260)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.125rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.125rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Cormorant Garamond\", serif",
+        "--color-primary-content": "oklch(15% 0.02 265)",
+        "--color-secondary-content": "oklch(15% 0.02 250)",
+        "--color-accent-content": "oklch(15% 0.02 75)",
+        "--color-neutral-content": "oklch(98% 0.01 260)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "copper",
+      "character": "Oxidized metal: copper against the patina it turns into. Warm neutral surfaces, moderate radii, lifted cards.",
+      "applyAs": "data-theme=\"copper\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Work Sans",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Space Grotesk",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.375rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(98% 0.008 60)",
+        "--color-base-200": "oklch(96% 0.012 60)",
+        "--color-base-300": "oklch(91% 0.02 55)",
+        "--color-base-content": "oklch(24% 0.025 45)",
+        "--color-primary": "oklch(48% 0.12 45)",
+        "--color-secondary": "oklch(42% 0.07 200)",
+        "--color-accent": "oklch(52% 0.1 190)",
+        "--color-neutral": "oklch(30% 0.02 45)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.375rem",
+        "--depth": "1",
+        "--font-sans": "\"Work Sans\", sans-serif",
+        "--font-head": "\"Space Grotesk\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 45)",
+        "--color-secondary-content": "oklch(98% 0.01 200)",
+        "--color-accent-content": "oklch(98% 0.01 190)",
+        "--color-neutral-content": "oklch(98% 0.01 45)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(19% 0.015 45)",
+        "--color-base-200": "oklch(16% 0.015 45)",
+        "--color-base-300": "oklch(13% 0.015 45)",
+        "--color-base-content": "oklch(93% 0.012 55)",
+        "--color-primary": "oklch(76% 0.12 45)",
+        "--color-secondary": "oklch(76% 0.08 200)",
+        "--color-accent": "oklch(80% 0.1 190)",
+        "--color-neutral": "oklch(35% 0.022 45)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.375rem",
+        "--depth": "1",
+        "--font-sans": "\"Work Sans\", sans-serif",
+        "--font-head": "\"Space Grotesk\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 45)",
+        "--color-secondary-content": "oklch(15% 0.02 200)",
+        "--color-accent-content": "oklch(15% 0.02 190)",
+        "--color-neutral-content": "oklch(98% 0.01 45)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "jade",
+      "character": "Deep jade with gold. Old-world serif headings on a compact grotesk body — heritage without the costume.",
+      "applyAs": "data-theme=\"jade\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Karla",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Cormorant Garamond",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.006 145)",
+        "--color-base-200": "oklch(96% 0.01 145)",
+        "--color-base-300": "oklch(91% 0.018 145)",
+        "--color-base-content": "oklch(22% 0.025 155)",
+        "--color-primary": "oklch(38% 0.1 160)",
+        "--color-secondary": "oklch(46% 0.07 175)",
+        "--color-accent": "oklch(78% 0.13 85)",
+        "--color-neutral": "oklch(26% 0.02 155)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(50% 0.14 148)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1",
+        "--font-sans": "\"Karla\", sans-serif",
+        "--font-head": "\"Cormorant Garamond\", serif",
+        "--color-primary-content": "oklch(98% 0.01 160)",
+        "--color-secondary-content": "oklch(98% 0.01 175)",
+        "--color-accent-content": "oklch(15% 0.02 85)",
+        "--color-neutral-content": "oklch(98% 0.01 155)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 148)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(17% 0.012 155)",
+        "--color-base-200": "oklch(14% 0.012 155)",
+        "--color-base-300": "oklch(11% 0.012 155)",
+        "--color-base-content": "oklch(93% 0.01 145)",
+        "--color-primary": "oklch(74% 0.12 160)",
+        "--color-secondary": "oklch(78% 0.08 175)",
+        "--color-accent": "oklch(84% 0.13 85)",
+        "--color-neutral": "oklch(32% 0.022 155)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 148)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1",
+        "--font-sans": "\"Karla\", sans-serif",
+        "--font-head": "\"Cormorant Garamond\", serif",
+        "--color-primary-content": "oklch(15% 0.02 160)",
+        "--color-secondary-content": "oklch(15% 0.02 175)",
+        "--color-accent-content": "oklch(15% 0.02 85)",
+        "--color-neutral-content": "oklch(98% 0.01 155)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 148)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "cobalt",
+      "character": "One saturated blue carrying the whole design. Neutral-cool surfaces, a single geometric sans throughout — corporate in the good sense.",
+      "applyAs": "data-theme=\"cobalt\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Manrope",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.004 250)",
+        "--color-base-200": "oklch(97% 0.008 250)",
+        "--color-base-300": "oklch(92% 0.014 250)",
+        "--color-base-content": "oklch(22% 0.025 255)",
+        "--color-primary": "oklch(48% 0.2 260)",
+        "--color-secondary": "oklch(48% 0.13 230)",
+        "--color-accent": "oklch(74% 0.13 200)",
+        "--color-neutral": "oklch(28% 0.02 255)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1",
+        "--font-sans": "\"Manrope\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 260)",
+        "--color-secondary-content": "oklch(98% 0.01 230)",
+        "--color-accent-content": "oklch(15% 0.02 200)",
+        "--color-neutral-content": "oklch(98% 0.01 255)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(18% 0.015 255)",
+        "--color-base-200": "oklch(15% 0.015 255)",
+        "--color-base-300": "oklch(12% 0.015 255)",
+        "--color-base-content": "oklch(93% 0.008 250)",
+        "--color-primary": "oklch(72% 0.17 260)",
+        "--color-secondary": "oklch(78% 0.11 230)",
+        "--color-accent": "oklch(84% 0.12 200)",
+        "--color-neutral": "oklch(34% 0.022 255)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1",
+        "--font-sans": "\"Manrope\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 260)",
+        "--color-secondary-content": "oklch(15% 0.02 230)",
+        "--color-accent-content": "oklch(15% 0.02 200)",
+        "--color-neutral-content": "oklch(98% 0.01 255)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "rose",
+      "character": "Dusty rose and mauve with a peach highlight. Display serif over a rounded sans, wide radii, lifted cards — warm and editorial.",
+      "applyAs": "data-theme=\"rose\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Nunito",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Playfair Display",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.625rem",
+        "--radius-box": "1rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.006 15)",
+        "--color-base-200": "oklch(97% 0.012 15)",
+        "--color-base-300": "oklch(92% 0.022 10)",
+        "--color-base-content": "oklch(24% 0.03 10)",
+        "--color-primary": "oklch(48% 0.13 355)",
+        "--color-secondary": "oklch(46% 0.1 340)",
+        "--color-accent": "oklch(78% 0.12 45)",
+        "--color-neutral": "oklch(30% 0.025 10)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.625rem",
+        "--radius-box": "1rem",
+        "--depth": "1",
+        "--font-sans": "\"Nunito\", sans-serif",
+        "--font-head": "\"Playfair Display\", serif",
+        "--color-primary-content": "oklch(98% 0.01 355)",
+        "--color-secondary-content": "oklch(98% 0.01 340)",
+        "--color-accent-content": "oklch(15% 0.02 45)",
+        "--color-neutral-content": "oklch(98% 0.01 10)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(19% 0.015 10)",
+        "--color-base-200": "oklch(16% 0.015 10)",
+        "--color-base-300": "oklch(13% 0.015 10)",
+        "--color-base-content": "oklch(93% 0.012 15)",
+        "--color-primary": "oklch(76% 0.13 355)",
+        "--color-secondary": "oklch(76% 0.1 340)",
+        "--color-accent": "oklch(85% 0.1 45)",
+        "--color-neutral": "oklch(35% 0.022 10)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.625rem",
+        "--radius-box": "1rem",
+        "--depth": "1",
+        "--font-sans": "\"Nunito\", sans-serif",
+        "--font-head": "\"Playfair Display\", serif",
+        "--color-primary-content": "oklch(15% 0.02 355)",
+        "--color-secondary-content": "oklch(15% 0.02 340)",
+        "--color-accent-content": "oklch(15% 0.02 45)",
+        "--color-neutral-content": "oklch(98% 0.01 10)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "amber",
+      "character": "Honey and gold on cream. Slab-ish serif headings over a workhorse text face — the palette of a good paperback.",
+      "applyAs": "data-theme=\"amber\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Source Sans 3",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Bitter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(98% 0.014 85)",
+        "--color-base-200": "oklch(96% 0.022 85)",
+        "--color-base-300": "oklch(91% 0.035 80)",
+        "--color-base-content": "oklch(25% 0.035 65)",
+        "--color-primary": "oklch(50% 0.12 70)",
+        "--color-secondary": "oklch(44% 0.09 45)",
+        "--color-accent": "oklch(80% 0.15 90)",
+        "--color-neutral": "oklch(30% 0.025 70)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(74% 0.15 55)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1",
+        "--font-sans": "\"Source Sans 3\", sans-serif",
+        "--font-head": "\"Bitter\", serif",
+        "--color-primary-content": "oklch(98% 0.01 70)",
+        "--color-secondary-content": "oklch(98% 0.01 45)",
+        "--color-accent-content": "oklch(15% 0.02 90)",
+        "--color-neutral-content": "oklch(98% 0.01 70)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 55)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(19% 0.018 70)",
+        "--color-base-200": "oklch(16% 0.018 70)",
+        "--color-base-300": "oklch(13% 0.018 70)",
+        "--color-base-content": "oklch(93% 0.018 85)",
+        "--color-primary": "oklch(78% 0.13 70)",
+        "--color-secondary": "oklch(74% 0.1 45)",
+        "--color-accent": "oklch(87% 0.14 90)",
+        "--color-neutral": "oklch(35% 0.025 70)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(80% 0.14 55)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.5rem",
+        "--depth": "1",
+        "--font-sans": "\"Source Sans 3\", sans-serif",
+        "--font-head": "\"Bitter\", serif",
+        "--color-primary-content": "oklch(15% 0.02 70)",
+        "--color-secondary-content": "oklch(15% 0.02 45)",
+        "--color-accent-content": "oklch(15% 0.02 90)",
+        "--color-neutral-content": "oklch(98% 0.01 70)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 55)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "fern",
+      "character": "Fresh growing green with a lime highlight. One friendly geometric sans, generous corners — bright without being juvenile.",
+      "applyAs": "data-theme=\"fern\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Outfit",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.008 140)",
+        "--color-base-200": "oklch(97% 0.014 140)",
+        "--color-base-300": "oklch(92% 0.024 140)",
+        "--color-base-content": "oklch(23% 0.03 150)",
+        "--color-primary": "oklch(48% 0.15 135)",
+        "--color-secondary": "oklch(46% 0.1 175)",
+        "--color-accent": "oklch(78% 0.16 110)",
+        "--color-neutral": "oklch(28% 0.025 150)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 158)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Outfit\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 135)",
+        "--color-secondary-content": "oklch(98% 0.01 175)",
+        "--color-accent-content": "oklch(15% 0.02 110)",
+        "--color-neutral-content": "oklch(98% 0.01 150)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 158)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(18% 0.014 150)",
+        "--color-base-200": "oklch(15% 0.014 150)",
+        "--color-base-300": "oklch(12% 0.014 150)",
+        "--color-base-content": "oklch(93% 0.012 140)",
+        "--color-primary": "oklch(78% 0.16 135)",
+        "--color-secondary": "oklch(76% 0.1 175)",
+        "--color-accent": "oklch(86% 0.16 110)",
+        "--color-neutral": "oklch(34% 0.025 150)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(74% 0.13 158)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Outfit\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 135)",
+        "--color-secondary-content": "oklch(15% 0.02 175)",
+        "--color-accent-content": "oklch(15% 0.02 110)",
+        "--color-neutral-content": "oklch(98% 0.01 150)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 158)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "dune",
+      "character": "Sand, clay and shade. Warm greyed surfaces, terracotta highlight, flat — the quietest theme in the set, and the one that ages best.",
+      "applyAs": "data-theme=\"dune\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Work Sans",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Fraunces",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.375rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(97% 0.012 80)",
+        "--color-base-200": "oklch(95% 0.018 80)",
+        "--color-base-300": "oklch(89% 0.028 75)",
+        "--color-base-content": "oklch(24% 0.025 60)",
+        "--color-primary": "oklch(42% 0.06 60)",
+        "--color-secondary": "oklch(48% 0.05 90)",
+        "--color-accent": "oklch(52% 0.12 40)",
+        "--color-neutral": "oklch(28% 0.02 60)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.375rem",
+        "--depth": "0",
+        "--font-sans": "\"Work Sans\", sans-serif",
+        "--font-head": "\"Fraunces\", serif",
+        "--color-primary-content": "oklch(98% 0.01 60)",
+        "--color-secondary-content": "oklch(98% 0.01 90)",
+        "--color-accent-content": "oklch(98% 0.01 40)",
+        "--color-neutral-content": "oklch(98% 0.01 60)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(19% 0.014 60)",
+        "--color-base-200": "oklch(16% 0.014 60)",
+        "--color-base-300": "oklch(13% 0.014 60)",
+        "--color-base-content": "oklch(92% 0.014 80)",
+        "--color-primary": "oklch(78% 0.07 60)",
+        "--color-secondary": "oklch(76% 0.05 90)",
+        "--color-accent": "oklch(78% 0.12 40)",
+        "--color-neutral": "oklch(34% 0.02 60)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.375rem",
+        "--radius-box": "0.375rem",
+        "--depth": "0",
+        "--font-sans": "\"Work Sans\", sans-serif",
+        "--font-head": "\"Fraunces\", serif",
+        "--color-primary-content": "oklch(15% 0.02 60)",
+        "--color-secondary-content": "oklch(15% 0.02 90)",
+        "--color-accent-content": "oklch(15% 0.02 40)",
+        "--color-neutral-content": "oklch(98% 0.01 60)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "plum",
+      "character": "Wine-dark purple with champagne. Bookish serif headings, tight radii, no depth — restrained luxury rather than the shiny kind.",
+      "applyAs": "data-theme=\"plum\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Libre Baskerville",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(98% 0.006 330)",
+        "--color-base-200": "oklch(96% 0.01 330)",
+        "--color-base-300": "oklch(91% 0.018 330)",
+        "--color-base-content": "oklch(22% 0.03 330)",
+        "--color-primary": "oklch(38% 0.14 340)",
+        "--color-secondary": "oklch(44% 0.1 300)",
+        "--color-accent": "oklch(78% 0.12 85)",
+        "--color-neutral": "oklch(26% 0.025 330)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(74% 0.15 60)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Libre Baskerville\", serif",
+        "--color-primary-content": "oklch(98% 0.01 340)",
+        "--color-secondary-content": "oklch(98% 0.01 300)",
+        "--color-accent-content": "oklch(15% 0.02 85)",
+        "--color-neutral-content": "oklch(98% 0.01 330)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 60)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(17% 0.015 330)",
+        "--color-base-200": "oklch(14% 0.015 330)",
+        "--color-base-300": "oklch(11% 0.015 330)",
+        "--color-base-content": "oklch(93% 0.012 330)",
+        "--color-primary": "oklch(74% 0.15 340)",
+        "--color-secondary": "oklch(76% 0.11 300)",
+        "--color-accent": "oklch(86% 0.11 85)",
+        "--color-neutral": "oklch(32% 0.025 330)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(82% 0.14 60)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.5rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Libre Baskerville\", serif",
+        "--color-primary-content": "oklch(15% 0.02 340)",
+        "--color-secondary-content": "oklch(15% 0.02 300)",
+        "--color-accent-content": "oklch(15% 0.02 85)",
+        "--color-neutral-content": "oklch(98% 0.01 330)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 60)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "frost",
+      "character": "Almost-white with the faintest blue in it. Low chroma throughout, soft corners, flat — the theme to pick when the content is the design.",
+      "applyAs": "data-theme=\"frost\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Sora",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(99.5% 0.003 220)",
+        "--color-base-200": "oklch(98% 0.006 220)",
+        "--color-base-300": "oklch(93% 0.012 215)",
+        "--color-base-content": "oklch(26% 0.02 230)",
+        "--color-primary": "oklch(50% 0.1 220)",
+        "--color-secondary": "oklch(52% 0.07 205)",
+        "--color-accent": "oklch(76% 0.1 195)",
+        "--color-neutral": "oklch(30% 0.015 230)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Sora\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 220)",
+        "--color-secondary-content": "oklch(98% 0.01 205)",
+        "--color-accent-content": "oklch(15% 0.02 195)",
+        "--color-neutral-content": "oklch(98% 0.01 230)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(20% 0.012 230)",
+        "--color-base-200": "oklch(17% 0.012 230)",
+        "--color-base-300": "oklch(14% 0.012 230)",
+        "--color-base-content": "oklch(94% 0.006 220)",
+        "--color-primary": "oklch(80% 0.09 220)",
+        "--color-secondary": "oklch(76% 0.07 205)",
+        "--color-accent": "oklch(86% 0.1 195)",
+        "--color-neutral": "oklch(36% 0.015 230)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Sora\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 220)",
+        "--color-secondary-content": "oklch(15% 0.02 205)",
+        "--color-accent-content": "oklch(15% 0.02 195)",
+        "--color-neutral-content": "oklch(98% 0.01 230)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "carbon",
+      "character": "Achromatic black and white with one safety orange. Double-weight borders, square corners, zero depth — structure drawn in line, not in shadow.",
+      "applyAs": "data-theme=\"carbon\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "IBM Plex Sans",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Archivo",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.125rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.125rem",
+        "--border": "2px",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(97% 0 0)",
+        "--color-base-200": "oklch(94% 0 0)",
+        "--color-base-300": "oklch(88% 0 0)",
+        "--color-base-content": "oklch(16% 0 0)",
+        "--color-primary": "oklch(20% 0 0)",
+        "--color-secondary": "oklch(44% 0 0)",
+        "--color-accent": "oklch(54% 0.21 40)",
+        "--color-neutral": "oklch(16% 0 0)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(72% 0.17 65)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.125rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.125rem",
+        "--border": "2px",
+        "--depth": "0",
+        "--font-sans": "\"IBM Plex Sans\", sans-serif",
+        "--font-head": "\"Archivo\", sans-serif",
+        "--color-primary-content": "oklch(98% 0 0)",
+        "--color-secondary-content": "oklch(98% 0 0)",
+        "--color-accent-content": "oklch(98% 0.01 40)",
+        "--color-neutral-content": "oklch(98% 0 0)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 65)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(13% 0 0)",
+        "--color-base-200": "oklch(10% 0 0)",
+        "--color-base-300": "oklch(7% 0 0)",
+        "--color-base-content": "oklch(95% 0 0)",
+        "--color-primary": "oklch(93% 0 0)",
+        "--color-secondary": "oklch(62% 0 0)",
+        "--color-accent": "oklch(74% 0.18 40)",
+        "--color-neutral": "oklch(28% 0 0)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(82% 0.15 65)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.125rem",
+        "--radius-field": "0.125rem",
+        "--radius-box": "0.125rem",
+        "--border": "2px",
+        "--depth": "0",
+        "--font-sans": "\"IBM Plex Sans\", sans-serif",
+        "--font-head": "\"Archivo\", sans-serif",
+        "--color-primary-content": "oklch(15% 0 0)",
+        "--color-secondary-content": "oklch(15% 0 0)",
+        "--color-accent-content": "oklch(15% 0.02 40)",
+        "--color-neutral-content": "oklch(98% 0 0)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 65)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "lagoon",
+      "character": "Turquoise water with a spring-green highlight. The roundest theme in the set — pill selectors, big boxes, lifted cards.",
+      "applyAs": "data-theme=\"lagoon\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Poppins",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "2rem",
+        "--radius-field": "0.75rem",
+        "--radius-box": "1.25rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(99% 0.01 195)",
+        "--color-base-200": "oklch(97% 0.016 195)",
+        "--color-base-300": "oklch(92% 0.028 190)",
+        "--color-base-content": "oklch(24% 0.03 200)",
+        "--color-primary": "oklch(50% 0.13 195)",
+        "--color-secondary": "oklch(48% 0.12 230)",
+        "--color-accent": "oklch(78% 0.16 130)",
+        "--color-neutral": "oklch(28% 0.025 200)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 160)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "2rem",
+        "--radius-field": "0.75rem",
+        "--radius-box": "1.25rem",
+        "--depth": "1",
+        "--font-sans": "\"Poppins\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 195)",
+        "--color-secondary-content": "oklch(98% 0.01 230)",
+        "--color-accent-content": "oklch(15% 0.02 130)",
+        "--color-neutral-content": "oklch(98% 0.01 200)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 160)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(19% 0.018 200)",
+        "--color-base-200": "oklch(16% 0.018 200)",
+        "--color-base-300": "oklch(13% 0.018 200)",
+        "--color-base-content": "oklch(93% 0.014 195)",
+        "--color-primary": "oklch(80% 0.12 195)",
+        "--color-secondary": "oklch(76% 0.11 230)",
+        "--color-accent": "oklch(87% 0.15 130)",
+        "--color-neutral": "oklch(34% 0.025 200)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 160)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "2rem",
+        "--radius-field": "0.75rem",
+        "--radius-box": "1.25rem",
+        "--depth": "1",
+        "--font-sans": "\"Poppins\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 195)",
+        "--color-secondary-content": "oklch(15% 0.02 230)",
+        "--color-accent-content": "oklch(15% 0.02 130)",
+        "--color-neutral-content": "oklch(98% 0.01 200)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 160)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "clay",
+      "character": "Terracotta and sage on warm paper — the palette of a good ceramics shop. Rounded, lifted, unfussy.",
+      "applyAs": "data-theme=\"clay\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Karla",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Epilogue",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1"
+      },
+      "light": {
+        "--color-base-100": "oklch(98% 0.012 45)",
+        "--color-base-200": "oklch(96% 0.02 45)",
+        "--color-base-300": "oklch(90% 0.032 40)",
+        "--color-base-content": "oklch(24% 0.03 35)",
+        "--color-primary": "oklch(48% 0.13 40)",
+        "--color-secondary": "oklch(44% 0.08 140)",
+        "--color-accent": "oklch(76% 0.12 70)",
+        "--color-neutral": "oklch(28% 0.025 35)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(50% 0.2 27)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Karla\", sans-serif",
+        "--font-head": "\"Epilogue\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 40)",
+        "--color-secondary-content": "oklch(98% 0.01 140)",
+        "--color-accent-content": "oklch(15% 0.02 70)",
+        "--color-neutral-content": "oklch(98% 0.01 35)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 27)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(19% 0.016 35)",
+        "--color-base-200": "oklch(16% 0.016 35)",
+        "--color-base-300": "oklch(13% 0.016 35)",
+        "--color-base-content": "oklch(93% 0.014 45)",
+        "--color-primary": "oklch(78% 0.12 40)",
+        "--color-secondary": "oklch(74% 0.08 140)",
+        "--color-accent": "oklch(84% 0.11 70)",
+        "--color-neutral": "oklch(34% 0.025 35)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.18 27)",
+        "--radius-selector": "1rem",
+        "--radius-field": "0.5rem",
+        "--radius-box": "0.75rem",
+        "--depth": "1",
+        "--font-sans": "\"Karla\", sans-serif",
+        "--font-head": "\"Epilogue\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 40)",
+        "--color-secondary-content": "oklch(15% 0.02 140)",
+        "--color-accent-content": "oklch(15% 0.02 70)",
+        "--color-neutral-content": "oklch(98% 0.01 35)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 27)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "midnight",
+      "character": "Navy and gilt. The light mode is tinted deep blue rather than white, so the theme keeps its identity in both — formal, printed, evening.",
+      "applyAs": "data-theme=\"midnight\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Inter",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Spectral",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(98% 0.006 265)",
+        "--color-base-200": "oklch(95% 0.012 265)",
+        "--color-base-300": "oklch(90% 0.02 265)",
+        "--color-base-content": "oklch(20% 0.03 265)",
+        "--color-primary": "oklch(32% 0.1 265)",
+        "--color-secondary": "oklch(44% 0.07 265)",
+        "--color-accent": "oklch(78% 0.13 85)",
+        "--color-neutral": "oklch(22% 0.025 265)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(74% 0.15 60)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Spectral\", serif",
+        "--color-primary-content": "oklch(98% 0.01 265)",
+        "--color-secondary-content": "oklch(98% 0.01 265)",
+        "--color-accent-content": "oklch(15% 0.02 85)",
+        "--color-neutral-content": "oklch(98% 0.01 265)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 60)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(15% 0.02 265)",
+        "--color-base-200": "oklch(12% 0.02 265)",
+        "--color-base-300": "oklch(9% 0.02 265)",
+        "--color-base-content": "oklch(92% 0.01 265)",
+        "--color-primary": "oklch(76% 0.11 265)",
+        "--color-secondary": "oklch(74% 0.07 265)",
+        "--color-accent": "oklch(86% 0.12 85)",
+        "--color-neutral": "oklch(30% 0.025 265)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(82% 0.14 60)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.25rem",
+        "--depth": "0",
+        "--font-sans": "\"Inter\", sans-serif",
+        "--font-head": "\"Spectral\", serif",
+        "--color-primary-content": "oklch(15% 0.02 265)",
+        "--color-secondary-content": "oklch(15% 0.02 265)",
+        "--color-accent-content": "oklch(15% 0.02 85)",
+        "--color-neutral-content": "oklch(98% 0.01 265)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 60)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    },
+    {
+      "name": "neon",
+      "character": "Magenta and violet with a lime highlight, pitched as high as AA allows. Wide display headings on a technical body face — the loudest theme here, and the one that most needs a light hand.",
+      "applyAs": "data-theme=\"neon\"",
+      "mode": "light",
+      "roles": [
+        "primary",
+        "secondary",
+        "accent",
+        "neutral",
+        "info",
+        "success",
+        "warning",
+        "error"
+      ],
+      "fonts": {
+        "sans": {
+          "family": "Space Grotesk",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        },
+        "head": {
+          "family": "Syne",
+          "source": "google",
+          "weights": [
+            400,
+            600,
+            700
+          ]
+        }
+      },
+      "shape": {
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.375rem",
+        "--depth": "0"
+      },
+      "light": {
+        "--color-base-100": "oklch(98% 0.003 300)",
+        "--color-base-200": "oklch(95% 0.006 300)",
+        "--color-base-300": "oklch(89% 0.012 300)",
+        "--color-base-content": "oklch(17% 0.015 300)",
+        "--color-primary": "oklch(48% 0.25 320)",
+        "--color-secondary": "oklch(44% 0.2 285)",
+        "--color-accent": "oklch(80% 0.2 130)",
+        "--color-neutral": "oklch(20% 0.015 300)",
+        "--color-info": "oklch(52% 0.13 232)",
+        "--color-success": "oklch(48% 0.13 150)",
+        "--color-warning": "oklch(76% 0.14 80)",
+        "--color-error": "oklch(52% 0.19 25)",
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.375rem",
+        "--depth": "0",
+        "--font-sans": "\"Space Grotesk\", sans-serif",
+        "--font-head": "\"Syne\", sans-serif",
+        "--color-primary-content": "oklch(98% 0.01 320)",
+        "--color-secondary-content": "oklch(98% 0.01 285)",
+        "--color-accent-content": "oklch(15% 0.02 130)",
+        "--color-neutral-content": "oklch(98% 0.01 300)",
+        "--color-info-content": "oklch(98% 0.01 232)",
+        "--color-success-content": "oklch(98% 0.01 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(98% 0.01 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(12% 0.012 300)",
+        "--color-base-200": "oklch(9% 0.012 300)",
+        "--color-base-300": "oklch(6% 0.012 300)",
+        "--color-base-content": "oklch(95% 0.01 300)",
+        "--color-primary": "oklch(76% 0.22 320)",
+        "--color-secondary": "oklch(74% 0.18 285)",
+        "--color-accent": "oklch(88% 0.2 130)",
+        "--color-neutral": "oklch(30% 0.018 300)",
+        "--color-info": "oklch(76% 0.11 232)",
+        "--color-success": "oklch(76% 0.13 150)",
+        "--color-warning": "oklch(84% 0.13 80)",
+        "--color-error": "oklch(70% 0.17 25)",
+        "--radius-selector": "0.25rem",
+        "--radius-field": "0.25rem",
+        "--radius-box": "0.375rem",
+        "--depth": "0",
+        "--font-sans": "\"Space Grotesk\", sans-serif",
+        "--font-head": "\"Syne\", sans-serif",
+        "--color-primary-content": "oklch(15% 0.02 320)",
+        "--color-secondary-content": "oklch(15% 0.02 285)",
+        "--color-accent-content": "oklch(15% 0.02 130)",
+        "--color-neutral-content": "oklch(98% 0.01 300)",
+        "--color-info-content": "oklch(15% 0.02 232)",
+        "--color-success-content": "oklch(15% 0.02 150)",
+        "--color-warning-content": "oklch(15% 0.02 80)",
+        "--color-error-content": "oklch(15% 0.02 25)"
+      },
+      "contrastWarnings": {
+        "light": [],
+        "dark": []
+      }
+    }
+  ]
+}

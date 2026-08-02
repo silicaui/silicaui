@@ -120,6 +120,7 @@ Rules that hold on every path:
 - Never invent a class, prop, or block key. Everything this server returns is extracted from Silica's source at release time — look it up rather than guessing, including when you are fairly confident.
 - Colors are semantic tokens (get_tokens), never hex — but the eight built-in roles are a DEFAULT, not a closed set. Silica's core promise is that N named colors cascade through everything: an app registers extra roles (get_tokens → customColors for the two-line syntax) and each works everywhere a built-in does, so \`btn-brand\` is exactly as real as \`btn-primary\`. Read a component's \`colorPattern\` (get_component) and substitute the registered name — most are \`<root>-<color>\`, but chat, pin-input and toast are not. A REGISTERED color is the one name you may use that this catalog does not list literally; an unregistered one is still an invention, and renders unstyled.
 - Do not re-skin a component with inline styles or arbitrary hex — it defeats theming and light/dark.
+- A different PALETTE is a theme, applied as \`data-theme="<name>"\` on an element — never restyled components, a second stylesheet, or hex. Everything inside resolves against that theme's tokens, so nesting it themes one section (\`<section data-theme="dark">\`) and putting it on <html> themes the page. Dark mode is just \`data-theme="dark"\`; there is no \`.dark\` class. list_themes for the mechanism and the shipped presets, get_theme for one's resolved tokens.
 - The same name can exist on more than one path with a different shape. get_component with no \`package\` returns every path's answer at once; pass \`package\` to narrow.
 - Don't know the name? search_docs first. Unsure what to install? list_packages.
 
@@ -254,8 +255,48 @@ interface SchemaData {
   };
 }
 
+/** One shipped theme preset, with both modes already RESOLVED (dark deltas
+ *  merged, `-content` inks derived) — the map a browser actually computes, not
+ *  the authored bag. */
+interface ThemePreset {
+  name: string;
+  character: string;
+  /** The literal attribute to write, e.g. `data-theme="midnight"`. */
+  applyAs: string;
+  mode: string;
+  roles: string[];
+  fonts: { sans?: unknown; head?: unknown } | null;
+  shape: Record<string, string>;
+  light: Record<string, string>;
+  dark: Record<string, string>;
+  contrastWarnings: { light: Array<{ role: string; ratio: number }>; dark: Array<{ role: string; ratio: number }> };
+}
+
+/** The THEME layer: the `data-theme` mechanism, how an app declares its own,
+ *  the runtime `Theme` object a host stores, and the shipped presets. */
+interface ThemesData {
+  note: string;
+  mechanism: {
+    attribute: string;
+    selectors: string[];
+    builtIn: string[];
+    builtInNote: string;
+    apply: string;
+    paints: string[];
+    paintsNote: string;
+    darkMode: string;
+    presetModes: string;
+    contentInk: string;
+    never: string;
+  };
+  declaring: Record<string, unknown>;
+  themeObject: Record<string, unknown>;
+  presets: ThemePreset[];
+}
+
 const packages = loadJson<PackageMeta[]>("packages");
 const tokens = loadJson<TokensData>("tokens");
+const themes = loadJson<ThemesData>("themes");
 const classesByComponent = loadJson<Record<string, string[]>>("classes");
 const blocks = loadJson<BlockData[]>("blocks");
 const behaviors = loadJson<BehaviorData[]>("behaviors");
@@ -442,10 +483,134 @@ export function createServer(): McpServer {
     {
       title: "Get Silica UI design tokens",
       description:
-        "Get the semantic color list and their light/dark OKLCH values, the typography token model, and the scalar theme tokens (radius/border/depth/noise/focus/disabled-opacity) with defaults, ranges, and what each one actually affects. Also returns `customColors`: how to register extra color roles beyond the built-in eight, and the selector pattern for every component a registered color reaches — call this before concluding a color like `brand` is unavailable.",
+        "Get the semantic color list and the DEFAULT theme's light/dark OKLCH values, the typography token model, and the scalar theme tokens (radius/border/depth/noise/focus/disabled-opacity) with defaults, ranges, and what each one actually affects. Also returns `customColors` (how to register extra color roles beyond the built-in eight, and the selector pattern for every component a registered color reaches — call this before concluding a color like `brand` is unavailable) and `theming` (the `data-theme` mechanism these values are ACTIVATED by, including dark mode and per-section theme islands). For a different palette you want a THEME, not different values here: list_themes / get_theme.",
       inputSchema: {},
     },
-    async () => ({ content: [{ type: "text", text: JSON.stringify(tokens, null, 2) }] }),
+    async () => ({
+      content: [
+        {
+          type: "text",
+          // The token values alone never said how either map is turned ON, so
+          // `data-theme` — the whole mechanism — was unreachable from the tool
+          // an agent calls when it asks about color. Spliced in here rather
+          // than left to a tool it has no reason to discover.
+          text: JSON.stringify(
+            {
+              ...tokens,
+              theming: {
+                note: themes.note,
+                ...themes.mechanism,
+                declaring: themes.declaring,
+                themeObject: themes.themeObject,
+              },
+              presets: {
+                count: themes.presets.length,
+                names: themes.presets.map((p) => p.name),
+                note: "Considered, shipped themes — call list_themes for what each one is, get_theme for its resolved tokens. `light`/`dark` above are the DEFAULT theme (quartz); every preset re-points the same token names.",
+              },
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
+
+  server.registerTool(
+    "list_themes",
+    {
+      title: "List Silica UI themes and the data-theme mechanism",
+      description:
+        "List every shipped theme preset — name, what it's for, its type faces and shape — plus the `data-theme` mechanism itself: how a theme is applied, how dark mode works (there is no `.dark` class), and how a section opts into a different palette by nesting the attribute. Call this whenever the answer involves a different palette, a dark section, or theming at all; the alternative an agent reaches for otherwise is hardcoded hex or bespoke CSS, which can never respond to the theme it ends up inside.",
+      inputSchema: {},
+    },
+    async () => ({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              note: themes.note,
+              mechanism: themes.mechanism,
+              // Summaries only — the resolved token maps are ~25 entries per
+              // mode per preset. get_theme returns those for the one you pick.
+              themes: themes.presets.map((p) => ({
+                name: p.name,
+                character: p.character,
+                applyAs: p.applyAs,
+                fonts: p.fonts,
+                shape: p.shape,
+                ...(p.contrastWarnings.light.length || p.contrastWarnings.dark.length
+                  ? { contrastWarnings: p.contrastWarnings }
+                  : {}),
+              })),
+              tokensNote: "get_theme(name) returns each preset's full resolved token map for both modes.",
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
+
+  server.registerTool(
+    "get_theme",
+    {
+      title: "Get a Silica UI theme's resolved tokens",
+      description:
+        "Get one theme preset's fully RESOLVED token map — dark deltas already merged over the base tokens and every `-content` ink derived by measured contrast, i.e. what a browser actually computes rather than the authored bag — plus the exact attribute to apply it, its type faces, its shape tokens, and any role whose ink fails WCAG AA. Pass mode to get just light or just dark.",
+      inputSchema: {
+        name: z.string().describe("Theme name — the `data-theme` value, e.g. 'midnight', 'quartz', 'clay'."),
+        mode: z
+          .enum(["light", "dark", "both"])
+          .optional()
+          .describe("Which mode's tokens to return. Defaults to both."),
+      },
+    },
+    async ({ name, mode }) => {
+      const preset = themes.presets.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      if (!preset) {
+        return {
+          content: [
+            {
+              type: "text",
+              text:
+                `No theme named "${name}". Shipped presets: ${themes.presets.map((p) => p.name).join(", ")}. ` +
+                `A name that isn't here isn't unavailable — an app declares its own with @plugin "@wizeworks/silicaui/theme" (see get_tokens → theming.declaring).`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      const { light, dark, ...rest } = preset;
+      const body =
+        mode === "light" ? { light } : mode === "dark" ? { dark } : { light, dark };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                ...rest,
+                // `mode` is the Theme type's own field and reads as a
+                // restriction if left unexplained — it is not one. Both maps
+                // below render.
+                modeNote:
+                  "`mode` is which mode this theme's authored token bag expresses — not a limitation. Both maps below render. Which one a page shows is the host's dark strategy, not this field: the built-in themes switch on the `data-theme` value itself (`light`/`dark`), while a named preset is emitted as two `themeTokenCss` calls — one per mode — under whichever selectors that strategy uses.",
+                apply: themes.mechanism.apply,
+                ...body,
+                tokensNote:
+                  "RESOLVED, not authored: the dark map is the base tokens with this theme's dark deltas merged over them and `-content` inks re-derived. Apply the theme with the attribute — do not paste these values into CSS, or the result stops tracking the theme.",
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
   );
 
   server.registerTool(
@@ -712,6 +877,45 @@ export function createServer(): McpServer {
             },
           ]
         : [];
+      // Themes, by name or by character ("warm", "serif", "navy"). A preset's
+      // name is the only handle an agent has on it, and twenty of them are
+      // unguessable — `clay`, `dune`, `frost` match nothing else in the catalog.
+      const matchedThemes = themes.presets
+        .filter((p) => p.name.toLowerCase().includes(q) || p.character.toLowerCase().includes(q))
+        .map((p) => ({ kind: "theme" as const, name: p.name, applyAs: p.applyAs, tool: "get_theme" }));
+      // Theming is a MECHANISM, not a literal name — the exact failure the
+      // custom-colors entry above was added for. "dark mode", "data-theme",
+      // "light/dark" and "theme" all matched nothing, so an agent asked to make
+      // a dark section concluded it had to write hex or its own CSS.
+      const THEME_CONCEPT = [
+        "theme",
+        "theming",
+        "data-theme",
+        "dark mode",
+        "dark",
+        "light mode",
+        "light",
+        "color scheme",
+        "colour scheme",
+        "prefers-color-scheme",
+        "toggle",
+        "island",
+        "skin",
+        "white label",
+        "white-label",
+        "multi-tenant",
+      ];
+      const matchedThemeConcept = THEME_CONCEPT.some((k) => k.includes(q) || q.includes(k))
+        ? [
+            {
+              kind: "concept" as const,
+              name: "themes (data-theme)",
+              summary: themes.note,
+              tool: "list_themes",
+              field: "mechanism",
+            },
+          ]
+        : [];
       // The node-tree vocabulary. Without this, "repeat", "limit", "srcset" and
       // "conditional" found nothing here and an agent concluded the concept did
       // not exist — the exact failure a searchable catalog is meant to prevent.
@@ -756,6 +960,8 @@ export function createServer(): McpServer {
         ...matchedClasses,
         ...matchedTokens,
         ...matchedColorConcept,
+        ...matchedThemes,
+        ...matchedThemeConcept,
         ...matchedBindings,
         ...matchedNodeKinds,
         ...matchedTags,

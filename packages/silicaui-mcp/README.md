@@ -99,14 +99,16 @@ Pass `package` to get just one.
 | `list_components({ package? })` | Component names + categories across all three paths, optionally filtered to one package. |
 | `get_component({ name, package? })` | A component's real shape on each path: CSS root class + classes + color variants, React props (from source) + a real usage example, or the `-html` macro and its behaviors. |
 | `list_classes({ component? })` | Exact, literal CSS class names — extracted from the actual class generators. |
-| `get_tokens()` | Semantic color list, light/dark values, typography tokens. |
+| `get_tokens()` | Semantic color list, the default theme's light/dark values, scalar + typography tokens, how to register extra color roles, and the `data-theme` mechanism those values are activated by. |
+| `list_themes()` | Every shipped theme preset (what it's for, its faces and shape) plus the `data-theme` mechanism itself — how a theme is applied, how dark mode works, and how a section opts into its own palette by nesting the attribute. |
+| `get_theme({ name, mode? })` | One theme's fully resolved token map — dark deltas merged, `-content` inks derived — with the exact attribute to write. |
 | `list_blocks({ category?, tag? })` | Composed page blocks (hero, FAQ, feature grid, …), summary only. |
 | `get_block({ key })` | One block's full node tree. |
 | `list_behaviors()` / `get_behavior({ type })` | The `data-sui-*` interactive-behavior contract. |
 | `get_node_schema({ section? })` | Path 3's document schema (`@wizeworks/silicaui-html`): the four node kinds, the typed system-metadata band, the data-binding vocabulary, the host resolution contract, and the tag/attribute allowlist `toHtml` enforces. |
 | `list_email_nodes()` | The email builder's closed node schema (`@wizeworks/silicaui-builder/email`): every kind, what it may hold, what may hold it, the insertable presets, and the document envelope. |
 | `get_email_node({ kind })` | One email node kind's real typed fields (with source docs) and its data-binding contract — which `attr` a bind may target. |
-| `search_docs({ query })` | Free-text search across components, blocks, behaviors, classes, tokens, node-tree bindings and allowed tags, and email node kinds. |
+| `search_docs({ query })` | Free-text search across components, blocks, behaviors, classes, tokens, themes, node-tree bindings and allowed tags, and email node kinds. |
 
 ## A note on versioning
 

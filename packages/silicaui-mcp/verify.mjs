@@ -175,6 +175,120 @@ check("search_docs surfaces custom colors for 'brand'", brandHits.some((r) => r.
 const customHits = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "custom color" } })));
 check("search_docs surfaces custom colors for 'custom color'", customHits.some((r) => r.kind === "concept"));
 
+// ── the theme layer ─────────────────────────────────────────────────────────
+// This server used to return a `light` map and a `dark` map and never say how
+// either one is ACTIVATED — `data-theme` appeared nowhere in the catalog, the
+// tools, or the routing preamble. The failure that causes is quiet and
+// permanent: an agent asked for a dark section reaches for hex or its own CSS,
+// which looks right in a screenshot and can never respond to the theme it ends
+// up inside. These assert the mechanism is reachable from every direction an
+// agent might come at it from, and that the presets stay in lockstep with
+// silicaui-html's own list.
+check(
+  "get_tokens carries the theming mechanism, not just token values",
+  tokens.theming?.attribute === "data-theme" &&
+    /data-theme/.test(tokens.theming?.apply ?? "") &&
+    tokens.theming?.selectors?.includes('[data-theme="dark"]'),
+);
+check(
+  "get_tokens says dark mode is a theme, not a class",
+  /no `\.dark` class/i.test(tokens.theming?.darkMode ?? ""),
+);
+check(
+  "get_tokens points at the shipped presets rather than implying 8 colors is the palette",
+  tokens.presets?.count > 0 && tokens.presets.names.includes("quartz"),
+);
+check(
+  "get_tokens documents how an app declares its own theme",
+  tokens.theming?.declaring?.plugin === "@wizeworks/silicaui/theme" &&
+    ["name", "default", "prefersdark", "color-scheme"].every((o) =>
+      tokens.theming.declaring.options.includes(o),
+    ),
+);
+check(
+  "get_tokens carries the runtime Theme object contract (what a builder/CMS stores)",
+  tokens.theming?.themeObject?.fields?.some((f) => f.name === "tokens") &&
+    tokens.theming.themeObject.fields.some((f) => f.name === "dark") &&
+    tokens.theming.themeObject.runtimeCss?.entrypoint === "@wizeworks/silicaui-html/theme",
+);
+
+const themeList = JSON.parse(text(await client.callTool({ name: "list_themes", arguments: {} })));
+// Against silicaui-html's own preset list, re-read from source — same
+// anti-drift reasoning as the BehaviorType and email-kind checks. A preset
+// added there and not regenerated here fails loudly instead of shipping a
+// catalog that advertises last release's themes.
+const presetNames = new Set(
+  [
+    ...readFileSync("../silicaui-html/src/themes.ts", "utf8").split("export const THEME_PRESETS")[1].matchAll(
+      /^\s+name: "([a-z]+)",$/gm,
+    ),
+  ].map((m) => m[1]),
+);
+const listedThemes = new Set(themeList.themes.map((t) => t.name));
+const missingThemes = [...presetNames].filter((n) => !listedThemes.has(n));
+check(
+  `list_themes returns every shipped preset (${presetNames.size})`,
+  presetNames.size > 0 && missingThemes.length === 0,
+);
+if (missingThemes.length) console.log(`      missingThemes: ${missingThemes.join(", ")}`);
+check(
+  "every theme says what it is for (a bare name is unpickable)",
+  themeList.themes.every((t) => typeof t.character === "string" && t.character.length > 20),
+);
+check(
+  "list_themes leads with the mechanism, including the nesting idiom",
+  /data-theme="dark"/.test(themeList.mechanism?.apply ?? "") && /nest/i.test(themeList.mechanism?.apply ?? ""),
+);
+check(
+  "list_themes stays a summary (token maps are get_theme's job)",
+  themeList.themes.every((t) => !("light" in t) && !("dark" in t)),
+);
+
+const midnight = JSON.parse(text(await client.callTool({ name: "get_theme", arguments: { name: "midnight" } })));
+check("get_theme returns the literal attribute to write", midnight.applyAs === 'data-theme="midnight"');
+// RESOLVED, not authored: `defineTheme` stores dark as a delta bag and derives
+// `-content` inks at resolve time. Publishing the authored bag would hand a
+// consumer a dark map with no inks in it and no way to know they were missing.
+check(
+  "get_theme returns RESOLVED tokens for both modes (dark deltas merged, inks derived)",
+  midnight.light["--color-primary"] !== midnight.dark["--color-primary"] &&
+    !!midnight.dark["--color-primary-content"] &&
+    !!midnight.dark["--color-base-content"],
+);
+check(
+  "get_theme carries the theme's type faces for a self-hosting step",
+  midnight.fonts?.head?.family === "Spectral" && midnight.fonts.sans?.source === "google",
+);
+const midnightLight = JSON.parse(
+  text(await client.callTool({ name: "get_theme", arguments: { name: "midnight", mode: "light" } })),
+);
+check("get_theme(mode) narrows to one mode", !!midnightLight.light && midnightLight.dark === undefined);
+const badTheme = await client.callTool({ name: "get_theme", arguments: { name: "vaporwave" } });
+check("get_theme reports isError for a theme that doesn't exist", badTheme.isError === true);
+check(
+  "...and says a custom theme is still declarable rather than implying the list is closed",
+  /@plugin/.test(text(badTheme)),
+);
+// Every preset vouched for by this catalog is a preset we assert is legible.
+// A regression here is a real one — publish the warning, don't drop the check.
+const unhealthyThemes = themeList.themes.filter((t) => t.contrastWarnings);
+check(
+  `no shipped preset has a role failing WCAG AA${unhealthyThemes.length ? ` (${unhealthyThemes.map((t) => t.name).join(", ")})` : ""}`,
+  unhealthyThemes.length === 0,
+);
+
+check("instructions name the data-theme mechanism", /data-theme/.test(instructions));
+const themeSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "dark mode" } })));
+check(
+  "search_docs surfaces theming for 'dark mode'",
+  themeSearch.some((r) => r.kind === "concept" && r.tool === "list_themes"),
+);
+const presetSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "terracotta" } })));
+check(
+  "search_docs finds a theme by its character, not just its name",
+  presetSearch.some((r) => r.kind === "theme" && r.name === "clay"),
+);
+
 const blocks = JSON.parse(text(await client.callTool({ name: "list_blocks", arguments: {} })));
 check("list_blocks returns summaries without a root", blocks.length > 0 && !("root" in blocks[0]));
 
