@@ -15,6 +15,18 @@
  * and a host's compiler all have to agree, and a second copy of the math is how
  * they stop agreeing. (Requires that package to be built — CI runs `pnpm build`
  * before `pnpm verify`.)
+ *
+ * WHY THE IMPORT RESOLVES FROM THE WORKSPACE ROOT. This package deliberately does
+ * NOT depend on `@wizeworks/silicaui-html`: silicaui is the CSS floor and
+ * silicaui-html builds on top of it, so an edge back down would invert the stack
+ * — and since silicaui-html now takes a real `workspace:*` dev edge on silicaui
+ * for its `/theme` subpath, that inversion would close a cycle. A cycle here is
+ * not a style question: each edge is a symlink, so A→B→A is a symlink loop, and
+ * the one that briefly existed killed the Next site build with a bare
+ * `RangeError: Invalid array length` out of webpack's directory walk.
+ * `@wizeworks/silicaui-html` is a devDependency of the workspace ROOT instead,
+ * which resolves for this probe and cannot close a cycle because nothing depends
+ * on the root. `scripts/verify-workspace-acyclic.mjs` holds that line.
  */
 import { AA_NORMAL, contrastRatio, deriveContent, parseColor } from "@wizeworks/silicaui-html";
 import { DARK, LIGHT } from "../src/colors.js";
