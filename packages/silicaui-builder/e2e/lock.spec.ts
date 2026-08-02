@@ -24,9 +24,9 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function insertBlock(page: Page, key: string): Promise<void> {
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator(`[data-insert-key="block:${key}"]`).click();
-  await page.getByRole("button", { name: "Layers" }).click(); // back to selection view
+  await page.getByRole("tab", { name: "Layers" }).click(); // back to selection view
 }
 
 /** The Inspector's Settings tab (a labeled toggle-group item). */
@@ -52,14 +52,14 @@ test("lock a node from the Inspector: Delete is refused until it's unlocked", as
 
   // Move focus off the checkbox WITHOUT changing selection (Layers view toggle),
   // then Delete — the locked root is refused and stays on the canvas.
-  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   await page.keyboard.press("Delete");
   await expect(heading).toBeVisible();
 
   // Unlock, then Delete again — now it's removed.
   await page.getByTestId("settings-lock").click();
   await expect(page.getByText("Unlocked", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   await page.keyboard.press("Delete");
   await expect(heading).toHaveCount(0);
 

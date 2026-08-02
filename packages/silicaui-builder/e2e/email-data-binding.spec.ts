@@ -97,7 +97,7 @@ test("the demo host's catalog-contributed block appears in Insert and can be pla
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const hostItem = page.locator('[data-insert-key="host:callout"]');
   await expect(hostItem).toBeVisible();
   await hostItem.click();

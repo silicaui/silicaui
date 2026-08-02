@@ -303,10 +303,22 @@ The rails are not uniformly open, and the asymmetry is deliberate:
 | Right rail — a few fields | `inspectorPanels()` | A section inside Settings, after the built-ins. |
 | Header — status | `toolbarStatusSlot` | Leads the right cluster. Facts, not controls. |
 | Header — actions | `toolbarSlot` | Buttons, beside Publish. |
-| Footer | `statusBarSlot` | Session facts, after the engine's own. |
+| Footer | `statusBarSlot` | Session facts, after the engine's own. A fact may disclose its own detail (`StatusItem`); it may not act. |
 | Left rail | *(none)* | Contents extend via `catalog()` / `componentStarters()` / `themes()`; the rail's own structure does not. |
 
 Pick the grain that matches the contribution. A host that wraps three fields in a tab has buried them behind a click; a host that stuffs a change-history log into a Settings section has put a document-level surface under a node-level heading, where it disappears the moment nothing is selected.
+
+**Status vs action, and the one thing that is both.** The two status slots take facts and the two action slots take controls, which is why the engine's own `mode` and `device` read in the footer rather than beside the toggles that set them. The exception is a status item that discloses its **own** detail — clicking "3 broken" to see which three. That is reading the same fact at more depth, not a second action, and splitting it (a count in the strip, its trigger two floors up in the toolbar) is what stops a status bar being one. Use `StatusItem`:
+
+```tsx
+import { StatusItem } from '@wizeworks/silicaui-builder/react';
+
+<StatusItem onClick={() => setOpen(!open)} expanded={open} controls="site-check">
+  3 broken · 15 to fix
+</StatusItem>
+```
+
+With no `onClick` it is a plain `<span>` — no tab stop, identical to the engine's own labels. With one it is a ghost `btn-xs`: 24px inside the 28px strip, so the row height never moves, and it carries `aria-expanded`/`aria-controls`. Anything that **acts** — send, save, publish, navigate away — is a `toolbarSlot` button instead; `expanded` is the test, since an item with no disclosed panel to point at is an action in a status item's clothes.
 
 **The inspector rail has no header of its own** — its tab strip *is* the header. There is no title to theme or override, and a host tab reads as a peer of the built-ins rather than a guest inside them. When the tabs outgrow the rail's width, the strip pages with explicit circle buttons that take layout space beside it; there is no horizontal scrollbar, and nothing is hidden under an overlay.
 
@@ -320,6 +332,51 @@ The **email** builder carries the same two inspector seams, under `EmailBuilderH
 - Unknown `icon`: the tab renders without one.
 - `order` sorts against the built-ins — Design is `0`, Settings is `10`, an omitted `order` lands after both. Sorting is stable, so tabs without one keep the order the host returned them in.
 - A node-scoped tab that stops being returned **while it is open** falls back to Design rather than blanking the rail.
+
+---
+
+## 5.0.2 Other editors — presence in
+
+Two authors on one page is already safe: per-node last-write-wins, the op log and draft history keep the document right whatever order edits arrive in. What it lacked was anyone to blame. Edits appeared with no warning and no attribution — a heading rewriting itself under your cursor, with nothing on screen connecting that to the count in the toolbar.
+
+Hand the engine whatever presence you already relay:
+
+```ts
+interface Peer {
+  id: string;                     // stable per connection (a socket id)
+  name: string;                   // what the editor calls them on screen
+  color?: string;                 // defaults to a stable one derived from `id`
+  selection?: readonly string[];  // DRAWN
+  claim?: readonly string[];      // ENFORCED — each covers a node and its subtree
+}
+
+<Builder peers={roster} />        // or editor.setPeers(roster) — same thing
+```
+
+Pass the full roster on every change; the engine diffs it, so a heartbeat carrying no news costs nothing.
+
+**`selection` is drawn.** A dashed, named ring on the canvas in that peer's color — the same measured geometry the local selection ring uses, sitting one layer below it — plus a dot on the Navigator row. Selections, not cursors: the document is a node tree with no x/y (the same reason pixel nudge and alignment guides were declined), and "Ana is in this block" is the fact that matters. Pass it alone and you gain attribution and change nothing else.
+
+**`claim` is enforced.** Every node mutation inside a claimed subtree becomes a no-op, the canvas drops that subtree's write affordances (no drag, no drop target, no in-place edit, `cursor-not-allowed`), the Navigator won't rename inside it, and the Inspector names the holder. Reads are untouched — you can select a held node and read its classes, and the rail telling you *why* nothing lands is the point.
+
+A claim is the **soft** half of a lock, and deliberately not `setLocked`:
+
+| | `setLocked(id, …)` | `claim` |
+| --- | --- | --- |
+| Lives in | the document | this editor's memory |
+| Relayed | yes, as an op | never |
+| Undoable | yes | nothing to undo |
+| Means | "this region is policy" | "someone is typing in here right now" |
+
+So the host owns a claim's lifetime — start one on focus, end it on blur or a timeout. A lock that outlived its holder's tab is a support ticket; a claim that does is a stale ring you can clear by relaying a roster without it.
+
+It is **not** correctness machinery, and one consequence is load-bearing: **`applyRemoteOps` ignores claims entirely**, including the claim held by the peer whose ops are arriving. A claim that blocked remote ops would make the feature actively destructive — the holder would find their own work silently dropped on every other client. Claims exist to stop two people making a mess they then have to untangle by hand, not to keep the document consistent; the op log already does that.
+
+Two smaller rules, both chosen to match `locked` rather than invent a second model: a claimed node can still be **duplicated** (the copy lands beside the subtree, not in it, so it changes nothing the holder can see), and a claim on a node in another tree — a frame node while the spine is on a page body — says nothing, exactly as a cross-tree `select` does.
+
+`peerColor(peer)` is exported so a host's own presence UI paints a person the same color the ring does; one person in two colors is worse than no color at all. Peer color is deliberately **not** a theme role: a peer painted `primary` disappears into a document built on that theme, and an eight-role palette collides as soon as there are more than a few people.
+
+Engine behaviour is pinned by `verify:peers`; the drawn half by `e2e/peers.spec.ts`.
 
 ---
 

@@ -98,7 +98,7 @@ test("a frame region wears NO body-editor chrome — a real footer can't read as
 
   // The same chip IS still the affordance for an author's own HTML block — the
   // fix is scoped to the frame, not a removal of the feature.
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="html"]').click();
   await expect(canvas.getByText("Custom HTML", { exact: true }).first()).toBeVisible();
 
@@ -163,7 +163,7 @@ test("a host-locked section is saved but refuses delete and move", async ({ page
   await expect(page.getByTestId("email-lock")).toHaveCount(0);
 
   // The Delete key is refused too — the engine, not the button, is the guard.
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   await page.keyboard.press("Delete");
   await expect(pinned).toBeVisible();
 

@@ -49,7 +49,7 @@ test("New component picker: search + create from a section starter", async ({ pa
 
   // It's a real, editable component master — placeable back on a page afterwards.
   await page.getByRole("button", { name: "Page", exact: true }).click();
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await expect(page.locator('[data-insert-key^="symbol:"]')).toHaveCount(1);
 
   expect(errors, errors.join("\n")).toHaveLength(0);

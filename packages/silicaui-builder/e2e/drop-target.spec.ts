@@ -119,7 +119,7 @@ test("email: columns sit side by side, so the marker between them stands up", as
 
   // The seeded email is a single stack — insert a 2-column row so there IS a
   // horizontal axis to aim along.
-  await page.getByRole("button", { name: /insert/i }).first().click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="columns-2"]').first().click();
 
   const found = await rowChildId(page, ".sui-email-canvas");

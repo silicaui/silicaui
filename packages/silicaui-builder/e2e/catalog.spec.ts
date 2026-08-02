@@ -25,7 +25,7 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function insert(page: Page, key: string): Promise<void> {
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator(`[data-insert-key="${key}"]`).click();
 }
 
@@ -133,7 +133,7 @@ test("the insert palette is searchable and Enter inserts the top match", async (
   await ready(page);
   const canvas = page.locator(".sui-canvas");
 
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const search = page.getByLabel("Search the insert catalog");
 
   // Fuzzy query collapses the whole catalog to ranked matches; the pricing block

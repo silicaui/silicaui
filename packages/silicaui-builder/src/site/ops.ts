@@ -34,21 +34,11 @@
  */
 import type { BehaviorMarker, Child, DataBinding, Frame, Node, NodeOverride, Page, SymbolDef, Theme } from "@wizeworks/silicaui-html";
 
-/**
- * Which tree an op addresses.
- *
- * `frame` carries an OPTIONAL id: absent means the site's default shell
- * (`Site.frame`), a string names one of `Site.frames`. Optional rather than
- * required so every op recorded before named layouts existed still addresses
- * the default one, and so the common case stays the short spelling.
- *
- * It has to be carried at all: without it, editing a named layout would emit
- * ops a peer applies to the DEFAULT layout — silently rewriting the wrong tree
- * on every other client.
- */
+/** Which tree an op addresses. A site has exactly one shell, so `frame` needs no
+ *  id to disambiguate. */
 export type OpTarget =
   | { scope: "page"; id: string }
-  | { scope: "frame"; id?: string }
+  | { scope: "frame" }
   | { scope: "symbol"; id: string }
   | { scope: "site" };
 
@@ -232,22 +222,6 @@ export interface PageReorderOp extends OpBase {
   pageIds: string[];
 }
 
-/**
- * Which shell wraps this page (`Page.frameId`). Three states, and the two
- * falsy-looking ones mean different things, so the op carries the tri-state
- * verbatim rather than collapsing it:
- *
- *   `undefined` → the site default   ·   `null` → no frame   ·   string → named
- *
- * `frameId` is REQUIRED on the op (even to say `undefined`) so an applier can
- * never confuse "set it back to the default" with "this op doesn't touch it".
- */
-export interface PageSetFrameOp extends OpBase {
-  kind: "page.setFrame";
-  pageId: string;
-  frameId: string | null | undefined;
-}
-
 // ── symbol ops ───────────────────────────────────────────────────────────────
 
 /** Create or replace a symbol master wholesale (create + rename both land here;
@@ -291,42 +265,11 @@ export interface SavedThemesSetOp extends OpBase {
   savedThemes: Theme[];
 }
 
-/** A shell's editable flag. Its tree is reached by ordinary node ops under
- *  `{ scope: "frame", id? }`. */
+/** The shell's editable flag. Its tree is reached by ordinary node ops under
+ *  `{ scope: "frame" }`. */
 export interface FrameSetEditableOp extends OpBase {
   kind: "frame.setEditable";
   editable: boolean;
-}
-
-/** Create a NAMED layout (`Site.frames[frameId]`). Carries the stamped tree for
- *  the same reason `node.insert` does — a peer cannot mint ids it never saw. */
-export interface FrameCreateOp extends OpBase {
-  kind: "frame.create";
-  frameId: string;
-  frame: Frame;
-}
-
-/** Rename a named layout. Its `frameId` is unchanged, so every `Page.frameId`
- *  pointing at it keeps working — the whole reason the key and the label are
- *  separate fields. */
-export interface FrameRenameOp extends OpBase {
-  kind: "frame.rename";
-  frameId: string;
-  name: string;
-}
-
-/**
- * Delete a named layout.
- *
- * `reassign` lists the pages that pointed at it, so undoing the delete can put
- * them back. Their `frameId` is cleared to the site DEFAULT rather than to
- * `null`: a page whose layout was deleted should fall back to the ordinary
- * shell, not silently become a bare landing page.
- */
-export interface FrameDeleteOp extends OpBase {
-  kind: "frame.delete";
-  frameId: string;
-  reassign: string[];
 }
 
 /**
@@ -368,15 +311,11 @@ export type Op =
   | PageRenameOp
   | PageSetSlugOp
   | PageReorderOp
-  | PageSetFrameOp
   | SymbolSetOp
   | SymbolDeleteOp
   | ThemeSetOp
   | SavedThemesSetOp
   | FrameSetEditableOp
-  | FrameCreateOp
-  | FrameRenameOp
-  | FrameDeleteOp
   | SiteReplaceOp;
 
 export type OpKind = Op["kind"];

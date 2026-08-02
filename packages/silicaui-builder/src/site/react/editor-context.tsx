@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import type { Document, Node, SymbolDef, Theme } from "@wizeworks/silicaui-html";
-import type { ActiveTree, Editor, PagesView } from "../engine";
+import type { ActiveTree, Editor, PagesView, Peer } from "../engine";
 
 const EditorContext = React.createContext<Editor | null>(null);
 
@@ -177,6 +177,40 @@ export function useSelectionSet(): readonly string[] {
     React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
     () => editor.selectedIds,
   );
+}
+
+/**
+ * The other editors in this document. The engine hands back the same array
+ * identity until the roster's CONTENT changes, so a presence heartbeat carrying
+ * no news doesn't re-render every ring on the canvas — which `useSyncExternalStore`
+ * requires anyway (it compares snapshots by reference).
+ */
+export function usePeers(): readonly Peer[] {
+  const editor = useEditor();
+  return React.useSyncExternalStore(
+    React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
+    () => editor.peers,
+  );
+}
+
+/**
+ * Who is holding the subtree `id` sits in, if anyone — the question the Inspector
+ * and the Navigator ask about one node.
+ *
+ * Re-read on every commit, not just on `"peers"`: a claim covers a subtree, so
+ * moving a node under a claimed ancestor changes the answer for that node
+ * without the roster changing at all.
+ */
+export function useClaim(id: string | undefined): Peer | undefined {
+  const editor = useEditor();
+  // Both subscriptions are the point, not the values: `claimOn` reads live
+  // engine state, so this hook needs a re-render on either signal. It isn't
+  // memoized because there is nothing to save — the subscriptions have already
+  // re-rendered us, and `claimOn` returns immediately when no claim is held,
+  // which is the overwhelmingly common case.
+  usePeers();
+  useDocument();
+  return id ? editor.claimOn(id) : undefined;
 }
 
 /**

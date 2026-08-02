@@ -30,6 +30,77 @@ export function IconItem({
   );
 }
 
+/**
+ * One item in the STATUS BAR — the shape a host's `statusBarSlot` content should
+ * take, in both shells.
+ *
+ * The strip's rule is that everything in it is a FACT about the session, never a
+ * control. That rule was written one case too broad. A status item that reveals
+ * its OWN detail — clicking "3 broken" to see which three — is not a new action;
+ * it is reading the same fact at more depth, which is what every status bar in
+ * every IDE does. What the rule is really protecting against is a 28px strip
+ * turning into a second toolbar: something that SENDS, saves, publishes or
+ * navigates away belongs in `toolbarSlot`, beside Publish, where a person looks
+ * for actions.
+ *
+ * So the affordance is deliberately narrow rather than a free `<button>`:
+ *
+ *  - No `onClick` renders a plain `<span>` — no tab stop, no hover, identical to
+ *    the engine's own `mode`/`device` labels, which is what most status is.
+ *  - With `onClick` it becomes a ghost `btn-xs` — 24px inside a 28px strip, so
+ *    the row height never moves — carrying `aria-expanded`/`aria-controls` when
+ *    `expanded` is passed, because a disclosure that doesn't say it is a
+ *    disclosure is just a mystery target for anyone not using a mouse.
+ *
+ * `expanded` is what keeps this honest: an item that has no disclosed panel to
+ * point at is an action wearing a status item's clothes, and it should be a
+ * toolbar button instead.
+ */
+export function StatusItem({
+  onClick,
+  expanded,
+  controls,
+  title,
+  className = "",
+  children,
+  ...rest
+}: {
+  /** Makes the item a disclosure. Omit for plain status. */
+  onClick?: () => void;
+  /** Whether the detail this item reveals is currently open. */
+  expanded?: boolean;
+  /** `id` of the element it reveals, for `aria-controls`. */
+  controls?: string;
+  title?: string;
+  className?: string;
+  children: React.ReactNode;
+} & Omit<React.ComponentPropsWithoutRef<"span">, "onClick" | "title" | "className" | "children">) {
+  if (!onClick) {
+    return (
+      <span className={className} title={title} {...rest}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <Button
+      type="button"
+      size="xs"
+      variant="ghost"
+      // `font-normal`: it is still status, and a status bar that bolds one fact
+      // because it happens to be clickable has made clickability the hierarchy.
+      className={`h-6 font-normal ${className}`}
+      title={title}
+      aria-expanded={expanded}
+      aria-controls={controls}
+      onClick={onClick}
+      {...rest}
+    >
+      {children}
+    </Button>
+  );
+}
+
 /** A panel header bar (left/right rails). `theme` tints it for the site
  *  builder's Theme mode; email never passes it. */
 export function PanelHead({ children, theme }: { children: React.ReactNode; theme?: boolean }) {
@@ -92,12 +163,21 @@ export function PanelTabs({
   value,
   onValueChange,
   ariaLabel,
+  testIdPrefix = "inspector-tab",
+  actions,
   children,
 }: {
   tabs: readonly PanelTabSpec[];
   value: string;
   onValueChange: (id: string) => void;
   ariaLabel: string;
+  /** Test-id namespace for the tabs (`<prefix>-<id>`); one strip per rail. */
+  testIdPrefix?: string;
+  /** A filter that applies TO the open tab (e.g. the layer-depth toggle) — it
+   *  sits with the tab it modifies, off the end of the strip, rather than
+   *  spending a second 40px row on a control most people set once. Actions that
+   *  belong to the CONTENT (add, rename, delete) go in the body, not here. */
+  actions?: React.ReactNode;
   /** The active tab's body — the rest of the rail, below the strip. */
   children: React.ReactNode;
 }) {
@@ -174,7 +254,7 @@ export function PanelTabs({
                 key={t.id}
                 value={t.id}
                 data-tab-id={t.id}
-                data-testid={`inspector-tab-${t.id}`}
+                data-testid={`${testIdPrefix}-${t.id}`}
                 className="whitespace-nowrap px-3"
               >
                 <span className="inline-flex items-center gap-1.5">
@@ -185,6 +265,7 @@ export function PanelTabs({
           </TabsList>
         </div>
         {paging && <PageButton dir={1} disabled={!overflow.right} onClick={() => page(1)} />}
+        {actions && <div className="flex items-center gap-1 flex-none self-center">{actions}</div>}
       </div>
 
       {/* One panel, always matching the active tab — the body is rendered by the

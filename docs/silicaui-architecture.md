@@ -284,6 +284,62 @@ Every component consumes these as `var(--token, default)`, never a hardcoded
 literal, so setting one on `:root` (or a theme's `[data-theme]` block) always
 wins over the built-in default — no component-level rebuild required.
 
+### 5.2 A color named at RUNTIME (`@wizeworks/silicaui-html/theme`)
+
+Everything above assumes the color *exists*: `.btn-brand`, `.badge-brand` and the
+`.text-`/`.bg-`/`.border-` trio are emitted by the plugin for every name in the
+app's build-time list.
+
+```css
+@plugin "@wizeworks/silicaui" { colors: primary, secondary, brand; }
+```
+
+That list is a **build-time constant**, and a theme editor breaks the assumption
+behind it: in a multi-tenant builder, a white-label app, or any CMS with a theme
+editor, the name is coined at **runtime** by a tenant, on a site whose bundle
+shipped months ago. Adding it to `colors:` would mean redeploying the platform
+every time a merchant invents a color, so the rules have to be **generated from
+the theme and shipped beside it**:
+
+```ts
+import { customColorCss, themeTokenCss } from '@wizeworks/silicaui-html/theme';
+
+const css = themeTokenCss(theme, '[data-theme="acme"]')  // the --color-* pair
+          + customColorCss(theme);                        // the rules that read it
+```
+
+- `customColorCss(theme, scope?)` emits, for every role the theme adds beyond the
+  built-in semantic set, exactly what a build-time registration would have — the
+  utility trio for the color **and** its `-content` ink, plus every colored
+  component's variant. It calls silicaui's own generators (`colorUtilityRules`,
+  `allColorVariantRules`), so a runtime color is byte-for-byte a declared one and
+  a component added in a later release is picked up with no change at the call
+  site. It returns `""` for the common case of a theme that adds nothing, so it
+  is safe to call unconditionally.
+- `scope` is **opt-in**. Omit it when publishing — the rules stand in for global
+  declared colors, and a stray scope means they match nothing. Pass one for a
+  preview: the builder passes `.sui-canvas` so a tenant's palette cannot repaint
+  the editor's own chrome.
+- `themeTokenCss` is the other half, and they are not separable in practice:
+  every generated rule reads `--color-<name>` / `--color-<name>-content` with no
+  fallback, so rules without tokens paint nothing. It goes through
+  `resolveThemeTokens`, so the ink is contrast-**measured** rather than falling
+  through to the CSS lightness threshold.
+
+The subpath is separate from the package root because it is the only part of
+`@wizeworks/silicaui-html` that needs `@wizeworks/silicaui` — an *optional* peer,
+so a consumer that only projects trees keeps a dependency-free import. Pinned by
+`verify-theme-css.mjs`.
+
+**Why it is not the canvas's private business.** It was, for as long as the
+generator lived in the builder: `Canvas` and `ComponentBoard` imported it and
+publish never could, so a page that previewed correctly shipped with
+`btn-sunset` styling nothing — a class that looks like a typo nobody made, on the
+one code path no one is watching. Nothing in between notices, either: a class
+policy that rejects viewport variants, a security floor that rejects
+`fixed`/`url(…)`, and a `toHtml` that emits `class` verbatim are each correct and
+none of them knows which colors exist.
+
 ---
 
 ## 6. Blocks — the composed tier
@@ -652,23 +708,10 @@ edit the layout *as* the root).
 interface Frame { root: Node; /* contains exactly one Outlet */ editable: boolean }
 ```
 
-**Per-page layouts.** `Site.frame` is the DEFAULT shell; `Site.frames` holds
-additional named ones, and a page picks with `Page.frameId` — a **tri-state** where
-the two falsy-looking values mean opposite things:
-
-| `frameId` | meaning |
-| --- | --- |
-| absent | the site default (`Site.frame`) — what every page did before this existed |
-| `null` | **no frame**: the page renders bare, header and footer included |
-| a string | the named frame at `Site.frames[frameId]` |
-
-`null` is the feature: a campaign or landing page with no site chrome was
-unrepresentable while every page took the one site frame. It's a single field rather
-than `frameId` + a `frameless` flag so `{ frameId: "docs", frameless: true }` can't be
-written at all. `frameFor(site, page)` is the one resolution every projection goes
-through, and a **dangling** `frameId` resolves to no frame rather than falling back to
-the default — the author moved this page off it deliberately, and quietly restoring
-the default header is the worse answer. `frameDiagnostic` reports it instead.
+**ONE shell per site.** `Site.frame` wraps every page — there is no per-page
+override and no map of named layouts. A site with no `frame` renders its pages
+bare. `renderPage` and `pageDocument` both read that single field, so the canvas
+and the publish path cannot disagree about whether a page has a header.
 
 ### 9.8 Behavior preview
 

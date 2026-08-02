@@ -48,7 +48,14 @@ import { EmailInspector } from "./Inspector";
 import { Navigator } from "./Navigator";
 import { TemplatesPanel } from "./TemplatesPanel";
 import { Icon } from "../../shared/react/Icon";
-import { IconItem, PanelHead } from "../../shared/react/chrome";
+import { IconItem, PanelTabs } from "../../shared/react/chrome";
+import type { PanelTabSpec } from "../../shared/react/chrome";
+
+/** The left rail's two pages. Static — email has no mode that removes one. */
+const LEFT_TABS: PanelTabSpec[] = [
+  { id: "layers", label: "Layers", icon: "list" },
+  { id: "insert", label: "Insert", icon: "plus" },
+];
 
 function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   const editor = useEmailEditor();
@@ -294,23 +301,31 @@ function Chrome({
             maxSize={30}
             className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-r border-base-300"
           >
-            {/* Templates sit above Layers/Insert — a navigation peer to the tree,
-                same placement as the site builder's Pages switcher. */}
-            <TemplatesPanel studioTheme={studioTheme} />
-            <PanelHead>
-              <ToggleGroup
-                className="toggle-group-xs w-full"
-                aria-label="Left panel"
-                value={[leftTab]}
-                onValueChange={(v: string[]) => v.length && setLeftTab(v[v.length - 1] as "layers" | "insert")}
-              >
-                <IconItem value="layers" icon="list" className="flex-1">Layers</IconItem>
-                <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
-              </ToggleGroup>
-            </PanelHead>
-            <div className="flex-1 min-h-0 overflow-auto">
-              {leftTab === "layers" ? <Navigator /> : <EmailPalette />}
-            </div>
+            {/* Layers / Insert ARE this rail's header — the same first-class
+                underline strip the Inspector uses on the right, same as the site
+                builder. Templates is a child of Layers: it chooses which document
+                the layers show, so it belongs to that tab rather than sitting
+                above both. */}
+            <PanelTabs
+              tabs={LEFT_TABS}
+              value={leftTab}
+              onValueChange={(id) => setLeftTab(id as "layers" | "insert")}
+              ariaLabel="Left panel"
+              testIdPrefix="left-tab"
+            >
+              {leftTab === "layers" ? (
+                <>
+                  <TemplatesPanel studioTheme={studioTheme} />
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <Navigator />
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <EmailPalette />
+                </div>
+              )}
+            </PanelTabs>
           </ResizablePanel>
           <ResizeHandle />
 
@@ -342,14 +357,14 @@ function Chrome({
 
       {/* footer — the STATUS BAR, same contract as the site builder's: facts
           about the session (which width, edit-or-preview, the canvas width),
-          never controls. */}
+          never controls — though a fact may disclose its own detail. */}
       <footer className="flex items-center gap-2 h-7 flex-none px-3 border-t border-base-300 bg-base-100 text-xs text-base-content">
         <span className="capitalize">{device}</span>
         <span className="capitalize">· {mode}</span>
 
         {/* Host STATE beside the engine's own, reading as one sentence about the
             session — a send window, a lock holder, saved/unsaved. Same split and
-            same non-interactive contract as the site builder's `statusBarSlot`;
+            same contract as the site builder's `statusBarSlot`;
             `toolbarStatusSlot` is the header twin for whatever has to sit at eye
             level. */}
         {statusBarSlot}
@@ -534,8 +549,10 @@ export interface EmailBuilderProps {
    * competing with a bar full of buttons. Mirrors the site
    * `<Builder statusBarSlot>` exactly.
    *
-   * Non-interactive content only — the strip is 28px tall and the engine's own
-   * children are plain text.
+   * Facts, not controls — with the same one exception the site builder makes: a
+   * fact may be a DISCLOSURE for its own detail (clicking a count to see what it
+   * counts), never something that acts. Use `StatusItem`, which is a `<span>`
+   * without an `onClick` and a ghost `btn-xs` with one.
    */
   statusBarSlot?: React.ReactNode;
 }

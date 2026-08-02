@@ -92,7 +92,7 @@ editable body.
 import { toEmailHtml } from "@wizeworks/silicaui-builder/email";
 
 // One call. Resolver + frame together — this is what the recipient gets.
-const html = toEmailHtml(doc, { resolver: hostData, frame: frameFor(site) });
+const html = toEmailHtml(doc, { resolver: hostData, frame: project.frame });
 ```
 
 If you already compose the frame yourself, either pass it here instead or use

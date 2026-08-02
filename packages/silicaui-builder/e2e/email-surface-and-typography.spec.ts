@@ -64,7 +64,7 @@ test("the button variant control switches between a filled and an outline button
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="button"]').click();
 
   const canvas = page.locator(".sui-email-canvas");

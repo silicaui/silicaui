@@ -15,7 +15,8 @@ import * as React from "react";
 import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, SourceTruncation, Theme } from "@wizeworks/silicaui-html";
 import { applyCollectionLimit, rolesOf, colorValue, SURFACE_TOKENS, scopeAt, flattenSources, truncationMessage, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "@wizeworks/silicaui-react";
-import { useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
+import { useClaim, useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
+import { peerColor } from "../peers";
 import { setClassTokenMany } from "../commands";
 import { useHost } from "./host-context";
 import type { AssetRef, HostPropDef, InspectorPanelCtx, InspectorTabDef, SelectableNode } from "./host";
@@ -572,6 +573,7 @@ export function Inspector() {
           selection and the actions on it both describe something a panel-scoped
           tab (a change history, an audit) is explicitly not about. */}
       {nodeScoped && node && <IdentityHeader node={node} />}
+      {nodeScoped && node && <ClaimNotice id={node.id!} />}
 
       <div className="flex-1 min-h-0 overflow-auto">
         <InspectorBody tab={active} node={node} />
@@ -1773,6 +1775,42 @@ function InstancePanel({ id, symbolId, node }: { id: string; symbolId: string; n
           </button>
         </div>
       </Group>
+    </div>
+  );
+}
+
+/**
+ * "Ana is editing this" — the one place the editor NAMES the holder of a claimed
+ * subtree.
+ *
+ * The canvas ring and the Navigator dot both say *someone* is here; this says
+ * who, and it has to, because this is the panel the author reaches for the
+ * moment a control does nothing. The engine refuses those writes silently (a
+ * refused mutation is a no-op by design, not an error), so without this line the
+ * author's experience is a rail full of controls that don't work.
+ *
+ * The controls below stay MOUNTED and readable rather than being replaced by
+ * this banner. What the subtree's classes and props are is exactly what someone
+ * looking at a block another person is editing wants to know, and blanking the
+ * rail would answer a smaller question than "why can't I type here".
+ */
+function ClaimNotice({ id }: { id: string }) {
+  const holder = useClaim(id);
+  if (!holder) return null;
+  return (
+    <div
+      className="flex items-center gap-2 px-3.5 py-2 border-b border-base-200 text-xs text-base-content"
+      data-testid="claim-notice"
+    >
+      <span
+        className="size-2 flex-none rounded-full"
+        style={{ backgroundColor: peerColor(holder) }}
+        aria-hidden
+      />
+      <span className="truncate">
+        <span className="font-semibold">{holder.name}</span> is editing this. Your changes here are paused
+        until they move on.
+      </span>
     </div>
   );
 }

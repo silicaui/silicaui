@@ -4,58 +4,39 @@
  * @wizeworks/silicaui's plugin emits color utilities (`text-brand`, `bg-brand`) and component
  * variants (`btn-brand`, `badge-brand`, `alert-brand`, …) for every color DECLARED
  * at build time. The builder lets a user INVENT a color in the theme editor, so its
- * classes aren't in the compiled CSS yet — this module generates exactly those
- * missing rules at runtime, for the theme's custom roles, scoped to a container,
- * reusing @wizeworks/silicaui's OWN generators (`allColorVariantRules`,
- * `colorUtilityRules`) so a live color behaves byte-for-byte like a declared one.
- * Both generators return FLAT rule maps, so serialization is trivial (no
- * nested-selector handling).
+ * classes aren't in the compiled CSS yet — those missing rules are generated at
+ * runtime instead, for the theme's custom roles, scoped to a container.
  *
- * `allColorVariantRules` covers EVERY colored component, not just Button. It used
- * to call `buttonColorVars`, because Button's mapping was the only one factored
- * out of its module — so a color invented live painted `btn-brand` and silently
- * nothing else (no `badge-brand`, no `input-brand`, no `tabs-brand`). That made
- * the N-color promise true at build time and false in the builder, which is the
- * one place a color is actually invented.
+ * THE GENERATOR ITSELF NOW LIVES IN `@wizeworks/silicaui-html/theme`, not here.
+ * It was canvas-only for as long as it lived in this package: `Canvas` and
+ * `ComponentBoard` imported it, publish and export never could (a render path
+ * must not import React, and the builder's entry does), so a page that PREVIEWED
+ * with a custom color shipped with `btn-sunset` styling nothing — a class that
+ * looks like a typo nobody made. A host can't close that from its own seam,
+ * because the build-time `colors:` list isn't reachable at runtime. Moving it
+ * one package down puts the canvas and the published page on the same generator.
+ *
+ * Re-exported rather than relocated-and-forgotten so the canvas keeps its
+ * `.sui-canvas` default: on the canvas the rules MUST be scoped (they'd
+ * otherwise repaint the editor's own chrome with the tenant's palette), and on a
+ * published page they must NOT be (they stand in for global declared colors).
+ * Getting that backwards is silent in both directions, so the default lives with
+ * the caller that has an opinion.
  */
-import { allColorVariantRules } from "@wizeworks/silicaui/color-variants";
-import { colorUtilityRules } from "@wizeworks/silicaui/color-utilities";
-import { resolveThemeTokens, rolesOf, SEMANTIC_ROLES } from "@wizeworks/silicaui-html";
-import type { Theme, SemanticRole } from "@wizeworks/silicaui-html";
+import { customColorCss as customColorCssFor } from "@wizeworks/silicaui-html/theme";
+import { resolveThemeTokens } from "@wizeworks/silicaui-html";
+import type { Theme } from "@wizeworks/silicaui-html";
 
-type RuleMap = Record<string, Record<string, string>>;
-
-const kebab = (prop: string): string =>
-  prop.startsWith("--") ? prop : prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
-
-function serialize(rules: RuleMap, scope: string): string {
-  return Object.entries(rules)
-    .map(([sel, decls]) => {
-      const body = Object.entries(decls)
-        .map(([k, v]) => `${kebab(k)}:${v}`)
-        .join(";");
-      return `${scope} ${sel}{${body}}`;
-    })
-    .join("\n");
-}
+export type { RuleMap } from "@wizeworks/silicaui-html/theme";
+export { customColorRules, customRolesOf, serializeRules, themeTokenCss } from "@wizeworks/silicaui-html/theme";
 
 /**
- * CSS for a theme's CUSTOM colors (roles beyond the built-in semantic set), scoped
- * under `scope` so it paints the target without leaking into the chrome. Returns ""
- * when the theme adds no custom colors (the common case).
+ * CSS for a theme's CUSTOM colors (roles beyond the built-in semantic set),
+ * scoped under `scope` so it paints the target without leaking into the chrome.
+ * Returns "" when the theme adds no custom colors (the common case).
  */
 export function customColorCss(theme: Theme, scope = ".sui-canvas"): string {
-  const custom = rolesOf(theme).filter((r) => !SEMANTIC_ROLES.includes(r as SemanticRole));
-  if (custom.length === 0) return "";
-  // Utilities cover the role AND its `-content` foreground — the same pair the
-  // build-time `colorUtilities` emits, so `text-brand-content` (the legible ink
-  // ON brand) exists live too rather than only for declared colors.
-  const utilityNames = custom.flatMap((c) => [c, `${c}-content`]);
-  const rules: RuleMap = {
-    ...colorUtilityRules(utilityNames),
-    ...allColorVariantRules(custom),
-  };
-  return serialize(rules, scope);
+  return customColorCssFor(theme, scope);
 }
 
 /**

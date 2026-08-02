@@ -4,8 +4,6 @@ import {
   atom,
   block,
   el,
-  frameDiagnostic,
-  frameFor,
   iconSvg,
   outlet,
   pageDocument,
@@ -675,9 +673,10 @@ check(
   check("a raw <img> element carries srcset too", toHtml(raw).includes('srcset="/a-2x.jpg 2x"'));
 }
 
-// ── per-page frames (doc 139 §5) ─────────────────────────────────────────────
-// The tri-state is the whole risk surface: ABSENT ("the site default") and
-// `null` ("no frame") look alike in every falsy check and mean opposite things.
+// ── the site shell ───────────────────────────────────────────
+// One frame per site, wrapping every page. `pageDocument` and `renderPage` must
+// agree about it — the canvas reads one and publish the other, and a
+// disagreement is a preview that lies.
 {
   const shell = (label) => ({
     root: el("div", "shell", { children: [el("header", "hdr", { text: label }), outlet()] }),
@@ -687,45 +686,22 @@ check(
     version: "1",
     theme: { name: "t", tokens: {} },
     frame: shell("DEFAULT"),
-    frames: { docs: shell("DOCS") },
     pages: [
       { id: "p1", name: "Home", slug: "/", root: el("div", "body", { text: "home" }) },
-      { id: "p2", name: "Campaign", slug: "/lp", frameId: null, root: el("div", "body", { text: "lp" }) },
-      { id: "p3", name: "Docs", slug: "/docs", frameId: "docs", root: el("div", "body", { text: "docs" }) },
-      { id: "p4", name: "Broken", slug: "/x", frameId: "ghost", root: el("div", "body", { text: "x" }) },
+      { id: "p2", name: "Pricing", slug: "/pricing", root: el("div", "body", { text: "pricing" }) },
     ],
   };
 
   const html = Object.fromEntries(renderSite(site).map((p) => [p.id, p.html]));
-  check("a page with NO frameId takes the site default", html.p1.includes("DEFAULT") && html.p1.includes("home"));
-  check("frameId:null renders BARE — no header at all", !html.p2.includes("DEFAULT") && !html.p2.includes("DOCS"));
-  check("...but still renders its own body", html.p2.includes("lp"));
-  check("...and is exactly the page tree, nothing wrapped around it", html.p2 === toHtml(site.pages[1].root));
-  check("a named frameId takes THAT frame", html.p3.includes("DOCS") && !html.p3.includes("DEFAULT"));
-  check("a DANGLING frameId renders bare, never silently falling back to the default", !html.p4.includes("DEFAULT"));
-  check("...and is reported rather than guessed at", (frameDiagnostic(site, site.pages[3]) ?? "").includes("ghost"));
-  check("a resolving page reports no diagnostic", frameDiagnostic(site, site.pages[2]) === undefined);
-  check("nor does a default-framed one", frameDiagnostic(site, site.pages[0]) === undefined);
-  check("nor a deliberately bare one", frameDiagnostic(site, site.pages[1]) === undefined);
+  check("every page renders inside the site shell", html.p1.includes("DEFAULT") && html.p1.includes("home"));
+  check("...including the second one", html.p2.includes("DEFAULT") && html.p2.includes("pricing"));
+  check("pageDocument carries that same frame", pageDocument(site, "p1").frame === site.frame);
 
-  check("frameFor: absent → the default", frameFor(site, site.pages[0]) === site.frame);
-  check("frameFor: null → nothing", frameFor(site, site.pages[1]) === undefined);
-  check("frameFor: named → that frame", frameFor(site, site.pages[2]) === site.frames.docs);
-
-  // pageDocument must agree with renderPage — the canvas reads one, publish the
-  // other, and a disagreement is a preview that lies.
-  check("pageDocument omits the frame for a bare page", pageDocument(site, "p2").frame === undefined);
-  check("pageDocument carries the named frame", pageDocument(site, "p3").frame === site.frames.docs);
-  check("pageDocument carries the default", pageDocument(site, "p1").frame === site.frame);
-
-  // Back-compat: a site that never heard of any of this is untouched.
-  const legacy = {
-    version: "1",
-    theme: { name: "t", tokens: {} },
-    frame: shell("DEFAULT"),
-    pages: [{ id: "a", name: "A", slug: "/", root: el("div", "body", { text: "a" }) }],
-  };
-  check("a site with no frames map renders exactly as before", renderSite(legacy)[0].html.includes("DEFAULT"));
+  // A site with no shell at all renders its pages bare — exactly the page tree,
+  // nothing wrapped around it.
+  const bare = { ...site, frame: undefined };
+  check("no frame → the page renders bare", renderSite(bare)[0].html === toHtml(site.pages[0].root));
+  check("...and pageDocument omits it too", pageDocument(bare, "p1").frame === undefined);
 }
 
 console.log(

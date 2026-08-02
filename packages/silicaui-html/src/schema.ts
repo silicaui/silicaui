@@ -346,13 +346,6 @@ export interface Theme {
 export interface Frame {
   root: Node;
   editable: boolean;
-  /** Human label for a NAMED frame (one held in `Site.frames`) — what the layout
-   *  switcher and a page's layout picker show. The default `Site.frame` needs
-   *  none; it's "Default" by position, not by name.
-   *
-   *  Separate from the key it's stored under so renaming a layout doesn't break
-   *  every `Page.frameId` pointing at it. */
-  name?: string;
 }
 
 /** A live, editable, themed document — one page's tree in its theme/frame context.
@@ -377,28 +370,6 @@ export interface Page {
   slug: string;
   /** The editable page body — ids present. */
   root: Node;
-  /**
-   * WHICH shell wraps this page. Three states, and the difference between the
-   * two falsy-looking ones is the whole point:
-   *
-   *   - ABSENT   → the site default (`Site.frame`). What every page does unless
-   *                told otherwise, and what every page authored before this
-   *                field existed keeps doing.
-   *   - `null`   → NO frame. The page renders bare — no header, no footer. This
-   *                is the campaign/landing page, and it was unrepresentable
-   *                while the site had exactly one frame and every page took it.
-   *   - a string → the named frame at `Site.frames[frameId]`.
-   *
-   * `null` rather than a `frameless: true` flag because "which frame" and
-   * "whether a frame" are one decision, and splitting them into two fields
-   * makes `{ frameId: "marketing", frameless: true }` representable — a state
-   * with no meaning that every reader would have to decide about.
-   *
-   * A `frameId` naming a frame that doesn't exist resolves to NO frame, and
-   * `frameDiagnostic` says so. Falling back to the default would render a
-   * header the author explicitly moved away from, which is the worse failure.
-   */
-  frameId?: string | null;
 }
 
 /** A multi-page site: one or more `Page`s sharing a single theme + optional frame.
@@ -408,20 +379,8 @@ export interface Page {
 export interface Site {
   version: string;
   theme: Theme;
-  /** The DEFAULT shell, used by every page that doesn't say otherwise. Keeping
-   *  this singular (rather than folding it into `frames`) is what makes the
-   *  whole feature backward-compatible: a site that never heard of `frames`
-   *  renders identically. */
+  /** The shared shell — one per site, wrapping every page. */
   frame?: Frame;
-  /**
-   * ADDITIONAL named shells, keyed by id — a docs layout with a sidebar, a
-   * checkout layout with a stripped header. A page opts in with
-   * `Page.frameId`; `Site.frame` stays the default for everyone else.
-   *
-   * Absent on almost every site, which is the intent: one shell is the common
-   * case and shouldn't have to be expressed as a map with one entry.
-   */
-  frames?: Record<string, Frame>;
   /**
    * At least one page. Order is AUTHORING order — what the page switcher lists,
    * nothing more. It carries no routing meaning: `pages[0]` is not the home page

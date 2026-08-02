@@ -47,7 +47,7 @@ test("saving a named theme survives a reload via the local draft store", async (
   const nameInput = page.getByRole("textbox", { name: "Theme name" });
   await nameInput.fill("Christmas");
   await page.getByRole("button", { name: "Save current" }).click();
-  await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Saved", exact: true })).toBeVisible();
   await expect(page.getByText("Christmas", { exact: true })).toBeVisible();
 
   // Let the debounced autosave land.
@@ -77,7 +77,7 @@ test("saving a named theme relays the whole site to the host's onChange", async 
   await nameInput.fill("Christmas");
   const countBefore = await page.evaluate(() => (window as unknown as { __changeCount: number }).__changeCount);
   await page.getByRole("button", { name: "Save current" }).click();
-  await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Saved", exact: true })).toBeVisible();
 
   const [countAfter, savedThemeNames] = await page.evaluate(() => {
     const w = window as unknown as { __changeCount: number; __lastChange: { savedThemes?: { name: string }[] } };

@@ -11,9 +11,13 @@ export default defineConfig({
   server: { port: 5178 },
   resolve: {
     alias: {
+      // Subpaths FIRST — these are prefix replacements, so a bare
+      // `@wizeworks/silicaui-html` alias would otherwise swallow them and
+      // resolve `…/theme` to `src/index.ts/theme`.
       "@wizeworks/silicaui-html/blocks": fileURLToPath(
         new URL("../../silicaui-html/src/blocks/index.ts", import.meta.url),
       ),
+      "@wizeworks/silicaui-html/theme": fileURLToPath(new URL("../../silicaui-html/src/theme.ts", import.meta.url)),
       "@wizeworks/silicaui-html": fileURLToPath(new URL("../../silicaui-html/src/index.ts", import.meta.url)),
       "@wizeworks/silicaui-react": fileURLToPath(new URL("../../silicaui-react/src/index.ts", import.meta.url)),
       "@wizeworks/silicaui-builder/react": fileURLToPath(new URL("../src/react/index.ts", import.meta.url)),

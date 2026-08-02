@@ -25,7 +25,7 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function insertBlock(page: Page, key: string): Promise<void> {
-    await page.getByRole("button", { name: "Insert" }).click();
+    await page.getByRole("tab", { name: "Insert" }).click();
     await page.locator(`[data-insert-key="block:${key}"]`).click();
 }
 

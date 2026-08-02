@@ -10,7 +10,7 @@ import { test, expect, type Page } from "@playwright/test";
  *
  *   1. a row names its CONTENT, or the author's own name for it, or its type in
  *      plain English ("Group", "Link", "Menu") — never a tag;
- *   2. "Simple" folds layout-only wrappers away, "Detailed" shows everything;
+ *   2. simple depth folds layout-only wrappers away, detailed shows everything;
  *   3. double-click renames a layer, and the name is authoring metadata that
  *      never reaches the published HTML.
  */
@@ -69,29 +69,38 @@ test("layer rows read as plain English, never as tags", async ({ page }) => {
     expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("Simple hides layout-only wrappers; Detailed shows them", async ({ page }) => {
+test("simple depth hides layout-only wrappers; detailed shows them", async ({ page }) => {
     const errors = trackErrors(page);
     await ready(page);
     await page.getByRole("button", { name: "Layout", exact: true }).click();
 
     const groups = row(page, "Group");
-    const depth = page.getByRole("group", { name: "Layer detail" });
+    // One pressed-state button in the Layers header, not a labelled pill bar —
+    // so the state is read off `aria-pressed`, which is the only place it lives.
+    const depth = page.getByTestId("layer-depth");
 
     // Simple is the default and folds every bare wrapper away.
-    await expect(depth.getByText("Simple")).toBeVisible();
+    await expect(depth).toHaveAttribute("aria-pressed", "false");
     await expect(groups).toHaveCount(0);
     const simpleRows = await page.getByRole("treeitem").count();
 
     // Detailed brings them back — and nothing else disappears.
-    await depth.getByText("Detailed").click();
+    await depth.click();
+    await expect(depth).toHaveAttribute("aria-pressed", "true");
     expect(await groups.count()).toBeGreaterThan(0);
     expect(await page.getByRole("treeitem").count()).toBeGreaterThan(simpleRows);
     // A folded wrapper's CHILDREN survive folding — they were lifted, not hidden.
     await expect(row(page, "SilicaUI").first()).toBeVisible();
 
-    await depth.getByText("Simple").click();
+    await depth.click();
+    await expect(depth).toHaveAttribute("aria-pressed", "false");
     await expect(groups).toHaveCount(0);
     await expect(row(page, "SilicaUI").first()).toBeVisible();
+
+    // It belongs to the Layers tab it filters, and goes away with it — a filter
+    // hanging over the Insert palette is a control pointing at nothing.
+    await page.getByRole("tab", { name: "Insert" }).click();
+    await expect(depth).toHaveCount(0);
 
     expect(errors, errors.join("\n")).toHaveLength(0);
 });
@@ -166,9 +175,9 @@ test("an inserted block keeps its catalog name, and the catalog isn't mutated", 
     const errors = trackErrors(page);
     await ready(page);
 
-    await page.getByRole("button", { name: "Insert" }).click();
+    await page.getByRole("tab", { name: "Insert" }).click();
     await page.locator('[data-insert-key="block:pricing_tiers"]').click();
-    await page.getByRole("button", { name: "Layers" }).click();
+    await page.getByRole("tab", { name: "Layers" }).click();
 
     // Not "Section" — the row carries the name the author picked it by.
     const named = page.getByRole("treeitem", { name: /Pricing/ });
@@ -179,9 +188,9 @@ test("an inserted block keeps its catalog name, and the catalog isn't mutated", 
     // leak into every later insert — and both rows would still read right. What
     // catches it is a DIFFERENT block: if the shared tree was mutated, this one
     // would come back wearing the pricing name.
-    await page.getByRole("button", { name: "Insert" }).click();
+    await page.getByRole("tab", { name: "Insert" }).click();
     await page.locator('[data-insert-key="block:faq_accordion"]').click();
-    await page.getByRole("button", { name: "Layers" }).click();
+    await page.getByRole("tab", { name: "Layers" }).click();
     const faq = page.getByRole("treeitem", { name: /FAQ/i });
     await expect(faq.first()).toBeVisible();
     await expect(page.getByRole("treeitem", { name: /Pricing/ })).toHaveCount(1);
@@ -193,9 +202,9 @@ test("a layer name is authoring metadata — it never reaches the published HTML
     const errors = trackErrors(page);
     await ready(page);
 
-    await page.getByRole("button", { name: "Insert" }).click();
+    await page.getByRole("tab", { name: "Insert" }).click();
     await page.locator('[data-insert-key="block:pricing_tiers"]').click();
-    await page.getByRole("button", { name: "Layers" }).click();
+    await page.getByRole("tab", { name: "Layers" }).click();
 
     await page.getByRole("treeitem", { name: /Pricing/ }).first().locator(".tree-node").first().dblclick();
     await page.getByRole("textbox", { name: "Rename" }).fill("Our plans");

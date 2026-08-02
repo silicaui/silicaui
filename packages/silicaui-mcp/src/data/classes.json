@@ -958,7 +958,12 @@
     "stack",
     "stack-bottom",
     "stack-end",
-    "stack-start"
+    "stack-lg",
+    "stack-md",
+    "stack-sm",
+    "stack-start",
+    "stack-xl",
+    "stack-xs"
   ],
   "stat": [
     "stat",

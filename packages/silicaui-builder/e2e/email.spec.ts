@@ -29,7 +29,7 @@ async function ready(page: Page): Promise<void> {
  *  Insert before looking up a `data-insert-key` palette row, same as the site
  *  builder's specs do. */
 async function openInsert(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
 }
 
 test("renders the seeded section + text block with no error", async ({ page }) => {

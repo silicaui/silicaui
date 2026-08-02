@@ -59,12 +59,12 @@ test("Insert tab still reaches the palette, and a newly inserted block appears i
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   const dividerRow = page.locator('[data-insert-key="divider"]');
   await expect(dividerRow).toBeVisible();
   await dividerRow.click();
 
-  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("tab", { name: "Layers" }).click();
   await expect(page.getByRole("treeitem", { name: "Divider" })).toBeVisible();
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -87,7 +87,7 @@ test("Inspector Design/Settings split matches the site builder's chrome, with an
 
   // The tab choice is sticky across a selection change (matches the site
   // Inspector's documented behavior).
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="divider"]').click();
   await expect(page.getByText("Content", { exact: true })).toHaveCount(0); // divider has no Settings fields
   await expect(page.getByText("No settings for this element.")).toBeVisible();
@@ -136,7 +136,7 @@ test("Design tab's color swatches offer the full theme palette, matching the sit
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="button"]').click();
 
   // Background swatch row: 1 leading Auto + 8 semantic roles + 4 surfaces +
@@ -153,7 +153,7 @@ test("every swatch/chip row's leading Auto button resets that field to the value
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="button"]').click();
 
   const canvas = page.locator(".sui-email-canvas");
@@ -227,7 +227,7 @@ test("bare numeric Design fields (no site chip analog) still get a leading Auto 
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Insert", exact: true }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator('[data-insert-key="divider"]').click();
 
   const thicknessRow = page.locator(ROW, { hasText: "Thickness" }).first();

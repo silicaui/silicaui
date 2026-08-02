@@ -20,7 +20,7 @@ test("host.catalog() extends the Insert palette, and the inserted node renders",
   await ready(page);
   const canvas = page.locator(".sui-canvas");
 
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await expect(page.getByText("Host", { exact: true })).toBeVisible();
   await page.locator('[data-insert-key="host:callout"]').click();
 
@@ -301,12 +301,12 @@ test("a collection's 'How many' caps the instance, and the canvas draws that cou
   // the canvas renders the authored template once plus a ghost per further
   // item, so the count the author lays out against is the count that ships.
   //
-  // "Detailed" first, because this row is addressed BY POSITION: both `div`s in
-  // that path are bare layout wrappers, which the Navigator's default "Simple"
+  // Detailed depth first, because this row is addressed BY POSITION: both `div`s
+  // in that path are bare layout wrappers, which the Navigator's default simple
   // depth folds away (they're only worth a row once something — like the
   // binding this test is about to add — makes them meaningful).
   const HEADLINE = "Ship your store in an afternoon";
-  await page.getByRole("button", { name: "Detailed", exact: true }).click();
+  await page.getByTestId("layer-depth").click();
   await page.locator(".tree-node").nth(3).click();
   await page.getByRole("tab", { name: "Settings" }).click();
   await page.getByTestId("data-kind").selectOption("collection");
@@ -385,12 +385,39 @@ test("statusBarSlot renders host state in the footer, after the engine's mode la
       modeLabel: (mode.textContent ?? "").trim(),
       afterMode: Boolean(mode.compareDocumentPosition(el) & FOLLOWING),
       beforeSpacer: spacer ? Boolean(el.compareDocumentPosition(spacer) & FOLLOWING) : null,
-      // Non-interactive by contract: a 28px strip is nowhere to put a control,
-      // and text costs no tab stop.
-      controls: el.querySelectorAll("button, a, input, select, [tabindex]").length,
     };
   });
-  expect(placement).toEqual({ modeLabel: "page", afterMode: true, beforeSpacer: true, controls: 0 });
+  expect(placement).toEqual({ modeLabel: "page", afterMode: true, beforeSpacer: true });
+});
+
+test("a status item may disclose its own detail, without moving the strip", async ({ page }) => {
+  await ready(page);
+  const status = page.getByTestId("status-bar-slot");
+  // The editor's own footer, not the `<footer>` in the document on the canvas.
+  const footer = page.locator("footer").filter({ has: page.getByTestId("status-bar-slot") });
+
+  // The rule the strip enforces is "facts, not controls" — and a count that
+  // reveals what it counts is the case that was one too broad. Splitting them
+  // (the number here, its trigger two floors up in the toolbar) is what stops a
+  // status bar being one.
+  await expect(status).toHaveRole("button");
+  await expect(status).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("status-bar-detail")).toHaveCount(0);
+
+  // The strip is 28px and that is the whole objection to putting a control in
+  // it. `StatusItem`'s ghost `btn-xs` is 24px, so pressing it reveals the detail
+  // without the footer growing under the canvas.
+  const before = await footer.evaluate((el) => el.getBoundingClientRect().height);
+  await status.click();
+  await expect(status).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("status-bar-detail")).toBeVisible();
+  expect(await footer.evaluate((el) => el.getBoundingClientRect().height)).toBe(before);
+  expect(before).toBeLessThanOrEqual(28);
+
+  // `aria-controls` points at something that exists — a disclosure that doesn't
+  // say what it discloses is a mystery target for anyone not using a mouse.
+  const controls = await status.getAttribute("aria-controls");
+  await expect(page.locator(`#${controls}`)).toBeVisible();
 });
 
 test("a host's setActiveTree('frame') moves the mode toggle and the left rail with it", async ({ page }) => {
@@ -400,7 +427,7 @@ test("a host's setActiveTree('frame') moves the mode toggle and the left rail wi
   const footer = page.locator("footer");
 
   await expect(pageTab).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("layout-switcher")).toHaveCount(0);
+  await expect(page.getByTestId("layout-name")).toHaveCount(0);
 
   // How a host jumps to a finding in the header or footer: selection is
   // tree-scoped, so it has to retarget the spine before it can select a frame
@@ -411,10 +438,12 @@ test("a host's setActiveTree('frame') moves the mode toggle and the left rail wi
   await expect(layoutTab).toHaveAttribute("aria-pressed", "true");
   await expect(pageTab).toHaveAttribute("aria-pressed", "false");
   await expect(footer.getByText("layout", { exact: true })).toBeVisible();
-  // The two knock-ons of the stale mode, both gone with it: the left rail lists
-  // LAYOUTS rather than pages, and the Navigator — keyed on the mode — remounts,
-  // so it reseeds its expanded set for the tree now in view.
-  await expect(page.getByTestId("layout-switcher")).toBeVisible();
+  // The two knock-ons of the stale mode, both gone with it: the left rail names
+  // the LAYOUT rather than listing pages, and the Navigator — keyed on the mode
+  // — remounts, so it reseeds its expanded set for the tree now in view.
+  // (`layout-name`, not the old `layout-switcher`: multi-layout authoring is
+  // parked, so the rail states which shell it is on instead of offering a pick.)
+  await expect(page.getByTestId("layout-name")).toBeVisible();
   await expect(page.getByRole("treeitem").first()).toBeVisible();
 
   // A frame node is now selectable, which is the whole point of the jump.
@@ -430,7 +459,7 @@ test("a host's setActiveTree('frame') moves the mode toggle and the left rail wi
   // …and it follows back the other way too.
   await page.evaluate(() => (window as unknown as { __editor: { setActiveTree(t: string): void } }).__editor.setActiveTree("page"));
   await expect(pageTab).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("layout-switcher")).toHaveCount(0);
+  await expect(page.getByTestId("layout-name")).toHaveCount(0);
 });
 
 test("a mode that deliberately leaves the tree alone is not yanked back by the tree sync", async ({ page }) => {

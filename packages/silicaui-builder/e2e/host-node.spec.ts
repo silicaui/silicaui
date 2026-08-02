@@ -16,9 +16,9 @@ async function ready(page: Page): Promise<void> {
 }
 
 async function insertHost(page: Page, name: string): Promise<void> {
-  await page.getByRole("button", { name: "Insert" }).click();
+  await page.getByRole("tab", { name: "Insert" }).click();
   await page.locator(`[data-insert-key="host:${name}"]`).click();
-  await page.getByRole("button", { name: "Layers" }).click(); // back to selection view
+  await page.getByRole("tab", { name: "Layers" }).click(); // back to selection view
 }
 
 async function openSettings(page: Page): Promise<void> {
@@ -63,7 +63,7 @@ test("a pinned host component inserts host-locked and non-deletable", async ({ p
   await expect(page.getByTestId("settings-lock")).toHaveCount(0);
 
   // Delete is refused — it stays on the canvas.
-  await page.getByRole("button", { name: "Layers" }).click(); // move focus off inputs, keep selection
+  await page.getByRole("tab", { name: "Layers" }).click(); // move focus off inputs, keep selection
   await page.keyboard.press("Delete");
   await expect(checkout).toBeVisible();
 });
