@@ -1,5 +1,142 @@
 # @wizeworks/silicaui-mcp
 
+## 0.45.0
+
+### Minor Changes
+
+- 4cd7665: The MCP server advertises the theme layer.
+
+  It didn't. `get_tokens` returned a `light` map and a `dark` map and never said how either one is
+  turned ON — `data-theme` appeared nowhere in the catalog, the tools, or the routing preamble. So an
+  agent could learn the eight semantic roles, learn how to register a ninth, and still have no way to
+  learn that a different palette is an attribute on a wrapper. Asked for a dark section, the only
+  thing left to reach for is a hardcoded hex or a bespoke stylesheet: it looks right in a screenshot
+  and can never respond to the theme it ends up inside. It also undersold the product — twenty
+  considered themes, swappable per-section, were invisible.
+
+  **Two new tools.** `list_themes` returns the mechanism plus every shipped preset with what it's
+  actually for (the prose above each preset's own `name:`, so twenty names like `clay`/`dune`/`frost`
+  are pickable). `get_theme({ name, mode? })` returns one preset's **resolved** token map — dark
+  deltas already merged over the base tokens and every `-content` ink derived by measured contrast,
+  i.e. what a browser computes rather than the authored bag — with the literal attribute to write.
+
+  **`get_tokens` gained `theming`**, so the mechanism is reachable from the tool an agent already
+  calls when it asks about color: the `data-theme` selectors, what the bare `[data-theme]` rule
+  paints (and why a wrapper is therefore enough), that dark mode is a theme and not a `.dark` class,
+  the `@plugin "@wizeworks/silicaui/theme"` options, the runtime `Theme` object a builder/CMS stores,
+  and the `@wizeworks/silicaui-html/theme` pair that lets a color named at runtime behave like a
+  declared one. The routing preamble gained one rule to the same effect, and `search_docs` now
+  answers "dark mode", "data-theme", "theming" and a preset's character text ("terracotta" → `clay`).
+
+  Everything is derived, never described: the selectors come from calling the plugin's own
+  `buildBase()`, the `@plugin` options from the plugin's own `options` accesses, the `Theme` shape
+  from a TS AST over its source, and each preset from the real `THEME_PRESETS` run through
+  `resolveThemeTokens` — plus `contrastWarnings` actually executed per mode, so a preset this catalog
+  vouches for is one it has measured.
+
+  Also fixes a latent bug in the catalog generator: the scoping helper wasn't idempotent, so prose
+  already written as `@wizeworks/silicaui-charts` got scoped a second time and nine component
+  descriptions shipped naming `@wizeworks/@wizeworks/silicaui-charts` — a package that does not
+  exist, in the one file whose whole job is to not invent names.
+
+### Patch Changes
+
+- b33c93d: Three host asks: other editors on the canvas, a clickable status item, and a render-path `customColorCss`.
+
+  **Other editors (`<Builder peers>` / `editor.setPeers`).** Hand the builder whatever presence a
+  collaborative host already relays and it draws it: a dashed, named ring on the canvas in that
+  peer's color, plus a dot on the Navigator row. A peer may also carry a `claim` — node ids whose
+  subtrees they are holding — and the engine then refuses every local mutation inside one, drops the
+  canvas write affordances (drag, drop target, in-place edit), and names the holder in the Inspector.
+
+  A claim is the SOFT half of a lock and deliberately not `setLocked`: it lives in this editor's
+  memory, never touches the tree, records no op, and lands on no undo stack, so a host can expire it
+  on a timeout. It is not correctness machinery — per-node last-write-wins and the op log already keep
+  the document right — which is why `applyRemoteOps` ignores claims entirely, including the claim held
+  by the peer whose ops are arriving. Pinned by `verify:peers` and `e2e/peers.spec.ts`.
+
+  One list rather than the two separate `peerSelections`/`claims` props asked for: a claim with no
+  name and no color is a dead end, since the editor has to say WHO is holding a subtree.
+
+  **A status item may now disclose its own detail.** `statusBarSlot`'s non-interactive rule was one
+  case too broad — clicking "3 broken" to see which three is reading the same fact at more depth, not
+  a second action, and splitting the count from its trigger is what stops a status bar being one. New
+  `StatusItem` (both shells): a plain `<span>` without an `onClick`, a ghost `btn-xs` with one — 24px
+  inside the 28px strip, carrying `aria-expanded`/`aria-controls`. Anything that ACTS still belongs in
+  `toolbarSlot`.
+
+  **`@wizeworks/silicaui-html/theme` — a theme as CSS, off the render path.** `customColorCss(theme,
+scope?)` emits every rule a build-time `@plugin "@wizeworks/silicaui" { colors: … }` registration
+  would have, for colors coined at RUNTIME by a tenant in a theme editor — which no build-time list can
+  carry. It was previously reachable only from the builder's canvas, so a page that previewed correctly
+  shipped with `btn-sunset` styling nothing. `themeTokenCss` emits the custom properties those rules
+  read (ship both, or they paint nothing). `scope` is opt-in: omit it when publishing, pass one for a
+  preview. New subpath because it is the only part of the package that needs `@wizeworks/silicaui`, now
+  an optional peer — the root import stays dependency-free.
+
+- b33c93d: `stack` now peeks at any card size, and the fan is tunable
+
+  `.stack` layers its children into a peeking deck. The nudge that produced the peek was a fixed
+  `1.5rem` while the shrink that fights it — `scale()` against `place-items: center` — is
+  **proportional**, pulling each edge in by `size × (1 − scale) / 2`. So the two crossed over:
+
+  ```
+  2nd card:  12px > h × 0.0375  →  h < 320px
+  3rd card:  24px > h × 0.075   →  h < 320px
+  ```
+
+  Above ~320px in the peeking dimension every edge went negative and the deck rendered as a single
+  card — no warning, no documented ceiling. It looked correct everywhere it was exercised because the
+  only specimens were 128×192, comfortably under the ceiling; it failed the first time a card was
+  given real content. Reported from sparx's pricing hero at 480×448, where the back cards sat 6px and
+  12px _inside_ the front one. Below the ceiling it was not much better: at `w-48` the peek was a ~5px
+  sliver, not a fanned deck.
+
+  Both terms are now proportional. Each transform pays back its own shrink first — the `3.75%` /
+  `7.5%` terms cancel it exactly — and only then translates by `--stack-peek`:
+
+  ```css
+  & > * {
+    transform: translateY(calc(-7.5% - var(--stack-peek) * 2)) scale(0.85);
+  }
+  & > *:nth-child(2) {
+    transform: translateY(calc(-3.75% - var(--stack-peek) * 1)) scale(0.925);
+  }
+  ```
+
+  A percentage in a translate resolves against the element's own border box (`translateY` against
+  height, `translateX` against width), so one declaration fans identically at every size, and
+  `--stack-peek` is the **real, visible** peek rather than a number that has to out-run the scale.
+  `-bottom` / `-start` / `-end` use the same figures — the scale is uniform.
+
+  ### New
+
+  - **`--stack-peek`** on `.stack`, the visible peek per step (2nd card one step, 3rd two, so the deck
+    fans evenly). Defaults to `5%`. Accepts any length, so `--stack-peek: 12px` works too, and it is
+    reachable as a Tailwind arbitrary property: `className="[--stack-peek:4%]"`.
+  - **`stack-xs` … `stack-xl`** (2% / 3.5% / 5% / 7% / 9%), and a matching **`size`** prop on the
+    React `<Stack>`. Orthogonal to direction, so `stack stack-end stack-lg` is a wide sideways fan.
+    A hero deck and a notification pile want visibly different fans; neither could ask for one before.
+
+  ### Behavior change
+
+  A deck's fan is now a share of the card rather than a constant, so existing decks shift: at the
+  128×192 the old demo used, the peek moves from 7.2px/14.4px to 6.4px/12.8px — near-identical — while
+  anything larger goes from _nothing_ to a real fan. Pin the old look on a small deck with
+  `stack-lg`, or set `--stack-peek` to an explicit length.
+
+  ### Watch out when sizing a deck
+
+  Children stretch to the deck's **width** but keep their own height, so a height class belongs on the
+  card and a width class on the deck. `place-items: center` is deliberate — a block-axis stretch would
+  squash a deck of `<img>`. A height on the `.stack` itself is an empty box around content-height
+  cards, and since the peek is a share of the card, it also reads as a much smaller fan than asked
+  for. The demo had this backwards and has been corrected.
+
+  Covered by `examples/playground/e2e/stack-peek.spec.ts`, which measures real browser geometry at
+  480×448 — the size that used to collapse. jsdom does no layout, so this class of defect is only
+  catchable in a browser.
+
 ## 0.44.0
 
 ### Patch Changes

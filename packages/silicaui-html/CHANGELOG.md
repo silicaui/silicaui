@@ -1,5 +1,80 @@
 # @wizeworks/silicaui-html
 
+## 0.45.0
+
+### Minor Changes
+
+- b33c93d: Three host asks: other editors on the canvas, a clickable status item, and a render-path `customColorCss`.
+
+  **Other editors (`<Builder peers>` / `editor.setPeers`).** Hand the builder whatever presence a
+  collaborative host already relays and it draws it: a dashed, named ring on the canvas in that
+  peer's color, plus a dot on the Navigator row. A peer may also carry a `claim` — node ids whose
+  subtrees they are holding — and the engine then refuses every local mutation inside one, drops the
+  canvas write affordances (drag, drop target, in-place edit), and names the holder in the Inspector.
+
+  A claim is the SOFT half of a lock and deliberately not `setLocked`: it lives in this editor's
+  memory, never touches the tree, records no op, and lands on no undo stack, so a host can expire it
+  on a timeout. It is not correctness machinery — per-node last-write-wins and the op log already keep
+  the document right — which is why `applyRemoteOps` ignores claims entirely, including the claim held
+  by the peer whose ops are arriving. Pinned by `verify:peers` and `e2e/peers.spec.ts`.
+
+  One list rather than the two separate `peerSelections`/`claims` props asked for: a claim with no
+  name and no color is a dead end, since the editor has to say WHO is holding a subtree.
+
+  **A status item may now disclose its own detail.** `statusBarSlot`'s non-interactive rule was one
+  case too broad — clicking "3 broken" to see which three is reading the same fact at more depth, not
+  a second action, and splitting the count from its trigger is what stops a status bar being one. New
+  `StatusItem` (both shells): a plain `<span>` without an `onClick`, a ghost `btn-xs` with one — 24px
+  inside the 28px strip, carrying `aria-expanded`/`aria-controls`. Anything that ACTS still belongs in
+  `toolbarSlot`.
+
+  **`@wizeworks/silicaui-html/theme` — a theme as CSS, off the render path.** `customColorCss(theme,
+scope?)` emits every rule a build-time `@plugin "@wizeworks/silicaui" { colors: … }` registration
+  would have, for colors coined at RUNTIME by a tenant in a theme editor — which no build-time list can
+  carry. It was previously reachable only from the builder's canvas, so a page that previewed correctly
+  shipped with `btn-sunset` styling nothing. `themeTokenCss` emits the custom properties those rules
+  read (ship both, or they paint nothing). `scope` is opt-in: omit it when publishing, pass one for a
+  preview. New subpath because it is the only part of the package that needs `@wizeworks/silicaui`, now
+  an optional peer — the root import stays dependency-free.
+
+- b33c93d: Remove named layouts and per-page frames — one shell per site again.
+
+  The feature was built without being asked for, and it expanded the schema in both
+  directions to pay for itself. This takes all of it back out.
+
+  **Gone from the shared schema (`@wizeworks/silicaui-html`):**
+
+  - `Site.frames` — the map of additional named shells
+  - `Page.frameId` — the tri-state (absent = default, `null` = bare, string = named)
+  - `Frame.name` — the label a named layout carried separately from its key
+  - the `frameFor` and `frameDiagnostic` exports
+
+  `Site.frame` stays and is the whole story: one shell, wrapping every page. A site
+  with no `frame` renders its pages bare. `renderPage` and `pageDocument` both read
+  that single field, so the canvas and the publish path still cannot disagree.
+
+  **Gone from the builder's op vocabulary:**
+
+  - `page.setFrame`, `frame.create`, `frame.rename`, `frame.delete`
+  - the optional `id` on a `{ scope: "frame" }` op target, which existed only to
+    disambiguate which named layout an edit addressed
+
+  **Gone from `Editor`:** `setPageFrame`, `createLayout`, `renameLayout`,
+  `deleteLayout`, `editLayout`, `layouts`, `frameChoices`, `editingLayoutId`, and
+  `PageMeta.frameId`. `setFrameEditable` and `frameRoot()` remain, now reading
+  `Site.frame` directly.
+
+  **Chrome:** Layout mode still edits the site shell. The left rail names it
+  instead of offering a switcher, and the Pages panel no longer carries a per-page
+  layout picker.
+
+  **Compatibility.** A stored site carrying `frames` or `frameId` still loads — the
+  fields are simply ignored, and every page renders in `Site.frame`. A page that
+  was set to `frameId: null` (bare) or to a named layout will now render in the
+  site shell instead; nothing crashes, but that is a visible change for any such
+  page. A host that called the removed `Editor` methods or matched on the removed
+  op kinds must drop those call sites.
+
 ## 0.44.0
 
 ### Minor Changes
