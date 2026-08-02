@@ -22,7 +22,7 @@ const option = (label: string) =>
 
 export const dropdown = block({
   key: "dropdown",
-  name: "Dropdown — menu",
+  name: "Dropdown — Menu",
   category: "dropdown",
   version: "1.0.0",
   description: "A button that opens a menu of actions, with keyboard and dismiss support.",

@@ -7,6 +7,14 @@ export interface TreeNode {
   id: string;
   /** Row label. */
   label: React.ReactNode;
+  /**
+   * Plain-text name, used to seed inline rename. `label` may be rich (badges,
+   * status glyphs), so it can't be edited directly — this is the part that is
+   * actually the node's name. Required for a `renamable` row.
+   */
+  name?: string;
+  /** Whether this row can be renamed in place (needs `onRename` on the tree). */
+  renamable?: boolean;
   /** Optional leading icon element. */
   icon?: React.ReactNode;
   /** Child nodes; presence makes the node expandable. */
@@ -43,6 +51,15 @@ export interface TreeViewProps
    * "inside" drop onto something that can't hold children should just no-op.
    */
   onMove?: (id: string, targetId: string, edge: TreeDropEdge) => void;
+  /**
+   * Enables inline rename on rows marked `renamable` (double-click the row, or
+   * F2 on a focused one) and fires ONCE on commit — Enter or blur, never per
+   * keystroke, so a consumer with an undo stack gets one entry per rename
+   * rather than one per character. Escape cancels without firing. An empty
+   * value is passed through: for most trees that means "clear the name and go
+   * back to the derived one", which only the consumer can decide.
+   */
+  onRename?: (id: string, value: string) => void;
 }
 
 interface Flat {
@@ -121,6 +138,7 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
       onSelectedChange,
       onSelect,
       onMove,
+      onRename,
       className,
       ...rest
     },
@@ -201,6 +219,24 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
       nodeRefs.current.get(id)?.focus();
     };
 
+    const [renamingId, setRenamingId] = React.useState<string | undefined>();
+    // Whether the active rename has already been committed or cancelled by a
+    // key, so the blur it triggers is a no-op. Reset on every entry, so a
+    // rename that ends without a blur can't poison the next one.
+    const settledRef = React.useRef(false);
+    const canRename = (node: TreeNode) => !!onRename && !!node.renamable && !node.disabled;
+    const startRename = (node: TreeNode) => {
+      if (!canRename(node)) return;
+      settledRef.current = false;
+      setRenamingId(node.id);
+    };
+    /** Leave rename mode and hand focus back to the row, so ↑/↓ keep working. */
+    const endRename = (id: string, value?: string) => {
+      setRenamingId(undefined);
+      if (value !== undefined) onRename?.(id, value);
+      focusId(id);
+    };
+
     const onKeyDown = (e: React.KeyboardEvent<HTMLLIElement>, id: string) => {
       const idx = flat.findIndex((f) => f.node.id === id);
       const entry = flat[idx];
@@ -257,14 +293,62 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
           else selectNode(entry.node);
           break;
         }
+        case "F2": {
+          if (!canRename(entry.node)) break;
+          e.preventDefault();
+          startRename(entry.node);
+          break;
+        }
       }
     };
+
+    /**
+     * The in-place name field. Uncontrolled — the consumer owns the committed
+     * name and the draft only has to survive until Enter/Escape/blur. Written
+     * as a function returning an element, NOT a nested component: a nested
+     * component would be a fresh type every render, so any unrelated re-render
+     * would remount the field and drop what the user had typed.
+     */
+    const renameField = (node: TreeNode) => (
+      <input
+        className={cx(sc("tree-rename"))}
+        defaultValue={node.name ?? ""}
+        aria-label="Rename"
+        autoFocus
+        onFocus={(e) => e.currentTarget.select()}
+        // The row beneath handles click-to-select and dblclick-to-rename, so
+        // without these, clicking into the field re-toggles the row.
+        onClick={(e) => e.stopPropagation()}
+        onDoubleClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onBlur={(e) => {
+          // Enter and Escape have already settled it; the blur they cause by
+          // handing focus back to the row must not commit a second time.
+          if (settledRef.current) return;
+          endRename(node.id, e.currentTarget.value.trim());
+        }}
+        onKeyDown={(e) => {
+          // Arrows/Home/End would otherwise walk the tree instead of the text.
+          e.stopPropagation();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            settledRef.current = true;
+            endRename(node.id, e.currentTarget.value.trim());
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            settledRef.current = true;
+            endRename(node.id);
+          }
+        }}
+      />
+    );
 
     const renderNodes = (nodes: TreeNode[], level: number): React.ReactNode => (
       <>
         {nodes.map((node) => {
           const hasChildren = !!node.children?.length;
           const isExpanded = expandedSet.has(node.id);
+          const renaming = renamingId === node.id;
           return (
             <li
               key={node.id}
@@ -290,12 +374,16 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
                 data-disabled={node.disabled || undefined}
                 data-dragging={draggingId === node.id || undefined}
                 data-drag-over={dropHint?.id === node.id ? dropHint.edge : undefined}
-                draggable={!!onMove && !node.disabled}
+                // Dragging while renaming would turn selecting text in the
+                // field into a row drag.
+                draggable={!!onMove && !node.disabled && !renaming}
                 onClick={() => {
+                  if (renaming) return;
                   selectNode(node);
                   if (hasChildren) toggleExpand(node.id);
                   focusId(node.id);
                 }}
+                onDoubleClick={() => startRename(node)}
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = "move";
                   e.dataTransfer.setData("text/plain", node.id);
@@ -344,7 +432,11 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
                 {node.icon && (
                   <span className={cx(sc("tree-node-icon"))}>{node.icon}</span>
                 )}
-                <span className={cx(sc("tree-node-label"))}>{node.label}</span>
+                {renaming ? (
+                  renameField(node)
+                ) : (
+                  <span className={cx(sc("tree-node-label"))}>{node.label}</span>
+                )}
               </div>
               {hasChildren && isExpanded && (
                 <ul className={cx(sc("tree-group"))} role="group">

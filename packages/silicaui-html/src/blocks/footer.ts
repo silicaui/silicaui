@@ -1,66 +1,78 @@
 /**
- * Footer — multi-column. A brand blurb beside three link columns, with a thin
- * copyright rule beneath. Container-query responsive: the columns stack on a
- * narrow container and spread to a 4-wide grid past `@2xl`.
+ * Footer — Columns. The everyday closer: a brand column with a blurb and the
+ * social row, three columns of links beside it, and a legal bar underneath.
+ * Reach for it on a normal marketing site; the other four are for when the page
+ * ends differently.
+ *
+ * Container-query responsive in three tiers — one column on a phone, two at
+ * `@md`, and the brand column widens to two of five tracks past `@3xl` so the
+ * blurb sets on two lines instead of five.
+ *
+ * WHAT CHANGED FROM v1: the block had exactly TWO slots (`brand`, `blurb`), so a
+ * host could fill the wordmark and nothing else — twelve links and three column
+ * headings were hard-coded past the reach of `fillSlots`. Everything readable is
+ * a slot now, and the mark is a real `Wordmark` so a logo can be assigned
+ * through the Inspector instead of retyped as text.
  */
-import { block, el, slot } from "../kit";
-
-const link = (label: string) =>
-    el("li", undefined, {
-        children: [
-            el("a", "text-sm text-base-content hover:text-primary", { text: label, attrs: { href: "#" } }),
-        ],
-    });
-
-const column = (title: string, labels: string[]) =>
-    el("div", "flex flex-col gap-3", {
-        children: [
-            el("p", "text-sm font-semibold text-base-content", { text: title }),
-            el("ul", "flex flex-col gap-2", { children: labels.map(link) }),
-        ],
-    });
+import { block, el } from "../kit";
+import { SOCIAL, blurb, brandMark, legalBar, linkColumn, linkRow, socialRow } from "./footer-kit";
 
 export const footer = block({
     key: "footer",
-    name: "Footer — columns + copyright",
+    name: "Footer — Columns",
     category: "footer",
-    version: "1.0.0",
-    description: "A multi-column site footer: brand blurb, link columns, and a copyright rule.",
+    version: "2.0.0",
+    description: "Brand blurb and social beside three link columns, over a legal bar.",
     tags: ["footer", "nav", "marketing"],
-    colors: ["base-100", "base-200", "base-content"],
+    colors: ["base-100", "base-200", "base-content", "primary"],
     behaviors: [],
     emailEligible: false,
     root: el("footer", "@container bg-base-100 border-t border-base-200", {
         children: [
-            el("div", "mx-auto w-full max-w-6xl px-6 py-12", {
+            el("div", "mx-auto w-full max-w-6xl px-6 py-14", {
                 children: [
-                    el("div", "grid grid-cols-1 gap-8 @md:grid-cols-2 @2xl:grid-cols-4", {
+                    el("div", "grid grid-cols-1 gap-10 @md:grid-cols-2 @3xl:grid-cols-5", {
                         children: [
-                            el("div", "flex flex-col gap-3", {
+                            el("div", "flex flex-col gap-4 @3xl:col-span-2", {
                                 children: [
-                                    slot(el("p", "text-lg font-semibold text-base-content", { text: "SilicaUI" }), {
-                                        name: "brand",
-                                        type: "text",
-                                        label: "SilicaUI",
-                                    }),
-                                    slot(
-                                        el("p", "text-sm text-base-content", {
-                                            text: "The fastest way to launch and grow your online store.",
-                                        }),
-                                        { name: "blurb", type: "text", label: "Blurb" },
+                                    brandMark("wordmark self-start"),
+                                    blurb(
+                                        "max-w-xs text-sm text-base-content",
+                                        "The fastest way to launch and grow your online store.",
                                     ),
+                                    socialRow("mt-2 flex items-center gap-5", SOCIAL),
                                 ],
                             }),
-                            column("Product", ["Features", "Pricing", "Integrations", "Changelog"]),
-                            column("Company", ["About", "Careers", "Blog", "Contact"]),
-                            column("Legal", ["Privacy", "Terms", "Security"]),
+                            linkColumn("Product", "col1", [
+                                ["Features", "link1"],
+                                ["Pricing", "link2"],
+                                ["Integrations", "link3"],
+                                ["Changelog", "link4"],
+                            ]),
+                            linkColumn("Company", "col2", [
+                                ["About", "link5"],
+                                ["Careers", "link6"],
+                                ["Blog", "link7"],
+                                ["Contact", "link8"],
+                            ]),
+                            linkColumn("Resources", "col3", [
+                                ["Documentation", "link9"],
+                                ["Help center", "link10"],
+                                ["Status", "link11"],
+                                ["Community", "link12"],
+                            ]),
                         ],
                     }),
-                    el("div", "mt-10 border-t border-base-200 pt-6", {
-                        children: [
-                            el("p", "text-sm text-base-content", { text: "© 2026 SilicaUI, Inc. All rights reserved." }),
+                    legalBar(
+                        "mt-12 flex flex-col gap-4 border-t border-base-200 pt-6 @2xl:flex-row @2xl:items-center @2xl:justify-between",
+                        [
+                            linkRow("flex flex-wrap items-center gap-x-6 gap-y-2", [
+                                ["Privacy", "link13"],
+                                ["Terms", "link14"],
+                                ["Security", "link15"],
+                            ]),
                         ],
-                    }),
+                    ),
                 ],
             }),
         ],

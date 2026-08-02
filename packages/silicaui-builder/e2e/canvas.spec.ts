@@ -36,7 +36,10 @@ test("renders the seeded block's component atoms without error", async ({ page }
   // editable PAGE nodes (the frame chrome renders inert, without ids), so these
   // assert the seeded block's own atoms, not the layout's nav.
   await expect(canvas.locator("h1[data-sui-id], h2[data-sui-id]").first()).toBeVisible(); // Heading
-  await expect(canvas.locator("button[data-sui-id]").first()).toBeVisible(); // Button atom → <button>
+  // Button atom → <a class="btn">, not <button>: the seeded hero's CTA carries an
+  // `href`, and a Button with a destination lowers to an anchor (component.ts).
+  // A hero CTA navigates, so the anchor is the correct — and accessible — tag.
+  await expect(canvas.locator("a.btn[data-sui-id]").first()).toBeVisible();
   await expect(canvas.locator("img[data-sui-id]").first()).toBeVisible(); // Image atom → <img>
 
   // Every rendered node — including the expanded component roots — carries the
@@ -57,7 +60,7 @@ test("clicking a component node selects it (overlay appears)", async ({ page }) 
   // Click the Button atom's expanded element (a page node, so it carries an id and
   // is selectable — the frame's nav links render inert). It must map back to its
   // component node.
-  const button = page.locator(".sui-canvas button[data-sui-id]").first();
+  const button = page.locator(".sui-canvas a.btn[data-sui-id]").first();
   await button.click();
 
   // The SelectionOverlay draws a focus-ring-style outline over the selection.

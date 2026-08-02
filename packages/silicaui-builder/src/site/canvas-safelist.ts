@@ -12,7 +12,7 @@
  * scanner; the export keeps it a real module rather than a comment block that a
  * formatter or a dead-code pass could quietly discard.
  *
- * 2 breakpoint(s) x 146 utilities = 292 classes.
+ * 2 breakpoint(s) x 155 utilities = 310 classes.
  */
 export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@3xl:text-xs",
@@ -40,6 +40,9 @@ export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@3xl:p-10",
   "@3xl:p-12",
   "@3xl:p-16",
+  "@3xl:p-20",
+  "@3xl:p-24",
+  "@3xl:p-32",
   "@3xl:px-0",
   "@3xl:px-2",
   "@3xl:px-3",
@@ -49,6 +52,9 @@ export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@3xl:px-10",
   "@3xl:px-12",
   "@3xl:px-16",
+  "@3xl:px-20",
+  "@3xl:px-24",
+  "@3xl:px-32",
   "@3xl:py-0",
   "@3xl:py-2",
   "@3xl:py-3",
@@ -58,6 +64,9 @@ export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@3xl:py-10",
   "@3xl:py-12",
   "@3xl:py-16",
+  "@3xl:py-20",
+  "@3xl:py-24",
+  "@3xl:py-32",
   "@3xl:rounded-none",
   "@3xl:rounded-field",
   "@3xl:rounded-box",
@@ -186,6 +195,9 @@ export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@5xl:p-10",
   "@5xl:p-12",
   "@5xl:p-16",
+  "@5xl:p-20",
+  "@5xl:p-24",
+  "@5xl:p-32",
   "@5xl:px-0",
   "@5xl:px-2",
   "@5xl:px-3",
@@ -195,6 +207,9 @@ export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@5xl:px-10",
   "@5xl:px-12",
   "@5xl:px-16",
+  "@5xl:px-20",
+  "@5xl:px-24",
+  "@5xl:px-32",
   "@5xl:py-0",
   "@5xl:py-2",
   "@5xl:py-3",
@@ -204,6 +219,9 @@ export const CANVAS_RESPONSIVE_SAFELIST: readonly string[] = [
   "@5xl:py-10",
   "@5xl:py-12",
   "@5xl:py-16",
+  "@5xl:py-20",
+  "@5xl:py-24",
+  "@5xl:py-32",
   "@5xl:rounded-none",
   "@5xl:rounded-field",
   "@5xl:rounded-box",

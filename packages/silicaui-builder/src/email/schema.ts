@@ -22,6 +22,20 @@ export type FontWeight = "normal" | "medium" | "semibold" | "bold";
 interface BaseNode {
   id: string;
   /**
+   * The author's own name for this layer, shown in the Navigator instead of the
+   * derived one ("Section", "Columns"). Lets someone tell two identical rows
+   * apart — "Order summary" vs "Legal footer" — without opening either.
+   *
+   * Called `name`, not `label`, because `label` is already a ButtonNode's own
+   * TEXT — a content field that ships in the email. These are opposites, and
+   * one word cannot mean both. (The site schema, which has no such collision,
+   * spells the same idea `Node.label`.)
+   *
+   * Authoring metadata, exactly like `ord` below: `toEmailHtml` never reads it,
+   * so it cannot reach sent markup.
+   */
+  name?: string;
+  /**
    * Fractional ORDERING KEY among siblings — a string chosen to sort strictly
    * between its neighbors (`generateKeyBetween` in `@wizeworks/silicaui-html`).
    * The same mechanism, and the same reasoning, as the site schema's `Node.ord`.

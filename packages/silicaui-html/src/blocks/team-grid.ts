@@ -19,7 +19,7 @@ const member = (name: string, role: string) =>
 
 export const teamGrid = block({
   key: "team_grid",
-  name: "Team — member grid",
+  name: "Team — Grid",
   category: "team",
   version: "1.0.0",
   description: "A grid of team members with avatars, names, and roles.",

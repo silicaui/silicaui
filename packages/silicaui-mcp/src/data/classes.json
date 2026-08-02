@@ -1158,6 +1158,7 @@
     "tree-node",
     "tree-node-icon",
     "tree-node-label",
+    "tree-rename",
     "tree-toggle",
     "tree-toggle-spacer"
   ],

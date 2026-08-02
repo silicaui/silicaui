@@ -147,7 +147,11 @@ const SMOKE_BATCHES: Record<string, string[]> = {
   ],
   "nav additions": ["toolbar", "dock", "menubar", "navigation-menu", "outline"],
   "data additions": ["stats", "timestamp", "metadata-list", "list", "avatar-group"],
-  "layout additions": ["card", "clickable-card", "hero", "footer-primitive", "scroll-area", "overflow-list", "join"],
+  // `hero` and `footer-primitive` left this list with the palette rows
+  // themselves: both were inert primitives wearing a block family's label, and
+  // the Hero and Footer families now own those words. The `Hero`/`Footer`
+  // component macros and their CSS are untouched — only the Insert rows are gone.
+  "layout additions": ["card", "clickable-card", "scroll-area", "overflow-list", "join"],
   "content additions": ["icon", "prose", "blockquote", "display"],
   "feedback additions": ["empty-state", "meter", "radial-progress", "indicator", "swap"],
   "media": ["lightbox", "mockup-window", "mockup-browser", "mockup-code", "mockup-phone", "mask", "diff", "overlay"],

@@ -112,6 +112,44 @@ export const COMPONENT_STEMS: ReadonlySet<string> = new Set([
   "slider",
   "toolbar",
   "prose",
+  // `wordmark` (a real component, `wordmark-sm`/`-lg`/`-accent`/`-<color>`) and
+  // `glass` (the Tier-0 frosted utility) are BOTH emitted with the configured
+  // prefix by the plugin — `wordmark(colors, prefix)` and `glassUtilities(prefix)`
+  // — so omitting them here made a prefixed projection emit a bare class that
+  // matched no CSS. The palette has authored `atom("Wordmark", "wordmark")` since
+  // it shipped, so this was already live for anyone running a class prefix.
+  "wordmark",
+  "glass",
+  // The UI type ramp (silicaui/src/components/typography.js): `.display` /
+  // `.display-1`–`-3`, `.h1`–`.h6`, `.lead`, `.blockquote` + `.blockquote-cite`.
+  // All are emitted WITH the configured prefix by `typography(prefix)`, so
+  // omitting their stems made a prefixed projection emit a bare class matching no
+  // CSS — the same silent breakage `wordmark` and `glass` were added to close.
+  // Live the moment a block reached for the ramp, which the hero family does:
+  // `.display-*` is fluid via `cqi`, so it is the only way to size a hero
+  // headline off its container instead of hand-rolling breakpoint variants.
+  "display",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "lead",
+  "blockquote",
+  // KNOWN GAP, same shape as `soft` below: `.caption` is emitted prefixed too,
+  // but its stem collides with Tailwind's real `caption-top`/`caption-bottom`
+  // utilities — adding it would rewrite those into classes that match nothing.
+  // Breaking a working utility is worse than leaving `.caption` unprefixed, so
+  // it stays out until the stem scheme grows a full-token exception list.
+  //
+  // KNOWN GAP, deliberately not "fixed" here: `soft`'s other three forms
+  // (`bg-soft` / `text-soft` / `border-soft`) are prefixed by the plugin too, but
+  // their stems are `bg` / `text` / `border` — indistinguishable from real
+  // utilities by this stem scheme. Only the bare `.soft` shorthand is reachable,
+  // and adding it alone would prefix a third of the family and leave the rest,
+  // which is worse than the honest gap. Fixing it needs a full-token exception
+  // list, not a stem.
 ]);
 
 /**

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * Per-item links inside an email `collection` repeat — the `link` group node.
@@ -45,8 +46,8 @@ async function openSettings(page: Page): Promise<void> {
 }
 
 async function bind(page: Page, kind: string, ref: string): Promise<void> {
-  await page.locator("label", { hasText: "Bind" }).first().locator("select").selectOption(kind);
-  await page.locator("label", { hasText: "Reference" }).first().locator("select").selectOption(ref);
+  await page.locator(ROW, { hasText: "Bind" }).first().locator("select").selectOption(kind);
+  await page.locator(ROW, { hasText: "Reference" }).first().locator("select").selectOption(ref);
 }
 
 test("a Linked card inserts as a group with its blocks INSIDE it", async ({ page }) => {

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The email builder's core loop: render the seeded document, select/insert/edit
@@ -78,7 +79,7 @@ test("inserting a Button from the palette adds it to the canvas and it's editabl
   await buttonText.click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
   await expect(page.getByText("Label", { exact: true })).toBeVisible();
-  const labelInput = page.locator("label", { hasText: "Label" }).locator("input");
+  const labelInput = page.locator(ROW, { hasText: "Label" }).locator("input");
   await labelInput.fill("Get 20% off");
   await labelInput.blur();
   await expect(canvas.getByText("Get 20% off").first()).toBeVisible();
@@ -140,8 +141,8 @@ test("Export HTML produces valid table-based markup with the current subject", a
   // not the `treeitem` <li> (whose bounding box spans its expanded children).
   await page.locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
-  await page.locator("label", { hasText: "Subject" }).locator("input").fill("Weekend sale");
-  await page.locator("label", { hasText: "Subject" }).locator("input").blur();
+  await page.locator(ROW, { hasText: "Subject" }).locator("input").fill("Weekend sale");
+  await page.locator(ROW, { hasText: "Subject" }).locator("input").blur();
 
   await page.getByRole("button", { name: /export html/i }).click();
 

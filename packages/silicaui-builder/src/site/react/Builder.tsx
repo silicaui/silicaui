@@ -12,7 +12,7 @@
 import * as React from "react";
 import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/silicaui-html";
 import { renderSite } from "@wizeworks/silicaui-html";
-import { Button, ToggleGroup, Kbd, EmptyState } from "@wizeworks/silicaui-react";
+import { Button, ToggleGroup, ToggleGroupItem, Kbd, EmptyState } from "@wizeworks/silicaui-react";
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import { Editor } from "../engine";
 import type { HistoryDelegate, PageMeta } from "../engine";
@@ -39,6 +39,7 @@ import { BreakpointProvider } from "./breakpoint-context";
 import { useThemeWebfonts } from "./google-fonts-loader";
 import { Icon } from "../../shared/react/Icon";
 import { IconItem, PanelHead } from "../../shared/react/chrome";
+import type { LayerDepth } from "../layer-tree";
 
 type Mode = "page" | "layout" | "component" | "theme";
 type Appearance = "light" | "dark";
@@ -66,6 +67,33 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
           </>
         }
       />
+    </div>
+  );
+}
+
+/**
+ * How much of the layer tree to list. "Simple" hides the layout-only wrappers
+ * that make a document read like markup; "All layers" is the full structure,
+ * one click away — progressive disclosure over one tree, never a second panel.
+ *
+ * A pill group, like the Layers/Insert pair above it: this switches the MODE of
+ * one surface rather than paging between two, which is what a tab would mean.
+ */
+function LayerDepthBar({ value, onChange }: { value: LayerDepth; onChange: (v: LayerDepth) => void }) {
+  return (
+    <div className="flex-none px-2 pt-2">
+      <ToggleGroup
+        className="toggle-group-xs w-full"
+        aria-label="Layer detail"
+        value={[value]}
+        onValueChange={(v: string[]) => v.length && onChange(last(v, value) as LayerDepth)}
+      >
+        {/* Deliberately NOT "All layers": the tab directly above this is
+            "Layers", and a by-name lookup for it would match both. Two
+            parallel adjectives read better here anyway. */}
+        <ToggleGroupItem value="simple" className="flex-1">Simple</ToggleGroupItem>
+        <ToggleGroupItem value="all" className="flex-1">Detailed</ToggleGroupItem>
+      </ToggleGroup>
     </div>
   );
 }
@@ -125,6 +153,11 @@ function Chrome({
   const host = useHost();
   const resolvesData = Boolean(host?.resolveBinding || host?.resolveCollection);
   const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
+  // How much of the tree the Navigator lists. Lives HERE, not in the Navigator:
+  // the Navigator is remounted on every page/mode switch, so component-local
+  // state would silently reset the author's choice. A viewing preference — it
+  // never enters the document.
+  const [layerDepth, setLayerDepth] = React.useState<LayerDepth>("simple");
   const [publishing, setPublishing] = React.useState(false);
 
   // Publish = hand the host the whole site: the structured `Site` (to store +
@@ -372,8 +405,11 @@ function Chrome({
                       <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
                     </ToggleGroup>
                   </PanelHead>
+                  {leftTab === "layers" && <LayerDepthBar value={layerDepth} onChange={setLayerDepth} />}
                   <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
-                    {leftTab === "layers" ? <Navigator key={`component:${editingSymbol.id}`} /> : <Palette />}
+                    {leftTab === "layers"
+                      ? <Navigator key={`component:${editingSymbol.id}`} depth={layerDepth} />
+                      : <Palette />}
                   </div>
                 </>
               )}
@@ -394,10 +430,13 @@ function Chrome({
                   <IconItem value="insert" icon="plus" className="flex-1">Insert</IconItem>
                 </ToggleGroup>
               </PanelHead>
+              {leftTab === "layers" && <LayerDepthBar value={layerDepth} onChange={setLayerDepth} />}
               <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
                 {/* Remount the Navigator on a Page/Layout switch AND on a page
                     switch so its expanded set reseeds for the tree now in view. */}
-                {leftTab === "layers" ? <Navigator key={`${mode}:${activeId}`} /> : <Palette />}
+                {leftTab === "layers"
+                  ? <Navigator key={`${mode}:${activeId}`} depth={layerDepth} />
+                  : <Palette />}
               </div>
             </>
           )}

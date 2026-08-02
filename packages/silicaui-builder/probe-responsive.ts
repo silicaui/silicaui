@@ -62,6 +62,45 @@ console.log("setTokenAt");
   );
 }
 
+// ── a numeric group owns its whole SCALE, not just the steps it lists ────────
+// The bug this locks: sparx's starter hero is authored `px-6 py-20`, the Padding
+// Y control offers 0…16, and picking 16 produced `py-20 py-16` — both classes
+// shipped, `py-20` won in Tailwind's source order, and the control looked dead.
+console.log("\nsetTokenAt — scale ownership");
+{
+  const PAD_Y = ["py-0", "py-2", "py-4", "py-8", "py-16"];
+  check(
+    "a step the control doesn't list is REPLACED, not appended",
+    setTokenAt("bg-base-100 px-6 py-20 text-center", PAD_Y, "py-8") === "bg-base-100 px-6 text-center py-8",
+    setTokenAt("bg-base-100 px-6 py-20 text-center", PAD_Y, "py-8"),
+  );
+  check("an arbitrary value is owned too", setTokenAt("py-[3.5rem]", PAD_Y, "py-8") === "py-8");
+  check("...as is the px hairline", setTokenAt("py-px", PAD_Y, "py-8") === "py-8");
+  check("Auto clears an unlisted step as well", setTokenAt("px-6 py-20", PAD_Y, "") === "px-6");
+  check("the OTHER axis is untouched", setTokenAt("px-20 py-20", PAD_Y, "py-8") === "px-20 py-8");
+  check("...and so is the shorthand (a different head)", setTokenAt("p-20 py-20", PAD_Y, "py-8") === "p-20 py-8");
+  check("ownership is per-breakpoint like everything else", setTokenAt("py-20 @3xl:py-24", PAD_Y, "py-8") === "@3xl:py-24 py-8");
+  check("tokenStateAt reports the unlisted step rather than claiming unset", tokenStateAt("py-20", PAD_Y, "").value === "py-20");
+  check("...and declaredBreakpoints announces it", JSON.stringify(declaredBreakpoints("py-20 @3xl:py-24", PAD_Y)) === JSON.stringify(["", "@3xl:"]));
+
+  // The counter-case, and the reason ownership is derived from a NUMERIC scale
+  // rather than from a shared prefix: a group of NAMED values keeps membership
+  // semantics, or picking an alignment would strip the node's size and color.
+  const ALIGN = ["text-left", "text-center", "text-right"];
+  check(
+    "a NAMED group owns only its members",
+    setTokenAt("text-4xl text-primary text-left", ALIGN, "text-center") === "text-4xl text-primary text-center",
+    setTokenAt("text-4xl text-primary text-left", ALIGN, "text-center"),
+  );
+  const FLEX_CHILD = ["flex-1", "grow", "flex-none"];
+  check("a MIXED group owns only its members", setTokenAt("flex-col flex-1", FLEX_CHILD, "grow") === "flex-col grow");
+  check("...so `flex-col` is never mistaken for a scale step", !setTokenAt("flex-col flex-1", FLEX_CHILD, "grow").includes("flex-1"));
+  // Every other numeric group gets the same fix for free — that's the point of
+  // deriving it instead of hand-listing padding.
+  check("gap owns its scale too", setTokenAt("gap-12", ["gap-0", "gap-4", "gap-8"], "gap-4") === "gap-4");
+  check("grid-cols owns its scale too", setTokenAt("grid-cols-12", COLS, "grid-cols-3") === "grid-cols-3");
+}
+
 console.log("\ntokenStateAt — the mobile-first cascade");
 {
   const cls = "grid-cols-1 @3xl:grid-cols-2";

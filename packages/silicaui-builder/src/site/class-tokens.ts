@@ -66,6 +66,63 @@ export function splitToken(token: string): [prefix: string, base: string] {
   return at < 0 ? ["", token] : [token.slice(0, at + 1), token.slice(at + 1)];
 }
 
+/**
+ * A Tailwind SCALE value — the `4` in `py-4`: a number, the `px` hairline, an
+ * arbitrary value (`py-[3.5rem]`) or a CSS-var one (`py-(--gutter)`). Anything a
+ * hand-written class or an imported template can put where a scale step goes.
+ */
+const SCALE_VALUE = String.raw`(?:\d+(?:\.\d+)?|px|\[[^\]]*\]|\([^)]*\))`;
+
+/** Escape a derived class head for use inside a RegExp (heads are plain
+ *  `a-z0-9-` today; escaping keeps a host-supplied group from injecting syntax). */
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The class FAMILY a group owns, or undefined if it owns only its own members.
+ *
+ * A group enumerates a control's OFFERED values (`py-0 … py-16`), which is not
+ * the same as the values the underlying CSS property can hold. When a node
+ * already wears a step the control doesn't offer — `py-20` on a hero, which is
+ * what most starter templates author — matching by membership alone appends
+ * instead of replacing, both classes ship, and the larger one wins in Tailwind's
+ * source order. The control moves, the model changes, and the padding doesn't:
+ * an edit that silently does nothing, which is worse than one that's disabled.
+ *
+ * So a group that enumerates a NUMERIC SCALE claims the whole scale: every
+ * member matches `<head>-<number>`, they share a head, and picking any step
+ * replaces any other value at that head. `py-0 … py-16` owns `py-20`,
+ * `py-[3rem]`, `py-px`. Derived rather than declared so it holds for a host's
+ * own groups too, not just this builder's vocabulary.
+ *
+ * DELIBERATELY NARROW. It fires only when every member's last dash-segment is a
+ * bare number, because the alternative — "same head" alone — is actively wrong:
+ * `text-left/center/right` would then own `text-primary` and `text-2xl`, and
+ * setting the alignment would strip the node's color and size. A group of NAMED
+ * values (`rounded-none/field/box/full`, `max-w-xs … max-w-5xl`) keeps the old
+ * membership-only behavior, which is correct for it — a named set can't be
+ * enumerated from its own members.
+ */
+function groupFamily(group: readonly string[]): RegExp | undefined {
+  let head: string | undefined;
+  for (const member of group) {
+    const at = member.lastIndexOf("-");
+    if (at <= 0) return undefined;
+    if (!/^\d+(\.\d+)?$/.test(member.slice(at + 1))) return undefined;
+    const h = member.slice(0, at);
+    if (head === undefined) head = h;
+    else if (head !== h) return undefined;
+  }
+  return head ? new RegExp(`^${escapeRe(head)}-${SCALE_VALUE}$`) : undefined;
+}
+
+/** Does `base` belong to this group — as a listed member, or as another step of
+ *  the numeric scale the group owns (see `groupFamily`)? */
+function memberTest(group: readonly string[]): (base: string) => boolean {
+  const members = new Set(group);
+  const family = groupFamily(group);
+  return family ? (base) => members.has(base) || family.test(base) : (base) => members.has(base);
+}
+
 export interface TokenState {
   /** The group member in effect at the requested breakpoint ("" = none). */
   value: string;
@@ -86,14 +143,20 @@ export interface TokenState {
  * A breakpoint not on the ladder (a host's own) resolves against base only —
  * we can't place it in the cascade, and guessing an order would be worse than
  * under-reporting inheritance.
+ *
+ * `value` can be a class the group doesn't LIST — another step of the scale it
+ * owns (`py-20` for a `py-0 … py-16` control). A chip row renders that as
+ * nothing selected, which is honest; reporting "" instead would claim the
+ * property is unset on a node that visibly has it, and would make the row's
+ * inherited-from badge describe the wrong breakpoint.
  */
 export function tokenStateAt(cls: string | undefined, group: readonly string[], prefix: string): TokenState {
-  const members = new Set(group);
+  const isMember = memberTest(group);
   /** Which group member (if any) is declared at exactly `p`. */
   const declaredAt = (p: string): string | undefined => {
     for (const token of tokenize(cls)) {
       const [tp, base] = splitToken(token);
-      if (tp === p && members.has(base)) return base;
+      if (tp === p && isMember(base)) return base;
     }
     return undefined;
   };
@@ -111,14 +174,21 @@ export function tokenStateAt(cls: string | undefined, group: readonly string[], 
 }
 
 /**
- * Set `group` to `value` at `prefix` — removing every other member of the group
- * AT THAT PREFIX ONLY, and leaving the same group at other breakpoints, and
- * every unrelated token, exactly where it was.
+ * Set `group` to `value` at `prefix` — removing every other value the group
+ * OWNS (its listed members, plus any other step of a numeric scale it
+ * enumerates — see `groupFamily`) AT THAT PREFIX ONLY, and leaving the same
+ * group at other breakpoints, and every unrelated token, exactly where it was.
+ *
+ * Owning the scale rather than just the list is what makes a control able to
+ * overwrite a value it wouldn't have offered. Setting `py-16` on a section
+ * authored as `py-20` replaces it; before, both survived and `py-20` won.
  *
  * `value: ""` clears the group at this breakpoint, which is not the same as
  * setting it to the inherited value: cleared means "whatever the smaller
  * breakpoint says", and re-declaring it would pin the value and stop tracking
- * later edits to base.
+ * later edits to base. Clearing drops owned-but-unlisted values too — an "Auto"
+ * that left `py-20` standing would be the same silent no-op wearing a different
+ * label.
  *
  * Returns the new class string. Token ORDER is preserved for everything that
  * survives, and a newly-added token appends — so a diff of two class strings
@@ -126,10 +196,10 @@ export function tokenStateAt(cls: string | undefined, group: readonly string[], 
  * every time a chip is clicked.
  */
 export function setTokenAt(cls: string | undefined, group: readonly string[], value: string, prefix = ""): string {
-  const members = new Set(group);
+  const isMember = memberTest(group);
   const kept = tokenize(cls).filter((token) => {
     const [tp, base] = splitToken(token);
-    return !(tp === prefix && members.has(base));
+    return !(tp === prefix && isMember(base));
   });
   if (value) kept.push(`${prefix}${value}`);
   return kept.join(" ");
@@ -137,13 +207,14 @@ export function setTokenAt(cls: string | undefined, group: readonly string[], va
 
 /** Every breakpoint at which `group` is explicitly declared, ascending. Drives
  *  the "this control is set at 2 other sizes" affordance, so a value the author
- *  can't see from here is at least announced. */
+ *  can't see from here is at least announced — including an owned-but-unlisted
+ *  one (`@3xl:py-20`), which is exactly the override hardest to discover. */
 export function declaredBreakpoints(cls: string | undefined, group: readonly string[]): string[] {
-  const members = new Set(group);
+  const isMember = memberTest(group);
   const found = new Set<string>();
   for (const token of tokenize(cls)) {
     const [tp, base] = splitToken(token);
-    if (members.has(base)) found.add(tp);
+    if (isMember(base)) found.add(tp);
   }
   return BREAKPOINT_ORDER.filter((p) => found.has(p));
 }

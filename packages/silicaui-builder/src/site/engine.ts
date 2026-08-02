@@ -308,6 +308,10 @@ export class Editor {
   // Cached, referentially-stable symbol roster for the Components palette + hooks —
   // swapped (never mutated) only when a symbol is added/removed/renamed.
   private symbolsViewCache: readonly SymbolDef[] = [];
+  // Cached snapshot behind `activeRootNode` — cleared by `transact` after every
+  // action, so the getter hands out a NEW object identity exactly when the tree
+  // (or which tree is active) changed. See that getter for why identity matters.
+  private activeRootCache: Node | undefined;
   // Whole-SITE undo history. `past` holds snapshots taken BEFORE each edit (node
   // or page structure); `future` holds snapshots undone past (for redo). Snapshots
   // are the whole site, so a node edit on any page — and page add/remove/rename —
@@ -441,10 +445,31 @@ export class Editor {
     return this.currentPage().root;
   }
 
-  /** The live active-tree root (page/frame/symbol master) — the Canvas reads this
-   *  directly for the symbol-editing case (the master isn't in the page Document). */
+  /**
+   * The active-tree root (page body / frame shell / symbol master) as a
+   * defensively-cloned SNAPSHOT — the tree a view renders. The frame and symbol
+   * masters live on the site rather than in the page `Document`, so this is the
+   * only way to read them; `extract()` is the page's equivalent.
+   *
+   * IT IS A SNAPSHOT, AND THAT IS THE CONTRACT. Every node edit mutates the
+   * stored tree IN PLACE (see `commit`), so a getter that handed back the live
+   * root would return the same object identity forever. Any consumer that
+   * memoizes on the tree — `React.useMemo`, `React.memo`, a `useSyncExternalStore`
+   * snapshot comparison — then never invalidates, and the edit lands in the model
+   * (it saves, it publishes) while the view keeps painting the pre-edit tree.
+   *
+   * That is not hypothetical: it shipped. Layout mode reads its shell from here
+   * while Page mode reads `doc.frame` (cloned by `extract` on every commit), so
+   * padding and background edits to a header applied, persisted, and reloaded
+   * correctly — and were invisible on the canvas until a reload, in Layout mode
+   * only. Cloning here fixes every such consumer at once, including a host's,
+   * rather than each memo learning the rule separately.
+   *
+   * Cheap: cloned lazily on first read after an action and cached until the next
+   * one, so repeated reads within a render are free.
+   */
   get activeRootNode(): Node {
-    return this.activeRoot();
+    return (this.activeRootCache ??= structuredClone(this.activeRoot()));
   }
 
   /** Rebuild the cached symbol roster (stable identity between mutations). */
@@ -516,6 +541,12 @@ export class Editor {
         this.txKinds = [];
         this.txOps = [];
         this.txHistory = false;
+        // Drop the active-root snapshot BEFORE notifying: a listener re-reads
+        // `activeRootNode` synchronously, and must see the tree it was woken
+        // for. Unconditional — this is the one place every mutation AND every
+        // active-tree/page/symbol switch passes through, so nothing else has to
+        // remember to invalidate.
+        this.activeRootCache = undefined;
         // A `transact` that recorded nothing changed nothing — stay silent rather
         // than waking every subscriber (and the host's onChange) for a no-op.
         if (batch.length) {

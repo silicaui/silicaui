@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The email builder's left-rail Navigator (parity with the site builder's
@@ -142,7 +143,7 @@ test("Design tab's color swatches offer the full theme palette, matching the sit
   // primary-content + 1 custom trigger — same breadth (and the same leading
   // Auto reset) as the site Inspector's `rolesOf(theme)` swatch vocab, plus
   // the custom escape hatch email needs and site doesn't.
-  const bgRow = page.locator("label", { hasText: "Background" }).first();
+  const bgRow = page.locator(ROW, { hasText: "Background" }).first();
   await expect(bgRow.locator("button")).toHaveCount(15);
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -164,7 +165,7 @@ test("every swatch/chip row's leading Auto button resets that field to the value
   // resets it back to the brand primary. Read the expected colors off the
   // swatches themselves (whatever theme the harness resolves) rather than
   // hardcoding hex, so this doesn't depend on which brand theme is active.
-  const bgRow = page.locator("label", { hasText: "Background" }).first();
+  const bgRow = page.locator(ROW, { hasText: "Background" }).first();
   const errorSwatch = bgRow.locator("button").nth(8);
   const primarySwatch = bgRow.locator("button").nth(1);
   const errorColor = await errorSwatch.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -172,23 +173,25 @@ test("every swatch/chip row's leading Auto button resets that field to the value
 
   await errorSwatch.click();
   await expect(button).toHaveCSS("background-color", errorColor);
-  // The leading swatch has a `title` attribute alongside its icon, which can
-  // shadow the accessible name Playwright computes for `getByRole` — a plain
-  // text-content filter sidesteps that ambiguity for every "Auto" lookup below.
+  // The leading swatch is ICON-only, so its accessible name comes from `title`
+  // ("Reset to default"), not the word "Auto" — index it positionally. (The
+  // CHIP rows below do have text, and `getByRole("button", { name: "Auto" })`
+  // now resolves there; it didn't while a `<label>` wrapped the row and handed
+  // the first chip the row's entire text. See `email-inspector-a11y.spec.ts`.)
   await bgRow.locator("button").first().click(); // "Auto"
   await expect(button).toHaveCSS("background-color", primaryColor);
 
   // Padding X: pick a non-default chip (Auto resets Button padding X to 16px
   // — the "4" chip already IS the default, so pick "8" instead), then Auto.
-  const paddingXRow = page.locator("label", { hasText: "Padding X" }).first();
+  const paddingXRow = page.locator(ROW, { hasText: "Padding X" }).first();
   await paddingXRow.getByRole("button", { name: "8", exact: true }).click();
-  await paddingXRow.locator("button", { hasText: "Auto" }).click();
+  await paddingXRow.getByRole("button", { name: "Auto", exact: true }).click();
   await expect(paddingXRow.getByRole("button", { name: "4", exact: true })).toHaveClass(/btn-primary/);
 
   // Align: switch off the default (Center), then Auto restores it.
-  const alignRow = page.locator("label", { hasText: "Align" }).first();
+  const alignRow = page.locator(ROW, { hasText: "Align" }).first();
   await alignRow.getByRole("button", { name: "Left", exact: true }).click();
-  await alignRow.locator("button", { hasText: "Auto" }).click();
+  await alignRow.getByRole("button", { name: "Auto", exact: true }).click();
   await expect(alignRow.getByRole("button", { name: "Center", exact: true })).toHaveClass(/btn-primary/);
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -205,7 +208,7 @@ test("Text's Design tab has a Weight control matching the site builder's, and it
   // Fresh document text starts at the "normal" default.
   await expect(text).toHaveCSS("font-weight", "400");
 
-  const weightRow = page.locator("label", { hasText: "Weight" }).first();
+  const weightRow = page.locator(ROW, { hasText: "Weight" }).first();
   await expect(weightRow.getByRole("button", { name: "Normal", exact: true })).toBeVisible();
   await expect(weightRow.getByRole("button", { name: "Medium", exact: true })).toBeVisible();
   await expect(weightRow.getByRole("button", { name: "Semibold", exact: true })).toBeVisible();
@@ -214,7 +217,7 @@ test("Text's Design tab has a Weight control matching the site builder's, and it
   await weightRow.getByRole("button", { name: "Bold", exact: true }).click();
   await expect(text).toHaveCSS("font-weight", "700");
 
-  await weightRow.locator("button", { hasText: "Auto" }).click();
+  await weightRow.getByRole("button", { name: "Auto", exact: true }).click();
   await expect(text).toHaveCSS("font-weight", "400");
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -227,7 +230,7 @@ test("bare numeric Design fields (no site chip analog) still get a leading Auto 
   await page.getByRole("button", { name: "Insert", exact: true }).click();
   await page.locator('[data-insert-key="divider"]').click();
 
-  const thicknessRow = page.locator("label", { hasText: "Thickness" }).first();
+  const thicknessRow = page.locator(ROW, { hasText: "Thickness" }).first();
   const input = thicknessRow.locator("input[type='number']");
   await expect(input).toHaveValue("1");
 
@@ -235,7 +238,7 @@ test("bare numeric Design fields (no site chip analog) still get a leading Auto 
   await input.blur();
   await expect(input).toHaveValue("6");
 
-  await thicknessRow.locator("button", { hasText: "Auto" }).click();
+  await thicknessRow.getByRole("button", { name: "Auto", exact: true }).click();
   await expect(input).toHaveValue("1");
 
   expect(errors, errors.join("\n")).toHaveLength(0);

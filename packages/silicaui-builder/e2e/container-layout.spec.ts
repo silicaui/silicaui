@@ -149,6 +149,54 @@ test("padding: editing one axis expands the shorthand instead of dropping the ot
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
+/**
+ * A padding step the control doesn't LIST is still the control's to overwrite.
+ *
+ * The bug: a group only stripped its own members, so on a section authored
+ * `py-20` — which every real starter hero is — picking 16 appended, both classes
+ * shipped, and `py-20` won in Tailwind's source order. Computed padding never
+ * moved. The chip lit up, the model changed, the edit saved: a control that
+ * silently did nothing, which is worse than one that's disabled.
+ */
+test("padding: a step the control doesn't offer is still overwritten, not layered", async ({ page }) => {
+  const errors = trackErrors(page);
+  await ready(page);
+
+  const node = await insertedNode(page, "container");
+
+  // Author the off-scale value the way a template or an import would.
+  const classes = page.getByTestId("class-field");
+  await classes.fill("py-20 px-6");
+  await classes.blur();
+  await expect(node).toHaveCSS("padding-top", "80px");
+
+  // The scale now reaches a hero's own spacing, so the control can SAY 20 — and
+  // reads back what the node is actually wearing instead of showing nothing set.
+  await expect(page.getByTestId("row-padding-y").getByRole("button", { name: "20", exact: true })).toHaveClass(
+    /btn-primary/,
+  );
+
+  // Down to a listed step: the unlisted one has to GO, not sit underneath.
+  await page.getByTestId("row-padding-y").getByRole("button", { name: "8", exact: true }).click();
+  await expect(node).not.toHaveClass(/\bpy-20\b/);
+  await expect(node).toHaveCSS("padding-top", "32px");
+  await expect(node).toHaveCSS("padding-left", "24px"); // the other axis is untouched
+
+  // ...and back up past the old ceiling.
+  await page.getByTestId("row-padding-y").getByRole("button", { name: "32", exact: true }).click();
+  await expect(node).toHaveCSS("padding-top", "128px");
+
+  // Auto clears it too — an "Auto" that left a bigger value standing would be
+  // the same silent no-op wearing a different label.
+  await classes.fill("py-20");
+  await classes.blur();
+  await expect(node).toHaveCSS("padding-top", "80px");
+  await page.getByTestId("row-padding-y").getByRole("button", { name: "Auto", exact: true }).click();
+  await expect(node).toHaveCSS("padding-top", "0px");
+
+  expect(errors, errors.join("\n")).toHaveLength(0);
+});
+
 test("container layout: grid columns paint, and switching display drops inert classes", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);

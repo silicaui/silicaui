@@ -13,7 +13,7 @@ const mark = (name: string) =>
 
 export const logoCloud = block({
   key: "logo_cloud",
-  name: "Logo cloud — trusted by",
+  name: "Logos — Cloud",
   category: "logos",
   version: "1.0.0",
   description: "A social-proof strip of customer wordmarks under a caption.",

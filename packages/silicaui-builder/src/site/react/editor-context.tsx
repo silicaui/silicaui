@@ -136,8 +136,11 @@ export function useActiveRoot(): Node {
   const doc = useDocument(); // subscribe so a re-render fires on every commit
   const which = useActiveTree();
   // Symbol masters and named LAYOUTS both live on the site rather than in the
-  // page `Document`, so read the live tree straight from the engine; the
-  // `useDocument` subscription above still drives the re-render.
+  // page `Document`, so read them straight from the engine; the `useDocument`
+  // subscription above still drives the re-render. `activeRootNode` is a
+  // per-commit SNAPSHOT (see the engine), so the identity this returns changes
+  // whenever the tree does — same guarantee `doc.root` gets from `extract()`,
+  // which is what everything downstream memoizes on.
   //
   // The frame case matters as much as the symbol one now: `doc.frame` is the
   // layout resolved for the ACTIVE PAGE, which stopped being the same thing as

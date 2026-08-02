@@ -87,7 +87,7 @@ interface BlockNode {
 /** The authored unit: a manifest + its tree (§8). */
 interface Block {
   key: string;               // stable, globally-unique slug: 'hero_split_cta'
-  name: string;              // 'Hero — split with CTA'
+  name: string;              // 'Hero — Split CTA' — the palette LABEL (see below)
   category: BlockCategory;   // 'navigation' | 'hero' | 'pricing' | 'footer' | …
   version: string;           // semver — the class vocabulary is a DATA contract (§11)
   description: string;
@@ -101,6 +101,17 @@ interface Block {
   preview?: { thumb?: string; note?: string };
 }
 ```
+
+**`name` IS the palette label; `description` is the row's hint.** A host renders `name` verbatim as
+the row a user clicks (silicaui-builder's `blockItem`), so it must be short — `Family — Variant`,
+Title Case, ≤ 28 characters — and **unique across the whole catalog**. Put the explanatory sentence
+in `description`, never in `name`.
+
+This is load-bearing, not style. `name` used to carry a trailing sentence (`'Navbar — brand, links,
+action'`) and the palette truncated at the first `" — "`, so every block in a family collapsed to
+the same row text: five navbar layouts all read "Navbar", and a user picked one of several
+identical rows blind. `silicaui-html`'s `verify.mjs` now asserts uniqueness and length, so a
+duplicate fails CI instead of shipping as an indistinguishable choice.
 
 **No `id` on the canonical node.** Ids are a *consumer* concern — sparx mints fresh globally-unique ids on stamp, React uses keys, HTML needs none. Behaviors correlate parts to their root by **structural nesting** (§7), never by id, so the canonical tree stays id-free and re-stampable.
 
@@ -292,6 +303,60 @@ The flag is a **promise the author keeps** so a downstream email renderer *can* 
 - [ ] All three **projections** (HTML, React, `block.json`) render byte-faithfully (snapshot-tested).
 - [ ] Email-eligible blocks obey the **honored subset** (§12).
 - [ ] Semver honored; within-major changes additive only (§11).
+- [ ] If the block joins a **family** (§14), it reuses that family's kit and shared slot names, sits contiguously in `blocks/index.ts`, gets its own `BLOCK_ICON_BY_KEY` glyph in the builder's palette, and the family's count assertion in `verify.mjs` is updated.
+
+---
+
+## 14. Families
+
+A **family** is a `category` with more than one block in it. Seven exist today; each is
+five layouts strong.
+
+A category with a single entry is a single answer to a question that has several, and the
+palette row offering it reads as *"this is how a footer looks here"* rather than *"pick one"*.
+Worse, each of these categories used to have a bare CSS primitive sitting beside it in the
+palette wearing the same one-word label — `Navbar`, `Hero`, `Footer` — so picking between the
+real block and the inert grid was a coin flip. That is what families replaced.
+
+| category | variants | shared slots | kit |
+| --- | --- | --- | --- |
+| `nav` | Brand Left · Center Links · Center Logo · Mega Menu · Floating Pill | `brand`, `link1…4`, `secondary`, `cta` | `navbar-kit.ts` |
+| `hero` | Split CTA · Centered Content · Image Overlay · Email Capture · Bold Statement | `headline`, `subhead`, `cta`, `secondary`, `image`, `trust` | `hero-kit.ts` |
+| `features` | Grid · Media Split · Alternating · Bento · Checklist | `heading`, `feature{n}`, `body{n}`, `image{n}` | `feature-kit.ts` |
+| `testimonial` | Quote · Grid · Carousel · Logo Wall · Portrait | `quote`/`quote{n}`, `author{n}`, `role{n}` | `testimonial-kit.ts` |
+| `pricing` | Tiers · Billing Toggle · Two Plans · Single Plan · Comparison | `heading`, `subhead`, `plan{n}`, `price{n}`, `cta{n}` | `pricing-kit.ts` |
+| `cta` | Band · Split Media · Boxed Card · Email Capture · Inline Bar | `headline`, `subhead`, `primary`, `secondary`, `image` | `cta-kit.ts` |
+| `footer` | Columns · Minimal · Newsletter · Closing CTA · Sitemap | `brand`, `blurb`, `copyright`, `col{n}`, `link{n}` | `footer-kit.ts` |
+
+**The rules a family adds on top of §13:**
+
+1. **`name` is `Family — Variant`.** It is the palette label verbatim, so it must be unique
+   across the whole catalog and ≤28 characters. `verify.mjs` fails on either.
+2. **Shared slot names.** Swapping one variant for another is the most common edit a user
+   makes, and a host's fill writes BY NAME — so a shared vocabulary is what makes a swap keep
+   the author's content instead of resetting it to demo copy. Numbered names (`link3`,
+   `price2`) run in reading order regardless of how the layout groups them.
+3. **A kit module, not copy-paste.** `<family>-kit.ts` holds the shared parts and is not
+   itself a block — `listBlocks()` never sees it. Every helper must build **fresh** nodes per
+   call, because `slot`/`part`/`behave` mutate the node they are handed; a shared node constant
+   cross-contaminates two blocks' slot indexes.
+4. **Literal class strings, always.** The builder harness and `apps/site` `@source`-scan the
+   blocks directory to safelist utilities. A composed class (`` `col-span-${n}` ``) is invisible
+   to that scan, generates no CSS, and fails silently — the layout just quietly flattens.
+5. **Contiguous registration.** `blocks/index.ts` order is palette order; a family split across
+   the list reads as unrelated rows that happen to rhyme.
+6. **A pinned count.** `verify.mjs` asserts `listBlocks({ category }).length === 5` per family,
+   so a sixth variant is a deliberate edit in two places rather than a drift in one. Each family
+   also carries the one invariant its members could break independently — a `<footer>` root, one
+   `<h1>` per hero, a panel per trigger, `headline` + `primary` on every CTA.
+7. **A distinct palette glyph.** `BLOCK_ICON_BY_KEY` in the builder's `palette.ts`, or the five
+   rows draw five identical category icons and reproduce the same-looking-choices problem in the
+   icon column.
+
+**Variants must be different ANSWERS, not restyles.** Five ways to arrange one card grid is the
+problem wearing a new hat. The test is whether you can say, in one clause, when to reach for each
+one — and whether two families are offering the same silhouette (`footer_closing_cta` owns the
+dark full-bleed closer, so the `cta` family deliberately has no such variant).
 
 ---
 
@@ -302,7 +367,7 @@ A split hero with a headline slot, a body slot, a primary CTA slot, and an image
 ```ts
 export const heroSplitCta = block({
   key: 'hero_split_cta',
-  name: 'Hero — split with CTA',
+  name: 'Hero — Split CTA',
   category: 'hero',
   version: '1.0.0',
   description: 'Two-column hero: copy + primary action on the left, image on the right.',

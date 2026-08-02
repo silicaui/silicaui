@@ -55,8 +55,10 @@ const KIND_LABEL: Record<EmailNode["kind"], string> = {
   video: "Video",
 };
 
-/** A short display name — the text content for a text node, else the kind label. */
+/** A short display name — the author's own name for the layer if they set one,
+ *  else the text content for a text node, else the kind label. */
 export function nodeName(node: EmailNode): string {
+  if (node.name) return node.name;
   if (node.kind === "text") {
     const plain = node.html.replace(/<[^>]+>/g, "").trim();
     return plain || "Text";

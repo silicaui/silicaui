@@ -1,97 +1,65 @@
 /**
- * Navbar — site header. A brand on the left, inline nav links in the middle, and
- * a primary action on the right. Fully editable: every link/label/button is a
- * real child node (not a prop), so a builder edits them in place. Container-query
- * responsive — the link row hides on a narrow container (`@md:` reveals it) in
- * favor of a `disclosure`-driven mobile menu: a trigger button toggles a stacked
- * link panel beneath the bar, correlated to the root by document order (no ids).
+ * Navbar — Brand Left. The everyday site header: brand on the left with the nav
+ * links clustered BESIDE it, and the actions pushed to the far right.
+ *
+ * The link cluster is the whole point of this variant. It used to be a
+ * `justify-between` row, which optically centered the links and made this
+ * indistinguishable from `navbar_center_links` — one of the two reasons the
+ * navbar entries read as interchangeable. `gap-8` + `ml-auto` on the action
+ * group is what separates them now.
+ *
+ * Fully editable: every link, label, and button is a real child node (not a
+ * prop), so a builder edits them in place. Container-query responsive in three
+ * tiers — narrow is brand + theme + hamburger, `@sm:` reveals the sign-in link,
+ * `@md:` is the full desktop bar — with a `disclosure`-driven mobile menu
+ * correlated to the root by document order (no ids).
+ *
+ * The first child `<div>` keeps `px-6 py-4`: it is the node the builder's
+ * Layout-mode repaint test selects and asserts computed padding on.
  */
-import { atom, behave, block, el, part, slot } from "../kit";
+import { behave, block, el } from "../kit";
+import { brand, ctaButton, hamburger, mobilePanel, navLink, signInLink, themeToggle } from "./navbar-kit";
 
-const link = (label: string) =>
-    el("a", "text-sm font-medium text-base-content hover:text-primary", {
-        text: label,
-        attrs: { href: "#" },
-    });
-
-const mobileLink = (label: string) =>
-    el(
-        "a",
-        "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
-        { text: label, attrs: { href: "#" } },
-    );
-
-// Desktop + mobile share one slot name per link so `fillSlots` (label + href)
-// updates both copies from a single content key — a consumer shouldn't have
-// to know the block renders each link twice for the responsive breakpoint.
-const navLink = (label: string, slotName: string) =>
-    slot(link(label), { name: slotName, type: "link", label });
-const navLinkMobile = (label: string, slotName: string) =>
-    slot(mobileLink(label), { name: slotName, type: "link", label });
+const LINKS = [
+    ["Product", "link1"],
+    ["Pricing", "link2"],
+    ["Docs", "link3"],
+    ["Company", "link4"],
+] as const;
 
 export const navbar = block({
     key: "navbar",
-    name: "Navbar — brand, links, action",
+    name: "Navbar — Brand Left",
     category: "nav",
-    version: "1.0.0",
-    description: "A site header: brand, inline navigation links, and a primary action.",
+    version: "1.1.0",
+    description: "Brand on the left with links beside it, sign-in, theme toggle, and a primary action.",
     tags: ["nav", "header", "marketing"],
     colors: ["base-100", "base-200", "base-content", "primary"],
-    behaviors: ["disclosure"],
+    behaviors: ["disclosure", "theme-toggle"],
     emailEligible: false,
     root: behave(
         el("header", "@container bg-base-100 border-b border-base-200", {
             children: [
-                el("div", "mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4", {
+                el("div", "mx-auto flex w-full max-w-6xl items-center gap-8 px-6 py-4", {
                     children: [
-                        slot(
-                            el("a", "text-lg font-semibold text-base-content", { text: "SilicaUI", attrs: { href: "#" } }),
-                            { name: "brand", type: "text", label: "SilicaUI" },
-                        ),
+                        brand("wordmark shrink-0"),
                         el("nav", "hidden items-center gap-6 @md:flex", {
-                            children: [
-                                navLink("Product", "link1"),
-                                navLink("Pricing", "link2"),
-                                navLink("Docs", "link3"),
-                                navLink("Company", "link4"),
-                            ],
+                            children: LINKS.map(([label, name]) => navLink(label, name)),
                         }),
-                        el("div", "flex items-center gap-3", {
+                        el("div", "ml-auto flex items-center gap-3", {
                             children: [
-                                slot(
-                                    el(
-                                        "a",
-                                        "hidden text-sm font-medium text-base-content hover:text-primary @sm:inline",
-                                        { text: "Sign in", attrs: { href: "#" } },
-                                    ),
-                                    { name: "secondary", type: "link", label: "Secondary link" },
-                                ),
-                                slot(
-                                    atom("Button", "btn btn-primary btn-sm hidden @md:inline-block", { label: "Get started" }),
-                                    { name: "cta", type: "link", label: "Primary action" },
-                                ),
-                                part(
-                                    el("button", "btn btn-ghost btn-square btn-sm @md:hidden", {
-                                        attrs: { type: "button", "aria-label": "Toggle navigation menu" },
-                                        children: [atom("Icon", undefined, { name: "menu" })],
-                                    }),
-                                    "trigger",
-                                ),
+                                signInLink("hidden text-sm font-medium text-base-content hover:text-primary @sm:inline"),
+                                themeToggle("btn btn-ghost btn-square btn-sm"),
+                                ctaButton("btn btn-primary btn-sm hidden @md:inline-block"),
+                                hamburger("btn btn-ghost btn-square btn-sm @md:hidden"),
                             ],
                         }),
                     ],
                 }),
-                part(
-                    el("nav", "flex flex-col gap-1 border-t border-base-200 px-6 py-3 @md:hidden", {
-                        attrs: { hidden: true },
-                        children: [
-                            navLinkMobile("Product", "link1"),
-                            navLinkMobile("Pricing", "link2"),
-                            navLinkMobile("Docs", "link3"),
-                            navLinkMobile("Company", "link4"),
-                        ],
-                    }),
-                    "panel",
+                mobilePanel(
+                    "flex flex-col gap-1 border-t border-base-200 px-6 py-3 @md:hidden",
+                    LINKS,
+                    { secondary: "Sign in", cta: "Get started" },
                 ),
             ],
         }),

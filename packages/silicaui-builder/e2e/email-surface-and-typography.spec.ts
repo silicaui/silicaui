@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The email builder's surface + typography vocabulary: section box decoration
@@ -41,18 +42,18 @@ test("a section can be given a border, radius and margin from the Inspector", as
 
   // Radius: the "Medium" (8px) preset is the third swatch (Auto, None, Small,
   // Medium, Full) — read by title so the assertion survives a reorder.
-  const radiusRow = page.locator("label", { hasText: "Corner radius" }).first();
+  const radiusRow = page.locator(ROW, { hasText: "Corner radius" }).first();
   await radiusRow.locator('button[title="Medium"]').click();
   await expect(section).toHaveCSS("border-radius", "8px");
 
-  const widthRow = page.locator("label", { hasText: "Border width" }).first();
+  const widthRow = page.locator(ROW, { hasText: "Border width" }).first();
   const widthInput = widthRow.locator("input[type='number']");
   await widthInput.fill("2");
   await widthInput.blur();
   await expect(section).toHaveCSS("border-top-width", "2px");
 
   // Margin is a real outer inset — the body background shows through it.
-  const marginYRow = page.locator("label", { hasText: "Margin Y" }).first();
+  const marginYRow = page.locator(ROW, { hasText: "Margin Y" }).first();
   await marginYRow.getByRole("button", { name: "4", exact: true }).click();
   await expect(section).toHaveCSS("margin-top", "16px");
 
@@ -69,12 +70,12 @@ test("the button variant control switches between a filled and an outline button
   const canvas = page.locator(".sui-email-canvas");
   const label = canvas.getByText("Shop now").first();
 
-  const variantRow = page.locator("label", { hasText: "Variant" }).first();
+  const variantRow = page.locator(ROW, { hasText: "Variant" }).first();
   await expect(variantRow.getByRole("button", { name: "Filled", exact: true })).toHaveClass(/btn-primary/);
 
   // Read the brand primary off a swatch rather than hardcoding a hex, so this
   // doesn't depend on which theme the harness resolves.
-  const primarySwatch = page.locator("label", { hasText: "Background" }).first().locator("button").nth(1);
+  const primarySwatch = page.locator(ROW, { hasText: "Background" }).first().locator("button").nth(1);
   const primaryColor = await primarySwatch.evaluate((el) => getComputedStyle(el).backgroundColor);
   await expect(label).toHaveCSS("background-color", primaryColor);
 
@@ -110,7 +111,7 @@ test("a text block's link colour applies to anchors on the canvas", async ({ pag
   await expect(anchor).toBeVisible();
 
   await page.getByRole("tab", { name: "Design", exact: true }).click();
-  const linkRow = page.locator("label", { hasText: "Link color" }).first();
+  const linkRow = page.locator(ROW, { hasText: "Link color" }).first();
   const errorSwatch = linkRow.locator("button").nth(7); // no leading Auto here: primary(0)…error(7)
   const errorColor = await errorSwatch.evaluate((el) => getComputedStyle(el).backgroundColor);
   await errorSwatch.click();
@@ -131,7 +132,7 @@ test("picking a theme swatch TRACKS that role — a tinted section follows a the
 
   // Base 200 is swatch index 11 (Auto, then the 13 roles in `colorOptionsOf`
   // order: primary…error, baseContent, base100, base200).
-  const bgRow = page.locator("label", { hasText: "Background" }).first();
+  const bgRow = page.locator(ROW, { hasText: "Background" }).first();
   const base200 = bgRow.locator("button").nth(11);
   await expect(base200).toHaveAttribute("title", "Base 200");
   const base200Color = await base200.evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -171,7 +172,7 @@ test("document settings expose web fonts and a colour-scheme declaration", async
   // The reach caveat is stated in the UI, not left as tribal knowledge.
   await expect(page.getByText(/Gmail clips messages over/)).toBeVisible();
 
-  const schemeRow = page.locator("label", { hasText: "Supported" }).first();
+  const schemeRow = page.locator(ROW, { hasText: "Supported" }).first();
   await schemeRow.getByRole("button", { name: "Both", exact: true }).click();
   await expect(schemeRow.getByRole("button", { name: "Both", exact: true })).toHaveClass(/btn-primary/);
 

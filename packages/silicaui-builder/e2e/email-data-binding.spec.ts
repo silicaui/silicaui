@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { ROW } from "./inspector-row";
 
 /**
  * The email Inspector's Data binding section (Q1/Q23 ported from the site
@@ -33,7 +34,7 @@ test("a leaf content node's Data binding offers Value/Action but hides Collectio
   await canvas.getByText("Start writing your email…").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
-  const bindRow = page.locator("label", { hasText: "Bind" }).first();
+  const bindRow = page.locator(ROW, { hasText: "Bind" }).first();
   const options = await bindRow.locator("select option").allTextContents();
   expect(options).toContain("None");
   expect(options).toContain("Value (fill this node)");
@@ -55,12 +56,12 @@ test("a container node's Data binding offers Collection too, and its Preview ref
   await page.getByRole("treeitem", { name: "Section" }).locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
-  const bindRow = page.locator("label", { hasText: "Bind" }).first();
+  const bindRow = page.locator(ROW, { hasText: "Bind" }).first();
   const options = await bindRow.locator("select option").allTextContents();
   expect(options).toContain("Collection (repeat children)");
 
   await bindRow.locator("select").selectOption("collection");
-  const refRow = page.locator("label", { hasText: "Reference" }).first();
+  const refRow = page.locator(ROW, { hasText: "Reference" }).first();
   // `dataSources()` is wired under `?host=demo` — Reference becomes a picker,
   // scoped to array-cardinality sources only for a collection bind.
   await refRow.locator("select").selectOption("products");
@@ -78,10 +79,10 @@ test("a value bind's live Preview shows the host's resolved data, and clearing t
   await canvas.getByText("Start writing your email…").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
-  const bindRow = page.locator("label", { hasText: "Bind" }).first();
+  const bindRow = page.locator(ROW, { hasText: "Bind" }).first();
   await bindRow.locator("select").selectOption("value");
 
-  const refRow = page.locator("label", { hasText: "Reference" }).first();
+  const refRow = page.locator(ROW, { hasText: "Reference" }).first();
   await refRow.locator("select").selectOption("customer.firstName");
 
   await expect(page.getByText("Jordan", { exact: true })).toBeVisible();
@@ -116,9 +117,9 @@ test("Export HTML resolves a bound node through the host, not the static placeho
   await canvas.getByText("Start writing your email…").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
-  const bindRow = page.locator("label", { hasText: "Bind" }).first();
+  const bindRow = page.locator(ROW, { hasText: "Bind" }).first();
   await bindRow.locator("select").selectOption("value");
-  const refRow = page.locator("label", { hasText: "Reference" }).first();
+  const refRow = page.locator(ROW, { hasText: "Reference" }).first();
   await refRow.locator("select").selectOption("customer.firstName");
 
   await page.getByRole("button", { name: "Export HTML", exact: true }).click();
@@ -177,16 +178,16 @@ test("a Collection bind's 'Omit when empty' toggle drops the node from Export HT
   await page.getByRole("treeitem", { name: "Section" }).locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
 
-  const bindRow = page.locator("label", { hasText: "Bind" }).first();
+  const bindRow = page.locator(ROW, { hasText: "Bind" }).first();
   await bindRow.locator("select").selectOption("collection");
-  const refRow = page.locator("label", { hasText: "Reference" }).first();
+  const refRow = page.locator(ROW, { hasText: "Reference" }).first();
   // `empty-collection` always resolves to zero items in the demo host — the
   // ref this toggle actually changes behavior for (unlike `products`, which
   // never hits the zero-item case).
   await refRow.locator("select").selectOption({ label: "Empty collection (demo)" });
   await expect(page.getByText("0 items — the template renders once as a placeholder", { exact: true })).toBeVisible();
 
-  const omitRow = page.locator("label", { hasText: "Omit when empty" }).first();
+  const omitRow = page.locator(ROW, { hasText: "Omit when empty" }).first();
   await omitRow.getByText("Yes", { exact: true }).click();
   await expect(page.getByText("0 items — the node is omitted entirely", { exact: true })).toBeVisible();
 

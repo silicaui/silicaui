@@ -15,7 +15,7 @@ const stat = (value: string, label: string) =>
 
 export const statsBand = block({
   key: "stats_band",
-  name: "Stats — metrics band",
+  name: "Stats — Band",
   category: "stats",
   version: "1.0.0",
   description: "A row of headline metrics with big numbers and labels.",

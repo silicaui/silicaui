@@ -9,9 +9,11 @@
  *
  * The canvas is also the drop surface: every node is a drag source (reorder) and a
  * drop target. A drop lands BEFORE / AFTER / INSIDE the hovered node depending on
- * where the pointer sits — shown live by a drop-line between siblings or a dashed
- * ring on a container. Palette drags insert a new node; node drags move an
- * existing one (the engine cycle-guards moves).
+ * where the pointer sits — shown live by the measured `DropOverlay` on the hovered
+ * node's edge, or a dashed ring on a container. Which axis "before/after" is read
+ * on comes from the hovered node's real DOM neighbours (`siblingAxis`), so a flex
+ * row is aimed at horizontally and a stack vertically. Palette drags insert a new
+ * node; node drags move an existing one (the engine cycle-guards moves).
  *
  * STYLING RULE (hard): Tailwind utilities + @wizeworks/silicaui classes only, and every
  * class here is a LITERAL string so the harness's `@source` scan safelists it.
@@ -34,9 +36,11 @@ import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
 import { customColorCss, themeVars } from "../color-cascade";
-import { DRAG_MIME, decodeDrag } from "../../shared/dnd";
-import type { DropEdge } from "../../shared/dnd";
-import { paletteGroups, paletteItemByKey, catalogForHost } from "../palette";
+import { DRAG_MIME, decodeDrag, edgeFor, siblingAxis } from "../../shared/dnd";
+import type { Axis, DropEdge } from "../../shared/dnd";
+import { DropOverlay } from "../../shared/react/DropOverlay";
+import type { DropHint } from "../../shared/react/DropOverlay";
+import { paletteGroups, paletteItemByKey, catalogForHost, makeInsertNode } from "../palette";
 import type { PaletteGroup } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
@@ -49,7 +53,10 @@ const DEFAULT_GROUPS = paletteGroups();
  *  composite resolves identically to a built-in one. */
 function nodeForInsertKey(editor: Editor, key: string, groups: readonly PaletteGroup[]): Node | undefined {
   if (key.startsWith("symbol:")) return editor.makeInstanceNode(key.slice("symbol:".length));
-  return paletteItemByKey(key, groups)?.make();
+  const item = paletteItemByKey(key, groups);
+  // `makeInsertNode`, not `item.make()` — a dragged block must arrive named
+  // exactly like a clicked one.
+  return item && makeInsertNode(item);
 }
 
 /** A composite selection/edit key that targets a node INSIDE an instance. */
@@ -246,8 +253,6 @@ interface RenderCtx {
   onEditCancel: () => void;
   /** The container currently showing a dashed drop-inside ring. */
   insideId: string | undefined;
-  /** Where a drop-line renders: at `index` among `parentId`'s children. */
-  lineGap: { parentId: string; index: number } | undefined;
   /**
    * What an Outlet renders: the OTHER layer's tree, and whether it shows inert
    * (context) or live (editable). In Page mode the frame is context and the page
@@ -280,16 +285,10 @@ interface RenderCtx {
   renderHostNode?: (node: HostNode, preview: boolean) => React.ReactNode;
 }
 
-/** Which edge of the hovered node a pointer at `clientY` targets. */
-function computeEdge(clientY: number, rect: DOMRect, node: Node): DropEdge {
-  const y = clientY - rect.top;
-  if (acceptsChildren(node)) {
-    const band = Math.min(rect.height * 0.3, 22);
-    if (y < band) return "before";
-    if (y > rect.height - band) return "after";
-    return "inside";
-  }
-  return y < rect.height / 2 ? "before" : "after";
+/** Which edge of the hovered node a pointer targets, read on the axis its
+ *  siblings actually flow along. */
+function computeEdge(e: React.DragEvent, rect: DOMRect, axis: Axis, node: Node): DropEdge {
+  return edgeFor(e, rect, axis, acceptsChildren(node));
 }
 
 /**
@@ -327,9 +326,28 @@ function decorations(id: string | undefined, ctx: RenderCtx): string {
   return s + ring(id, ctx);
 }
 
-/** A thin accent bar shown between siblings at the pending drop index. */
-function DropLine() {
-  return <div className="pointer-events-none h-0.5 w-full rounded-full bg-accent" aria-hidden />;
+
+/**
+ * Component classes that PAINT THEIR OWN BOX and are MEANT to hold nothing — a
+ * scrim's entire job is to be an empty tinted layer sized by its parent.
+ *
+ * They are the exception `isEmptyContainer` has to carve out, for two reasons:
+ * they never collapse (they carry their own size), so there is nothing to give a
+ * drop target to; and `EMPTY_DECOR`'s `bg-base-content/5` is a UTILITY, so it
+ * wins over the component layer and repaints the scrim as a 5% tint — erasing
+ * the exact thing the layer exists to draw. Hero — Image Overlay showed this as
+ * a hero whose copy was unreadable on the canvas while its published HTML was
+ * correct, which is the worst version of the bug: invisible outside the builder.
+ *
+ * Exactly the failure the Wordmark note below describes, from the other side —
+ * a drop-zone placeholder slapped over real content.
+ */
+const SELF_PAINTING_LAYERS: readonly string[] = ["hero-overlay", "overlay-scrim"];
+
+function paintsOwnBox(node: Node): boolean {
+  if (node.kind === "outlet" || !node.class) return false;
+  const tokens = node.class.split(/\s+/);
+  return SELF_PAINTING_LAYERS.some((c) => tokens.includes(c));
 }
 
 /**
@@ -340,6 +358,7 @@ function DropLine() {
  */
 function isEmptyContainer(node: Node): boolean {
   if (!acceptsChildren(node)) return false;
+  if (paintsOwnBox(node)) return false;
   // A COMPONENT container can render content its authored `children` don't show:
   // a Wordmark holds its brand name (and logo) in `props`, and expands to them
   // only when nothing is nested. Ask the EXPANSION — the same single source of
@@ -402,20 +421,16 @@ function MissingSymbol() {
 
 function renderChildren(children: Child[] | undefined, parentId: string, ctx: RenderCtx): React.ReactNode {
   const list = children ?? [];
-  const gap = ctx.lineGap && ctx.lineGap.parentId === parentId ? ctx.lineGap.index : -1;
-  const out: React.ReactNode[] = [];
-  list.forEach((c, i) => {
-    if (i === gap) out.push(<DropLine key={`drop-${i}`} />);
-    out.push(
-      typeof c === "string" ? (
-        <React.Fragment key={i}>{c}</React.Fragment>
-      ) : (
-        <CanvasNode key={(c.kind !== "outlet" && c.id) || i} node={c} parentId={parentId} index={i} ctx={ctx} />
-      ),
-    );
-  });
-  if (gap === list.length) out.push(<DropLine key="drop-end" />);
-  return out;
+  // No drop marker is spliced in here — it's drawn over the board by
+  // `DropOverlay`, which is what keeps a pending drop from reflowing the very
+  // node the author is pointing at. See that file.
+  return list.map((c, i) =>
+    typeof c === "string" ? (
+      <React.Fragment key={i}>{c}</React.Fragment>
+    ) : (
+      <CanvasNode key={(c.kind !== "outlet" && c.id) || i} node={c} parentId={parentId} index={i} ctx={ctx} />
+    ),
+  );
 }
 
 /**
@@ -443,9 +458,8 @@ function repeatGhosts(children: Child[] | undefined, id: string | undefined, ctx
   const count = ctx.repeatCounts?.get(id) ?? 1;
   if (count < 2) return null;
   // Inert copies: `preview` suppresses ids, handlers and decorations wholesale.
-  // The synthetic parentId keeps a live drop-line targeting the real container
-  // from being drawn a second time inside a ghost.
-  const ghostCtx: RenderCtx = { ...ctx, preview: true, lineGap: undefined };
+  // The synthetic parentId keeps a ghost's nodes out of every id-keyed lookup.
+  const ghostCtx: RenderCtx = { ...ctx, preview: true };
   const out: React.ReactNode[] = [];
   for (let i = 1; i < count; i++) {
     out.push(<React.Fragment key={`ghost-${i}`}>{renderChildren(children, `${id}::ghost`, ghostCtx)}</React.Fragment>);
@@ -903,7 +917,7 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
   const [editingRaw, setEditingRaw] = React.useState<string | undefined>(undefined);
   const [draggingId, setDraggingId] = React.useState<string | undefined>(undefined);
   const [dropHint, setDropHint] = React.useState<
-    { targetId: string; parentId: string | undefined; index: number; edge: DropEdge } | undefined
+    { targetId: string; parentId: string | undefined; index: number; edge: DropEdge; axis: Axis } | undefined
   >(undefined);
   const theme = doc.theme;
   // Drops on the canvas margin append to the ACTIVE tree's root (the editable one).
@@ -967,16 +981,17 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
       setDraggingId(id);
     },
     onDragOver: (info, e) => {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const edge = computeEdge(e.clientY, rect, info.node);
+      const el = e.currentTarget as HTMLElement;
+      const axis = siblingAxis(el);
+      const edge = computeEdge(e, el.getBoundingClientRect(), axis, info.node);
       e.dataTransfer.dropEffect = draggingId ? "move" : "copy";
-      setDropHint({ targetId: info.id, parentId: info.parentId, index: info.index, edge });
+      setDropHint({ targetId: info.id, parentId: info.parentId, index: info.index, edge, axis });
     },
     onDrop: (info, e) => {
       const raw = e.dataTransfer.getData(DRAG_MIME);
       const payload = decodeDrag(raw);
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const edge = computeEdge(e.clientY, rect, info.node);
+      const el = e.currentTarget as HTMLElement;
+      const edge = computeEdge(e, el.getBoundingClientRect(), siblingAxis(el), info.node);
       clearDrag();
       if (!payload) return;
       const place = placement(info, edge);
@@ -1005,9 +1020,12 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
   };
 
   const insideId = dropHint?.edge === "inside" ? dropHint.targetId : undefined;
-  const lineGap =
+  // The ROOT has no siblings — `placement` turns a before/after on it into an
+  // append INSIDE it, so drawing an edge marker there would promise a placement
+  // the drop won't honor.
+  const dropMarker: DropHint | undefined =
     dropHint && dropHint.edge !== "inside" && dropHint.parentId
-      ? { parentId: dropHint.parentId, index: dropHint.edge === "before" ? dropHint.index : dropHint.index + 1 }
+      ? { targetId: dropHint.targetId, edge: dropHint.edge, axis: dropHint.axis }
       : undefined;
 
   // Resolve the edit target against the LIVE tree: a page/layout switch, or an
@@ -1074,7 +1092,6 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
     },
     onEditCancel: () => setEditingRaw(undefined),
     insideId,
-    lineGap,
     outlet,
     preview: shellPreview,
     symbolRoot: (sid) => editor.symbol(sid)?.root,
@@ -1106,12 +1123,18 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
         style={{ maxWidth: DEVICE_WIDTH[device] ?? "100%" }}
       >
         <CanvasNode node={shellNode} parentId={undefined} index={0} ctx={ctx} />
+        {/* `nodeName`, NOT the Navigator's content-first `nodeRowLabel`. A tree
+            row is scanned in a list, so it leads with content; this pill sits
+            ON the element whose content you are already reading, so repeating
+            it says nothing — what you want to know is WHAT you selected
+            ("Heading", "Link"), or the name you gave it. */}
         <SelectionOverlay
           boardRef={boardRef}
           selectedId={selectedId}
           label={selectedNode ? nodeName(selectedNode) : undefined}
           version={doc}
         />
+        <DropOverlay boardRef={boardRef} hint={dropMarker} />
       </div>
     </div>
   );

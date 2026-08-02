@@ -26,7 +26,7 @@ const item = (q: string, a: string, open = false) =>
 
 export const faqAccordion = block({
   key: "faq_accordion",
-  name: "FAQ — accordion",
+  name: "FAQ — Accordion",
   category: "faq",
   version: "1.0.0",
   description: "Single-open disclosure list of question/answer pairs.",
