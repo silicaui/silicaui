@@ -23,9 +23,14 @@
  *    `aspect-video` fights `h-full` — the picture stops covering and the scrim
  *    ends up sitting on bare background.
  *
- * The background image is a real `Image` atom, not a `bg-[url(…)]` class: `url(`
- * in a class is a hard lint error, and `.hero`'s own `background-size: cover`
- * would need an inline `style`, which is banned too.
+ * The background image is a real `Image` atom rather than an arbitrary
+ * background-image utility: a `url(` inside a class is a hard lint error, and
+ * `.hero`'s own `background-size: cover` would need an inline `style`, banned too.
+ *
+ * That sentence deliberately does not spell the utility out. `apps/site/app/globals.css`
+ * points `@source` at this whole directory, and Tailwind's scanner does not know
+ * what a comment is — writing the literal form here makes it a real candidate, and
+ * the emitted `url(…)` then fails the site build as an unresolvable module.
  */
 import { block, el } from "../kit";
 import { actions, headline, heroImage, subhead } from "./hero-kit";
