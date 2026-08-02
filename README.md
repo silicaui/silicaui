@@ -60,9 +60,12 @@ This is a pnpm workspace. Every change that should ship gets a changeset:
 pnpm changeset          # describe what changed and which packages it affects
 ```
 
-A bot opens a "Version Packages" PR batching pending changesets; merging it to
-`main` publishes the affected packages to npm. See
-[`.github/workflows/release.yml`](./.github/workflows/release.yml).
+Landing that changeset on `main` is the whole release. CI builds the workspace
+once, verifies it, and — only if everything is green — versions the packages,
+publishes them to npm, tags them, cuts a GitHub Release, and rolls
+[silicaui.com](https://silicaui.com). There is no "Version Packages" PR to merge
+and nothing to click. All twelve packages are `fixed`, so they always move
+together. See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
 
 ## Links
 

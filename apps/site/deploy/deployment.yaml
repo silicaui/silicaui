@@ -21,7 +21,7 @@ spec:
     spec:
       # The GHCR package is private, so every pull needs a credential. CI
       # recreates this Secret from the run-scoped GITHUB_TOKEN on every deploy
-      # (.github/workflows/deploy-site-azure.yml) — the same pattern sparx uses,
+      # (the `deploy` job in .github/workflows/ci.yml) — the same pattern sparx uses,
       # so the token is refreshed by construction and the cluster never holds a
       # long-lived registry credential.
       imagePullSecrets:

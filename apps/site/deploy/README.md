@@ -31,8 +31,8 @@ Service — belongs to Caddy in the sparx repo, and even that is portable.
 **During the move the site 502'd.** DNS and the Caddy host block were cut over
 to Azure with the rest of the platform, but the workload itself was never
 recreated on AKS, so everything in front of it was healthy and pointing at an
-empty namespace. That is why `deploy-site-azure.yml` ends by curling the public
-URL: a green rollout would not have caught it.
+empty namespace. That is why the `deploy` job ends by curling the public URL: a
+green rollout would not have caught it.
 
 ## Files here
 
@@ -43,7 +43,7 @@ URL: a green rollout would not have caught it.
 | `kustomization.yaml` | Ties them together; CI rewrites `newTag` to pin the image |
 | `caddy-silicaui.caddyfile` | **Mirror** of the host block that already ships in the sparx Caddyfile |
 | `setup-azure.sh` | One-time identity setup for CI |
-| `setup-gcp.sh` | Parked, beside the parked `deploy-site-gcp.yml` |
+| `setup-gcp.sh` | Parked. The GKE workflow it paired with is gone; see its header |
 
 ## One-time setup
 
@@ -61,10 +61,15 @@ URL: a green rollout would not have caught it.
 
 ## Ongoing
 
-Every push to `main` that touches `apps/site/**` or `packages/**` runs
-`.github/workflows/deploy-site-azure.yml`: build → image → GHCR → pin →
-`kubectl apply -k` → wait for the rollout → **curl the public URL**. Nothing
-manual.
+Every push to `main` runs the `deploy` job in `.github/workflows/ci.yml`: take the
+`out/` the `site` job already built and CI already verified → image → GHCR → pin →
+`kubectl apply -k` → wait for the rollout → **curl the public URL**. Nothing manual.
+
+Two things changed when this folded into `ci.yml`. It `needs:` the build and check
+jobs, so a red build can no longer reach silicaui.com — deploy used to race CI rather
+than follow it. And there is no `paths:` filter any more: the old one listed
+`apps/site/**` and `packages/**` but not `pnpm-lock.yaml` or the root `package.json`,
+so a dependency bump silently skipped the deploy entirely.
 
 ## Deploying by hand
 

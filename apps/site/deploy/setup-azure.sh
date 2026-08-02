@@ -3,8 +3,8 @@
 # can create app registrations in the tenant AND assign roles on the AKS
 # cluster. Safe to re-run: every step is create-or-noop.
 #
-# This replaces setup-gcp.sh. It creates the identity that
-# .github/workflows/deploy-site-azure.yml assumes — nothing else. There is no
+# This replaces setup-gcp.sh. It creates the identity that the `deploy` job in
+# .github/workflows/ci.yml assumes — nothing else. There is no
 # registry to provision (GHCR comes with the GitHub repo) and no cluster to
 # provision (silicaui is a co-tenant of the platform's AKS cluster, which the
 # sparx repo's terraform owns).
