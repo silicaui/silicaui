@@ -27,10 +27,10 @@ inputs:
 runs:
   using: composite
   steps:
-    # No `version:` input on purpose. action-setup v4 reads the root package.json
+    # No `version:` input on purpose. action-setup reads the root package.json
     # `packageManager` field (pnpm@9.12.0), so pnpm's version already has exactly
     # one source of truth; passing it here would create a second one to drift.
-    - uses: pnpm/action-setup@v4
+    - uses: pnpm/action-setup@v6
 
     # Must follow action-setup: `cache: pnpm` shells out to `pnpm store path` to
     # locate the store, so the binary has to be on PATH first. That cache is
