@@ -8,6 +8,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
+  type AlertDialogContentProps,
 } from "./alert-dialog";
 import { Button, type ButtonColor } from "./button";
 
@@ -31,6 +32,23 @@ interface PendingConfirm extends ConfirmOptions {
 
 export interface ImperativeAlertDialogProviderProps {
   children: React.ReactNode;
+  /**
+   * Props for the portalled `AlertDialogContent` — chiefly `data-theme`.
+   *
+   * The popup portals to `document.body`, which is OUTSIDE any `[data-theme]`
+   * island the provider sits in, so a confirm raised from inside a themed
+   * region (an editor shell, a pane, a dark section) would otherwise resolve
+   * its tokens against the page instead of that region:
+   *
+   *   <ImperativeAlertDialogProvider popupProps={{ "data-theme": "studio" }}>
+   *
+   * `data-*` keys are spelled out in the type because this is an object literal,
+   * not a JSX attribute list — TypeScript waives excess-property checks for
+   * hyphenated names only in JSX position.
+   */
+  popupProps?: Omit<AlertDialogContentProps, "children"> & {
+    [key: `data-${string}`]: unknown;
+  };
 }
 
 /**
@@ -41,7 +59,10 @@ export interface ImperativeAlertDialogProviderProps {
  *     <App />
  *   </ImperativeAlertDialogProvider>
  */
-export function ImperativeAlertDialogProvider({ children }: ImperativeAlertDialogProviderProps) {
+export function ImperativeAlertDialogProvider({
+  children,
+  popupProps,
+}: ImperativeAlertDialogProviderProps) {
   const [pending, setPending] = React.useState<PendingConfirm | null>(null);
 
   const confirm = React.useCallback<ConfirmFn>((options) => {
@@ -66,7 +87,7 @@ export function ImperativeAlertDialogProvider({ children }: ImperativeAlertDialo
           if (!open) settle(false);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent {...popupProps}>
           {pending?.title != null && (
             <AlertDialogHeader>
               <AlertDialogTitle>{pending.title}</AlertDialogTitle>

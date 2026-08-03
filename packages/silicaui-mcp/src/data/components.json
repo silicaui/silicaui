@@ -6358,6 +6358,12 @@
             "optional": false,
             "type": "React.ReactNode",
             "doc": ""
+          },
+          {
+            "name": "popupProps",
+            "optional": true,
+            "type": "Omit<AlertDialogContentProps, \"children\"> & {\n    [key: `data-${string}`]: unknown;\n  }",
+            "doc": "Props for the portalled `AlertDialogContent` — chiefly `data-theme`. The popup portals to `document.body`, which is OUTSIDE any `[data-theme]` island the provider sits in, so a confirm raised from inside a themed region (an editor shell, a pane, a dark section) would otherwise resolve its tokens against the page instead of that region: <ImperativeAlertDialogProvider popupProps={{ \"data-theme\": \"studio\" }}> `data-*` keys are spelled out in the type because this is an object literal, not a JSX attribute list — TypeScript waives excess-property checks for hyphenated names only in JSX position."
           }
         ]
       }
