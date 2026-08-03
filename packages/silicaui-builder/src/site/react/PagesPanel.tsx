@@ -10,7 +10,7 @@
  * `popupProps={{ "data-theme": … }}` re-establishes the studio tokens.
  */
 import * as React from "react";
-import { Button, Select, SelectItem, Input } from "@wizeworks/silicaui-react";
+import { Button, Select, SelectItem, Input, useImperativeAlertDialog } from "@wizeworks/silicaui-react";
 import { useEditor, usePages, useStudioTheme } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
 
@@ -18,6 +18,7 @@ export function PagesPanel() {
   const { pages, activeId } = usePages();
   const editor = useEditor();
   const studioTheme = useStudioTheme();
+  const confirm = useImperativeAlertDialog();
   const [renaming, setRenaming] = React.useState(false);
   const [draft, setDraft] = React.useState("");
 
@@ -32,6 +33,26 @@ export function PagesPanel() {
   const commitRename = () => {
     if (active) editor.renamePage(active.id, draft);
     setRenaming(false);
+  };
+
+  // Deleting a page takes the whole page tree with it, and the trash icon sits
+  // one button away from Add — so it asks first. `AlertDialog`'s backdrop is
+  // inert (you can't dismiss the decision by clicking away) and the dialog is
+  // modal, so `active` can't change out from under the await.
+  //
+  // The copy names the page and says undo is there, because it is: `removePage`
+  // is a recorded, invertible op. That's a reason to make the prompt calm, not
+  // a reason to skip it — nothing on screen tells an author undo covers this,
+  // and a page they didn't mean to delete is gone until they think to press it.
+  const deleteActive = async () => {
+    if (!active) return;
+    const ok = await confirm({
+      title: `Delete “${active.name}”?`,
+      description: "The page and everything on it is removed from the site. You can undo this.",
+      confirmLabel: "Delete page",
+      color: "error",
+    });
+    if (ok) editor.removePage(active.id);
   };
 
   return (
@@ -82,7 +103,7 @@ export function PagesPanel() {
               aria-label="Delete page"
               disabled={pages.length <= 1}
               className="hover:text-error"
-              onClick={() => active && editor.removePage(active.id)}
+              onClick={() => void deleteActive()}
             >
               <Icon name="trash" />
             </Button>

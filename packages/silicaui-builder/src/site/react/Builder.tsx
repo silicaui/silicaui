@@ -12,7 +12,7 @@
 import * as React from "react";
 import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/silicaui-html";
 import { renderSite } from "@wizeworks/silicaui-html";
-import { Button, ToggleGroup, Kbd, EmptyState } from "@wizeworks/silicaui-react";
+import { Button, ToggleGroup, Kbd, EmptyState, ImperativeAlertDialogProvider } from "@wizeworks/silicaui-react";
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
 import { Editor } from "../engine";
 import type { HistoryDelegate, PageMeta, Peer } from "../engine";
@@ -922,25 +922,33 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
     <HostProvider host={host}>
       <EditorProvider key={current.gen} editor={editor}>
         <StudioThemeProvider value={studioTheme}>
-          <div
-            className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased"
-            data-theme={studioTheme}
-          >
-            <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
-              {current.recoveredAt !== null && (
-                <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
-              )}
-              <Chrome
-                onPublish={onPublish}
-                toolbarSlot={toolbarSlot}
-                toolbarStatusSlot={toolbarStatusSlot}
-                statusBarSlot={statusBarSlot}
-                dataToggle={dataToggle}
-                initialMode={initialMode}
-                onModeChange={onModeChange}
-              />
-            </ErrorBoundary>
-          </div>
+          {/* The singleton confirm dialog every destructive control in the chrome
+              awaits. Mounted here, at the one root inside the theme island, so a
+              confirm can be raised from any panel without each one owning dialog
+              state — and `popupProps` re-stamps the studio theme because the popup
+              portals to document.body, outside the island (same fix PagesPanel's
+              Select and ComponentStarterDialog's Dialog use). */}
+          <ImperativeAlertDialogProvider popupProps={{ "data-theme": studioTheme }}>
+            <div
+              className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased"
+              data-theme={studioTheme}
+            >
+              <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
+                {current.recoveredAt !== null && (
+                  <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
+                )}
+                <Chrome
+                  onPublish={onPublish}
+                  toolbarSlot={toolbarSlot}
+                  toolbarStatusSlot={toolbarStatusSlot}
+                  statusBarSlot={statusBarSlot}
+                  dataToggle={dataToggle}
+                  initialMode={initialMode}
+                  onModeChange={onModeChange}
+                />
+              </ErrorBoundary>
+            </div>
+          </ImperativeAlertDialogProvider>
         </StudioThemeProvider>
       </EditorProvider>
     </HostProvider>
