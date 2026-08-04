@@ -1,5 +1,106 @@
 # @wizeworks/silicaui-builder
 
+## 0.47.0
+
+### Minor Changes
+
+- a81f64f: Motion is themeable, and the focus ring has both of its knobs.
+
+  Measured by what the components actually read versus what the theme editor wrote, three tokens were
+  live in CSS and reachable from nothing. `--duration` and `--ease` are read by **86 declarations
+  across 38 components** — every hover, focus, open/close and checked transition in the library —
+  which made snappy-vs-relaxed, a real brand axis, the single largest unthemeable surface in the
+  system. `--focus-offset` left the focus control half-finished: "Focus ring" wrote `--focus-width`
+  and `--disabled-opacity`, so a ring could be thickened but never moved off the control it outlines,
+  which is the adjustment that makes a ring legible against a filled Button.
+
+  All three join `SCALAR_TOKENS`, which lights them up in the builder's Theme panel and the MCP's
+  `get_tokens` at once: a new **Motion** group (Speed: off/snappy/base/relaxed → `--duration`; Easing:
+  standard/linear/out/spring → `--ease`) and a **Focus gap** row beside the existing width. The panel's
+  Motion group is deliberately distinct from the Inspector's `Animate ▸ Speed`, which sets
+  `sui-duration-*` on ONE node's entrance animation — this is the resting transition speed of every
+  control on the page. `SCALAR_TOKENS` gained an exported `ScalarToken` type, since `--ease` is the
+  first entry whose value isn't a number and so carries `options` instead of a `min`/`max`/`step`.
+
+  **Fixes an accessibility hole this would otherwise have opened.** `theme.js` flattened motion for
+  `prefers-reduced-motion: reduce` by setting `--duration: 0.01ms` on `:root` — which a theme island
+  defeats, and not through specificity: a custom property declared on a DESCENDANT shadows the
+  inherited value for that entire subtree, so a `[data-theme]` element carrying its own `--duration`
+  keeps animating no matter what the `:root` rule says. Exposing a speed control would have handed
+  every theme author a way to override a user's stated accessibility preference without knowing it.
+  The guard now matches `:root, [data-theme]` and is `!important`, so it also beats the inline `style`
+  a live editor writes on the island. `e2e/theme-motion.spec.ts` asserts a relaxed theme still
+  flattens under reduced motion — and that test was confirmed to fail against the old `:root`-only
+  rule before the fix landed.
+
+- a81f64f: The theme editor can size the selector tier, not just fields.
+
+  Silica sizes controls off **two** base units: `--size-field` for anything with a field height
+  (Input, Select, Textarea, Button, FileInput) and `--size-selector` for the square/round controls
+  (Checkbox, Radio, Switch, Toggle, Badge). Every one of those components has read
+  `calc(var(--size-selector, 0.25rem) * N)` since the first release — but `--size-selector` was never
+  listed in `SCALAR_TOKENS`, so the token was invisible to everything downstream of that list. The
+  builder's Theme panel offered a "Field base size" step and nothing for selectors, and the MCP's
+  `get_tokens` didn't know the token existed. Radius already split all three ways in the same panel
+  (Boxes / Fields / **Selectors**), which made the missing size lever read as a deliberate omission
+  rather than a gap: a theme could round its checkboxes but not shrink them.
+
+  `--size-selector` joins `SCALAR_TOKENS` with the same `0.15–0.4rem` range and default as its field
+  counterpart, which lights it up in all three consumers at once — the builder's Theme panel now has
+  **Field base size** and **Selector base size** as a pair, and `get_tokens` advertises it. The two
+  stay independent on purpose: a dense checkbox beside a large input is the reason these are separate
+  tokens, and `e2e/theme-sizes.spec.ts` asserts the rendered box of each tier moves with its own lever
+  and holds still for the other one.
+
+### Patch Changes
+
+- a81f64f: `--noise` paints grain. It had never painted anything.
+
+  The token, the builder's Effects ▸ Noise switch and the "Grain on surfaces" caption all shipped;
+  no CSS read the token, so the control was decoration. It now paints a tiling SVG turbulence grain on
+  the themed surface.
+
+  **Where.** The `[data-theme]` rule — the single declaration that defines "surface" in this system, so
+  one rule covers the page and every scoped island, and a Card keeps its clean opaque fill: a raised
+  surface sitting ON textured paper, which is the effect grain is for.
+
+  **How it's gated.** `background-size: calc(var(--noise, 0) * 128px)`. A zero-sized background image
+  is never painted, so `--noise: 0` costs nothing — and unlike an `::after` overlay this needs no
+  `position: relative` on every `[data-theme]`, which would silently re-parent any absolutely
+  positioned descendant resolving against an ancestor outside the island. A theme must not move a
+  consumer's layout.
+
+  **Why the filter chain looks the way it does.** Three things were found by measuring pixels, not by
+  reading specs:
+
+  - `color-interpolation-filters='sRGB'` is load-bearing. SVG filters default to linearRGB, which
+    pushed the layer's mean off mid-grey and made every hand-derived coefficient wrong. Pinned to
+    sRGB the flattened layer measures mean **128.0** exactly.
+  - The noise is composited onto an opaque `feFlood` **before** any `feColorMatrix`/
+    `feComponentTransfer`. Those primitives operate on un-premultiplied color, and `feTurbulence`
+    emits a noisy ALPHA channel — run directly on turbulence they divide RGB by a near-zero alpha and
+    clamp to white. Two earlier cuts did exactly that and washed a base-200 surface **+7.7/255**
+    lighter while carrying a standard deviation of **0.5** — all haze, no grain, and every
+    computed-style assertion passed the whole time.
+  - Contrast is stretched about 0.5 because that is the identity point of `overlay`
+    (`b<0.5 → 2bs = b`, `b>=0.5 → 1-2(1-b)(1-s) = b`). Centering there is what lets grain add texture
+    without moving the surface color a designer chose.
+
+  Measured on the real board, the shipped version is **Δmean 0.11 with sd 2.99** on a light surface and
+  **Δmean 0.05 with sd 1.44** on a dark one. `e2e/theme-noise.spec.ts` asserts those two numbers by
+  decoding actual screenshot pixels — the computed-style assertions alongside them could not see the
+  defect that was hit twice.
+
+  Also gives the Theme panel's Effects switches an `aria-label`. They shipped with no accessible name,
+  which a screen reader announces as a bare "switch".
+
+- Updated dependencies [a81f64f]
+- Updated dependencies [a81f64f]
+- Updated dependencies [a81f64f]
+  - @wizeworks/silicaui@0.47.0
+  - @wizeworks/silicaui-html@0.47.0
+  - @wizeworks/silicaui-panels@0.47.0
+
 ## 0.46.0
 
 ### Patch Changes
