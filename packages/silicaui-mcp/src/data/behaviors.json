@@ -17,7 +17,7 @@
   },
   {
     "type": "marquee",
-    "description": "`marquee` — an auto-scrolling ticker. The motion itself is a CSS animation authored on the component (§7 prefers CSS-only where it suffices); this handler only wires `params.pauseOnHover` (default `true`) and keeps the animation paused for editor preview, matching the autoplay-suppression rule (§9.8) without a JS animation loop of its own."
+    "description": "`marquee` — an auto-scrolling ticker. The motion itself is a CSS animation on the component's `track` part (§7 prefers CSS-only where it suffices), and so is the pause: this handler only toggles `data-sui-paused` on the root and lets `marquee.js` decide what that means. That keeps `animation-play-state` with exactly ONE owner — the stylesheet — so the handler never has to know which descendant is actually animated, and an inline style can never end up fighting the `:hover` rule. What's left for JS is the part CSS genuinely can't express: the editor-canvas freeze (§9.8 autoplay suppression), and `params.pauseOnHover` for markup that carries the behavior marker without the `.marquee-pause-on-hover` class (hand-authored HTML; the component macro emits both together). `prefers-reduced-motion` is deliberately NOT handled here — marquee.js already stops the animation and hands the strip back as a plain scroller under that media query, which is the better outcome: content past the first viewport stays reachable instead of being stranded behind `overflow: hidden`. Freezing it from JS as well would only re-strand it."
   },
   {
     "type": "scrollspy",

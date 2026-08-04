@@ -548,6 +548,23 @@
     "loading-xl",
     "loading-xs"
   ],
+  "marquee": [
+    "marquee",
+    "marquee-copies-2",
+    "marquee-copies-3",
+    "marquee-copies-4",
+    "marquee-copies-5",
+    "marquee-copies-6",
+    "marquee-fade",
+    "marquee-fast",
+    "marquee-group",
+    "marquee-normal",
+    "marquee-pause-on-hover",
+    "marquee-reverse",
+    "marquee-slow",
+    "marquee-track",
+    "marquee-vertical"
+  ],
   "mask": [
     "mask",
     "mask-circle",

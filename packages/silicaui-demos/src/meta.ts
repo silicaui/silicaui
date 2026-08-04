@@ -44,6 +44,7 @@ export const DEMO_META: DemoMeta[] = [
   { id: "mockup", title: "Mockup" },
   { id: "timeline", title: "Timeline" },
   { id: "carousel", title: "Carousel" },
+  { id: "marquee", title: "Marquee" },
   { id: "stack", title: "Stack" },
   { id: "rating", title: "Rating" },
   { id: "radial-progress", title: "Radial Progress" },

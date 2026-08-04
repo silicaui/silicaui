@@ -35,6 +35,7 @@ import { LinkDemo } from "./demos/Link";
 import { MockupDemo } from "./demos/Mockup";
 import { TimelineDemo } from "./demos/Timeline";
 import { CarouselDemo } from "./demos/Carousel";
+import { MarqueeDemo } from "./demos/Marquee";
 import { StackDemo } from "./demos/Stack";
 import { RatingDemo } from "./demos/Rating";
 import { RadialProgressDemo } from "./demos/RadialProgress";
@@ -165,6 +166,7 @@ export const DEMOS: DemoEntry[] = [
     { id: "mockup", title: "Mockup", Demo: MockupDemo },
     { id: "timeline", title: "Timeline", Demo: TimelineDemo },
     { id: "carousel", title: "Carousel", Demo: CarouselDemo },
+    { id: "marquee", title: "Marquee", Demo: MarqueeDemo },
     { id: "stack", title: "Stack", Demo: StackDemo },
     { id: "rating", title: "Rating", Demo: RatingDemo },
     { id: "radial-progress", title: "Radial Progress", Demo: RadialProgressDemo },

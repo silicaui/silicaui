@@ -1065,6 +1065,23 @@ const MEDIA: PaletteItem[] = [
             ]),
     },
     {
+        key: "marquee",
+        label: "Marquee",
+        icon: "box",
+        hint: "An infinitely-looping ticker strip — logos, quotes, announcements",
+        // The literal utility classes here ARE the safelist: the canvas can only
+        // render what appears verbatim in builder src. `marquee-fade` and
+        // `-fast` come along so the palette drop looks like the finished thing
+        // rather than something the user has to go find the knobs for.
+        make: () =>
+            atom("Marquee", "marquee marquee-fast marquee-fade", { repeat: 3 }, [
+                el("span", "text-2xl font-semibold whitespace-nowrap text-base-content", { text: "Northwind" }),
+                el("span", "text-2xl font-semibold whitespace-nowrap text-base-content", { text: "Acme" }),
+                el("span", "text-2xl font-semibold whitespace-nowrap text-base-content", { text: "Contoso" }),
+                el("span", "text-2xl font-semibold whitespace-nowrap text-base-content", { text: "Fabrikam" }),
+            ]),
+    },
+    {
         key: "lightbox",
         label: "Lightbox",
         icon: "image",

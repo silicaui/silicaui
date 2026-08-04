@@ -396,5 +396,58 @@ console.log("color picker — OKLCH editor, painted on hydrate");
   d2();
 }
 
+// ── MARQUEE: the runtime only owns the pause flag; CSS owns play-state ───────
+// Worth driving for real because the handler's whole contract is an ATTRIBUTE
+// on the root — a structural read can't tell a working toggle from a no-op, and
+// the previous version of this handler set `style.animationPlayState` on the
+// root, which the animation (on the track) never saw.
+console.log("marquee — pause flag");
+{
+  const node = {
+    kind: "component",
+    component: "Marquee",
+    class: "marquee",
+    children: [{ kind: "element", tag: "a", class: "logo", attrs: { href: "/a" }, children: ["Acme"] }],
+  };
+  const doc = mount(toHtml(node));
+  const root = doc.querySelector(".marquee");
+  const paused = () => root.hasAttribute("data-sui-paused");
+
+  check("pre-hydrate: nothing is paused", !paused());
+  const dispose = hydrate(doc, {});
+  check("hydrate: the strip runs", !paused());
+
+  root.dispatchEvent(new globalThis.Event("mouseenter"));
+  check("pointer over the strip pauses it", paused());
+  root.dispatchEvent(new globalThis.Event("mouseleave"));
+  check("...and leaving resumes it", !paused());
+
+  // Keyboard parity — a focus ring that scrolls out from under you is the same
+  // bug as a hover target that runs away.
+  root.dispatchEvent(new globalThis.Event("focusin", { bubbles: true }));
+  check("focus inside the strip pauses it too", paused());
+  root.dispatchEvent(new globalThis.Event("focusout", { bubbles: true }));
+  check("...and blurring resumes it", !paused());
+
+  dispose();
+  check("dispose leaves no stuck pause flag", !paused());
+
+  // The editor canvas freezes it outright — a preview that scrolls itself is
+  // impossible to click.
+  const previewDoc = mount(toHtml(node));
+  const d2 = hydrate(previewDoc, { preview: true });
+  check("preview mode holds the strip still", previewDoc.querySelector(".marquee").hasAttribute("data-sui-paused"));
+  d2();
+  check("...and releases it on dispose", !previewDoc.querySelector(".marquee").hasAttribute("data-sui-paused"));
+
+  // Opting out is real, not cosmetic.
+  const offDoc = mount(toHtml({ ...node, props: { pauseOnHover: false } }));
+  const d3 = hydrate(offDoc, {});
+  const offRoot = offDoc.querySelector(".marquee");
+  offRoot.dispatchEvent(new globalThis.Event("mouseenter"));
+  check("pauseOnHover:false ignores the pointer", !offRoot.hasAttribute("data-sui-paused"));
+  d3();
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);
