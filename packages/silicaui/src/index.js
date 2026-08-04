@@ -38,6 +38,7 @@ import { link } from "./components/link.js";
 import { mockup } from "./components/mockup.js";
 import { timeline } from "./components/timeline.js";
 import { carousel } from "./components/carousel.js";
+import { marquee } from "./components/marquee.js";
 import { stack } from "./components/stack.js";
 import { rating } from "./components/rating.js";
 import { radialProgress } from "./components/radial-progress.js";
@@ -207,6 +208,7 @@ export default plugin.withOptions(
       addBase(mockup(prefix));
       addBase(timeline(prefix));
       addBase(carousel(prefix));
+      addBase(marquee(prefix));
       addBase(stack(prefix));
       addBase(rating(colors, prefix));
       addBase(radialProgress(prefix));

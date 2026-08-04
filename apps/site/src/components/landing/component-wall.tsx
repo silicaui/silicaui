@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   Alert,
   Avatar,
@@ -10,6 +10,7 @@ import {
   Checkbox,
   Input,
   Kbd,
+  Marquee,
   Progress,
   RadialProgress,
   Rating,
@@ -180,32 +181,57 @@ const COLUMN_C: ReactNode[] = [
   </Tile>,
 ];
 
-function Column({ items, speed }: { items: ReactNode[]; speed: string }) {
+function Column({ items, duration }: { items: ReactNode[]; duration: string }) {
   return (
-    <div className="flex flex-col gap-4 overflow-hidden">
-      <div className={`wall-track ${speed} flex flex-col gap-4`}>
-        {items}
-        {/* The duplicate is what makes -50% land exactly on a loop seam. */}
-        {items.map((node, i) => (
-          <div key={`dup-${i}`}>{node}</div>
-        ))}
-      </div>
-    </div>
+    <Marquee
+      direction="up"
+      // Three copies, not the default two: one pass of these tiles measures
+      // roughly the height of the column itself, so two copies run out of
+      // content before the loop comes back around and the tail of each cycle
+      // shows as a blank strip. This is the knob for exactly that, and it beats
+      // padding the tile lists by hand.
+      repeat={3}
+      // The wall is scenery behind the hero copy — stopping it because a
+      // pointer happened to cross the section would read as a glitch, not a
+      // control.
+      pauseOnHover={false}
+      // `overflow-hidden` overrides Marquee's reduced-motion default of handing
+      // the strip back as a scroller: that's the right call for a real ticker
+      // whose content you might need to read, but this wall is `aria-hidden`
+      // decoration, so a scrollbar on it would be pure noise. Still.
+      className="h-full overflow-hidden"
+      style={
+        {
+          // The three columns run at deliberately unrelated durations so they
+          // don't lock into reading as one moving block — off the `slow/normal/
+          // fast` scale, hence the var rather than the `speed` prop.
+          "--marquee-duration": duration,
+          "--marquee-gap": "1rem",
+          "--marquee-fade": "12%",
+        } as CSSProperties
+      }
+    >
+      {items}
+    </Marquee>
   );
 }
 
 export function ComponentWall() {
   return (
+    // `grid-rows-1` is load-bearing: without it the single implicit row sizes
+    // to its tallest child and each column measures its own content height
+    // instead of the wall's, so `h-full` on a Marquee resolves to something
+    // twice too big and the columns spill past the section.
     <div
       aria-hidden="true"
-      className="wall-mask grid h-[34rem] grid-cols-2 gap-4 overflow-hidden lg:h-[42rem] lg:grid-cols-3"
+      className="grid h-[34rem] grid-cols-2 grid-rows-1 gap-4 overflow-hidden lg:h-[42rem] lg:grid-cols-3"
     >
-      <Column items={COLUMN_A} speed="wall-slow" />
-      <Column items={COLUMN_B} speed="wall-mid" />
+      <Column items={COLUMN_A} duration="90s" />
+      <Column items={COLUMN_B} duration="70s" />
       {/* Third column only where there's width for it — two dense columns beat
           three cramped ones on a narrow viewport. */}
-      <div className="hidden lg:flex lg:flex-col lg:overflow-hidden">
-        <Column items={COLUMN_C} speed="wall-fast" />
+      <div className="hidden lg:block">
+        <Column items={COLUMN_C} duration="55s" />
       </div>
     </div>
   );

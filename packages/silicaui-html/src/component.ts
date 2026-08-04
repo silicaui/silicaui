@@ -226,6 +226,24 @@ function elc(
   return node;
 }
 
+/**
+ * A structural copy of a subtree with every instance `id` stripped — what a
+ * component that renders its children MORE THAN ONCE has to hand the extra
+ * copies. Ids are globally unique by contract (selection, React keys, and dnd
+ * all key off them), so emitting one twice would make a builder click land on
+ * whichever copy the DOM query happened to hit first. Only Marquee needs this
+ * today; every other macro renders each child exactly once.
+ */
+function copyWithoutIds(child: Child): Child {
+  if (typeof child === "string") return child;
+  // Spread-then-delete rather than a rest destructure: `Node` is a union, and
+  // TS won't surface a shared optional key through `const { id, ...rest }`.
+  const out = { ...child } as ElementNode;
+  delete out.id;
+  if (out.children) out.children = out.children.map(copyWithoutIds);
+  return out;
+}
+
 /** A component's `props.items` list (Breadcrumb/Menu/Steps/Timeline) as strings.
  *  Absent/non-array → `[]` (an empty structure; the palette seeds demo items). */
 function itemsOf(node: ComponentNode): string[] {
@@ -2158,6 +2176,50 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     expand: (n) => {
       const out = lower(n, "div", { children: n.children });
       if (!out.part) out.part = "slide";
+      return out;
+    },
+  },
+
+  // Marquee — `marquee`. Direction/speed/fade are CLASSES, not props: they're
+  // pure presentation with no structural or runtime counterpart, so the class
+  // is the API exactly as it is for Button. `repeat` earns a prop because it
+  // changes the STRUCTURE (how many copies get rendered) and the copy count has
+  // to agree with `--marquee-copies` or the loop distance is wrong — so the
+  // macro owns both halves. `pauseOnHover` earns one because it has a runtime
+  // counterpart to keep in step (the behavior param below).
+  {
+    name: "Marquee",
+    category: "media",
+    label: "Marquee",
+    icon: "box",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const copies = Math.min(6, Math.max(2, Math.floor(Number(p.repeat)) || 2));
+      const pauseOnHover = p.pauseOnHover !== false;
+      const kids = n.children ?? [];
+
+      const groups: Child[] = [];
+      for (let i = 0; i < copies; i++) {
+        // Copy 0 keeps the authored nodes (and their ids — that's the subtree
+        // the builder selects and edits). Every later copy is scenery: fresh
+        // id-less nodes, hidden from the a11y tree AND the tab order.
+        groups.push(
+          i === 0
+            ? elc("div", "marquee-group", kids)
+            : elc("div", "marquee-group", kids.map(copyWithoutIds), { "aria-hidden": "true", inert: "" }),
+        );
+      }
+      const track = elc("div", "marquee-track", groups);
+      track.part = "track";
+
+      const cls = [n.class, `marquee-copies-${copies}`, pauseOnHover ? "marquee-pause-on-hover" : ""]
+        .filter(Boolean)
+        .join(" ");
+      const out = lower(n, "div", { class: cls, children: [track] });
+      if (!out.behavior) {
+        out.behavior = { type: "marquee", ...(pauseOnHover ? {} : { params: { pauseOnHover: false } }) };
+      }
       return out;
     },
   },

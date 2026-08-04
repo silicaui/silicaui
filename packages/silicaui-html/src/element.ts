@@ -23,8 +23,15 @@ export interface RawElementMeta {
  *  so enumerating every possible `aria-*` key here would only create gaps
  *  (real regression: `aria-current` on a Breadcrumb's active link) without
  *  buying any actual safety. `data-*` is also how a deliberate, sanctioned
- *  product feature works (the Inspector's "custom data-*" escape hatch). */
-export const GLOBAL_ATTRS: readonly string[] = ["id", "title", "role", "tabindex", "hidden"];
+ *  product feature works (the Inspector's "custom data-*" escape hatch).
+ *
+ *  `inert` sits alongside `hidden` for the same reason both are safe: it only
+ *  ever REMOVES capability (takes a subtree out of the tab order and the a11y
+ *  tree), carries no URL and no script surface, and the strictest thing a
+ *  hostile author can do with it is disable their own content. Marquee needs
+ *  it — its duplicated copies are the same links twice over, and `aria-hidden`
+ *  alone hides them from a screen reader while leaving them tabbable. */
+export const GLOBAL_ATTRS: readonly string[] = ["id", "title", "role", "tabindex", "hidden", "inert"];
 
 /** Presentation attributes safe on any SVG shape/group — inert styling that
  *  never carries a script or a script-executing URL, so a pasted logo keeps its

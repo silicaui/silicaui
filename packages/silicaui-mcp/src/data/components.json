@@ -1353,6 +1353,52 @@
     "usageExample": "import { List, ListRow, ListColGrow, ListTitle, Avatar, Button } from \"@wizeworks/silicaui-react\";\r\nimport { Section } from \"../lib/Section\";\r\n\r\nconst MEMBERS = [\r\n    { initials: \"AL\", name: \"Ada Lovelace\", role: \"Owner\" },\r\n    { initials: \"GH\", name: \"Grace Hopper\", role: \"Admin\" },\r\n    { initials: \"AT\", name: \"Alan Turing\", role: \"Member\" },\r\n];\r\n\r\nexport function ListDemo() {\r\n    return (\r\n        <Section title=\"Real use · team member list\">\r\n            <List hover className=\"max-w-md\">\r\n                <ListTitle>Team</ListTitle>\r\n                {MEMBERS.map((m) => (\r\n                    <ListRow key={m.initials}>\r\n                        <Avatar color=\"primary\" size=\"sm\" alt={m.name}>\r\n                            {m.initials}\r\n                        </Avatar>\r\n                        <ListColGrow>\r\n                            <div className=\"font-medium\">{m.name}</div>\r\n                            <div className=\"text-sm opacity-60\">{m.role}</div>\r\n                        </ListColGrow>\r\n                        <Button size=\"sm\" variant=\"ghost\" color=\"neutral\">\r\n                            Manage\r\n                        </Button>\r\n                    </ListRow>\r\n                ))}\r\n            </List>\r\n        </Section>\r\n    );\r\n}"
   },
   {
+    "name": "Marquee",
+    "package": "@wizeworks/silicaui-react",
+    "category": "Data display",
+    "sourceFile": "silicaui-react/src/marquee.tsx",
+    "description": "Silica Marquee — an infinitely-looping ticker. <Marquee>{logos}</Marquee> <Marquee direction=\"right\" speed=\"slow\">{quotes}</Marquee> <Marquee direction=\"up\" className=\"h-80\">{cards}</Marquee> The children are rendered `repeat` times so the loop has something to hand over to at the seam; every copy after the first is `aria-hidden`, so a screen reader hears the list once. Motion is CSS-only and collapses to a plain scroller under `prefers-reduced-motion`.",
+    "props": [
+      {
+        "name": "MarqueeProps",
+        "extends": "extends React.HTMLAttributes<HTMLDivElement>",
+        "members": [
+          {
+            "name": "direction",
+            "optional": true,
+            "type": "MarqueeDirection",
+            "doc": "Travel direction. `left` (default) and `right` are horizontal; `up`/`down` are vertical and need a height on the marquee or its parent."
+          },
+          {
+            "name": "speed",
+            "optional": true,
+            "type": "MarqueeSpeed",
+            "doc": "Loop speed — `slow` 80s, `normal` (default) 40s, `fast` 20s per cycle. For anything else set `--marquee-duration` via `style`."
+          },
+          {
+            "name": "pauseOnHover",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Freeze the strip while the pointer is over it, or while something inside it has keyboard focus. Default `true`."
+          },
+          {
+            "name": "fade",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Soften both ends so items dissolve rather than getting guillotined at the edge. Default `true`; width is `--marquee-fade` (4rem)."
+          },
+          {
+            "name": "repeat",
+            "optional": true,
+            "type": "2 | 3 | 4 | 5 | 6",
+            "doc": "How many times the content is repeated to build the loop, 2–6. Two is enough whenever one pass already overflows the container; raise it when it doesn't (three short logos in a wide strip) rather than padding the list by hand. Default `2`."
+          }
+        ]
+      }
+    ],
+    "usageExample": "import { Badge, Card, Marquee } from \"@wizeworks/silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nconst LOGOS = [\"Northwind\", \"Acme\", \"Contoso\", \"Fabrikam\", \"Globex\", \"Initech\", \"Umbrella\"];\n\nconst QUOTES = [\n    \"Shipped in a weekend.\",\n    \"Our whole design system, one dependency.\",\n    \"The theme editor alone paid for it.\",\n    \"Finally, a marquee that doesn't hitch.\",\n];\n\nexport function MarqueeDemo() {\n    return (\n        <>\n            <Section title=\"Real use · logo wall\">\n                <Marquee className=\"py-6\">\n                    {LOGOS.map((name) => (\n                        <span key={name} className=\"text-2xl font-semibold whitespace-nowrap\">\n                            {name}\n                        </span>\n                    ))}\n                </Marquee>\n            </Section>\n\n            <Section title=\"Reverse, slow, cards\">\n                <Marquee direction=\"right\" speed=\"slow\" className=\"py-4\">\n                    {QUOTES.map((quote) => (\n                        <Card key={quote} className=\"w-72 shrink-0 p-4\">\n                            <p>{quote}</p>\n                        </Card>\n                    ))}\n                </Marquee>\n            </Section>\n\n            <Section title=\"Vertical · needs a height\">\n                <Marquee direction=\"up\" speed=\"fast\" className=\"h-64 w-56 px-2\">\n                    {LOGOS.map((name) => (\n                        <Badge key={name} color=\"primary\" className=\"whitespace-nowrap\">\n                            {name}\n                        </Badge>\n                    ))}\n                </Marquee>\n            </Section>\n\n            <Section title=\"Short content · repeat fills the strip\">\n                {/* Three items can't overflow a wide strip, so two copies would\n                    leave a visible blank. More copies, not a padded list. */}\n                <Marquee repeat={5} className=\"py-4\">\n                    {[\"Design\", \"Build\", \"Ship\"].map((word) => (\n                        <span key={word} className=\"text-xl font-medium whitespace-nowrap\">\n                            {word}\n                        </span>\n                    ))}\n                </Marquee>\n            </Section>\n\n            <Section title=\"No fade, no pause on hover\">\n                <Marquee fade={false} pauseOnHover={false} className=\"py-4\">\n                    {LOGOS.map((name) => (\n                        <span key={name} className=\"text-xl whitespace-nowrap\">\n                            {name}\n                        </span>\n                    ))}\n                </Marquee>\n            </Section>\n        </>\n    );\n}"
+  },
+  {
     "name": "MetadataList",
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
@@ -8439,7 +8485,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:627"
+    "sourceFile": "silicaui-html/src/component.ts:645"
   },
   {
     "name": "Image",
@@ -8449,7 +8495,7 @@
     "icon": "image",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:647"
+    "sourceFile": "silicaui-html/src/component.ts:665"
   },
   {
     "name": "Video",
@@ -8459,7 +8505,7 @@
     "icon": "video",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:680"
+    "sourceFile": "silicaui-html/src/component.ts:698"
   },
   {
     "name": "Embed",
@@ -8469,7 +8515,7 @@
     "icon": "video",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:722"
+    "sourceFile": "silicaui-html/src/component.ts:740"
   },
   {
     "name": "Heading",
@@ -8479,7 +8525,7 @@
     "icon": "heading",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:757"
+    "sourceFile": "silicaui-html/src/component.ts:775"
   },
   {
     "name": "Icon",
@@ -8489,7 +8535,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:769"
+    "sourceFile": "silicaui-html/src/component.ts:787"
   },
   {
     "name": "Divider",
@@ -8499,7 +8545,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:780"
+    "sourceFile": "silicaui-html/src/component.ts:798"
   },
   {
     "name": "Link",
@@ -8509,7 +8555,7 @@
     "icon": "link",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:784"
+    "sourceFile": "silicaui-html/src/component.ts:802"
   },
   {
     "name": "Input",
@@ -8519,7 +8565,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:803"
+    "sourceFile": "silicaui-html/src/component.ts:821"
   },
   {
     "name": "FileInput",
@@ -8529,7 +8575,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:815"
+    "sourceFile": "silicaui-html/src/component.ts:833"
   },
   {
     "name": "FloatingLabel",
@@ -8539,7 +8585,7 @@
     "icon": "label",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:828"
+    "sourceFile": "silicaui-html/src/component.ts:846"
   },
   {
     "name": "Textarea",
@@ -8549,7 +8595,7 @@
     "icon": "textarea",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:842"
+    "sourceFile": "silicaui-html/src/component.ts:860"
   },
   {
     "name": "Select",
@@ -8559,7 +8605,7 @@
     "icon": "select",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:854"
+    "sourceFile": "silicaui-html/src/component.ts:872"
   },
   {
     "name": "Checkbox",
@@ -8569,7 +8615,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:871"
+    "sourceFile": "silicaui-html/src/component.ts:889"
   },
   {
     "name": "Radio",
@@ -8579,7 +8625,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:879"
+    "sourceFile": "silicaui-html/src/component.ts:897"
   },
   {
     "name": "Toggle",
@@ -8589,7 +8635,7 @@
     "icon": "toggle",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:887"
+    "sourceFile": "silicaui-html/src/component.ts:905"
   },
   {
     "name": "Text",
@@ -8619,7 +8665,7 @@
     "icon": "wordmark",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:908"
+    "sourceFile": "silicaui-html/src/component.ts:926"
   },
   {
     "name": "Card",
@@ -8639,7 +8685,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:943"
+    "sourceFile": "silicaui-html/src/component.ts:961"
   },
   {
     "name": "Section",
@@ -8761,7 +8807,7 @@
     "behaviors": [
       "form"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:981"
+    "sourceFile": "silicaui-html/src/component.ts:999"
   },
   {
     "name": "Sidebar",
@@ -8773,7 +8819,7 @@
     "behaviors": [
       "sidebar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1000"
+    "sourceFile": "silicaui-html/src/component.ts:1018"
   },
   {
     "name": "SidebarTrigger",
@@ -8783,7 +8829,7 @@
     "icon": "sidebarTrigger",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1021"
+    "sourceFile": "silicaui-html/src/component.ts:1039"
   },
   {
     "name": "SelectionList",
@@ -8795,7 +8841,7 @@
     "behaviors": [
       "selection-list"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1038"
+    "sourceFile": "silicaui-html/src/component.ts:1056"
   },
   {
     "name": "Breadcrumb",
@@ -8805,7 +8851,7 @@
     "icon": "breadcrumb",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1097"
+    "sourceFile": "silicaui-html/src/component.ts:1115"
   },
   {
     "name": "Menu",
@@ -8815,7 +8861,7 @@
     "icon": "nav",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1114"
+    "sourceFile": "silicaui-html/src/component.ts:1132"
   },
   {
     "name": "Steps",
@@ -8825,7 +8871,7 @@
     "icon": "steps",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1128"
+    "sourceFile": "silicaui-html/src/component.ts:1146"
   },
   {
     "name": "Pagination",
@@ -8835,7 +8881,7 @@
     "icon": "pagination",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1143"
+    "sourceFile": "silicaui-html/src/component.ts:1161"
   },
   {
     "name": "Alert",
@@ -8845,7 +8891,7 @@
     "icon": "warning",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1164"
+    "sourceFile": "silicaui-html/src/component.ts:1182"
   },
   {
     "name": "Progress",
@@ -8855,7 +8901,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1195"
+    "sourceFile": "silicaui-html/src/component.ts:1213"
   },
   {
     "name": "Stat",
@@ -8865,7 +8911,7 @@
     "icon": "stat",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1208"
+    "sourceFile": "silicaui-html/src/component.ts:1226"
   },
   {
     "name": "Avatar",
@@ -8875,7 +8921,7 @@
     "icon": "avatar",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1223"
+    "sourceFile": "silicaui-html/src/component.ts:1241"
   },
   {
     "name": "Collapse",
@@ -8885,7 +8931,7 @@
     "icon": "collapse",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1245"
+    "sourceFile": "silicaui-html/src/component.ts:1263"
   },
   {
     "name": "Timeline",
@@ -8895,7 +8941,7 @@
     "icon": "timeline",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1261"
+    "sourceFile": "silicaui-html/src/component.ts:1279"
   },
   {
     "name": "Label",
@@ -8935,7 +8981,7 @@
     "icon": "text",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1291"
+    "sourceFile": "silicaui-html/src/component.ts:1309"
   },
   {
     "name": "Hero",
@@ -9005,7 +9051,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1307"
+    "sourceFile": "silicaui-html/src/component.ts:1325"
   },
   {
     "name": "MockupPhone",
@@ -9195,7 +9241,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1339"
+    "sourceFile": "silicaui-html/src/component.ts:1357"
   },
   {
     "name": "ToolbarCenter",
@@ -9215,7 +9261,7 @@
     "icon": "sidebarTrigger",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1360"
+    "sourceFile": "silicaui-html/src/component.ts:1378"
   },
   {
     "name": "InputGroupButton",
@@ -9225,7 +9271,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1368"
+    "sourceFile": "silicaui-html/src/component.ts:1386"
   },
   {
     "name": "ToolbarButton",
@@ -9235,7 +9281,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1376"
+    "sourceFile": "silicaui-html/src/component.ts:1394"
   },
   {
     "name": "ToolbarLink",
@@ -9245,7 +9291,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1384"
+    "sourceFile": "silicaui-html/src/component.ts:1402"
   },
   {
     "name": "ToolbarSeparator",
@@ -9255,7 +9301,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1392"
+    "sourceFile": "silicaui-html/src/component.ts:1410"
   },
   {
     "name": "ClickableCard",
@@ -9265,7 +9311,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1401"
+    "sourceFile": "silicaui-html/src/component.ts:1419"
   },
   {
     "name": "SearchInput",
@@ -9275,7 +9321,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1417"
+    "sourceFile": "silicaui-html/src/component.ts:1435"
   },
   {
     "name": "PasswordInput",
@@ -9285,7 +9331,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1424"
+    "sourceFile": "silicaui-html/src/component.ts:1442"
   },
   {
     "name": "CheckboxGroup",
@@ -9295,7 +9341,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1434"
+    "sourceFile": "silicaui-html/src/component.ts:1452"
   },
   {
     "name": "CheckboxOption",
@@ -9305,7 +9351,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1442"
+    "sourceFile": "silicaui-html/src/component.ts:1460"
   },
   {
     "name": "Swap",
@@ -9315,7 +9361,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1454"
+    "sourceFile": "silicaui-html/src/component.ts:1472"
   },
   {
     "name": "Display",
@@ -9325,7 +9371,7 @@
     "icon": "heading",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1468"
+    "sourceFile": "silicaui-html/src/component.ts:1486"
   },
   {
     "name": "Timestamp",
@@ -9335,7 +9381,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1483"
+    "sourceFile": "silicaui-html/src/component.ts:1501"
   },
   {
     "name": "EmptyState",
@@ -9345,7 +9391,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1517"
+    "sourceFile": "silicaui-html/src/component.ts:1535"
   },
   {
     "name": "RadioGroup",
@@ -9355,7 +9401,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1536"
+    "sourceFile": "silicaui-html/src/component.ts:1554"
   },
   {
     "name": "RadioOption",
@@ -9365,7 +9411,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1544"
+    "sourceFile": "silicaui-html/src/component.ts:1562"
   },
   {
     "name": "Stats",
@@ -9385,7 +9431,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1557"
+    "sourceFile": "silicaui-html/src/component.ts:1575"
   },
   {
     "name": "RadialProgress",
@@ -9395,7 +9441,7 @@
     "icon": "progress",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1571"
+    "sourceFile": "silicaui-html/src/component.ts:1589"
   },
   {
     "name": "Accordion",
@@ -9407,7 +9453,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1604"
+    "sourceFile": "silicaui-html/src/component.ts:1622"
   },
   {
     "name": "AccordionItem",
@@ -9427,7 +9473,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1620"
+    "sourceFile": "silicaui-html/src/component.ts:1638"
   },
   {
     "name": "AccordionPanel",
@@ -9437,7 +9483,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1632"
+    "sourceFile": "silicaui-html/src/component.ts:1650"
   },
   {
     "name": "Collapsible",
@@ -9449,7 +9495,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1648"
+    "sourceFile": "silicaui-html/src/component.ts:1666"
   },
   {
     "name": "CollapsibleTrigger",
@@ -9459,7 +9505,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1660"
+    "sourceFile": "silicaui-html/src/component.ts:1678"
   },
   {
     "name": "CollapsiblePanel",
@@ -9469,7 +9515,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1672"
+    "sourceFile": "silicaui-html/src/component.ts:1690"
   },
   {
     "name": "ColorPicker",
@@ -9481,7 +9527,7 @@
     "behaviors": [
       "color-picker"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1691"
+    "sourceFile": "silicaui-html/src/component.ts:1709"
   },
   {
     "name": "TagInput",
@@ -9493,7 +9539,7 @@
     "behaviors": [
       "tag-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1777"
+    "sourceFile": "silicaui-html/src/component.ts:1795"
   },
   {
     "name": "Countdown",
@@ -9505,7 +9551,7 @@
     "behaviors": [
       "countdown"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1850"
+    "sourceFile": "silicaui-html/src/component.ts:1868"
   },
   {
     "name": "Filter",
@@ -9517,7 +9563,7 @@
     "behaviors": [
       "toggle-group"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:1903"
+    "sourceFile": "silicaui-html/src/component.ts:1921"
   },
   {
     "name": "FilterItem",
@@ -9527,7 +9573,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1925"
+    "sourceFile": "silicaui-html/src/component.ts:1943"
   },
   {
     "name": "ChatImage",
@@ -9607,7 +9653,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1966"
+    "sourceFile": "silicaui-html/src/component.ts:1984"
   },
   {
     "name": "ChatSystemMessage",
@@ -9617,7 +9663,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1981"
+    "sourceFile": "silicaui-html/src/component.ts:1999"
   },
   {
     "name": "ChatMessage",
@@ -9627,7 +9673,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1998"
+    "sourceFile": "silicaui-html/src/component.ts:2016"
   },
   {
     "name": "ChatTypingIndicator",
@@ -9637,7 +9683,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2031"
+    "sourceFile": "silicaui-html/src/component.ts:2049"
   },
   {
     "name": "ChatToolCalls",
@@ -9649,7 +9695,7 @@
     "behaviors": [
       "disclosure"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2057"
+    "sourceFile": "silicaui-html/src/component.ts:2075"
   },
   {
     "name": "ChatComposer",
@@ -9661,7 +9707,7 @@
     "behaviors": [
       "form"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2084"
+    "sourceFile": "silicaui-html/src/component.ts:2102"
   },
   {
     "name": "Carousel",
@@ -9673,7 +9719,7 @@
     "behaviors": [
       "carousel"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2119"
+    "sourceFile": "silicaui-html/src/component.ts:2137"
   },
   {
     "name": "CarouselItem",
@@ -9683,7 +9729,19 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2153"
+    "sourceFile": "silicaui-html/src/component.ts:2171"
+  },
+  {
+    "name": "Marquee",
+    "package": "@wizeworks/silicaui-html",
+    "category": "media",
+    "label": "Marquee",
+    "icon": "box",
+    "container": true,
+    "behaviors": [
+      "marquee"
+    ],
+    "sourceFile": "silicaui-html/src/component.ts:2191"
   },
   {
     "name": "DropdownMenu",
@@ -9695,7 +9753,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2170"
+    "sourceFile": "silicaui-html/src/component.ts:2232"
   },
   {
     "name": "DropdownMenuTrigger",
@@ -9705,7 +9763,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2182"
+    "sourceFile": "silicaui-html/src/component.ts:2244"
   },
   {
     "name": "DropdownMenuContent",
@@ -9715,7 +9773,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2194"
+    "sourceFile": "silicaui-html/src/component.ts:2256"
   },
   {
     "name": "DropdownMenuItem",
@@ -9725,7 +9783,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2208"
+    "sourceFile": "silicaui-html/src/component.ts:2270"
   },
   {
     "name": "Tabs",
@@ -9737,7 +9795,7 @@
     "behaviors": [
       "tabs"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2223"
+    "sourceFile": "silicaui-html/src/component.ts:2285"
   },
   {
     "name": "TabsList",
@@ -9747,7 +9805,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2239"
+    "sourceFile": "silicaui-html/src/component.ts:2301"
   },
   {
     "name": "TabsTab",
@@ -9757,7 +9815,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2247"
+    "sourceFile": "silicaui-html/src/component.ts:2309"
   },
   {
     "name": "TabsPanel",
@@ -9767,7 +9825,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2259"
+    "sourceFile": "silicaui-html/src/component.ts:2321"
   },
   {
     "name": "Outline",
@@ -9779,7 +9837,7 @@
     "behaviors": [
       "toc"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2276"
+    "sourceFile": "silicaui-html/src/component.ts:2338"
   },
   {
     "name": "Dialog",
@@ -9791,7 +9849,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2309"
+    "sourceFile": "silicaui-html/src/component.ts:2371"
   },
   {
     "name": "DialogTrigger",
@@ -9801,7 +9859,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2321"
+    "sourceFile": "silicaui-html/src/component.ts:2383"
   },
   {
     "name": "DialogBackdrop",
@@ -9811,7 +9869,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2333"
+    "sourceFile": "silicaui-html/src/component.ts:2395"
   },
   {
     "name": "DialogContent",
@@ -9821,7 +9879,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2344"
+    "sourceFile": "silicaui-html/src/component.ts:2406"
   },
   {
     "name": "DialogClose",
@@ -9831,7 +9889,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2359"
+    "sourceFile": "silicaui-html/src/component.ts:2421"
   },
   {
     "name": "DialogTitle",
@@ -9863,7 +9921,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2377"
+    "sourceFile": "silicaui-html/src/component.ts:2439"
   },
   {
     "name": "DrawerTrigger",
@@ -9873,7 +9931,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2389"
+    "sourceFile": "silicaui-html/src/component.ts:2451"
   },
   {
     "name": "DrawerBackdrop",
@@ -9883,7 +9941,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2401"
+    "sourceFile": "silicaui-html/src/component.ts:2463"
   },
   {
     "name": "DrawerContent",
@@ -9893,7 +9951,7 @@
     "icon": "sidebar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2412"
+    "sourceFile": "silicaui-html/src/component.ts:2474"
   },
   {
     "name": "DrawerClose",
@@ -9903,7 +9961,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2428"
+    "sourceFile": "silicaui-html/src/component.ts:2490"
   },
   {
     "name": "DrawerTitle",
@@ -9935,7 +9993,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2447"
+    "sourceFile": "silicaui-html/src/component.ts:2509"
   },
   {
     "name": "AlertDialogTrigger",
@@ -9945,7 +10003,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2459"
+    "sourceFile": "silicaui-html/src/component.ts:2521"
   },
   {
     "name": "AlertDialogBackdrop",
@@ -9955,7 +10013,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2471"
+    "sourceFile": "silicaui-html/src/component.ts:2533"
   },
   {
     "name": "AlertDialogContent",
@@ -9965,7 +10023,7 @@
     "icon": "warning",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2482"
+    "sourceFile": "silicaui-html/src/component.ts:2544"
   },
   {
     "name": "AlertDialogClose",
@@ -9975,7 +10033,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2497"
+    "sourceFile": "silicaui-html/src/component.ts:2559"
   },
   {
     "name": "AlertDialogCancel",
@@ -9985,7 +10043,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2509"
+    "sourceFile": "silicaui-html/src/component.ts:2571"
   },
   {
     "name": "AlertDialogAction",
@@ -9995,7 +10053,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2521"
+    "sourceFile": "silicaui-html/src/component.ts:2583"
   },
   {
     "name": "AlertDialogTitle",
@@ -10027,7 +10085,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2539"
+    "sourceFile": "silicaui-html/src/component.ts:2601"
   },
   {
     "name": "LightboxTrigger",
@@ -10037,7 +10095,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2551"
+    "sourceFile": "silicaui-html/src/component.ts:2613"
   },
   {
     "name": "LightboxBackdrop",
@@ -10047,7 +10105,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2563"
+    "sourceFile": "silicaui-html/src/component.ts:2625"
   },
   {
     "name": "LightboxContent",
@@ -10057,7 +10115,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2574"
+    "sourceFile": "silicaui-html/src/component.ts:2636"
   },
   {
     "name": "LightboxSlide",
@@ -10067,7 +10125,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2589"
+    "sourceFile": "silicaui-html/src/component.ts:2651"
   },
   {
     "name": "LightboxPrev",
@@ -10077,7 +10135,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2601"
+    "sourceFile": "silicaui-html/src/component.ts:2663"
   },
   {
     "name": "LightboxNext",
@@ -10087,7 +10145,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2615"
+    "sourceFile": "silicaui-html/src/component.ts:2677"
   },
   {
     "name": "LightboxClose",
@@ -10097,7 +10155,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2629"
+    "sourceFile": "silicaui-html/src/component.ts:2691"
   },
   {
     "name": "LightboxCounter",
@@ -10107,7 +10165,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2644"
+    "sourceFile": "silicaui-html/src/component.ts:2706"
   },
   {
     "name": "CommandPalette",
@@ -10119,7 +10177,7 @@
     "behaviors": [
       "modal"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2659"
+    "sourceFile": "silicaui-html/src/component.ts:2721"
   },
   {
     "name": "CommandPaletteBackdrop",
@@ -10129,7 +10187,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2674"
+    "sourceFile": "silicaui-html/src/component.ts:2736"
   },
   {
     "name": "CommandPaletteContent",
@@ -10139,7 +10197,7 @@
     "icon": "search",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2685"
+    "sourceFile": "silicaui-html/src/component.ts:2747"
   },
   {
     "name": "CommandPaletteInput",
@@ -10149,7 +10207,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2700"
+    "sourceFile": "silicaui-html/src/component.ts:2762"
   },
   {
     "name": "CommandPaletteItem",
@@ -10159,7 +10217,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2713"
+    "sourceFile": "silicaui-html/src/component.ts:2775"
   },
   {
     "name": "Popover",
@@ -10171,7 +10229,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2730"
+    "sourceFile": "silicaui-html/src/component.ts:2792"
   },
   {
     "name": "PopoverTrigger",
@@ -10181,7 +10239,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2742"
+    "sourceFile": "silicaui-html/src/component.ts:2804"
   },
   {
     "name": "PopoverContent",
@@ -10191,7 +10249,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2754"
+    "sourceFile": "silicaui-html/src/component.ts:2816"
   },
   {
     "name": "PopoverClose",
@@ -10201,7 +10259,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2766"
+    "sourceFile": "silicaui-html/src/component.ts:2828"
   },
   {
     "name": "PopoverTitle",
@@ -10233,7 +10291,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2784"
+    "sourceFile": "silicaui-html/src/component.ts:2846"
   },
   {
     "name": "TooltipTrigger",
@@ -10243,7 +10301,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2796"
+    "sourceFile": "silicaui-html/src/component.ts:2858"
   },
   {
     "name": "TooltipContent",
@@ -10253,7 +10311,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2808"
+    "sourceFile": "silicaui-html/src/component.ts:2870"
   },
   {
     "name": "PreviewCard",
@@ -10265,7 +10323,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2823"
+    "sourceFile": "silicaui-html/src/component.ts:2885"
   },
   {
     "name": "PreviewCardTrigger",
@@ -10275,7 +10333,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2835"
+    "sourceFile": "silicaui-html/src/component.ts:2897"
   },
   {
     "name": "PreviewCardContent",
@@ -10285,7 +10343,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2847"
+    "sourceFile": "silicaui-html/src/component.ts:2909"
   },
   {
     "name": "ContextMenu",
@@ -10297,7 +10355,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2865"
+    "sourceFile": "silicaui-html/src/component.ts:2927"
   },
   {
     "name": "ContextMenuTrigger",
@@ -10307,7 +10365,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2877"
+    "sourceFile": "silicaui-html/src/component.ts:2939"
   },
   {
     "name": "ContextMenuContent",
@@ -10317,7 +10375,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2889"
+    "sourceFile": "silicaui-html/src/component.ts:2951"
   },
   {
     "name": "ContextMenuItem",
@@ -10327,7 +10385,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2901"
+    "sourceFile": "silicaui-html/src/component.ts:2963"
   },
   {
     "name": "Menubar",
@@ -10349,7 +10407,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2919"
+    "sourceFile": "silicaui-html/src/component.ts:2981"
   },
   {
     "name": "MenubarTrigger",
@@ -10359,7 +10417,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2931"
+    "sourceFile": "silicaui-html/src/component.ts:2993"
   },
   {
     "name": "MenubarContent",
@@ -10369,7 +10427,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2943"
+    "sourceFile": "silicaui-html/src/component.ts:3005"
   },
   {
     "name": "MenubarItem",
@@ -10379,7 +10437,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2955"
+    "sourceFile": "silicaui-html/src/component.ts:3017"
   },
   {
     "name": "NavigationMenu",
@@ -10401,7 +10459,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:2973"
+    "sourceFile": "silicaui-html/src/component.ts:3035"
   },
   {
     "name": "NavigationMenuTrigger",
@@ -10411,7 +10469,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2985"
+    "sourceFile": "silicaui-html/src/component.ts:3047"
   },
   {
     "name": "NavigationMenuContent",
@@ -10421,7 +10479,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2997"
+    "sourceFile": "silicaui-html/src/component.ts:3059"
   },
   {
     "name": "NavigationMenuLink",
@@ -10431,7 +10489,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3009"
+    "sourceFile": "silicaui-html/src/component.ts:3071"
   },
   {
     "name": "Combobox",
@@ -10443,7 +10501,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3024"
+    "sourceFile": "silicaui-html/src/component.ts:3086"
   },
   {
     "name": "Autocomplete",
@@ -10455,7 +10513,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3031"
+    "sourceFile": "silicaui-html/src/component.ts:3093"
   },
   {
     "name": "MultiSelect",
@@ -10467,7 +10525,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3038"
+    "sourceFile": "silicaui-html/src/component.ts:3100"
   },
   {
     "name": "DateInput",
@@ -10479,7 +10537,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3050"
+    "sourceFile": "silicaui-html/src/component.ts:3112"
   },
   {
     "name": "DateRangeInput",
@@ -10491,7 +10549,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3068"
+    "sourceFile": "silicaui-html/src/component.ts:3130"
   },
   {
     "name": "DateTimeInput",
@@ -10503,7 +10561,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3084"
+    "sourceFile": "silicaui-html/src/component.ts:3146"
   },
   {
     "name": "TimeInput",
@@ -10515,7 +10573,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3110"
+    "sourceFile": "silicaui-html/src/component.ts:3172"
   },
   {
     "name": "PinInput",
@@ -10527,7 +10585,7 @@
     "behaviors": [
       "pin-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3136"
+    "sourceFile": "silicaui-html/src/component.ts:3198"
   },
   {
     "name": "Calendar",
@@ -10539,7 +10597,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3181"
+    "sourceFile": "silicaui-html/src/component.ts:3243"
   },
   {
     "name": "DatePicker",
@@ -10551,7 +10609,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3193"
+    "sourceFile": "silicaui-html/src/component.ts:3255"
   },
   {
     "name": "DatePickerTrigger",
@@ -10561,7 +10619,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3205"
+    "sourceFile": "silicaui-html/src/component.ts:3267"
   },
   {
     "name": "DatePickerContent",
@@ -10573,7 +10631,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3217"
+    "sourceFile": "silicaui-html/src/component.ts:3279"
   },
   {
     "name": "DateRangePicker",
@@ -10585,7 +10643,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3231"
+    "sourceFile": "silicaui-html/src/component.ts:3293"
   },
   {
     "name": "DateRangePickerTrigger",
@@ -10595,7 +10653,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3243"
+    "sourceFile": "silicaui-html/src/component.ts:3305"
   },
   {
     "name": "DateRangePickerContent",
@@ -10607,7 +10665,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3255"
+    "sourceFile": "silicaui-html/src/component.ts:3317"
   },
   {
     "name": "TreeView",
@@ -10619,7 +10677,7 @@
     "behaviors": [
       "tree"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3275"
+    "sourceFile": "silicaui-html/src/component.ts:3337"
   },
   {
     "name": "TreeNode",
@@ -10629,7 +10687,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3287"
+    "sourceFile": "silicaui-html/src/component.ts:3349"
   },
   {
     "name": "TreeToggle",
@@ -10639,7 +10697,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3299"
+    "sourceFile": "silicaui-html/src/component.ts:3361"
   },
   {
     "name": "TreeGroup",
@@ -10649,7 +10707,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3313"
+    "sourceFile": "silicaui-html/src/component.ts:3375"
   },
   {
     "name": "Wizard",
@@ -10661,7 +10719,7 @@
     "behaviors": [
       "wizard"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3327"
+    "sourceFile": "silicaui-html/src/component.ts:3389"
   },
   {
     "name": "WizardStep",
@@ -10671,7 +10729,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3339"
+    "sourceFile": "silicaui-html/src/component.ts:3401"
   },
   {
     "name": "WizardPanel",
@@ -10681,7 +10739,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3353"
+    "sourceFile": "silicaui-html/src/component.ts:3415"
   },
   {
     "name": "WizardBack",
@@ -10691,7 +10749,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3365"
+    "sourceFile": "silicaui-html/src/component.ts:3427"
   },
   {
     "name": "WizardNext",
@@ -10701,7 +10759,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3377"
+    "sourceFile": "silicaui-html/src/component.ts:3439"
   },
   {
     "name": "NumberField",
@@ -10713,7 +10771,7 @@
     "behaviors": [
       "number-field"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3395"
+    "sourceFile": "silicaui-html/src/component.ts:3457"
   },
   {
     "name": "ToggleGroup",
@@ -10725,7 +10783,7 @@
     "behaviors": [
       "toggle-group"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3425"
+    "sourceFile": "silicaui-html/src/component.ts:3487"
   },
   {
     "name": "ToggleGroupItem",
@@ -10735,7 +10793,7 @@
     "icon": "toggle",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3443"
+    "sourceFile": "silicaui-html/src/component.ts:3505"
   },
   {
     "name": "Range",
@@ -10747,7 +10805,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3463"
+    "sourceFile": "silicaui-html/src/component.ts:3525"
   },
   {
     "name": "Slider",
@@ -10759,7 +10817,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3464"
+    "sourceFile": "silicaui-html/src/component.ts:3526"
   },
   {
     "name": "Switch",
@@ -10771,7 +10829,7 @@
     "behaviors": [
       "switch"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3470"
+    "sourceFile": "silicaui-html/src/component.ts:3532"
   },
   {
     "name": "Rating",
@@ -10783,7 +10841,7 @@
     "behaviors": [
       "rating"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3494"
+    "sourceFile": "silicaui-html/src/component.ts:3556"
   },
   {
     "name": "ScrollArea",
@@ -10795,7 +10853,7 @@
     "behaviors": [
       "scroll-area"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3530"
+    "sourceFile": "silicaui-html/src/component.ts:3592"
   },
   {
     "name": "OverflowList",
@@ -10807,7 +10865,7 @@
     "behaviors": [
       "overflow-list"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3550"
+    "sourceFile": "silicaui-html/src/component.ts:3612"
   },
   {
     "name": "OverflowListItem",
@@ -10817,7 +10875,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3578"
+    "sourceFile": "silicaui-html/src/component.ts:3640"
   },
   {
     "name": "Dropzone",
@@ -10829,7 +10887,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3595"
+    "sourceFile": "silicaui-html/src/component.ts:3657"
   },
   {
     "name": "FileUpload",
@@ -10841,7 +10899,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3596"
+    "sourceFile": "silicaui-html/src/component.ts:3658"
   },
   {
     "name": "PhoneInput",
@@ -10853,7 +10911,7 @@
     "behaviors": [
       "phone-input"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3602"
+    "sourceFile": "silicaui-html/src/component.ts:3664"
   },
   {
     "name": "ThemeController",
@@ -10865,7 +10923,7 @@
     "behaviors": [
       "theme-toggle"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3641"
+    "sourceFile": "silicaui-html/src/component.ts:3703"
   },
   {
     "name": "Overlay",
@@ -10875,7 +10933,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3663"
+    "sourceFile": "silicaui-html/src/component.ts:3725"
   },
   {
     "name": "OverlayScrim",
@@ -10885,7 +10943,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3671"
+    "sourceFile": "silicaui-html/src/component.ts:3733"
   },
   {
     "name": "accordion",
@@ -12084,6 +12142,42 @@
       "loading-sm",
       "loading-xl",
       "loading-xs"
+    ]
+  },
+  {
+    "name": "marquee",
+    "package": "@wizeworks/silicaui",
+    "category": "Data display",
+    "sourceFile": "silicaui/src/components/marquee.js",
+    "description": "The Marquee component — an infinitely-looping ticker strip. Colorless; it moves things, it doesn't paint them. The root (`.marquee`) is the clipping viewport, `.marquee-track` is the thing that actually travels, and `.marquee-group` is ONE copy of the content. A marquee renders its content TWICE (two identical groups) and the track slides by exactly one copy, so the moment the loop restarts the second copy is sitting where the first one began and the seam is invisible. The `-50%` you'll see in every marquee snippet on the web is subtly WRONG the instant there's a gap between items. With gap G and R copies, the track measures `R·group + (R−1)·G`, so `-100%/R` lands `G/R` short of a whole cycle and the strip visibly hitches once per loop. The exact cycle is `group + G` — i.e. `calc((-100% - G) / R)`, which is why the copy count rides along as `--marquee-copies` instead of the usual hard-coded `-50%`. That also means R is a knob: content too narrow to overflow the viewport just gets more copies, no JS measurement anywhere. Speed is a custom property (`--marquee-duration`) rather than a hard-coded animation shorthand, so `.marquee-slow`/`-fast` are pure var-setters and a caller can name any duration inline without fighting specificity — same model as `--sui-motion-duration` in animations.js. Motion is CSS-only. `@wizeworks/silicaui-behaviors`' `marquee` handler adds pause-on-hover and the reduced-motion/editor-preview freeze for non-React output; `.marquee-pause-on-hover` gives path-1 (plain HTML, no JS) the same hover pause without any runtime at all. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "root": "marquee",
+    "classes": [
+      "marquee",
+      "marquee-copies-2",
+      "marquee-copies-3",
+      "marquee-copies-4",
+      "marquee-copies-5",
+      "marquee-copies-6",
+      "marquee-fade",
+      "marquee-fast",
+      "marquee-group",
+      "marquee-normal",
+      "marquee-pause-on-hover",
+      "marquee-reverse",
+      "marquee-slow",
+      "marquee-track",
+      "marquee-vertical"
+    ],
+    "compoundSelectors": [
+      "@keyframes silica-marquee",
+      "@keyframes silica-marquee-vertical",
+      ".marquee-vertical .marquee-track",
+      ".marquee-reverse .marquee-track",
+      ".marquee-vertical.marquee-fade",
+      ".marquee-pause-on-hover:hover .marquee-track",
+      ".marquee-pause-on-hover:focus-within .marquee-track",
+      ".marquee[data-sui-paused] .marquee-track",
+      "@media (prefers-reduced-motion: reduce)"
     ]
   },
   {

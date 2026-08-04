@@ -335,7 +335,8 @@
       "title",
       "role",
       "tabindex",
-      "hidden"
+      "hidden",
+      "inert"
     ],
     "tags": [
       {

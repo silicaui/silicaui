@@ -206,6 +206,9 @@ export type {
   CarouselOrientation,
 } from "./carousel";
 
+export { Marquee } from "./marquee";
+export type { MarqueeProps, MarqueeDirection, MarqueeSpeed } from "./marquee";
+
 export { Stack } from "./stack";
 export type { StackProps, StackPeek } from "./stack";
 

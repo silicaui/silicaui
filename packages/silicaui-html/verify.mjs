@@ -673,6 +673,52 @@ check(
   check("a raw <img> element carries srcset too", toHtml(raw).includes('srcset="/a-2x.jpg 2x"'));
 }
 
+// ── Marquee: the one macro that renders its children more than once ─────────
+// Everything here is about the two halves agreeing. The copy count drives both
+// the number of `.marquee-group`s AND the `--marquee-copies` the keyframe
+// divides by, so a mismatch is a strip that visibly hitches once per loop —
+// invisible to a structural read of either half alone.
+{
+  const marquee = (props, kids) => ({
+    kind: "component",
+    component: "Marquee",
+    class: "marquee marquee-fast",
+    props,
+    children: kids,
+  });
+  const item = (text, id) => ({ kind: "element", tag: "span", class: "logo", id, children: [text] });
+
+  const two = toHtml(marquee({}, [item("Acme"), item("Contoso")]));
+  check("Marquee lowers to a track", two.includes('class="marquee-track"'));
+  check("...carrying the behavior marker", two.includes('data-sui-behavior="marquee"'));
+  check("...and the track part", two.includes('data-sui-part="track"'));
+  check("default repeat renders two groups", (two.match(/marquee-group/g) ?? []).length === 2);
+  check("...and declares the matching copy count", two.includes("marquee-copies-2"));
+  check("pause-on-hover is on by default", two.includes("marquee-pause-on-hover"));
+  check("...with no redundant behavior param", !two.includes("data-sui-behavior-params"));
+  check("the authored class survives", two.includes("marquee marquee-fast"));
+
+  const dup = two.match(/aria-hidden="true"/g) ?? [];
+  check("every copy past the first is aria-hidden", dup.length === 1);
+  check("...and inert, so it's out of the tab order too", (two.match(/ inert/g) ?? []).length === 1);
+
+  const five = toHtml(marquee({ repeat: 5 }, [item("Acme")]));
+  check("repeat renders that many groups", (five.match(/marquee-group/g) ?? []).length === 5);
+  check("...and the copy count follows it", five.includes("marquee-copies-5"));
+  check("repeat clamps to the range the CSS actually emits", toHtml(marquee({ repeat: 99 }, [item("A")])).includes("marquee-copies-6"));
+  check("...at the bottom too", toHtml(marquee({ repeat: 1 }, [item("A")])).includes("marquee-copies-2"));
+
+  const off = toHtml(marquee({ pauseOnHover: false }, [item("Acme")]));
+  check("pauseOnHover:false drops the CSS class", !off.includes("marquee-pause-on-hover"));
+  check("...and tells the runtime the same thing", off.includes("&quot;pauseOnHover&quot;:false") || off.includes('"pauseOnHover":false'));
+
+  // Ids are globally unique by contract — a duplicated copy carrying the
+  // original's id would make a builder click land on whichever copy the DOM
+  // query hit first.
+  const withIds = toHtml(marquee({}, [item("Acme", "n1")]), { ids: true });
+  check("only the authored copy keeps its id", (withIds.match(/data-sui-id="n1"/g) ?? []).length === 1);
+}
+
 // ── the site shell ───────────────────────────────────────────
 // One frame per site, wrapping every page. `pageDocument` and `renderPage` must
 // agree about it — the canvas reads one and publish the other, and a
