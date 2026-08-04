@@ -167,7 +167,7 @@ writeJson("tokens.json", {
     scale: typeScale,
     scaleNote: "The `text-*` size ladder — `text-md` == `text-base` == 1rem == 16px. `text-8xl`/`9xl` match Tailwind's defaults; `text-10xl` (160px) extends past them. Prefer a step over a `text-[13px]` magic number.",
     fontFamilyTokens: ["--font-sans", "--font-serif", "--font-mono"],
-    note: "Every non-namespace token (see scalarTokens above, plus --duration, --ease, --focus-offset which aren't yet theme-editable) carries its default inline via var(--token, default) in each component, so an app's own :root/@theme override always wins.",
+    note: "Every non-namespace token (see scalarTokens above) carries its default inline via var(--token, default) in each component, so an app's own :root/@theme override always wins. --duration is the one token an app cannot always win: under prefers-reduced-motion: reduce it is forced to 0.01ms with !important, on :root and on every [data-theme] island.",
   },
 });
 

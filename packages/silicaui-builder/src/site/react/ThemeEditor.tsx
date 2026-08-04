@@ -2,7 +2,7 @@
  * The Theme editor (left panel in Theme mode). A 4-up COLOR TILE grid (surfaces +
  * every role from `rolesOf`, so N named colors flow in) whose tiles open
  * @wizeworks/silicaui-react's OKLCH `ColorPicker`; discrete RADIUS pickers; EFFECTS toggles
- * (Depth/Noise); and a Field-size step. Styled ONLY with Tailwind + @wizeworks/silicaui
+ * (Depth/Noise); and the two density steps (field + selector). Styled ONLY with Tailwind + @wizeworks/silicaui
  * classes; every control is a real @wizeworks/silicaui-react component; every glyph is a
  * baked `<Icon>`. Writes the whole theme through `editor.setTheme` so the canvas +
  * board repaint live.
@@ -109,6 +109,15 @@ const RADIUS_ROWS: Array<{ key: string; label: string; dflt: string; opts: strin
   { key: "--radius-selector", label: "Selectors", dflt: "1rem", opts: ["0", "0.5rem", "1rem", "999px"] },
 ];
 
+/** One token, offered as a few concrete values. Every non-color, non-radius
+ *  control in this panel is this shape — see SCALAR_TOKENS for the real ranges. */
+interface TokenRow {
+  key: string;
+  label: string;
+  dflt: string;
+  opts: Array<{ label: string; value: string }>;
+}
+
 const SIZE_STEPS: Array<{ label: string; value: string }> = [
   { label: "xs", value: "0.2rem" },
   { label: "sm", value: "0.225rem" },
@@ -116,10 +125,21 @@ const SIZE_STEPS: Array<{ label: string; value: string }> = [
   { label: "lg", value: "0.3rem" },
 ];
 
+// The two density levers, both defaulting to 0.25rem (see SCALAR_TOKENS). They
+// are separate tiers on purpose: `--size-field` drives anything with a field
+// height (Input/Select/Textarea/Button/FileInput), `--size-selector` drives the
+// square/round controls (Checkbox/Radio/Switch/Toggle/Badge). Radius already
+// splits the same three ways below — size splitting only field-vs-selector is
+// the plugin's own model, not an omission.
+const SIZE_ROWS: TokenRow[] = [
+  { key: "--size-field", label: "Field base size", dflt: "0.25rem", opts: SIZE_STEPS },
+  { key: "--size-selector", label: "Selector base size", dflt: "0.25rem", opts: SIZE_STEPS },
+];
+
 // Remaining real theme scalars (see SCALAR_TOKENS) — form chrome + feedback. Each
 // step maps to a concrete token value; the board's inputs/focus/disabled preview
 // them live.
-const SCALAR_ROWS: Array<{ key: string; label: string; dflt: string; opts: Array<{ label: string; value: string }> }> = [
+const SCALAR_ROWS: TokenRow[] = [
   {
     key: "--border", label: "Border width", dflt: "1px",
     opts: [{ label: "0", value: "0px" }, { label: "1", value: "1px" }, { label: "2", value: "2px" }],
@@ -128,9 +148,46 @@ const SCALAR_ROWS: Array<{ key: string; label: string; dflt: string; opts: Array
     key: "--focus-width", label: "Focus ring", dflt: "2px",
     opts: [{ label: "off", value: "0px" }, { label: "2", value: "2px" }, { label: "4", value: "4px" }],
   },
+  // Width without offset is half a control: you could thicken the ring and never
+  // move it off the control's edge, which is the adjustment that actually makes
+  // a ring legible against a filled Button.
+  {
+    key: "--focus-offset", label: "Focus gap", dflt: "2px",
+    opts: [{ label: "0", value: "0px" }, { label: "2", value: "2px" }, { label: "4", value: "4px" }],
+  },
   {
     key: "--disabled-opacity", label: "Disabled", dflt: "0.5",
     opts: [{ label: "40%", value: "0.4" }, { label: "50%", value: "0.5" }, { label: "70%", value: "0.7" }],
+  },
+];
+
+// Motion. Every transition in the library reads this PAIR — 86 declarations
+// across 38 components — so snappy-vs-relaxed is a single theme decision, not a
+// per-component prop. Distinct from the Inspector's Animate > Speed, which sets
+// `sui-duration-*` on ONE node's entrance animation; this is the resting
+// transition speed of every control on the page.
+//
+// `prefers-reduced-motion` still wins: theme.js forces `--duration` to 0.01ms on
+// `:root` AND on `[data-theme]` islands with `!important`, so nothing set here
+// can animate for a user who asked it not to (probed in e2e/theme-motion).
+const MOTION_ROWS: TokenRow[] = [
+  {
+    key: "--duration", label: "Speed", dflt: "150ms",
+    opts: [
+      { label: "off", value: "0ms" },
+      { label: "snappy", value: "100ms" },
+      { label: "base", value: "150ms" },
+      { label: "relaxed", value: "300ms" },
+    ],
+  },
+  {
+    key: "--ease", label: "Easing", dflt: "cubic-bezier(0.4, 0, 0.2, 1)",
+    opts: [
+      { label: "standard", value: "cubic-bezier(0.4, 0, 0.2, 1)" },
+      { label: "linear", value: "linear" },
+      { label: "out", value: "cubic-bezier(0, 0, 0.2, 1)" },
+      { label: "spring", value: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    ],
   },
 ];
 
@@ -227,6 +284,25 @@ export function ThemeEditor() {
   const setColor = (name: string, v: string) => editor.setTheme(withColor(theme, name, v, mode));
   const setToken = (key: string, v: string) => editor.setTheme(withToken(theme, key, v));
   const tokenOf = (key: string, dflt: string) => theme.tokens[key] ?? dflt;
+
+  /** A token row with its label ABOVE the group — for options too wide to sit
+   *  beside a label column ("relaxed", "standard"). */
+  const stackedRow = (row: TokenRow) => (
+    <div key={row.key} className="mb-3 last:mb-0">
+      <div className="mb-1.5 text-sm font-semibold text-base-content/70">{row.label}</div>
+      <ToggleGroup
+        className="toggle-group-sm"
+        value={[tokenOf(row.key, row.dflt)]}
+        onValueChange={(v: string[]) => v.length && setToken(row.key, last(v, row.dflt))}
+      >
+        {row.opts.map((o) => (
+          <ToggleGroupItem key={o.value} value={o.value}>
+            {o.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </div>
+  );
 
   // Just write the theme — `useThemeWebfonts` (mounted at the editor root) sees the
   // new token/`fonts` record on the very next render and fetches the face. One
@@ -473,6 +549,7 @@ export function ThemeEditor() {
             <div className="text-xs text-base-content/48">{e.ts}</div>
           </div>
           <Switch
+            aria-label={e.tt}
             checked={tokenOf(e.key, e.dflt) !== "0"}
             onCheckedChange={(on: boolean) => setToken(e.key, on ? "1" : "0")}
           />
@@ -482,18 +559,7 @@ export function ThemeEditor() {
       <div className={GROUP}>
         <Icon name="sliders" /> Sizes
       </div>
-      <div className="mb-1.5 text-sm font-semibold text-base-content/70">Field base size</div>
-      <ToggleGroup
-        className="toggle-group-sm"
-        value={[tokenOf("--size-field", "0.25rem")]}
-        onValueChange={(v: string[]) => v.length && setToken("--size-field", last(v, "0.25rem"))}
-      >
-        {SIZE_STEPS.map((s) => (
-          <ToggleGroupItem key={s.label} value={s.value}>
-            {s.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      {SIZE_ROWS.map(stackedRow)}
 
       <div className={GROUP}>
         <Icon name="box" /> Form &amp; feedback
@@ -514,6 +580,11 @@ export function ThemeEditor() {
           </ToggleGroup>
         </div>
       ))}
+
+      <div className={GROUP}>
+        <Icon name="motion" /> Motion
+      </div>
+      {MOTION_ROWS.map(stackedRow)}
 
       <div className={GROUP}>
         <Icon name="text" /> Type

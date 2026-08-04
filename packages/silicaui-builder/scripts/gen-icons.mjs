@@ -42,7 +42,7 @@ const USED = {
   // theme editor
   shuffle: "shuffle", sliders: "sliders-horizontal", download: "download",
   check: "check", droplet: "droplet", pencil: "pencil", trash: "trash-2",
-  warning: "triangle-alert",
+  warning: "triangle-alert", motion: "zap",
   // inspector settings tab
   settings: "settings-2", eye: "eye", eyeOff: "eye-off", code: "code",
   accessibility: "accessibility", database: "database", hash: "hash",

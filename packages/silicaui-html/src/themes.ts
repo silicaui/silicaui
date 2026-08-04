@@ -158,6 +158,26 @@ export function contrastWarnings(
 }
 
 /**
+ * One editable non-color token. Most are numeric and carry a `min`/`max`/`step`
+ * range for a slider; a token whose value ISN'T a number (`--ease` is a timing
+ * function) carries `options` instead, and an editor renders a picker. Exactly
+ * one of the two is present.
+ */
+export interface ScalarToken {
+  readonly key: string;
+  readonly label: string;
+  readonly group: "radius" | "form" | "effects" | "motion";
+  readonly default: string;
+  readonly unit: string;
+  readonly min?: number;
+  readonly max?: number;
+  readonly step?: number;
+  /** Discrete choices for a non-numeric token. */
+  readonly options?: readonly { readonly label: string; readonly value: string }[];
+  readonly doc: string;
+}
+
+/**
  * Non-color design tokens a theme can carry, with their built-in defaults (from
  * `theme.js`). Editors read these to show a current/placeholder value and to
  * offer a reset; components already fall back to the same defaults via
@@ -169,11 +189,20 @@ export const SCALAR_TOKENS = [
   { key: "--radius-box", label: "Box radius", group: "radius", default: "0.5rem", unit: "rem", min: 0, max: 2, step: 0.05, doc: "Corner radius for box-tier surfaces — Card, Dialog, Popover, Dropdown, and similar containers." },
   { key: "--border", label: "Border width", group: "form", default: "1px", unit: "px", min: 0, max: 4, step: 0.5, doc: "Hairline border width shared by fields and box surfaces (Input, Card, etc.)." },
   { key: "--size-field", label: "Field size", group: "form", default: "0.25rem", unit: "rem", min: 0.15, max: 0.4, step: 0.01, doc: "Base unit fields scale their height/padding from — raising it enlarges Input/Select/Button uniformly." },
+  { key: "--size-selector", label: "Selector size", group: "form", default: "0.25rem", unit: "rem", min: 0.15, max: 0.4, step: 0.01, doc: "Base unit selector controls scale from — raising it enlarges Checkbox/Radio/Switch/Toggle/Badge uniformly. The selector tier is sized separately from fields so a dense checkbox can sit next to a large input." },
   { key: "--depth", label: "Depth", group: "effects", default: "1", unit: "", min: 0, max: 1, step: 1, doc: "Shadow intensity on Card (resting + hover-lift box-shadow) and Button (inset highlight + drop shadow on solid fills). Set to 0 for fully flat surfaces — no per-component shadow-none needed." },
-  { key: "--noise", label: "Noise", group: "effects", default: "0", unit: "", min: 0, max: 1, step: 1, doc: "Reserved for a grain/noise surface texture. Not yet wired into any component's CSS — currently has no visible effect." },
+  { key: "--noise", label: "Noise", group: "effects", default: "0", unit: "", min: 0, max: 1, step: 1, doc: "Grain texture on the themed surface — the `[data-theme]` element itself, so it covers the page and every scoped island while Card and other raised surfaces keep their clean fill. An on/off switch (1 or 0), not a strength dial: it gates a tiling SVG grain that blends against `--color-base-100`, so one texture reads on light and dark alike." },
   { key: "--focus-width", label: "Focus ring width", group: "effects", default: "2px", unit: "px", min: 0, max: 6, step: 0.5, doc: "Outline width of the keyboard focus ring across interactive components." },
+  { key: "--focus-offset", label: "Focus ring offset", group: "effects", default: "2px", unit: "px", min: 0, max: 6, step: 1, doc: "Gap between the control's edge and its focus ring. Fields render the ring as a two-stop box-shadow (base-100 spacer, then the accent), so the offset is what keeps the ring from sitting flush against the border." },
   { key: "--disabled-opacity", label: "Disabled opacity", group: "effects", default: "0.5", unit: "", min: 0.2, max: 1, step: 0.05, doc: "Opacity applied to disabled controls." },
-] as const;
+  { key: "--duration", label: "Transition speed", group: "motion", default: "150ms", unit: "ms", min: 0, max: 500, step: 25, doc: "Length of every state transition in the library — hover, focus, open/close, checked. Snappy-vs-relaxed is a brand axis, so it is one token rather than a per-component prop. Under `prefers-reduced-motion: reduce` it is forced to 0.01ms and a theme's value is ignored." },
+  { key: "--ease", label: "Transition easing", group: "motion", default: "cubic-bezier(0.4, 0, 0.2, 1)", unit: "", options: [
+    { label: "Standard", value: "cubic-bezier(0.4, 0, 0.2, 1)" },
+    { label: "Linear", value: "linear" },
+    { label: "Out", value: "cubic-bezier(0, 0, 0.2, 1)" },
+    { label: "Spring", value: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+  ], doc: "Timing function paired with `--duration` on those same transitions. `Spring` overshoots past the target and settles back — the difference between a UI that feels mechanical and one that feels physical." },
+] as const satisfies readonly ScalarToken[];
 
 // ── presets ──────────────────────────────────────────────────────────────────
 // Real, hand-tuned themes (OKLCH). Each is a complete look, not a hue swap: a
