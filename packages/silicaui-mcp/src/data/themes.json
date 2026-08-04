@@ -16,6 +16,9 @@
     "paints": [
       "backgroundColor",
       "color",
+      "backgroundImage",
+      "backgroundSize",
+      "backgroundBlendMode",
       "fontFamily",
       "fontSize"
     ],

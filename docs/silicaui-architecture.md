@@ -274,11 +274,15 @@ describing what it actually touches:
 | `--radius-field` | `0.25rem` | Input, Select, Textarea, Button corners |
 | `--radius-box` | `0.5rem` | Card, Dialog, Popover, Dropdown corners |
 | `--border` | `1px` | hairline width on fields + box surfaces |
-| `--size-field` | `0.25rem` | base unit fields scale height/padding from |
+| `--size-field` | `0.25rem` | base unit fields scale height/padding from — Input, Select, Textarea, Button, FileInput |
+| `--size-selector` | `0.25rem` | base unit selector controls scale from — Checkbox, Radio, Switch, Toggle, Badge |
 | `--depth` | `1` | Card's resting + hover-lift shadow, Button's inset highlight/drop shadow on solid fills. `--depth: 0` flattens both **globally** — the way to kill Card's shadow app-wide without a `shadow-none` per instance (no such utility exists; the shadow is computed, not a static class) |
-| `--noise` | `0` | reserved for a grain texture; **not yet wired into any component** — the builder's "Noise" toggle currently has no visible effect |
+| `--noise` | `0` | grain on the themed surface. `1` paints a tiling SVG turbulence texture on the `[data-theme]` element (`background-blend-mode: overlay`, so the same grey grain reads on light and dark); `0` gates it off via a zero `background-size`, so it isn't painted at all. Deliberately NOT a pseudo-element overlay — that would need `position: relative` on every island and could re-parent a consumer's absolutely positioned descendants |
 | `--focus-width` | `2px` | keyboard focus ring outline width |
+| `--focus-offset` | `2px` | gap between a control's edge and its focus ring |
 | `--disabled-opacity` | `0.5` | opacity on disabled controls |
+| `--duration` | `150ms` | length of every state transition in the library (86 declarations across 38 components). Forced to `0.01ms` under `prefers-reduced-motion: reduce` — on `:root` **and** on `[data-theme]`, with `!important`, because a theme island declaring `--duration` on itself would otherwise shadow the `:root` override for its whole subtree |
+| `--ease` | `cubic-bezier(0.4, 0, 0.2, 1)` | timing function paired with `--duration` |
 
 Every component consumes these as `var(--token, default)`, never a hardcoded
 literal, so setting one on `:root` (or a theme's `[data-theme]` block) always
