@@ -31,6 +31,7 @@ import {
   walk,
 } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, usePeers, useSelectedNode, useSelection, useSelectionSet } from "./editor-context";
+import { reactAttrName } from "./react-attrs";
 import { useHost } from "./host-context";
 import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
@@ -760,25 +761,6 @@ function textOf(children: Child[] | undefined): string {
   return children.filter((c): c is string => typeof c === "string").join("");
 }
 
-/** HTML attribute → the camelCase name React requires (warns on the raw form). */
-const REACT_ATTR: ReadonlyArray<readonly [string, string]> = [
-  ["tabindex", "tabIndex"],
-  ["readonly", "readOnly"],
-  ["maxlength", "maxLength"],
-  ["minlength", "minLength"],
-  ["colspan", "colSpan"],
-  ["rowspan", "rowSpan"],
-  ["for", "htmlFor"],
-  ["autocomplete", "autoComplete"],
-  ["autofocus", "autoFocus"],
-  ["spellcheck", "spellCheck"],
-  ["crossorigin", "crossOrigin"],
-  ["srcset", "srcSet"],
-  ["novalidate", "noValidate"],
-  ["enctype", "encType"],
-  ["inputmode", "inputMode"],
-];
-
 /**
  * The render-ready tag + attributes for a canvas element: sanitized against the
  * SAME raw-element/attribute floor `toHtml` enforces (`sanitizeElement`, element.ts)
@@ -791,13 +773,14 @@ const REACT_ATTR: ReadonlyArray<readonly [string, string]> = [
 function canvasAttrs(el: ElementNode): { tag: string; attrs: Record<string, string | number | boolean> } {
   const sanitized = sanitizeElement(el.tag, el.attrs);
   const tag = sanitized.tag;
-  const attrs = { ...(sanitized.attrs ?? {}) };
+  // React demands certain HTML attributes in camelCase and warns on the raw DOM
+  // name. Authored nodes carry standard HTML names (what `toHtml` emits), so
+  // normalize on the way in — canvas-only; production markup is unchanged.
+  // Rebuilt rather than renamed in place so EVERY key goes through the rule,
+  // which is what makes a newly-allowed attribute correct without a second edit.
+  const attrs: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(sanitized.attrs ?? {})) attrs[reactAttrName(k)] = v;
   if ("href" in attrs) attrs.href = "#"; // design surface — never navigate away
-  // React demands certain HTML attributes in camelCase and warns on the raw
-  // lowercase DOM name. Authored nodes carry standard HTML names (what `toHtml`
-  // emits), so normalize the common set here — canvas-only; production markup is
-  // unchanged. `aria-*`/`data-*`/`role`/`hidden` are already correct lowercase.
-  for (const [dom, react] of REACT_ATTR) rename(attrs, dom, react);
   if (tag === "img" && attrs.src == null) attrs.src = PLACEHOLDER_IMG;
   // Form controls: render UNCONTROLLED on the design surface. React warns if a
   // form field gets `value`/`checked` without an `onChange`; the canvas is a static
