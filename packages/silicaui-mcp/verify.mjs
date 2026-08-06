@@ -386,6 +386,41 @@ check(
   emailNodes.documentTypes?.some((t) => t.typeName === "EmailDocument" && t.fields.some((f) => f.name === "subject")),
 );
 
+// The email HOST contract. Path 3 publishes a full `resolution` block; email
+// published none, so an agent could author a document and have no way to learn
+// how live data reaches it. Both substitution surfaces are checked, because
+// they are genuinely different: a `data` marker fills a whole field, an inline
+// `{{ref}}` token fills part of a sentence, and knowing one teaches you
+// nothing about the other.
+const emailHostNames = (emailNodes.resolution?.host ?? []).map((m) => m.name);
+check(
+  "list_email_nodes publishes the email host contract, hooks and all",
+  ["resolveBinding", "resolveCollection", "resolveExpression", "onDiagnostic"].every((n) => emailHostNames.includes(n)),
+);
+check(
+  "...carrying the unknown-vs-empty honesty rule the hooks depend on",
+  /undefined/.test(emailNodes.resolution?.honesty ?? ""),
+);
+check(
+  "...and each hook's real signature, read from source rather than described",
+  emailNodes.resolution.host.every((m) => m.type.includes("=>")) &&
+    emailNodes.resolution.host.find((m) => m.name === "resolveExpression")?.type.includes("expr: string"),
+);
+// The token grammar is the thing a host most needs stated outright: silica
+// owns the bare path and NOTHING else, so a host reading this knows an ESP
+// fallback is its job, not a silica bug.
+check(
+  "...and the inline token contract, path-vs-expression split included",
+  /\{\{/.test(emailNodes.resolution?.tokens ?? "") &&
+    emailNodes.resolution.tokens.includes("resolveExpression") &&
+    /never/i.test(emailNodes.resolution.tokens),
+);
+const textNode = JSON.parse(text(await client.callTool({ name: "get_email_node", arguments: { kind: "text" } })));
+check(
+  "get_email_node carries the token contract per-kind, so a prose field's behavior is local",
+  typeof textNode.tokenNote === "string" && textNode.tokenNote.includes("{{ref}}"),
+);
+
 const fieldSearch = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "thumbnail" } })));
 check("search_docs reaches email node fields", fieldSearch.some((r) => r.kind === "email-node" && r.node === "video"));
 

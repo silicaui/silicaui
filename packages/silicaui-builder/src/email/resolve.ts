@@ -28,6 +28,28 @@ import type { DataScope, DataSource, EmailNode, ResolveDiagnostic, Resolved } fr
 export interface EmailResolveHost {
   resolveBinding?(ref: string, scope: DataScope): Resolved | undefined;
   resolveCollection?(ref: string, scope: DataScope): readonly unknown[] | undefined;
+  /**
+   * Resolve an inline `{{…}}` token whose contents are NOT a bare dotted path
+   * — i.e. anything silica's own token grammar deliberately does not parse:
+   * `{{customer.firstName ?? "there"}}`, `{{price | currency}}`, whatever an
+   * ESP's documented syntax happens to be.
+   *
+   * This hook exists so the EXPRESSION LANGUAGE stays out of silica. Silica
+   * owns exactly one production — a dotted path — and hands everything else to
+   * the host verbatim (trimmed of its braces and surrounding whitespace, and
+   * NOTHING else: no tokenizing, no unquoting, no evaluation). A host that
+   * already runs its own interpolation pass over the projected HTML can reuse
+   * that same evaluator here and get an identical answer on the canvas.
+   *
+   * Same three-state contract as `resolveBinding`: `undefined` = "I don't
+   * understand this expression" (the literal `{{…}}` stays exactly as authored
+   * and an `unknown-expression` diagnostic fires), `{ value: undefined }` /
+   * `visible: false` = "understood, renders empty".
+   *
+   * Absent → non-path tokens pass through verbatim, which is what they did
+   * before this hook existed. Wiring it is purely additive.
+   */
+  resolveExpression?(expr: string, scope: DataScope): Resolved | undefined;
   onDiagnostic?(d: ResolveDiagnostic): void;
 }
 
@@ -99,16 +121,42 @@ function fillEmailValue(node: EmailNode, value: unknown, attr?: string): EmailNo
   return { ...node, [field]: coerced };
 }
 
-const TOKEN_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
+/**
+ * The SCANNER — finds every `{{…}}` run, deliberately lenient about what sits
+ * inside it. It is not the grammar; `TOKEN_PATH_RE` below is. Splitting the two
+ * is the whole point: silica FINDS every token an author typed, then decides
+ * who owns it, instead of silently not seeing the ones it can't parse.
+ *
+ * Known limit, documented rather than papered over: `[^{}]*` stops at the first
+ * `}`, so an expression with a brace inside a string literal
+ * (`{{ a ?? "}" }}`) truncates. Balancing braces would mean parsing the host's
+ * language — exactly what this design refuses to do. Hosts whose syntax needs
+ * literal braces should use a whole-field `data` bind instead.
+ */
+const TOKEN_RE = /\{\{([^{}]*)\}\}/g;
+
+/**
+ * Silica's ENTIRE token grammar: a bare dotted path. Anything else inside the
+ * braces is an EXPRESSION and belongs to `resolveExpression` — see the note
+ * there for why the grammar stops here and does not grow a `??`, a pipe, or a
+ * conditional. Kept byte-identical to the pattern this file has always matched,
+ * so a path token resolves exactly as it did before expressions existed.
+ */
+const TOKEN_PATH_RE = /^[a-zA-Z0-9_.]+$/;
 
 /**
  * Substitute every `{{ref}}` merge token inside `text` via the host's
  * `resolveBinding` — the INLINE counterpart to a whole-field `value` bind
  * (Q23): a sentence like "Hi {{customer.firstName}}, your order shipped" has
  * no single field to bind wholesale, so each token resolves independently
- * against the SAME `resolveBinding` hook a whole-field bind uses. Absent the
- * hook, `text` passes through untouched (an author who's typed `{{` before a
- * host is wired doesn't see it silently vanish). An UNKNOWN ref likewise keeps
+ * against the SAME `resolveBinding` hook a whole-field bind uses. Absent BOTH
+ * hooks, `text` passes through untouched (an author who's typed `{{` before a
+ * host is wired doesn't see it silently vanish).
+ *
+ * A token whose contents aren't a bare dotted path is an EXPRESSION and routes
+ * to `resolveExpression` instead — same substitution, same escaping, same
+ * unknown-keeps-the-literal rule; only the hook differs. See that hook's note
+ * for why the grammar stops at a path. An UNKNOWN ref likewise keeps
  * its own literal source (`{{logo}}`) and reports — the same "keep what was
  * authored" rule as everywhere else, and a visible artifact in a test send
  * beats a silently mangled sentence. A KNOWN-but-empty (or `visible:false`)
@@ -120,12 +168,25 @@ const TOKEN_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
  * value through so it isn't double-escaped.
  */
 export function resolveTokens(text: string, host: EmailResolveHost, scope: DataScope, escapeHtml: boolean): string {
-  if (!host.resolveBinding || !text.includes("{{")) return text;
-  return text.replace(TOKEN_RE, (match, ref: string) => {
-    const resolved = host.resolveBinding!(ref, scope);
+  if (!text.includes("{{")) return text;
+  if (!host.resolveBinding && !host.resolveExpression) return text;
+  return text.replace(TOKEN_RE, (match, raw: string) => {
+    const inner = raw.trim();
+    // `{{}}` / `{{  }}` is punctuation an author typed, not a token — leave it
+    // alone and don't report it as a broken reference.
+    if (inner === "") return match;
+
+    const isPath = TOKEN_PATH_RE.test(inner);
+    const resolved = isPath ? host.resolveBinding?.(inner, scope) : host.resolveExpression?.(inner, scope);
     if (!resolved) {
-      host.onDiagnostic?.({ code: "unknown-ref", ref, kind: "value" });
-      return match; // the literal `{{ref}}` — TOKEN_RE admits no HTML-special chars
+      host.onDiagnostic?.({ code: isPath ? "unknown-ref" : "unknown-expression", ref: inner, kind: "value" });
+      // The literal source, byte-for-byte. Note this can now contain HTML-special
+      // characters (an expression may quote anything), where the old
+      // path-only pattern could not — but returning `match` is STRING IDENTITY:
+      // the field ends up holding precisely what the author authored, which is
+      // what an unmatched token did before this scanner widened. Escaping here
+      // would be the actual change in behavior, mangling authored copy.
+      return match;
     }
     if (resolved.visible === false || resolved.value == null) return "";
     const s = String(resolved.value);
@@ -239,11 +300,12 @@ function resolveNode(node: EmailNode, host: EmailResolveHost, scope: DataScope):
 /**
  * Walk `doc`'s root, substituting `data:'value'` nodes with resolved values
  * and expanding `data:'collection'` container nodes into one cloned
- * child-set per resolved item. Absent BOTH hooks → returns `root` UNCHANGED
- * (a static host never pays for this). `action` nodes are never touched.
+ * child-set per resolved item. Absent ALL THREE resolve hooks → returns `root`
+ * UNCHANGED (a static host never pays for this). `action` nodes are never
+ * touched.
  */
 export function resolveEmailTree<T extends EmailNode>(root: T, host: EmailResolveHost, scope: DataScope = EMPTY_SCOPE): T {
-  if (!host.resolveBinding && !host.resolveCollection) return root;
+  if (!host.resolveBinding && !host.resolveCollection && !host.resolveExpression) return root;
   return (resolveNode(root, host, scope) ?? root) as T;
 }
 

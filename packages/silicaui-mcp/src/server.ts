@@ -217,6 +217,16 @@ interface EmailData {
   documentTypes: Array<{ typeName: string; doc: string; fields: EmailFieldData[] }>;
   kinds: EmailKindData[];
   palette: Array<{ key: string; label: string; hint: string; icon: string; kind: string }>;
+  /** The host contract: the resolve hooks, the unknown-vs-empty honesty rule,
+   *  and — separately from `bindingNote`'s `data` markers — how inline
+   *  `{{ref}}` merge tokens resolve in prose fields. */
+  resolution: {
+    note: string;
+    honesty: string;
+    tokens: string;
+    host: FieldData[];
+    bindableFields: Record<string, { default?: string; fields: Record<string, string> }>;
+  };
 }
 
 interface FieldData {
@@ -728,6 +738,11 @@ export function createServer(): McpServer {
               // The envelope, in full: it's small, and a caller that has the
               // kinds but not `EmailDocument` still can't produce a document.
               documentTypes: email.documentTypes,
+              // The host contract, same as path 3's schema publishes. Without
+              // it a caller can author a document and still have no idea how
+              // live data reaches it — through a `data` marker or through an
+              // inline `{{ref}}` token, which are different surfaces.
+              resolution: email.resolution,
             },
             null,
             2,
@@ -769,6 +784,12 @@ export function createServer(): McpServer {
                 ...node,
                 sharedFields: email.sharedFields,
                 bindingNote: email.bindingNote,
+                // Whether THIS kind's prose field takes inline `{{ref}}`
+                // substitution is a per-kind fact an agent asking about one
+                // kind needs, and the note names them — `text`/`button` yes,
+                // `html` deliberately never. Carried on every kind because the
+                // negative case is the one that surprises people.
+                tokenNote: email.resolution.tokens,
                 palette: email.palette.filter((p) => p.kind === node.kind),
               },
               null,

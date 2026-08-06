@@ -10,7 +10,7 @@ import { EMAIL_PALETTE } from "./src/email/palette";
 import { resolveEmailTree } from "./src/email/resolve";
 import { DEFAULT_EMAIL_COLORS } from "./src/email/schema";
 import type { EmailResolveHost } from "./src/email/resolve";
-import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, LinkNode, Resolved, SectionNode, TextNode } from "./src/email/schema";
+import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, LinkNode, ResolveDiagnostic, Resolved, SectionNode, TextNode } from "./src/email/schema";
 
 let failures = 0;
 function check(name: string, cond: boolean): void {
@@ -568,6 +568,105 @@ console.log("merge tokens");
   check("toEmailHtml(doc, resolver) resolves the PREHEADER's token, escaped exactly ONCE (not double-escaped)", resolvedEmailHtml.includes("From Acme &amp; Co &lt;Ltd&gt;"));
   check("toEmailHtml(doc, resolver) resolves the BODY text's token", resolvedEmailHtml.includes("Welcome, Jordan!"));
   check("no unresolved `{{` tokens survive the resolved export", !resolvedEmailHtml.includes("{{customer"));
+}
+
+// ── 9b. host-delegated token EXPRESSIONS ─────────────────────────────────────
+// Silica's token grammar is exactly one production: a bare dotted path. A token
+// carrying anything else — an ESP's `??` fallback, a filter pipe — is handed to
+// the host's `resolveExpression` VERBATIM, so the expression language lives in
+// the host and silica never grows a parser for it. Before this seam existed the
+// scanner simply didn't SEE such a token, so it survived projection as literal
+// braces on the canvas and in Preview with no diagnostic to explain why.
+console.log("token expressions");
+{
+  const mkText = (id: string, html: string): TextNode => ({ id, kind: "text", html, align: "left", color: "#000", fontSize: 16, fontWeight: "normal", lineHeight: 24 });
+  const mkBody = (children: TextNode[]): EmailBody => ({
+    id: "x-body",
+    kind: "body",
+    width: 600,
+    bg: "#fff",
+    contentBg: "#fff",
+    fontFamily: "Arial",
+    children: [{ id: "x-sec", kind: "section", bg: "#fff", paddingX: 0, paddingY: 0, children }],
+  });
+  const textAt = (root: EmailBody, i: number) => (root.children[0]!.children[i] as TextNode).html;
+
+  // The exact syntax sparx documents, and the exact expression the host is
+  // handed: braces stripped, outer whitespace trimmed, nothing else touched.
+  const FALLBACK = `customer.firstName ?? "there"`;
+  const seen: string[] = [];
+  const exprHost: EmailResolveHost = {
+    resolveBinding: (ref) => (ref === "customer.firstName" ? { value: "Jordan" } : undefined),
+    resolveExpression: (expr, scope) => {
+      seen.push(expr);
+      if (expr === FALLBACK) return { value: "there" };
+      if (expr === `company ?? "<Ltd> & Co"`) return { value: "<Ltd> & Co" };
+      if (expr === `item.name ?? "?"`) return { value: (scope.item as { name?: string } | undefined)?.name ?? "?" };
+      return undefined; // an expression this host doesn't speak
+    },
+  };
+
+  const resolved = resolveEmailTree(
+    mkBody([
+      mkText("e1", `Hi {{ ${FALLBACK} }}, welcome!`),
+      mkText("e2", `{{customer.firstName}} + {{ ${FALLBACK} }}`),
+      mkText("e3", `{{ nonsense |> weird }}`),
+      mkText("e4", `{{company ?? "<Ltd> & Co"}}`),
+      mkText("e5", `braces {{}} and {{   }} are not tokens`),
+    ]),
+    exprHost,
+  );
+
+  check("a `??` fallback token resolves through resolveExpression", textAt(resolved, 0) === "Hi there, welcome!");
+  check("the host receives the expression with braces stripped and whitespace trimmed", seen.includes(FALLBACK));
+  check("a bare dotted path still routes to resolveBinding, never resolveExpression", textAt(resolved, 1) === "Jordan + there" && !seen.includes("customer.firstName"));
+  check("an expression the host does NOT understand keeps its literal source", textAt(resolved, 2) === `{{ nonsense |> weird }}`);
+  check("an expression's resolved value is HTML-escaped inside text.html", textAt(resolved, 3) === "&lt;Ltd&gt; &amp; Co");
+  check("an empty `{{}}` is punctuation, not a token — left alone", textAt(resolved, 4) === "braces {{}} and {{   }} are not tokens");
+
+  // Diagnostics distinguish the two failure modes: a MISSPELLED FIELD and an
+  // UNSPEAKABLE SYNTAX need different fixes, so an editor must not badge them
+  // the same way.
+  const diags: ResolveDiagnostic[] = [];
+  resolveEmailTree(mkBody([mkText("d1", `{{typoField}} {{ a ?? "b" }}`)]), {
+    resolveBinding: () => undefined,
+    onDiagnostic: (d) => diags.push(d),
+  });
+  check("an unknown PATH still reports `unknown-ref`", diags.some((d) => d.code === "unknown-ref" && d.ref === "typoField"));
+  check("an unhandled EXPRESSION reports `unknown-expression`, not `unknown-ref`", diags.some((d) => d.code === "unknown-expression" && d.ref === `a ?? "b"`));
+  check("exactly two diagnostics — the empty-token guard fires none", diags.length === 2);
+
+  // Backward compatibility: a host that never heard of this hook is unchanged.
+  const legacyOut = resolveEmailTree(mkBody([mkText("l1", `Hi {{ ${FALLBACK} }}!`)]), { resolveBinding: () => ({ value: "Jordan" }) });
+  check("a host with NO resolveExpression passes the expression through verbatim (pre-seam behavior)", textAt(legacyOut, 0) === `Hi {{ ${FALLBACK} }}!`);
+
+  // A host may implement ONLY resolveExpression (its evaluator already handles
+  // bare paths as a degenerate case) — the walk must still run.
+  const exprOnly = resolveEmailTree(mkBody([mkText("o1", `{{ ${FALLBACK} }}`)]), { resolveExpression: () => ({ value: "there" }) });
+  check("a host with ONLY resolveExpression still resolves expressions", textAt(exprOnly, 0) === "there");
+
+  // Per-item scope reaches expressions exactly as it reaches path bindings.
+  const repeatBody: EmailBody = {
+    id: "r-body",
+    kind: "body",
+    width: 600,
+    bg: "#fff",
+    contentBg: "#fff",
+    fontFamily: "Arial",
+    children: [{ id: "r-sec", kind: "section", bg: "#fff", paddingX: 0, paddingY: 0, data: { kind: "collection", ref: "products" }, children: [mkText("r1", `{{ item.name ?? "?" }}`)] }],
+  };
+  const repeated = resolveEmailTree(repeatBody, { ...exprHost, resolveCollection: () => [{ name: "Aurora" }, {}] });
+  check("an expression inside a repeat sees the per-item scope", (repeated.children[0]!.children as TextNode[]).map((c) => c.html).join("|") === "Aurora|?");
+
+  // End-to-end: the surface sparx actually reported — Preview renders
+  // `toEmailHtml(doc, resolver)`, so the fallback must land in the real output.
+  const ed = new EmailEditor();
+  ed.setSubject(`Hi {{ ${FALLBACK} }}`);
+  ed.update<TextNode>(ed.root.children[0]!.children[0]!.id, { html: `Hi {{ ${FALLBACK} }}, your order shipped` });
+  const previewHtml = toEmailHtml(ed.extract(), exprHost);
+  check("toEmailHtml resolves an expression in the BODY (the Preview surface)", previewHtml.includes("Hi there, your order shipped"));
+  check("toEmailHtml resolves an expression in the SUBJECT too", previewHtml.includes("<title>Hi there</title>"));
+  check("no literal `{{` survives a fully-resolved export", !previewHtml.includes("{{"));
 }
 
 // ── head injection, webfonts, color scheme ───────────────────────────────────
