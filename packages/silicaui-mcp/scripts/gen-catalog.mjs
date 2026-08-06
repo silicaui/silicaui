@@ -741,6 +741,41 @@ if (staleExempt.length) {
 const allComponents = [...components, ...htmlComponents, ...cssComponents];
 writeJson("components.json", allComponents);
 
+/** Every interface in one file, by name, with members + own doc. Module-scope
+ *  because three sections need it (email.json's resolve contract below, the
+ *  node-tree schema after it, and themes.json, which publishes the `Theme`
+ *  interface from that same file). */
+const parseTypes = (relPath) => {
+  const filePath = path.join(packagesRoot, relPath);
+  const src = readFileSync(filePath, "utf8");
+  const sf = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const out = {};
+  ts.forEachChild(sf, (node) => {
+    if (!ts.isInterfaceDeclaration(node)) return;
+    out[node.name.text] = {
+      doc: getLeadingDoc(src, node, sf),
+      extends: (node.heritageClauses ?? []).flatMap((h) => h.types.map((t) => t.expression.getText(sf))),
+      members: node.members
+        // METHOD signatures too, not just properties — `ResolveHost`'s whole
+        // surface is `resolveBinding?(ref, scope): Resolved | undefined`, so a
+        // property-only walk published the host contract as an EMPTY member
+        // list: the one interface an agent most needs, silently blank.
+        .filter((m) => (ts.isPropertySignature(m) || ts.isMethodSignature(m)) && m.name)
+        .map((m) => ({
+          name: m.name.getText(sf),
+          optional: !!m.questionToken,
+          type: ts.isMethodSignature(m)
+            ? `(${m.parameters.map((p) => p.getText(sf)).join(", ")}) => ${m.type ? m.type.getText(sf) : "void"}`
+            : m.type
+              ? m.type.getText(sf)
+              : "unknown",
+          doc: getLeadingDoc(src, m, sf),
+        })),
+    };
+  });
+  return { src, sf, types: out };
+};
+
 // ── email.json ───────────────────────────────────────────────────────────
 // The email builder's CLOSED document schema — a different surface from the
 // three delivery paths above, and the one place an agent has no other source
@@ -762,6 +797,8 @@ let emailCatalog = null;
 try {
   const emailUrl = pathToFileURL(path.join(packagesRoot, "silicaui-builder/dist/email/index.js")).href;
   const { canHold, isContentKind, EMAIL_BINDABLE_FIELDS, EMAIL_PALETTE } = await import(emailUrl);
+
+  const { types: emailResolveTypes } = parseTypes("silicaui-builder/src/email/resolve.ts");
 
   const schemaPath = path.join(packagesRoot, "silicaui-builder/src/email/schema.ts");
   const schemaSrc = readFileSync(schemaPath, "utf8");
@@ -842,6 +879,25 @@ try {
     sharedFields: interfaces.BaseNode?.members ?? [],
     bindingNote:
       "A node carries AT MOST ONE `data` marker. `value` fills one field (`attr` picks which — see each kind's `binding.fields`; omitting it targets `binding.default`); `collection` repeats a node's children once per item and is only meaningful on a kind with children; `visible` keeps or drops the subtree; `action` is an inert marker the host wires. Two per-item values on one card is COMPOSITION, not two markers: a `link` group binds the href while each child binds its own field.",
+    // The HOST contract — parsed from email/resolve.ts, which `documentTypes`
+    // above never sees (it walks schema.ts only). Its absence was a real hole:
+    // path 3's schema.json publishes a full `resolution` block, so an agent
+    // could learn the site host contract and then find NOTHING for email — not
+    // the hooks, and not the fact that inline `{{ref}}` substitution exists at
+    // all. Both fail silently, which is exactly what this catalog is for.
+    resolution: {
+      note:
+        "A host implements `resolveBinding` / `resolveCollection` and `resolveEmailTree` walks the document with them — the email twin of path 3's `resolveTree`, same shape and same contract. Pure and SYNCHRONOUS: a host with an async source fetches ONCE, up front. `toEmailHtml(doc, host)` runs the walk itself, so preview and send resolve identically. `action` nodes are never touched. Absent ALL the resolve hooks the walk is a no-op and the document projects exactly as authored.",
+      honesty:
+        "The hooks distinguish `undefined` (I have never heard of this ref) from `{ value: undefined }` (I know it and it is empty). An UNKNOWN ref keeps the node's AUTHORED content and fires a diagnostic; a KNOWN-but-empty ref renders empty, which is a legitimate result. Only `collection` differs on one point: `omitWhenEmpty` applies to a known-empty list, never to an unknown ref.",
+      // Inline tokens are a SECOND substitution surface, orthogonal to the
+      // `data` markers `bindingNote` covers — and the one an agent is most
+      // likely to reach for, since prose is where merge fields actually live.
+      tokens:
+        "Inline `{{ref}}` merge tokens are substituted inside PROSE fields — `text.html`, `button.label`, and the document's `subject`/`preheader` — independently of any whole-field `data` bind on the same node. A sentence like \"Hi {{customer.firstName}}, your order shipped\" has no single field to bind wholesale, so each token resolves on its own through the SAME `resolveBinding` hook. `html` nodes are NEVER substituted: that field is raw passthrough, so an ESP's own merge tags survive it verbatim. Silica's token grammar is exactly ONE production — a bare dotted path, `[a-zA-Z0-9_.]+`. A token containing anything else (a fallback like `{{name ?? \"there\"}}`, a filter pipe) is an EXPRESSION and is handed to the optional `resolveExpression` hook VERBATIM — braces stripped and outer whitespace trimmed, nothing tokenized, unquoted or evaluated — so the expression language lives in the host and silica never parses it. Unhandled either way, the token keeps its literal source and reports (`unknown-ref` for a path, `unknown-expression` for an expression: a misspelled field and an unwired syntax need different fixes). A resolved value is HTML-escaped inside `text.html` and left raw where the projector escapes it itself, so it is never double-escaped.",
+      host: emailResolveTypes.EmailResolveHost?.members ?? [],
+      bindableFields: EMAIL_BINDABLE_FIELDS,
+    },
     documentTypes,
     kinds,
     palette: EMAIL_PALETTE.map((item) => ({
@@ -886,39 +942,8 @@ try {
 //                                  drift from what the projector enforces
 console.log("schema.json");
 
-/** Every interface in one file, by name, with members + own doc. Module-scope
- *  because two sections need it (the node-tree schema below, and themes.json
- *  after it, which publishes the `Theme` interface from this same file). */
-const parseTypes = (relPath) => {
-  const filePath = path.join(packagesRoot, relPath);
-  const src = readFileSync(filePath, "utf8");
-  const sf = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const out = {};
-  ts.forEachChild(sf, (node) => {
-    if (!ts.isInterfaceDeclaration(node)) return;
-    out[node.name.text] = {
-      doc: getLeadingDoc(src, node, sf),
-      extends: (node.heritageClauses ?? []).flatMap((h) => h.types.map((t) => t.expression.getText(sf))),
-      members: node.members
-        // METHOD signatures too, not just properties — `ResolveHost`'s whole
-        // surface is `resolveBinding?(ref, scope): Resolved | undefined`, so a
-        // property-only walk published the host contract as an EMPTY member
-        // list: the one interface an agent most needs, silently blank.
-        .filter((m) => (ts.isPropertySignature(m) || ts.isMethodSignature(m)) && m.name)
-        .map((m) => ({
-          name: m.name.getText(sf),
-          optional: !!m.questionToken,
-          type: ts.isMethodSignature(m)
-            ? `(${m.parameters.map((p) => p.getText(sf)).join(", ")}) => ${m.type ? m.type.getText(sf) : "void"}`
-            : m.type
-              ? m.type.getText(sf)
-              : "unknown",
-          doc: getLeadingDoc(src, m, sf),
-        })),
-    };
-  });
-  return { src, sf, types: out };
-};
+// `parseTypes` is defined ABOVE the email.json section — three sections need it
+// now (email's resolve contract, this one, and themes.json below).
 
 let htmlSchema = null;
 try {

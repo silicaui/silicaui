@@ -305,8 +305,8 @@
       {
         "name": "code",
         "optional": false,
-        "type": "\"unknown-ref\" | \"hidden\"",
-        "doc": "`unknown-ref` — the host returned `undefined` for a ref it was asked about (a typo, a stale document, a catalog entry its resolver doesn't implement). `hidden` — an `editing` walk kept a `visible: false` node that production would have dropped, so an editor can render it ghosted. Additive union; new codes are non-breaking."
+        "type": "\"unknown-ref\" | \"hidden\" | \"unknown-expression\"",
+        "doc": "`unknown-ref` — the host returned `undefined` for a ref it was asked about (a typo, a stale document, a catalog entry its resolver doesn't implement). `hidden` — an `editing` walk kept a `visible: false` node that production would have dropped, so an editor can render it ghosted. `unknown-expression` — an inline `{{…}}` token carried something other than a bare dotted path and the host either has no `resolveExpression` hook or didn't understand the expression. Distinct from `unknown-ref` on purpose: the fix is a host that speaks that syntax, not a corrected reference, and an editor badging \"unknown field\" over `{{a ?? \"b\"}}` would be lying. (Email-only today — the site tree has no inline token pass.) Additive union; new codes are non-breaking."
       },
       {
         "name": "ref",

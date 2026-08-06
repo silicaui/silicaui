@@ -35,6 +35,107 @@
     }
   ],
   "bindingNote": "A node carries AT MOST ONE `data` marker. `value` fills one field (`attr` picks which — see each kind's `binding.fields`; omitting it targets `binding.default`); `collection` repeats a node's children once per item and is only meaningful on a kind with children; `visible` keeps or drops the subtree; `action` is an inert marker the host wires. Two per-item values on one card is COMPOSITION, not two markers: a `link` group binds the href while each child binds its own field.",
+  "resolution": {
+    "note": "A host implements `resolveBinding` / `resolveCollection` and `resolveEmailTree` walks the document with them — the email twin of path 3's `resolveTree`, same shape and same contract. Pure and SYNCHRONOUS: a host with an async source fetches ONCE, up front. `toEmailHtml(doc, host)` runs the walk itself, so preview and send resolve identically. `action` nodes are never touched. Absent ALL the resolve hooks the walk is a no-op and the document projects exactly as authored.",
+    "honesty": "The hooks distinguish `undefined` (I have never heard of this ref) from `{ value: undefined }` (I know it and it is empty). An UNKNOWN ref keeps the node's AUTHORED content and fires a diagnostic; a KNOWN-but-empty ref renders empty, which is a legitimate result. Only `collection` differs on one point: `omitWhenEmpty` applies to a known-empty list, never to an unknown ref.",
+    "tokens": "Inline `{{ref}}` merge tokens are substituted inside PROSE fields — `text.html`, `button.label`, and the document's `subject`/`preheader` — independently of any whole-field `data` bind on the same node. A sentence like \"Hi {{customer.firstName}}, your order shipped\" has no single field to bind wholesale, so each token resolves on its own through the SAME `resolveBinding` hook. `html` nodes are NEVER substituted: that field is raw passthrough, so an ESP's own merge tags survive it verbatim. Silica's token grammar is exactly ONE production — a bare dotted path, `[a-zA-Z0-9_.]+`. A token containing anything else (a fallback like `{{name ?? \"there\"}}`, a filter pipe) is an EXPRESSION and is handed to the optional `resolveExpression` hook VERBATIM — braces stripped and outer whitespace trimmed, nothing tokenized, unquoted or evaluated — so the expression language lives in the host and silica never parses it. Unhandled either way, the token keeps its literal source and reports (`unknown-ref` for a path, `unknown-expression` for an expression: a misspelled field and an unwired syntax need different fixes). A resolved value is HTML-escaped inside `text.html` and left raw where the projector escapes it itself, so it is never double-escaped.",
+    "host": [
+      {
+        "name": "resolveBinding",
+        "optional": true,
+        "type": "(ref: string, scope: DataScope) => Resolved | undefined",
+        "doc": ""
+      },
+      {
+        "name": "resolveCollection",
+        "optional": true,
+        "type": "(ref: string, scope: DataScope) => readonly unknown[] | undefined",
+        "doc": ""
+      },
+      {
+        "name": "resolveExpression",
+        "optional": true,
+        "type": "(expr: string, scope: DataScope) => Resolved | undefined",
+        "doc": "Resolve an inline `{{…}}` token whose contents are NOT a bare dotted path — i.e. anything silica's own token grammar deliberately does not parse: `{{customer.firstName ?? \"there\"}}`, `{{price | currency}}`, whatever an ESP's documented syntax happens to be. This hook exists so the EXPRESSION LANGUAGE stays out of silica. Silica owns exactly one production — a dotted path — and hands everything else to the host verbatim (trimmed of its braces and surrounding whitespace, and NOTHING else: no tokenizing, no unquoting, no evaluation). A host that already runs its own interpolation pass over the projected HTML can reuse that same evaluator here and get an identical answer on the canvas. Same three-state contract as `resolveBinding`: `undefined` = \"I don't understand this expression\" (the literal `{{…}}` stays exactly as authored and an `unknown-expression` diagnostic fires), `{ value: undefined }` / `visible: false` = \"understood, renders empty\". Absent → non-path tokens pass through verbatim, which is what they did before this hook existed. Wiring it is purely additive."
+      },
+      {
+        "name": "onDiagnostic",
+        "optional": true,
+        "type": "(d: ResolveDiagnostic) => void",
+        "doc": ""
+      }
+    ],
+    "bindableFields": {
+      "text": {
+        "default": "html",
+        "fields": {
+          "html": "string"
+        }
+      },
+      "image": {
+        "default": "src",
+        "fields": {
+          "src": "string",
+          "alt": "string",
+          "href": "string",
+          "width": "number"
+        }
+      },
+      "link": {
+        "default": "href",
+        "fields": {
+          "href": "string"
+        }
+      },
+      "button": {
+        "default": "label",
+        "fields": {
+          "label": "string",
+          "href": "string",
+          "bg": "string",
+          "color": "string"
+        }
+      },
+      "divider": {
+        "fields": {
+          "color": "string",
+          "thickness": "number"
+        }
+      },
+      "spacer": {
+        "fields": {
+          "height": "number"
+        }
+      },
+      "html": {
+        "default": "html",
+        "fields": {
+          "html": "string"
+        }
+      },
+      "video": {
+        "default": "href",
+        "fields": {
+          "href": "string",
+          "thumbnail": "string",
+          "width": "number"
+        }
+      },
+      "section": {
+        "fields": {
+          "bg": "string",
+          "bgImage": "string"
+        }
+      },
+      "body": {
+        "fields": {
+          "bg": "string",
+          "contentBg": "string",
+          "fontFamily": "string"
+        }
+      }
+    }
+  },
   "documentTypes": [
     {
       "typeName": "SocialLink",
