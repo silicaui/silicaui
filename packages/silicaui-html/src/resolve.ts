@@ -55,8 +55,14 @@ export interface ResolveDiagnostic {
    *  (a typo, a stale document, a catalog entry its resolver doesn't implement).
    *  `hidden` — an `editing` walk kept a `visible: false` node that production
    *  would have dropped, so an editor can render it ghosted.
+   *  `unknown-expression` — an inline `{{…}}` token carried something other than
+   *  a bare dotted path and the host either has no `resolveExpression` hook or
+   *  didn't understand the expression. Distinct from `unknown-ref` on purpose:
+   *  the fix is a host that speaks that syntax, not a corrected reference, and
+   *  an editor badging "unknown field" over `{{a ?? "b"}}` would be lying.
+   *  (Email-only today — the site tree has no inline token pass.)
    *  Additive union; new codes are non-breaking. */
-  code: "unknown-ref" | "hidden";
+  code: "unknown-ref" | "hidden" | "unknown-expression";
   ref: string;
   /** The bound node's id, so an editor can badge / jump to the exact node. */
   nodeId?: string;

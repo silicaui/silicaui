@@ -219,9 +219,19 @@ const URL_ATTRS: ReadonlySet<string> = new Set(["href", "src", "srcset", "cite",
  *  inherit-from-another-node refs are fragment-only, stricter than `isSafeUrl`. */
 const INTERNAL_REF_TAGS: ReadonlySet<string> = new Set(["use", "pattern", "linearGradient", "radialGradient"]);
 const SAFE_SCHEME = /^(?:https?:|mailto:|tel:)/i;
-/** A schemeless (relative/anchor/query) URL is always safe — it can't leave the origin. */
+/** A schemeless (relative/anchor/query) URL is always safe — it can't leave the origin.
+ *
+ *  An EMPTY value is rejected, so the attribute is dropped rather than emitted
+ *  as `src=""` / `href=""`. Not a security rule — a correctness one: the empty
+ *  string resolves to the CURRENT DOCUMENT, so `<img src="">` makes the client
+ *  re-fetch the whole page (or email) and then draw a broken-image icon for it.
+ *  It is never a value anyone meant. Dropping it is also what the rest of the
+ *  system already assumes: `canvasAttrs` substitutes a placeholder when an
+ *  Image has no `src` (so an unset image stays visible and selectable while
+ *  authoring), and its comment already claimed production markup omits it —
+ *  which the empty-string carve-out quietly made untrue. */
 function isSafeUrl(value: string): boolean {
-  if (value === "") return true;
+  if (value === "") return false;
   if (value.startsWith("/") || value.startsWith("#") || value.startsWith("?") || value.startsWith(".")) return true;
   return SAFE_SCHEME.test(value);
 }
