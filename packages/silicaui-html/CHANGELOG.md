@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-html
 
+## 0.51.0
+
 ## 0.50.0
 
 ### Minor Changes
