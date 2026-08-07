@@ -18,7 +18,7 @@
 //   • FRAMED but wrong           — dropped unlisted hash / ?i= / start time / playlist
 //
 // Run against built output: `pnpm --filter @wizeworks/silicaui-html build && node verify-embed.mjs`.
-import { resolveEmbed, toHtml } from "./dist/index.js";
+import { EMBED_PROVIDERS, resolveEmbed, toHtml } from "./dist/index.js";
 
 let failures = 0;
 let checks = 0;
@@ -262,8 +262,23 @@ for (const bad of [
 }
 
 console.log("Every resolved player lands on an allowlisted host");
-const ALLOWED =
-  /^https:\/\/(?:www\.youtube-nocookie\.com|player\.vimeo\.com|www\.google\.com|open\.spotify\.com|w\.soundcloud\.com|embed\.music\.apple\.com|embed\.podcasts\.apple\.com|bandcamp\.com|player\.simplecast\.com|player\.megaphone\.fm|share\.transistor\.fm|www\.buzzsprout\.com)\//;
+// Plain data, so the provider-list drift check below can use the same set
+// instead of picking a regex apart.
+const ALLOWED_HOSTS = [
+  "www.youtube-nocookie.com",
+  "player.vimeo.com",
+  "www.google.com",
+  "open.spotify.com",
+  "w.soundcloud.com",
+  "embed.music.apple.com",
+  "embed.podcasts.apple.com",
+  "bandcamp.com",
+  "player.simplecast.com",
+  "player.megaphone.fm",
+  "share.transistor.fm",
+  "www.buzzsprout.com",
+];
+const ALLOWED = new RegExp(`^https://(?:${ALLOWED_HOSTS.map((h) => h.replace(/\./g, "\\.")).join("|")})/`);
 for (const input of [
   `https://www.youtube.com/shorts/${YT}`,
   `https://vimeo.com/${V}/abcdef1234`,
@@ -280,6 +295,39 @@ for (const input of [
 ]) {
   check(`allowlisted: ${input.slice(0, 52)}`, ALLOWED.test(url(input)), url(input));
 }
+
+// ── the published provider list ─────────────────────────────────────────────
+// `EMBED_PROVIDERS` is the only machine-readable answer to "what can I paste
+// into an Embed?" — the MCP catalog carries no props for node-tree components,
+// so it is what a host or a coding agent reads. A stale list is worse than none:
+// it would confidently name a provider that resolves to a link. So it is checked
+// in BOTH directions — every documented example still resolves, and every host
+// the resolver can emit is documented by at least one entry.
+console.log("The published provider list matches the resolver");
+// Placeholder ids stand in for real ones, so an example is checked as a URL
+// SHAPE rather than as a literal.
+const concrete = (example) =>
+  example
+    .replace("VIDEO_ID", YT)
+    .replace("TRACK_ID", TRACK)
+    .replace("EPISODE_ID", "abc12345")
+    .replace("?pb=…", "?pb=!1m18!1m12");
+
+const documentedHosts = new Set();
+for (const p of EMBED_PROVIDERS) {
+  const resolved = url(concrete(p.example));
+  check(`${p.name}: the documented example resolves`, resolved !== undefined, concrete(p.example));
+  if (resolved) documentedHosts.add(new URL(resolved).hostname);
+}
+// The other direction: a provider added to the resolver but left out of the
+// published list would leave a host nothing documents.
+for (const host of ALLOWED_HOSTS) {
+  check(`${host} is named in EMBED_PROVIDERS`, documentedHosts.has(host), `documented: ${[...documentedHosts].join(", ")}`);
+}
+check(
+  "no provider is documented twice",
+  new Set(EMBED_PROVIDERS.map((p) => p.name)).size === EMBED_PROVIDERS.length,
+);
 
 // ── the rendered component ──────────────────────────────────────────────────
 console.log("The rendered Embed");
