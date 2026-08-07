@@ -100,6 +100,13 @@ export {
 } from "./component";
 export type { ComponentDef } from "./component";
 
+// The `Embed` component's provider gate: a shareable URL → the frameable player
+// URL, or `undefined` for "this must render as a link, not an iframe". Exported
+// so a host can validate a pasted URL with the SAME rules the projection uses
+// (and so `verify-embed.mjs` can check the mapping directly, not through markup).
+export { resolveEmbed } from "./embed";
+export type { ResolvedEmbed } from "./embed";
+
 // Tree traversal (shared with the builder).
 export { walk, composeFrame } from "./tree";
 

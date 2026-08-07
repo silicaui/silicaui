@@ -393,6 +393,26 @@ function isEmptyContainer(node: Node): boolean {
 /** Canvas-only decoration that makes an empty container a real drop target. */
 const EMPTY_DECOR = " min-h-14 bg-base-content/5";
 
+/**
+ * Canvas-only frame for an Embed with no URL yet. `expand()` renders it as an
+ * empty <div> because that projection is what a VISITOR sees — an unconfigured
+ * embed must publish nothing, not a "paste a URL here" hint (it used to publish
+ * exactly that). Embed is a LEAF, so `isEmptyContainer` never fires on it and
+ * the drop-target treatment above doesn't apply; without this the author would
+ * drop an Embed and see literally nothing.
+ */
+const EMBED_PLACEHOLDER_DECOR = " grid min-h-24 place-items-center bg-base-content/5";
+
+/** The hint shown inside an Embed that has no URL yet — the builder-side home of
+ *  the copy that used to ship to visitors. */
+function EmbedHint() {
+  return (
+    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content/40">
+      Add a video, audio, podcast, or map URL
+    </span>
+  );
+}
+
 /** The placeholder shown inside an empty container (pointer-transparent so drops
  *  land on the container, not the hint). */
 function EmptyHint() {
@@ -696,8 +716,16 @@ function CanvasNode({
   // empty-icon placeholder box stand in.
   const iconName = isIcon && typeof el.attrs?.["data-icon"] === "string" ? String(el.attrs["data-icon"]) : undefined;
   const iconMarkup = iconName ? iconSvg(iconName) : undefined;
+  // An Embed with no URL — same idea as the empty Icon above: production emits
+  // nothing, so the design surface supplies its own visible stand-in.
+  const unsetEmbed =
+    !ctx.preview &&
+    node.kind === "component" &&
+    node.component === "Embed" &&
+    !String(node.props?.url ?? node.props?.src ?? "").trim();
   const cls =
-    ((el.class ?? "") + deco + (empty ? EMPTY_DECOR : "")) || (isIcon && !iconMarkup ? ICON_PLACEHOLDER : "");
+    ((el.class ?? "") + deco + (empty ? EMPTY_DECOR : "") + (unsetEmbed ? EMBED_PLACEHOLDER_DECOR : "")) ||
+    (isIcon && !iconMarkup ? ICON_PLACEHOLDER : "");
   // Sanitized FIRST — the live canvas is its own render target (real DOM in the
   // builder's own browser session), so it needs the SAME raw-element/attribute
   // floor `toHtml` enforces (element.ts), not just the design-surface UX tweaks
@@ -747,7 +775,7 @@ function CanvasNode({
   return React.createElement(
     tag,
     { className: cls || undefined, ...attrs, ...inter },
-    empty ? <EmptyHint /> : renderChildren(el.children, id ?? "", ctx),
+    empty ? <EmptyHint /> : unsetEmbed ? <EmbedHint /> : renderChildren(el.children, id ?? "", ctx),
     // A collection binding renders its template once per item; the ghosts are
     // items 2..n, so the author sees the count they'll ship (null for every
     // other node, which is all of them).
