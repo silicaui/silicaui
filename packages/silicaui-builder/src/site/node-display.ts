@@ -3,11 +3,28 @@
  * text hint. Shared by the Navigator (tree rows) and the Inspector (identity
  * header) so both name a node the same way. No JSX here — callers wrap the
  * IconName in <Icon>.
+ *
+ * One node kind can't be named from the document alone: a `host` node carries
+ * only the host's allowlist key (`site.map`), and what it should READ as lives
+ * in that host's `HostComponentDef`. So every helper here takes an optional
+ * lookup into those defs. It stays a parameter rather than a module-level
+ * registry because a shell can hold several editors on several hosts at once —
+ * `useHostDisplay()` (host-context) is the React binding.
  */
 import type { Node } from "@wizeworks/silicaui-html";
 import { getComponent } from "@wizeworks/silicaui-html";
 import { isIconName, typeIcon } from "../shared/icons";
 import type { IconName } from "../shared/icons";
+
+/** What a host declared about one of its components, narrowed to the fields the
+ *  display layer reads (`HostComponentDef` structurally satisfies it). */
+export interface HostNodeDisplay {
+  label?: string;
+  icon?: string;
+}
+
+/** Resolve a `host` node's component key to what the host registered for it. */
+export type HostDisplayLookup = (component: string) => HostNodeDisplay | undefined;
 
 /** Element-tag → glyph (component atoms resolve through `typeIcon`). */
 const TAG_ICON: Record<string, IconName> = {
@@ -76,9 +93,15 @@ function layoutIcon(node: Node): IconName | undefined {
 }
 
 /** The glyph representing a node's type. */
-export function nodeIconName(node: Node): IconName {
+export function nodeIconName(node: Node, hostDisplay?: HostDisplayLookup): IconName {
   if (node.kind === "outlet") return "outlet";
-  if (node.kind === "host") return "plug";
+  if (node.kind === "host") {
+    // The plug is the FALLBACK, not the answer: a host that picked a glyph for
+    // its component gets it here as well as in the palette, or the row it just
+    // inserted stops looking like the row it inserted it from.
+    const declared = hostDisplay?.(node.component)?.icon;
+    return declared && isIconName(declared) ? declared : "plug";
+  }
   if (node.kind === "component") {
     // The registry already declares a glyph per component; `typeIcon` only
     // matches when the component name IS an icon name, so it misses anything
@@ -158,10 +181,14 @@ const TAG_LABEL: Record<string, string> = {
  * Turn a registry key into prose — `ProductGrid` → "Product grid",
  * `feature-media` → "Feature media". Runs of capitals stay together so an
  * acronym survives (`HTMLBlock` → "HTML block").
+ *
+ * The dot is a separator for the same reason the dash is: host allowlist keys
+ * are conventionally namespaced (`site.map`), and treating the dot as prose
+ * yields "Site.map" — visibly a key, in a rail that is meant to hold none.
  */
 function humanize(key: string): string {
   const words = key
-    .replace(/[-_]+/g, " ")
+    .replace(/[-_.]+/g, " ")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
     .trim()
@@ -179,18 +206,25 @@ function humanize(key: string): string {
  * "Menu", "List item" — never a raw tag or registry key. Components resolve
  * through the registry, whose `label` is documented as feeding exactly this.
  */
-export function nodeTypeLabel(node: Node): string {
+export function nodeTypeLabel(node: Node, hostDisplay?: HostDisplayLookup): string {
   if (node.kind === "outlet") return "Page content";
-  if (node.kind === "host" || node.kind === "component") {
+  if (node.kind === "host") {
+    // The host's own registered label first: `site.map` is an allowlist key, and
+    // no amount of prose-ing turns it into the words the host already wrote.
+    // Nodes placed from the palette carry it as a `label` and never reach here;
+    // ones a host authored programmatically do.
+    return hostDisplay?.(node.component)?.label ?? humanize(node.component);
+  }
+  if (node.kind === "component") {
     return getComponent(node.component)?.label ?? humanize(node.component);
   }
   return TAG_LABEL[node.tag] ?? humanize(node.tag);
 }
 
 /** A node's identity: an explicit layer name, else what kind of thing it is. */
-export function nodeName(node: Node): string {
+export function nodeName(node: Node, hostDisplay?: HostDisplayLookup): string {
   if (node.kind !== "outlet" && node.label) return node.label;
-  return nodeTypeLabel(node);
+  return nodeTypeLabel(node, hostDisplay);
 }
 
 /**
@@ -213,9 +247,9 @@ function declaredName(node: Node): string | undefined {
  * Pricing link"; the row's glyph already carries the type, so it is not
  * repeated as text.
  */
-export function nodeRowLabel(node: Node): string {
+export function nodeRowLabel(node: Node, hostDisplay?: HostDisplayLookup): string {
   if (node.kind !== "outlet" && node.label) return node.label;
-  return textHint(node) ?? truncate(declaredName(node)) ?? nodeTypeLabel(node);
+  return textHint(node) ?? truncate(declaredName(node)) ?? nodeTypeLabel(node, hostDisplay);
 }
 
 /** Row labels are one line in a narrow rail — keep them scannable. */

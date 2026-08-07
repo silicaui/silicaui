@@ -32,7 +32,7 @@ import {
 } from "@wizeworks/silicaui-html";
 import { useActiveRoot, useActiveTree, useDocument, useEditor, usePeers, useSelectedNode, useSelection, useSelectionSet } from "./editor-context";
 import { reactAttrName } from "./react-attrs";
-import { useHost } from "./host-context";
+import { useHost, useHostDisplay } from "./host-context";
 import type { BuilderHost } from "./host";
 import { acceptsChildren } from "../engine";
 import type { Editor } from "../engine";
@@ -950,6 +950,7 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
   const doc = useDocument();
   const editor = useEditor();
   const host = useHost();
+  const hostDisplay = useHostDisplay();
   const catalogGroups = React.useMemo(() => catalogForHost(DEFAULT_GROUPS, host), [host]);
   const selectedId = useSelection();
   const selectionSet = useSelectionSet();
@@ -1195,7 +1196,7 @@ export function Canvas({ device = "desktop", dataPreview = true }: { device?: st
         <SelectionOverlay
           boardRef={boardRef}
           selectedId={selectedId}
-          label={selectedNode ? nodeName(selectedNode) : undefined}
+          label={selectedNode ? nodeName(selectedNode, hostDisplay) : undefined}
           version={doc}
         />
         {/* Other editors' selections, under the local ring. Drawn from the same

@@ -16,7 +16,7 @@
 import * as React from "react";
 import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
-import { useHost } from "./host-context";
+import { useHost, useHostDisplay } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
 import { paletteGroups, catalogForHost, makeInsertNode } from "../palette";
 import type { PaletteItem, PaletteGroup } from "../palette";
@@ -64,11 +64,15 @@ function subseqScore(q: string, t: string): number | null {
   return score - text.length * 0.06;
 }
 
-/** Best weighted score across an item's searchable fields, or `null` if no match. */
+/** Best weighted score across an item's searchable fields, or `null` if no match.
+ *
+ *  The key is searched WITHOUT its namespace prefix: `block:`/`host:` is routing
+ *  metadata, and leaving it in both dilutes the score of a real key match and
+ *  makes every namespaced row a hit for the letters h-o-s-t. */
 function scoreItem(q: string, f: FlatItem): number | null {
   const fields: Array<[string | undefined, number]> = [
     [f.item.label, 1],
-    [f.item.key.replace(/^block:/, ""), 0.7],
+    [f.item.key.replace(/^(block|host):/, ""), 0.7],
     [f.item.hint, 0.45],
     [f.groupLabel, 0.35],
   ];
@@ -83,6 +87,24 @@ function scoreItem(q: string, f: FlatItem): number | null {
   return best;
 }
 
+/**
+ * One catalog row. In SEARCH results it also carries the group it came from as a
+ * trailing badge.
+ *
+ * The badge gives way before the name does, and that ordering is the whole point
+ * of the flex values. A `shrink-0` badge beside a plain `truncate` label is the
+ * wrong way round: `truncate` sets `overflow: hidden`, which already zeroes the
+ * label's automatic minimum size, so in a narrow dock a 19-character group
+ * ("Video, audio & maps") keeps every pixel while the NAME truncates to nothing
+ * — rows that are an icon, a category, and no answer to what the author just
+ * typed. `flex-1` on the label would not fix it either: a `0` basis means the
+ * label claims no width of its own and only ever gets what the badge leaves.
+ *
+ * So: `flex-auto` (grow, and a basis of the label's real width) against a badge
+ * whose shrink factor is large enough that flexbox's size-weighted distribution
+ * takes the deficit out of the badge first — it collapses to nothing, and only
+ * then does the name start to truncate. The badge is the redundant half.
+ */
 function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string }) {
   const editor = useEditor();
   return (
@@ -90,7 +112,9 @@ function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string 
       type="button"
       className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
       draggable
-      title={item.hint}
+      // Falling back to the label keeps a truncated row readable on hover — the
+      // rows most likely to lose text are the ones with no hint to show instead.
+      title={item.hint ?? item.label}
       data-insert-key={item.key}
       onDragStart={(e) => {
         e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: item.key }));
@@ -98,9 +122,13 @@ function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string 
       }}
       onClick={() => editor.insertRelative(makeInsertNode(item))}
     >
-      <Icon name={item.icon} className="text-base-content/55" />
-      <span className="truncate">{item.label}</span>
-      {groupLabel && <span className="ml-auto shrink-0 text-xs uppercase tracking-wide text-base-content/35">{groupLabel}</span>}
+      <Icon name={item.icon} className="shrink-0 text-base-content/55" />
+      <span className="min-w-0 flex-auto truncate text-left">{item.label}</span>
+      {groupLabel && (
+        <span className="min-w-0 shrink-[99] truncate text-xs uppercase tracking-wide text-base-content/35">
+          {groupLabel}
+        </span>
+      )}
     </button>
   );
 }
@@ -168,7 +196,8 @@ function ComponentsSection() {
 /** A one-line reminder of where the next click-insert will land. */
 function TargetHint() {
   const selected = useSelectedNode();
-  const where = selected ? nodeName(selected) : "the page";
+  const hostDisplay = useHostDisplay();
+  const where = selected ? nodeName(selected, hostDisplay) : "the page";
   return (
     <p className="px-2.5 pb-1 text-xs text-base-content/45">
       Inserts into <span className="font-medium text-base-content/70">{where}</span>. Drag onto the canvas to place it.

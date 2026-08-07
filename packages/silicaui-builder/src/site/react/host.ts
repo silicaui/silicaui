@@ -43,15 +43,42 @@ export interface AssetRef {
 }
 
 /** A host component the builder may place as a `HostNode` (spec §A.5). Drives the
- *  Insert palette (an entry per def) and the Inspector's per-component prop panel. */
+ *  Insert palette (an entry per def) and the Inspector's per-component prop panel.
+ *
+ *  Every display field here reaches every surface that names the component — the
+ *  palette row, the Navigator glyph and row, the Inspector's identity header —
+ *  so a host component reads like a first-class one wherever it appears, never
+ *  as its raw `name`. */
 export interface HostComponentDef {
   /** Allowlist key matched against `HostNode.component`. */
   name: string;
-  /** Palette + Navigator label, e.g. "Checkout". */
+  /**
+   * The name an author reads: the palette row, the Navigator row, the
+   * Inspector's identity header. Inserting stamps it onto the node as its layer
+   * label, so `name` (`site.map`, `CheckoutWidget`) never reaches the author —
+   * and because it is a label, they can rename it afterwards like any other.
+   */
   label: string;
-  /** Palette grouping + optional icon (a registered icon name). */
+  /**
+   * The palette group this files under, as DISPLAY COPY — the group's heading,
+   * verbatim ("Video & maps", not "video-maps"). A category naming one of the
+   * builder's own groups (`Media`, `Content`, …, by key or heading, case- and
+   * space-insensitive) merges INTO that group rather than opening a second
+   * section under an identical heading. Default: "Host".
+   */
   category?: string;
+  /**
+   * A registered icon name for the palette row, the Navigator glyph and the
+   * identity header. Omitted — or naming an icon that doesn't exist, which
+   * warns once — falls back to the generic plug.
+   */
   icon?: string;
+  /**
+   * One line of "what is this, and when would I reach for it" — the palette
+   * row's tooltip, and a ranked field in palette search (so a component whose
+   * label doesn't contain the word an author types is still findable).
+   */
+  hint?: string;
   /** Declared props → Inspector controls + host-side validation. */
   props?: HostPropDef[];
   /** Values stamped into a freshly-inserted node's `props`. */

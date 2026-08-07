@@ -18,7 +18,7 @@ import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "@wizeworks/si
 import { useClaim, useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
 import { peerColor } from "../peers";
 import { setClassTokenMany } from "../commands";
-import { useHost } from "./host-context";
+import { useHost, useHostDisplay } from "./host-context";
 import type { AssetRef, HostPropDef, InspectorPanelCtx, InspectorTabDef, SelectableNode } from "./host";
 import { BREAKPOINT_CHOICES, useBreakpoint } from "./breakpoint-context";
 import { tokenStateAt } from "../class-tokens";
@@ -984,12 +984,13 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
 /** Node-level actions, pinned below the tabs so they're reachable from either. */
 function NodeFooter({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
+  const hostDisplay = useHostDisplay();
   return (
     <div className="flex-none border-t border-base-200 px-3.5 py-3">
       <button
         type="button"
         className="btn btn-sm btn-soft btn-secondary w-full mb-2"
-        onClick={() => editor.createSymbol(nodeName(node))}
+        onClick={() => editor.createSymbol(nodeName(node, hostDisplay))}
       >
         <Icon name="box" /> Save as component
       </button>
@@ -1121,6 +1122,7 @@ function HostPanels({ id, node }: { id: string; node: Node }) {
  *  and a visibility toggle (a `hidden` class token). */
 function ElementSection({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
+  const hostDisplay = useHostDisplay();
   const tag = node.kind === "element" ? node.tag : undefined;
   const family = tag ? familyOf(tag) : undefined;
   const cls = node.kind !== "outlet" ? node.class ?? "" : "";
@@ -1140,7 +1142,7 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
         <CommitInput
           value={node.kind !== "outlet" ? node.label ?? "" : ""}
           reseed={id}
-          placeholder={nodeName(node)}
+          placeholder={nodeName(node, hostDisplay)}
           onCommit={(v) => editor.setLabel(id, v)}
         />
       </Row>
@@ -1824,17 +1826,30 @@ function ClaimNotice({ id }: { id: string }) {
   );
 }
 
+/** What KIND of thing the selection is, under its name.
+ *
+ *  A `host` node gets its own arm rather than falling through: a host component
+ *  is a region the HOST renders, an outlet is where a page body lands inside a
+ *  frame — different primitives, different rules (one takes props, the other is
+ *  structural and unselectable), and collapsing them told the author the two
+ *  were the same thing. */
+function kindLabelOf(node: Node): string {
+  if (node.kind === "component") return "Component";
+  if (node.kind === "host") return "Host component";
+  if (node.kind === "element") return `<${node.tag}>`;
+  return "Outlet";
+}
+
 function IdentityHeader({ node }: { node: Node }) {
-  const kindLabel =
-    node.kind === "component" ? "Component" : node.kind === "element" ? `<${node.tag}>` : "Outlet";
+  const hostDisplay = useHostDisplay();
   return (
-    <div className="flex items-center gap-2 px-3.5 py-3 border-b border-base-200">
+    <div data-testid="inspector-identity" className="flex items-center gap-2 px-3.5 py-3 border-b border-base-200">
       <span className="grid size-7 flex-none place-items-center rounded-field bg-base-200 text-base-content/70">
-        <Icon name={nodeIconName(node)} />
+        <Icon name={nodeIconName(node, hostDisplay)} />
       </span>
       <div className="min-w-0">
-        <div className="font-semibold truncate">{nodeName(node)}</div>
-        <div className="text-xs text-base-content/45 truncate">{kindLabel}</div>
+        <div className="font-semibold truncate">{nodeName(node, hostDisplay)}</div>
+        <div className="text-xs text-base-content/45 truncate">{kindLabelOf(node)}</div>
       </div>
     </div>
   );
