@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-dnd
 
+## 0.49.0
+
 ## 0.48.0
 
 ## 0.47.0

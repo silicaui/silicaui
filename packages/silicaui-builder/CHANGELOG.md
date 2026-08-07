@@ -1,5 +1,205 @@
 # @wizeworks/silicaui-builder
 
+## 0.49.0
+
+### Minor Changes
+
+- aeb02f8: An email token silica can't parse now belongs to the host, instead of surviving as literal braces
+
+  Silica's inline merge-token pass matched exactly one thing: a bare dotted path, `[a-zA-Z0-9_.]+`. A
+  token carrying anything else — an ESP's documented fallback syntax, say
+  `{{customer.firstName ?? "there"}}` — didn't match, so the scanner never saw it. It rode through
+  projection untouched and rendered as raw `{{` `}}` in the canvas's Preview.
+
+  The send was fine, because a host that runs its own interpolation pass over the projected HTML
+  understands its own syntax. That is exactly what made this bad: the author edited an email that
+  looked broken, previewed an email that looked broken, and shipped an email that was correct. Preview
+  is supposed to be the answer to "what will they actually get" — and there was no seam to fix it
+  from outside, because text tokens never reached the host at all. Silica matched and substituted them
+  itself, or silently did nothing.
+
+  ### The grammar was the wrong thing to widen
+
+  The obvious repair is to teach the regex about `??`. That answer is wrong twice over: it is `??`
+  today, a `|` filter next, a conditional after that, and each one makes silica the owner of an
+  expression language it has no business parsing — while still being wrong for the host whose syntax
+  differs from whatever got hardcoded.
+
+  So the token pass is now split into a **scanner** and a **grammar**. `TOKEN_RE` finds every `{{…}}`
+  an author typed, deliberately lenient about the contents. `TOKEN_PATH_RE` — byte-identical to the
+  pattern this file always matched — decides who owns it. A bare path still resolves through
+  `resolveBinding`, exactly as before. Anything else is an EXPRESSION and goes to a new optional hook:
+
+  ```ts
+  interface EmailResolveHost {
+    resolveExpression?(expr: string, scope: DataScope): Resolved | undefined;
+  }
+  ```
+
+  The host receives the expression with its braces stripped and its outer whitespace trimmed, and
+  nothing else done to it — no tokenizing, no unquoting, no evaluation. A host that already evaluates
+  this syntax on the way out reuses that same evaluator here and gets an identical answer on the
+  canvas, which is the entire point: preview == production, structurally, without silica knowing what
+  `??` means.
+
+  It carries the same three-state contract as `resolveBinding`. `undefined` means "I don't speak this"
+  — the literal `{{…}}` stays exactly as authored and a diagnostic fires, the same keep-what-was-authored
+  rule as everywhere else. A known-but-empty resolution elides. Escaping is shared, so an expression's
+  value is escaped inside `TextNode.html` and is not double-escaped in a button label, subject, or
+  preheader.
+
+  `ResolveDiagnostic` gains **`unknown-expression`**, distinct from `unknown-ref` on purpose: a
+  misspelled field and a syntax nobody wired need different fixes, and an editor badging
+  `{{a ?? "b"}}` as an unknown reference would be lying about which one it is.
+
+  Additive in both directions. A host with no `resolveExpression` gets precisely the passthrough it
+  gets today, plus a diagnostic it is free to ignore. A host implementing only `resolveExpression`
+  works too. Edit mode still shows authored source for every token, path and expression alike — the
+  canvas edits the document, it does not resolve it, and that has not changed.
+
+  ### `src=""` no longer survives the sanitizer
+
+  `isSafeUrl("")` returned true, so an empty URL attribute passed through. Not a security question — a
+  correctness one: the empty string resolves to the _current document_, so `<img src="">` makes the
+  client re-fetch the whole page and then draw a broken-image icon for it. It is never a value anyone
+  meant.
+
+  It was also already contradicted by the code around it. `canvasAttrs` substitutes a placeholder when
+  an Image has no `src`, so an unset image stays visible and selectable while authoring, and its
+  comment already claimed production markup omitted the attribute — which the empty-string carve-out
+  quietly made untrue. Now it does. An unset image gets the placeholder on canvas instead of a broken
+  icon, and the attribute is absent from output.
+
+  ### Verified
+
+  `probe-email` gains fifteen checks covering the seam end to end: a `??` fallback resolving, the exact
+  string the host is handed, paths never reaching `resolveExpression`, escaping in both directions,
+  per-item scope inside a repeat, an unhandled expression keeping its literal source, both
+  backward-compatibility directions, and the resolved output of `toEmailHtml` — the surface where this
+  was actually reported.
+
+### Patch Changes
+
+- 0a50a3d: The canvas stops logging React warnings for attributes it was handed correctly
+
+  Opening any site with a hero video filled the host app's console:
+
+  ```
+  Invalid DOM property `autoplay`. Did you mean `autoPlay`?
+  Invalid DOM property `playsinline`. Did you mean `playsInline`?
+  ```
+
+  Two errors per Video node, on every render. Nothing was actually wrong with the document. A node's
+  `attrs` carry real HTML attribute names because that is what `toHtml` has to emit — `<video autoplay
+muted loop playsinline>` is the correct markup for a muted looping background video, and it is what
+  the `Video` component's own inspector authors, `playsinline` toggle and all. React wants
+  `autoPlay`/`playsInline`, so `canvasAttrs` translates on the way into `createElement`. Its table
+  listed fifteen names and neither of those.
+
+  ### The shape of the bug is drift, not omission
+
+  `canvasAttrs` runs after `sanitizeElement`, so the universe of names that can reach it is exactly
+  `element.ts`'s allow-set. Those are two lists that have to agree, in two packages, with nothing
+  telling anyone editing one to look at the other. `video` gained `autoplay` and `playsinline`; the
+  canvas table did not follow. Nineteen hyphenated SVG presentation attributes — `stroke-width`,
+  `clip-path`, `stop-color`, `dominant-baseline`, `letter-spacing` — had never been listed at all, so
+  a pasted brand logo warned once per attribute per node.
+
+  Checked against React's own `possibleStandardNames`, 22 of the 117 allowed names rendered under a
+  name React rejects.
+
+  So the fix is not "add two entries". Hyphenated names now camelize **by rule** (`reactAttrName`),
+  which is exact for every hyphenated attribute React knows and keeps `SVG_PRESENTATION` correct here
+  for free as it grows; the explicit table is down to what it should always have been — the irregulars
+  whose React spelling can't be derived (`for` → `htmlFor`, `autoplay` → `autoPlay`, `datetime` →
+  `dateTime`). `data-*` and `aria-*` are excluded, since React wants those verbatim. Attributes are
+  rebuilt through the rule rather than renamed in place, so a name nobody thought about still arrives
+  correct.
+
+  ### And a probe, because nothing else could see this
+
+  `probe-canvas-attrs` walks every attribute `element.ts` permits and asserts each one renders under
+  the name React wants — reading React's expectation out of the installed `react-dom` development
+  bundle rather than restating it, since a copied table is one more thing to drift. A console-only
+  defect is invisible to types, to lint, and to any assertion about what rendered: the element appears,
+  the builder looks fine, and the only symptom is red in someone else's console. Checking the two
+  broken attributes would have been worthless — the whole allow-set is checked, so the next attribute
+  added to `element.ts` fails here instead of in a host app.
+
+  Canvas-only throughout. `toHtml` and production markup are untouched — this only ever sees the
+  ephemeral render-time copy.
+
+- 7f4449e: Embed frames what it can play, links what it can't, and covers audio and podcasts
+
+  Seven gaps, all reported against rendered output. They look like seven bugs; they are three,
+  and the third is the one that made the rest inevitable.
+
+  ### The frameable/not-frameable distinction was never actually drawn
+
+  `resolveEmbed` matched a provider by substring and then checked the result against a HOST
+  allowlist. `https://www.google.com/…` is on that allowlist, so an ordinary map page —
+  `/maps/place/…`, the URL anyone actually copies — passed the final "already a bare embed URL"
+  branch and got an `<iframe>`. Google serves those pages `X-Frame-Options: SAMEORIGIN`, so every
+  visitor's browser refused it and the page reserved a blank rectangle where a link used to be.
+  Framing a URL is a claim that it will render, and nothing was checking that claim.
+
+  The allowlist is now path-precise, and the same rule decides every provider: Bandcamp,
+  Simplecast and Megaphone address their players by an internal id that a shareable URL does not
+  carry, and `expand()` is pure and synchronous, so there is nothing to look it up with. Those
+  resolve only from the URL their own embed dialog produces. A share URL becomes a link that
+  works instead of a player that 404s.
+
+  ### The parts of a URL that decide what plays were being dropped
+
+  The unlisted Vimeo hash is the sharp one: `vimeo.com/<id>/<hash>` resolved to
+  `player.vimeo.com/video/<id>`, which plays for the signed-in owner and 401s for everyone else.
+  That is invisible to the person who published it. SoundCloud's `/s-…` secret segment is the same
+  hazard, and Apple's `?i=` is a quieter version — drop it and the embed does not get smaller, it
+  plays the whole album instead of the track. `?t=` start times and `?list=` playlists were dropped
+  too.
+
+  Everything that addresses the media now survives the trip, and parsing goes through `URL` rather
+  than a substring match — so `youtube.com` has to BE the host, not merely appear in the string.
+
+  ### Provider coverage was a list, and lists rot
+
+  `youtube.com/shorts/…` is what a phone's share sheet produces and it was not framed; neither was
+  `/live/`, `/v/`, `vimeo.com/channels/…` or `/groups/…`. So YouTube accepts every path form that
+  names a video, and Vimeo strips container prefixes and requires what remains to start with the
+  id — which also means a container naming NO video (`/channels/staffpicks`) correctly resolves to
+  nothing, because it is not a video.
+
+  Audio and podcasts join on the same terms: Spotify (including `show`/`episode`), SoundCloud,
+  Apple Music, Apple Podcasts, Bandcamp, Simplecast, Megaphone, Transistor, Buzzsprout.
+
+  Those players are fixed-height chrome rather than a picture, so `resolveEmbed` now returns the
+  provider's own height and the 16:9 box applies only to video — a 152px Spotify row in an
+  `aspect-video` frame is a strip of player stranded in a tall empty rectangle. The palette no
+  longer seeds `ratio: "wide"` on a new Embed, because an authored ratio overrides the provider
+  and that seed would have locked every audio embed into 16:9. The Inspector's ratio control leads
+  with `auto` to say so.
+
+  ### And the one that was publishing builder copy to visitors
+
+  An Embed with no URL rendered `Add a YouTube, Vimeo, or Google Maps URL` — through `toHtml`, on
+  live pages, to the public. `verify.mjs` asserted that it did. Authoring affordances belong to the
+  authoring surface, which is how Image and Icon already work, so `toHtml` now renders nothing and
+  the canvas draws its own hint.
+
+  ### Probe
+
+  `verify-embed.mjs` asserts the mapping directly — URL in, player URL out — rather than eyeballing
+  markup, because every failure here is the quiet kind: the author pastes a link, sees a player in
+  the builder, publishes, and the defect exists only for other people. It covers the three shapes
+  at once — not framed but should be, framed but must not be, framed but wrong — across 119 checks,
+  including look-alike hosts that a substring match would have accepted.
+
+- Updated dependencies [aeb02f8]
+- Updated dependencies [7f4449e]
+  - @wizeworks/silicaui-html@0.49.0
+  - @wizeworks/silicaui@0.49.0
+  - @wizeworks/silicaui-panels@0.49.0
+
 ## 0.48.0
 
 ### Patch Changes
