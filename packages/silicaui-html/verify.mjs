@@ -151,7 +151,13 @@ check("Embed (Vimeo) normalizes to player.vimeo.com", vimeoEmbed.includes('src="
 const badEmbed = toHtml({ kind: "component", component: "Embed", props: { url: "https://evil.example.com/x" } });
 check("Embed (unknown host) falls back to a link, NO iframe", !badEmbed.includes("<iframe") && badEmbed.includes('href="https://evil.example.com/x"'));
 const emptyEmbed = toHtml({ kind: "component", component: "Embed", props: {} });
-check("Embed (no url) shows a hint, no iframe", !emptyEmbed.includes("<iframe") && emptyEmbed.includes("Add a YouTube"));
+// This check used to assert the OPPOSITE — that an unset url renders "Add a
+// YouTube, Vimeo, or Google Maps URL" — which is how that builder copy came to
+// be published to visitors on live pages. `toHtml` is what a VISITOR sees; the
+// authoring affordance belongs to the canvas, which draws its own (Canvas.tsx).
+check("Embed (no url) renders nothing at all", !emptyEmbed.includes("<iframe") && !/Add a/i.test(emptyEmbed));
+// Provider coverage, the frameable/not-frameable split and every carried
+// parameter live in verify-embed.mjs — the contract is too big for this file.
 check("arbitrary authored <iframe> STILL downgrades (floor unchanged)", toHtml(el("iframe", undefined, { attrs: { src: "https://www.youtube.com/embed/x" } })).startsWith("<div"));
 
 // ── inline-SVG allowlist: a pasted logo survives; the vectors stay closed ────

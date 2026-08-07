@@ -164,8 +164,12 @@ const CONTENT: PaletteItem[] = [
         key: "embed",
         label: "Embed",
         icon: "video",
-        hint: "YouTube / Vimeo / Google Maps (sandboxed iframe)",
-        make: () => atom("Embed", "rounded-box w-full overflow-hidden", { ratio: "wide", title: "" }),
+        hint: "Video, audio, podcast, or map (sandboxed iframe)",
+        // No seeded `ratio`: an AUTHORED ratio overrides the provider's own
+        // height, so seeding "wide" here would lock every audio and podcast
+        // player into a 16:9 box and strand a 152px Spotify row inside it.
+        // Unset means auto — video gets 16:9, audio gets its published height.
+        make: () => atom("Embed", "rounded-box w-full overflow-hidden", { title: "" }),
     },
     { key: "badge", label: "Badge", icon: "label", make: () => atom("Badge", "badge badge-primary", { text: "Badge" }) },
     { key: "link", label: "Link", icon: "link", make: () => el("a", "link link-primary", { text: "Link", attrs: { href: "#" } }) },

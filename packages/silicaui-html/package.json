@@ -53,7 +53,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-data-sources.mjs && node verify-theme-fonts.mjs && node verify-theme-presets.mjs && node verify-csp.mjs && node verify-scannable.mjs && node verify-contrast.mjs && node verify-theme-css.mjs",
+    "verify": "node verify.mjs && node verify-symbols.mjs && node verify-resolve.mjs && node verify-data-sources.mjs && node verify-embed.mjs && node verify-theme-fonts.mjs && node verify-theme-presets.mjs && node verify-csp.mjs && node verify-scannable.mjs && node verify-contrast.mjs && node verify-theme-css.mjs",
     "golden": "node golden.mjs"
   },
   "peerDependencies": {

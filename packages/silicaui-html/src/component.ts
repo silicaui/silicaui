@@ -16,42 +16,12 @@
  */
 import type { Child, ComponentNode, ElementNode, Node } from "./schema";
 import { esc } from "./class-utils";
-
-/**
- * Known embed providers for the curated `Embed` component: how a shareable URL
- * maps to a provider EMBED URL, plus the closed host allowlist an emitted
- * `<iframe>` may point at. `iframe` is deliberately NOT in the raw-element floor
- * (an arbitrary authored `<iframe>` still downgrades to `<div>`); ONLY this
- * component emits one, and only to an allowlisted third-party host, sandboxed —
- * so maps/video embeds work without opening arbitrary-origin embedding to every
- * authored page. Anything unrecognized falls back to a plain link, never an iframe.
- */
-const EMBED_PROVIDERS: ReadonlyArray<{ test: RegExp; embed: (m: RegExpMatchArray) => string }> = [
-  // YouTube (watch / youtu.be / embed) → privacy-friendly nocookie embed.
-  {
-    test: /(?:youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/,
-    embed: (m) => `https://www.youtube-nocookie.com/embed/${m[1]}`,
-  },
-  // Vimeo.
-  { test: /vimeo\.com\/(?:video\/)?(\d+)/, embed: (m) => `https://player.vimeo.com/video/${m[1]}` },
-  // Google Maps — must already be an /maps/embed URL (the shareable "embed a map" form).
-  { test: /^https:\/\/www\.google\.com\/maps\/embed\?[^\s"'<>]+$/, embed: (m) => m[0] },
-];
-/** The ONLY hosts an emitted embed `<iframe>` src may resolve to (post-normalization). */
-const EMBED_HOSTS = /^https:\/\/(?:www\.youtube-nocookie\.com|player\.vimeo\.com|www\.google\.com)\//;
-
-/** Map a user URL to a safe, allowlisted embed URL — or `undefined` if it isn't a
- *  recognized provider (caller falls back to a link, never a raw iframe). */
-function resolveEmbed(url: string): string | undefined {
-  for (const p of EMBED_PROVIDERS) {
-    const m = url.match(p.test);
-    if (m) {
-      const embed = p.embed(m);
-      if (EMBED_HOSTS.test(embed)) return embed;
-    }
-  }
-  return EMBED_HOSTS.test(url) ? url : undefined; // already a bare allowlisted embed URL
-}
+// Provider URL → frameable player, for the curated `Embed` below. `iframe` is
+// deliberately NOT in the raw-element floor (an arbitrary authored `<iframe>`
+// still downgrades to `<div>`); ONLY that component emits one, and only to an
+// allowlisted third-party host, sandboxed — so video/audio/map embeds work
+// without opening arbitrary-origin embedding to every authored page.
+import { resolveEmbed } from "./embed";
 
 export interface ComponentDef {
   /** The key as it appears in `ComponentNode.component` (e.g. 'Button'). */
@@ -730,12 +700,14 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       return lower(n, "video", { class: full, attrs, children });
     },
   },
-  // Embed — a curated third-party embed (YouTube / Vimeo / Google Maps). The
-  // ONLY component that emits an <iframe>, and only to an allowlisted host, in a
-  // sandbox, via `rawHtml` (so it bypasses the floor that downgrades arbitrary
-  // authored iframes to <div>). `props.url` is normalized to the provider's embed
-  // URL; anything unrecognized falls back to a plain link — never a raw iframe.
-  // `ratio` sizes the responsive frame (default 16:9).
+  // Embed — a curated third-party player (YouTube / Vimeo / Google Maps /
+  // Spotify / SoundCloud / Apple Music + Podcasts / Bandcamp / the podcast
+  // hosts). The ONLY component that emits an <iframe>, and only to an
+  // allowlisted host, in a sandbox, via `rawHtml` (so it bypasses the floor that
+  // downgrades arbitrary authored iframes to <div>). `props.url` is normalized
+  // by `resolveEmbed`; anything it does not recognize as FRAMEABLE falls back to
+  // a plain link — never a raw iframe. See embed.ts for why that distinction is
+  // the whole job.
   {
     name: "Embed",
     category: "media",
@@ -744,30 +716,42 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     expand: (n) => {
       const p = n.props ?? {};
       const url = String(p.url ?? p.src ?? "").trim();
-      const ratioClass = typeof p.ratio === "string" ? RATIO_CLASS[p.ratio] ?? "aspect-video" : "aspect-video";
-      const full = [n.class, ratioClass].filter(Boolean).join(" ");
+      const embed = url ? resolveEmbed(url) : undefined;
       const title = p.title != null ? String(p.title) : "Embedded content";
-      const embed = resolveEmbed(url);
+      // An AUTHORED ratio always wins. Otherwise a fixed-height player (every
+      // audio and podcast provider) takes its own published height, and a video
+      // player takes the 16:9 default — putting a 152px Spotify row in a 16:9
+      // box left a strip of player stranded in a tall empty rectangle.
+      const authored = typeof p.ratio === "string" ? RATIO_CLASS[p.ratio] : undefined;
       if (embed) {
+        const frame = authored ?? embed.height ?? "aspect-video";
         // Trusted, macro-built iframe: fixed sandbox + permissions, allowlisted
         // src. Sized via utility classes, not a style attribute — a style
         // attribute needs CSP `style-src 'unsafe-inline'`, and these classes ride
-        // the same scan as the wrapper's macro-added `relative`/ratio utilities.
+        // the same scan as the wrapper's macro-added `relative`/frame utilities.
         const iframe =
-          `<iframe src="${esc(embed)}" title="${esc(title)}" loading="lazy" ` +
+          `<iframe src="${esc(embed.url)}" title="${esc(title)}" loading="lazy" ` +
           `class="absolute inset-0 h-full w-full border-0" ` +
           `referrerpolicy="strict-origin-when-cross-origin" ` +
           `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" ` +
           `allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms"></iframe>`;
-        const out = lower(n, "div", { class: `${full} relative`.trim() });
+        const out = lower(n, "div", { class: [n.class, frame, "relative"].filter(Boolean).join(" ") });
         out.rawHtml = iframe;
         return out;
       }
-      // Not a recognized provider → a plain link (or a hint when empty). Never an iframe.
-      const fallback: Child = url
-        ? elc("a", "link link-primary", [title], { href: url, target: "_blank", rel: "noopener noreferrer" })
-        : elc("span", "text-base-content/50 text-sm", ["Add a YouTube, Vimeo, or Google Maps URL"]);
-      return lower(n, "div", { class: full, children: [fallback] });
+      // An UNSET url renders NOTHING. The old "Add a YouTube, Vimeo, or Google
+      // Maps URL" hint was builder copy sitting in the shared projection, so it
+      // published verbatim to visitors. Canvas affordances belong to the canvas
+      // (Image and Icon already work this way), and an unconfigured embed should
+      // not reserve space on a live page either.
+      if (!url) return lower(n, "div", {});
+      // Unrecognized → a link, and NO frame: the aspect box exists to size a
+      // player, so wrapping the fallback in one strands it in a tall empty
+      // rectangle. An authored ratio is still honored if one was set.
+      return lower(n, "div", {
+        class: [n.class, authored].filter(Boolean).join(" "),
+        children: [elc("a", "link link-primary", [title], { href: url, target: "_blank", rel: "noopener noreferrer" })],
+      });
     },
   },
   // Heading — <h1>…<h6> from props.level (default 2, clamped).

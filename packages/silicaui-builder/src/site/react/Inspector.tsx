@@ -205,11 +205,20 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
     { key: "muted", label: "Muted", control: "toggle" },
     { key: "playsinline", label: "Plays inline", control: "toggle" },
   ],
-  // Embed — a curated third-party embed. Only YouTube/Vimeo/Google Maps URLs
-  // produce a (sandboxed) iframe; anything else falls back to a link.
+  // Embed — a curated third-party player: video (YouTube/Vimeo), audio and
+  // podcasts (Spotify, SoundCloud, Apple Music + Podcasts, Bandcamp, Simplecast,
+  // Megaphone, Transistor, Buzzsprout), and Google Maps. Only a URL that is
+  // actually FRAMEABLE produces a (sandboxed) iframe; anything else — including
+  // an ordinary Google Maps page, which the browser refuses to frame — falls
+  // back to a link. `resolveEmbed` in silicaui-html is the whole contract.
+  //
+  // "auto" leads the ratio list because it is what an unset prop means: audio
+  // players carry their own fixed height and only video wants a 16:9 box. The
+  // control would otherwise DISPLAY "wide" while the prop was unset — and,
+  // being authored, an explicit ratio overrides the provider's height.
   Embed: [
-    { key: "url", label: "Embed URL", control: "text", placeholder: "YouTube / Vimeo / Google Maps URL" },
-    { key: "ratio", label: "Aspect ratio", control: "select", options: ["wide", "square", "portrait"] },
+    { key: "url", label: "Embed URL", control: "text", placeholder: "Video, audio, podcast, or map URL" },
+    { key: "ratio", label: "Aspect ratio", control: "select", options: ["auto", "wide", "square", "portrait"] },
     { key: "title", label: "Title (a11y)", control: "text" },
   ],
   Collapse: [
