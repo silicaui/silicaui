@@ -128,11 +128,21 @@ renderHostNode?(node: HostNode, ctx: HostRenderCtx): React.ReactNode;
 export interface HostComponentDef {
   /** Allowlist key matched against HostNode.component. */
   name: string;
-  /** Palette + Navigator label, e.g. "Checkout". */
+  /** The name an author READS — palette row, Navigator row, Inspector identity
+   *  header. Stamped onto a freshly-inserted node as its layer label, so `name`
+   *  (`site.map`) never surfaces. */
   label: string;
-  /** Palette grouping + optional icon (a registered icon name). */
+  /** Palette grouping, as DISPLAY COPY — the group heading, verbatim. One that
+   *  names a built-in group (`Media`, `Content`, …, matched on key or heading)
+   *  merges INTO it rather than opening a second identical heading beneath it.
+   *  Default "Host". */
   category?: string;
+  /** A registered icon name, for the palette row AND the Navigator/Inspector
+   *  glyph. Unknown → the generic plug, warned once. */
   icon?: string;
+  /** One line of what-and-when: the row's tooltip, and a ranked field in palette
+   *  search. */
+  hint?: string;
   /** Declared props → drives Inspector controls + host-side validation. */
   props?: HostPropDef[];
   /** Values stamped into a freshly inserted node's `props`. */
@@ -176,8 +186,11 @@ export interface HostRenderCtx {
 
 **Palette** ([packages/silicaui-builder/src/site/react/Palette.tsx](../packages/silicaui-builder/src/site/react/Palette.tsx) + [palette.ts](../packages/silicaui-builder/src/site/palette.ts)):
 - Merge `host.hostComponents()` into the Insert palette as a group ("Host" / per `category`), each item stamping a `HostNode { kind:"host", component, props: defaultProps, class: defaultClass, locked: pinned ? "host" : undefined }`. Reuses the existing `catalog()` merge semantics path.
+- **A host row is a full palette row, not a reduced one.** It carries the def's `icon`, `hint` and `label` the way a block row carries a block's — same glyph vocabulary, same tooltip, same four fields feeding search ranking — and `makeInsertNode` stamps `label` onto the placed node. Anything less and a host spends real effort on fields that render nowhere, with a plug and a sentence-cased allowlist key (`Site.map`) as the only feedback.
+- **`catalog().hide` reaches these rows too** (`catalogForHost` runs them back through `mergeCatalog` as its own base). They are the one set of rows a host does not author — the engine derives them from `hostComponents()`, which is also the render + prop allowlist — so "registered, but not offered for direct placement" cannot be said by deregistering. That is the normal shape whenever a host core is the raw ingredient of a curated block.
 
 **Inspector** ([packages/silicaui-builder/src/site/react/Inspector.tsx](../packages/silicaui-builder/src/site/react/Inspector.tsx)):
+- The identity header names a host node **"Host component"**. It is not an Outlet: one is a host-rendered region that takes props, the other is the structural slot a page body lands in, and the two are not interchangeable to an author reading the rail.
 - For a selected host node, render a **Host** panel from the component's `HostPropDef[]` (text/number/boolean/select/color controls), writing through `setProp` — the same `InspectorPanelCtx.setProp` path built-in panels use. Universal controls (class chips/swatches, id/label/visibility, lock toggle) still render, as they do for every node. This is additive to the existing host `inspectorPanels()` mechanism (a host could alternatively supply a bespoke panel).
 
 ### A.7 Preview == production

@@ -41,6 +41,12 @@ const demoHost: BuilderHost = {
         ],
       },
     ],
+    // `hide` reaches host-component rows, not just built-in ones. `ReelFrame` is
+    // registered below — so it renders, takes props and survives in a document —
+    // but it is the raw ingredient of a curated block, not something an author
+    // should place bare, and deregistering it to keep it out of the palette
+    // would take the rest of that with it.
+    hide: ["host:ReelFrame"],
   }),
   dataSources: () => [
     { key: "site.title", label: "Site title", cardinality: "scalar" },
@@ -195,6 +201,8 @@ const demoHost: BuilderHost = {
       name: "PriceTag",
       label: "Price Tag",
       category: "Commerce",
+      icon: "pricing",
+      hint: "The live price of the product this page is about.",
       defaultClass: "inline-block",
       defaultProps: { amount: 9.99, currency: "USD" },
       props: [
@@ -202,7 +210,30 @@ const demoHost: BuilderHost = {
         { name: "currency", label: "Currency", type: "select", options: [{ value: "USD", label: "USD" }, { value: "EUR", label: "EUR" }] },
       ],
     },
-    { name: "CheckoutWidget", label: "Checkout", category: "Commerce", pinned: true, defaultClass: "block" },
+    { name: "CheckoutWidget", label: "Checkout", category: "Commerce", icon: "cta", pinned: true, defaultClass: "block" },
+    // `category` is DISPLAY COPY and this one names a shelf the builder already
+    // has, so the row lands INSIDE the built-in Media group instead of opening a
+    // second section headed "Media" directly beneath it.
+    {
+      name: "video.reel",
+      label: "Video reel",
+      category: "Media",
+      icon: "video",
+      hint: "A looping highlight reel, played by the host.",
+    },
+    // Registered but HIDDEN from the palette (see `catalog().hide` above) — the
+    // bare frame the curated row wraps.
+    { name: "ReelFrame", label: "Video reel frame", category: "Media", icon: "video" },
+    // A category matching nothing built-in opens its own group, labelled with the
+    // host's copy VERBATIM — and a long one, which is the width the search row's
+    // group badge has to yield at rather than eating the item's name.
+    {
+      name: "store.map",
+      label: "Store map",
+      category: "Video, audio & maps",
+      icon: "monitor",
+      hint: "A pin on a map, wherever this tenant trades from.",
+    },
   ],
   renderHostNode: (node, ctx) => {
     if (node.component === "PriceTag") {
@@ -212,6 +243,20 @@ const demoHost: BuilderHost = {
         <span data-testid="host-pricetag" className="badge badge-primary">
           {currency} {amount.toFixed(2)}
         </span>
+      );
+    }
+    if (node.component === "store.map") {
+      return (
+        <div data-testid="host-map" className="rounded-box border border-base-300 p-4 text-center text-sm">
+          Live store map{ctx.preview ? " (preview)" : ""}
+        </div>
+      );
+    }
+    if (node.component === "video.reel" || node.component === "ReelFrame") {
+      return (
+        <div data-testid="host-reel" className="rounded-box border border-base-300 p-4 text-center text-sm">
+          Live video reel{ctx.preview ? " (preview)" : ""}
+        </div>
       );
     }
     return (

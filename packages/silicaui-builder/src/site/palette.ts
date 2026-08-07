@@ -12,6 +12,8 @@
 import type { Node } from "@wizeworks/silicaui-html";
 import { atom, el, host } from "@wizeworks/silicaui-html";
 import { listBlocks } from "@wizeworks/silicaui-html/blocks";
+import { isIconName } from "../shared/icons";
+import { warnOnce } from "../shared/warn";
 import type { IconName } from "../shared/icons";
 import type { HostComponentDef } from "./react/host";
 
@@ -1287,35 +1289,82 @@ function interactiveItems(): PaletteItem[] {
         .map(blockItem);
 }
 
+/** Normalize display copy to a group key — "Video & Maps" and "video-&-maps"
+ *  name the same shelf, and a host should not have to know which we store. */
+function groupSlug(text: string): string {
+    return text.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+/**
+ * The glyph for a host def's palette row: the icon it registered, or the generic
+ * plug.
+ *
+ * An unknown name WARNS rather than silently falling back, because the silent
+ * outcome — a palette of identical plugs — reads as "host components don't get
+ * icons", not as "you typed a name we don't have". Same loose-string contract as
+ * `inspectorTabs()`: the def crosses a package boundary, so `IconName` is not
+ * enforceable at the type level and a typo has to announce itself at runtime.
+ */
+function hostIcon(def: HostComponentDef): IconName {
+    if (!def.icon) return "plug";
+    if (isIconName(def.icon)) return def.icon;
+    warnOnce(
+        `host:icon:${def.icon}`,
+        `hostComponents(): "${def.name}" asked for unknown icon "${def.icon}" — using the default plug.`,
+    );
+    return "plug";
+}
+
+/**
+ * Which palette group a host `category` files under.
+ *
+ * `category` is DISPLAY COPY, so a host writing "Media" means the Media shelf
+ * the builder already has. Matching it against the base groups — by key or by
+ * heading — merges into that one, rather than appending a second section whose
+ * heading is identical to the first. Anything unmatched opens its own group,
+ * labelled with the host's copy verbatim.
+ */
+function hostGroupFor(category: string, base: readonly PaletteGroup[]): { key: string; label: string } {
+    const want = groupSlug(category);
+    const hit = base.find((g) => g.key === want || groupSlug(g.label) === want);
+    return hit ? { key: hit.key, label: hit.label } : { key: `hostcat:${want}`, label: category };
+}
+
 /**
  * Host-declared components → palette items (spec §A.5). Each `make()` returns a
  * `HostNode` carrying the def's default class/props, HOST-LOCKED (`locked:
  * "host"`) when the def is `pinned` — so a pinned region inserts non-deletable.
  * Grouped under the def's `category` (default "Host").
+ *
+ * The row carries the def's WHOLE display surface — `icon`, `hint` and `label` —
+ * so a host component is the same kind of palette row a block is: same glyph
+ * vocabulary, same tooltip, same four fields feeding search. Pass `base` (the
+ * groups these will merge into) so a category naming an existing shelf lands in
+ * it; without it every category opens its own group.
  */
-export function hostComponentGroups(defs: readonly HostComponentDef[]): PaletteGroup[] {
-    const byCategory = new Map<string, PaletteItem[]>();
+export function hostComponentGroups(
+    defs: readonly HostComponentDef[],
+    base: readonly PaletteGroup[] = [],
+): PaletteGroup[] {
+    const byKey = new Map<string, PaletteGroup>();
     for (const def of defs) {
         const item: PaletteItem = {
             key: `host:${def.name}`,
             label: def.label,
-            icon: "plug",
+            icon: hostIcon(def),
+            hint: def.hint,
             make: () => {
                 const node = host(def.name, def.defaultClass, def.defaultProps ? { ...def.defaultProps } : undefined);
                 if (def.pinned) node.locked = "host";
                 return node;
             },
         };
-        const cat = def.category ?? "Host";
-        const list = byCategory.get(cat);
-        if (list) list.push(item);
-        else byCategory.set(cat, [item]);
+        const group = hostGroupFor(def.category ?? "Host", base);
+        const existing = byKey.get(group.key);
+        if (existing) existing.items.push(item);
+        else byKey.set(group.key, { ...group, items: [item] });
     }
-    return [...byCategory].map(([label, items]) => ({
-        key: `hostcat:${label.toLowerCase().replace(/\s+/g, "-")}`,
-        label,
-        items,
-    }));
+    return [...byKey.values()];
 }
 
 /**
@@ -1323,14 +1372,26 @@ export function hostComponentGroups(defs: readonly HostComponentDef[]): PaletteG
  * `catalog()` extend/hide, and its declared host components (spec §A.5) — the
  * single source both the Palette (rendering) and the Canvas (drop resolution)
  * build from, so a host node resolves identically whichever surface placed it.
+ *
+ * `hide` reaches the host rows too. They are the one set of rows a host does NOT
+ * author — the engine derives them from `hostComponents()`, which is also the
+ * render + prop allowlist — so "don't offer this one directly" cannot be said by
+ * deregistering it. That matters whenever a host component is the raw ingredient
+ * of a curated block rather than something to place bare. Running them back
+ * through `mergeCatalog` as its own base applies exactly the item-key/group-key
+ * matching every other palette row already gets.
  */
 export function catalogForHost(
     base: readonly PaletteGroup[],
     adapter?: { catalog?(): { extend?: PaletteGroup[]; hide?: string[] }; hostComponents?(): HostComponentDef[] },
 ): PaletteGroup[] {
-    let groups = mergeCatalog(base, adapter?.catalog?.());
+    const contributed = adapter?.catalog?.();
+    let groups = mergeCatalog(base, contributed);
     const defs = adapter?.hostComponents?.() ?? [];
-    if (defs.length) groups = mergeCatalog(groups, { extend: hostComponentGroups(defs) });
+    if (defs.length) {
+        const hostGroups = mergeCatalog(hostComponentGroups(defs, base), { hide: contributed?.hide });
+        if (hostGroups.length) groups = mergeCatalog(groups, { extend: hostGroups });
+    }
     return groups;
 }
 
@@ -1352,13 +1413,21 @@ export function paletteGroups(): PaletteGroup[] {
 
 /**
  * The node an insert actually places: `item.make()`, plus — for a composed
- * section — the catalog name stamped on as its layer label.
+ * section or a host component — the catalog name stamped on as its layer label.
  *
  * A block arrives in the tree as an anonymous `<section>` otherwise, throwing
  * away a name the catalog already guarantees is short, Title Case and unique
  * (blocks-contract §8). Carrying it over means the Navigator row reads "Hero —
  * Split CTA" instead of "Section", and the label also marks the node as
  * something the author cares about, so the tree never folds it away.
+ *
+ * A host node has the same problem in a sharper form: its only intrinsic name is
+ * the allowlist key (`site.map`), which the display layer can do nothing better
+ * with than sentence-case it into "Site.map" — while the host registered a real
+ * label two fields away. Keyed on the produced node's KIND rather than the
+ * `host:` prefix, so a host component contributed through `catalog().extend`
+ * gets it too, and a plain element contributed under a `host:`-shaped key
+ * doesn't.
  *
  * Primitives are deliberately left alone — labelling every inserted `div`
  * "Group" would just freeze the derived name in place and make renaming it
@@ -1370,7 +1439,8 @@ export function paletteGroups(): PaletteGroup[] {
  */
 export function makeInsertNode(item: PaletteItem): Node {
     const node = item.make();
-    if (!item.key.startsWith("block:") || node.kind === "outlet") return node;
+    if (node.kind === "outlet") return node;
+    if (!item.key.startsWith("block:") && node.kind !== "host") return node;
     return { ...node, label: item.label };
 }
 

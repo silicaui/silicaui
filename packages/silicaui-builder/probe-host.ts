@@ -6,7 +6,9 @@
  * `catalogForHost`), and the pinned → host-locked → non-deletable composition.
  */
 import { Editor, acceptsChildren } from "./src/site/engine";
-import { hostComponentGroups, catalogForHost, paletteGroups } from "./src/site/palette";
+import { hostComponentGroups, catalogForHost, paletteGroups, makeInsertNode } from "./src/site/palette";
+import { nodeIconName, nodeName, nodeTypeLabel } from "./src/site/node-display";
+import type { HostDisplayLookup } from "./src/site/node-display";
 import type { HostComponentDef } from "./src/site/react/host";
 import { el, host, stampTree, toHtml, flattenSymbols, resolveTree } from "@wizeworks/silicaui-html";
 import type { Node, Theme } from "@wizeworks/silicaui-html";
@@ -97,6 +99,101 @@ console.log("host components become palette items");
   const merged = catalogForHost(paletteGroups(), { hostComponents: () => defs });
   check("catalogForHost appends the host groups", merged.some((g) => g.items.some((i) => i.key === "host:PriceTag")));
   check("built-in groups survive the merge", merged.some((g) => g.key === "layout"));
+}
+
+// ── 4b. the row carries the WHOLE def, not four fields of it ─────────────────
+// Everything below is invisible to any assertion about trees or rendered HTML —
+// it lives in how the palette and inspector READ a def — which is why it once
+// shipped past a full render sweep. Probing it here is the cheap half; the e2e
+// spec covers the same ground through the real chrome.
+console.log("a host component is a first-class palette row");
+{
+  const warnings: string[] = [];
+  const realWarn = console.warn;
+  console.warn = (msg: string) => void warnings.push(String(msg));
+
+  const defs: HostComponentDef[] = [
+    { name: "site.map", label: "Store map", category: "Media", icon: "image", hint: "Where to find us." },
+    { name: "site.reel", label: "Reel", category: "Media", icon: "no-such-icon" },
+    { name: "site.bare", label: "Bare", category: "Video & Maps" },
+  ];
+  const base = paletteGroups();
+  const groups = hostComponentGroups(defs, base);
+  const item = (key: string) => groups.flatMap((g) => g.items).find((i) => i.key === key);
+
+  check("icon is READ from the def", item("host:site.map")?.icon === "image");
+  check("hint reaches the row (tooltip + search)", item("host:site.map")?.hint === "Where to find us.");
+  check("an unknown icon falls back to the plug", item("host:site.reel")?.icon === "plug");
+  check(
+    "…and says so once, naming the icon",
+    warnings.filter((w) => w.includes("no-such-icon")).length === 1,
+  );
+  check("no icon at all is still the plug", item("host:site.bare")?.icon === "plug");
+
+  // `category` is display copy: one that NAMES a built-in shelf merges into it
+  // rather than opening a second section with an identical heading.
+  check("a category matching a built-in group reuses its key", groups.some((g) => g.key === "media"));
+  check("…and does NOT mint a parallel hostcat group", !groups.some((g) => g.key === "hostcat:media"));
+  const own = groups.find((g) => g.key === "hostcat:video-&-maps");
+  check("an unmatched category opens its own group, labelled verbatim", own?.label === "Video & Maps");
+
+  const mergedGroups = catalogForHost(base, { hostComponents: () => defs });
+  const media = mergedGroups.filter((g) => g.label === "Media");
+  check("the palette shows ONE Media heading, not two", media.length === 1);
+  check("the host row lands inside it", media[0]!.items.some((i) => i.key === "host:site.map"));
+  check("the built-in Media items are still there", media[0]!.items.some((i) => i.key === "carousel"));
+
+  // The registered label reaches the NODE, so the inspector never shows the key.
+  const placed = makeInsertNode(item("host:site.map")!);
+  check("insert stamps the registered label", placed.kind !== "outlet" && placed.label === "Store map");
+
+  // …and a host node authored programmatically (never through the palette)
+  // resolves the same label + glyph through the host's defs.
+  const lookup: HostDisplayLookup = (name) => defs.find((d) => d.name === name);
+  const bare = host("site.map");
+  check("nodeTypeLabel prefers the host's label", nodeTypeLabel(bare, lookup) === "Store map");
+  check("nodeName follows it", nodeName(bare, lookup) === "Store map");
+  check("nodeIconName reads the def's icon", nodeIconName(bare, lookup) === "image");
+  check("no lookup → the plug, as before", nodeIconName(bare) === "plug");
+  check("no lookup → prose, never `Site.map`", nodeTypeLabel(bare) === "Site map");
+
+  console.warn = realWarn;
+}
+
+// ── 4c. `hide` reaches a host row ────────────────────────────────────────────
+console.log("host.catalog().hide can suppress a host component row");
+{
+  const defs: HostComponentDef[] = [
+    { name: "map", label: "Map", category: "Media" },
+    { name: "map.bare", label: "Map frame", category: "Media" },
+    { name: "Solo", label: "Solo", category: "Widgets" },
+  ];
+  const base = paletteGroups();
+  const keys = (groups: ReturnType<typeof paletteGroups>) => groups.flatMap((g) => g.items).map((i) => i.key);
+
+  const hidden = catalogForHost(base, {
+    hostComponents: () => defs,
+    catalog: () => ({ hide: ["host:map.bare"] }),
+  });
+  check("the hidden host row is gone", !keys(hidden).includes("host:map.bare"));
+  check("its sibling survives", keys(hidden).includes("host:map"));
+  check("a built-in row is untouched", keys(hidden).includes("image"));
+
+  // Hiding a host group's last row drops the group heading with it, rather than
+  // leaving an empty section.
+  const emptied = catalogForHost(base, {
+    hostComponents: () => defs,
+    catalog: () => ({ hide: ["host:Solo"] }),
+  });
+  check("a host group emptied by hide disappears", !emptied.some((g) => g.key === "hostcat:widgets"));
+
+  // And hiding still composes with the built-in behaviour it always had.
+  const both = catalogForHost(base, {
+    hostComponents: () => defs,
+    catalog: () => ({ hide: ["host:map", "input"] }),
+  });
+  check("a built-in item hide still works alongside", !keys(both).includes("input"));
+  check("…and the un-hidden host row remains", keys(both).includes("host:map.bare"));
 }
 
 // ── 5. pinned host node is non-deletable (Feature A + B compose) ─────────────

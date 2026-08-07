@@ -8,11 +8,16 @@ import * as React from "react";
 import { icon, typeIcon } from "../icons";
 import type { IconName } from "../icons";
 
+/** `data-icon` names the glyph. Every icon here is inline SVG path data, so
+ *  WHICH one rendered is otherwise unassertable and undebuggable — which is how
+ *  a hardcoded plug stood in for a host's registered icon without any test
+ *  noticing. It is builder chrome only; nothing here reaches a published page. */
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   return (
     <span
       className={className ? `inline-flex ${className}` : "inline-flex"}
       aria-hidden
+      data-icon={name}
       dangerouslySetInnerHTML={{ __html: icon(name) }}
     />
   );

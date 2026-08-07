@@ -188,6 +188,8 @@ interface BuilderHost {
   // CATALOG — what the Add palette offers. Default: the @wizeworks/silicaui-blocks
   // index. MERGE semantics, not a flat replace — a host adding one domain composite
   // should never have to re-enumerate the whole default index to keep it.
+  // `hide` matches item keys OR whole group keys, and covers the host-component
+  // rows below (`host:<name>`) as well as the built-in ones.
   catalog?(): { extend?: CatalogEntry[]; hide?: string[] };
 
   // DATA SOURCES — the flat, host-computed-ONCE catalog that powers the binding
@@ -249,6 +251,28 @@ interface BuilderHost {
   // asks for a source; the host returns a ref (and owns upload, the library, CDN).
   pickAsset?(kind: 'image' | 'video'): Promise<AssetRef | null>;
 
+  // HOST COMPONENTS — the regions the HOST renders (a cart, a related-posts
+  // strip, an analytics tile). Each def becomes an Insert palette row that
+  // places a `host` node, and `renderHostNode` draws it live on the canvas.
+  // Absent → the builder offers no host nodes; a static-site host needs neither.
+  //
+  // The def is the component's whole identity, and every field of it is read:
+  // `icon` is the row's glyph AND the Navigator/Inspector glyph, `hint` is its
+  // tooltip and a search field, `label` is stamped onto the placed node so the
+  // rail never shows the allowlist key. `category` is DISPLAY COPY — a category
+  // naming a built-in group merges into it rather than repeating its heading.
+  //
+  // These rows are the one part of the palette the host does NOT author, so
+  // `catalog().hide` reaches them by key (`host:<name>`): registering a
+  // component is what makes it render and take props, and a host frequently
+  // wants that WITHOUT offering it for direct placement — when it's the raw
+  // ingredient of a curated block rather than a finished thing.
+  hostComponents?(): HostComponentDef[];
+
+  // Live canvas preview of a host node — the host renders its real component.
+  // Absent (or returns null) → the engine draws a labeled placeholder.
+  renderHostNode?(node: HostNode, ctx: { preview: boolean }): ReactNode;
+
   // NOTE: change notification is NOT on the host object — it's a `<Builder>`
   // prop, `onChange(site, ops, meta)`. See §5.1.
 }
@@ -275,6 +299,18 @@ interface InspectorPanel {
   title: string;
   order?: number;
   render(node: BuilderNode, ctx: InspectorCtx): unknown; // a host-rendered subtree
+}
+
+interface HostComponentDef {
+  name: string;      // the allowlist key matched against a host node's `component`
+  label: string;     // what the AUTHOR reads; stamped onto the placed node
+  category?: string; // the group heading, verbatim (default "Host")
+  icon?: string;     // a registered icon name; unknown → the plug, warned once
+  hint?: string;     // the row's tooltip + a ranked search field
+  props?: HostPropDef[];              // → the Inspector's Host panel
+  defaultProps?: Record<string, unknown>;
+  defaultClass?: string;              // LITERAL safelist strings
+  pinned?: boolean;                   // insert host-LOCKED (author cannot clear)
 }
 
 interface DataSource {
