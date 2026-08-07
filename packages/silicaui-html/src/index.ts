@@ -104,8 +104,8 @@ export type { ComponentDef } from "./component";
 // URL, or `undefined` for "this must render as a link, not an iframe". Exported
 // so a host can validate a pasted URL with the SAME rules the projection uses
 // (and so `verify-embed.mjs` can check the mapping directly, not through markup).
-export { resolveEmbed } from "./embed";
-export type { ResolvedEmbed } from "./embed";
+export { resolveEmbed, EMBED_PROVIDERS } from "./embed";
+export type { ResolvedEmbed, EmbedProvider } from "./embed";
 
 // Tree traversal (shared with the builder).
 export { walk, composeFrame } from "./tree";

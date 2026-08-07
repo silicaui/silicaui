@@ -43,7 +43,15 @@ const scoped = (n) => `@wizeworks/${n}`;
 const mention = (s) => s.replace(/(?<!@wizeworks\/)\bsilicaui(-[a-z]+)?\b/g, (m) => `@wizeworks/${m}`);
 
 function writeJson(name, data) {
-  writeFileSync(path.join(dataDir, name), JSON.stringify(data, null, 2) + "\n");
+  // Newlines inside extracted source text (usage examples, doc comments) are
+  // whatever the working copy has on disk — CRLF on a Windows checkout. Left
+  // alone, regenerating on Windows rewrote every one of them to `\r\n` and
+  // produced a 178-line diff of pure line-ending churn that buried the real
+  // change. The catalog is a build artifact about CONTENT, so normalize here,
+  // at the single point everything is written, and the output is identical on
+  // every platform.
+  const json = JSON.stringify(data, null, 2).replace(/\\r\\n/g, "\\n");
+  writeFileSync(path.join(dataDir, name), json + "\n");
   console.log(`  wrote src/data/${name}`);
 }
 
@@ -316,14 +324,64 @@ console.log("silicaui-html components");
 let htmlComponents = [];
 try {
   const htmlIndexUrl = pathToFileURL(path.join(packagesRoot, "silicaui-html/dist/index.js")).href;
-  const { listComponents } = await import(htmlIndexUrl);
+  const { listComponents, EMBED_PROVIDERS } = await import(htmlIndexUrl);
   const componentSrc = readFileSync(path.join(packagesRoot, "silicaui-html/src/component.ts"), "utf8");
-  const componentSrcLines = componentSrc.split("\n");
+  const componentSrcLines = componentSrc.split(/\r?\n/);
 
+  // A def is written one of two ways: an object literal with `name: "X",`, or a
+  // one-line `elementDef("X", category, icon, tag)` call for the many components
+  // that are just a tag with text in it. Only the first was ever looked for, so
+  // 61 components also carried a `sourceFile` pointing at the file with no line.
   function lineOf(name) {
-    const needle = `name: "${name}",`;
-    const idx = componentSrcLines.findIndex((l) => l.includes(needle));
+    const literal = `name: "${name}",`;
+    const factory = `elementDef("${name}",`;
+    const idx = componentSrcLines.findIndex((l) => l.includes(literal) || l.includes(factory));
     return idx === -1 ? null : idx + 1;
+  }
+
+  /** The tag an `elementDef(...)` one-liner lowers to, if that is how it's written. */
+  function elementDefTag(name) {
+    const call = componentSrcLines.find((l) => l.includes(`elementDef("${name}",`));
+    // elementDef(name, category, icon, tag, container?)
+    const m = call && /elementDef\(\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"([^"]+)"/.exec(call);
+    return m ? m[1] : undefined;
+  }
+
+  /**
+   * The `//` block written above a def, as its description.
+   *
+   * Node-tree components had NO documentation in this catalog at all — no props,
+   * no doc, nothing but a name and an icon — because they have no prop interface
+   * to parse (props are read ad hoc inside `expand`). That left every consumer
+   * reading the catalog unable to answer "how do I use this?" for 236 of the 368
+   * components, which is how a real capability comes to look missing from the
+   * outside: `Embed` gained nine providers and the catalog still described it as
+   * a name and an icon.
+   *
+   * These comments already exist and already say the right thing, so read them
+   * rather than adding a `doc` field to 236 defs that would then drift from the
+   * prose right above it.
+   */
+  function docFor(line) {
+    if (!line) return undefined;
+    let i = line - 2; // 0-based index of the line above `name: "X",`
+    // Step over the def's own opening brace and any blank lines.
+    while (i >= 0 && /^\s*(\{)?\s*$/.test(componentSrcLines[i])) i--;
+    const collected = [];
+    while (i >= 0 && /^\s*\/\//.test(componentSrcLines[i])) {
+      collected.unshift(componentSrcLines[i].replace(/^\s*\/\/ ?/, "").trimEnd());
+      i--;
+    }
+    if (!collected.length) return undefined;
+    // Reflow to prose: the comments are hard-wrapped to the source margin, and a
+    // blank `//` line is a paragraph break worth keeping.
+    const text = collected
+      .join("\n")
+      .split(/\n\s*\n/)
+      .map((para) => para.split("\n").join(" ").replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n\n");
+    return text || undefined;
   }
 
   function collectBehaviorTypes(node, acc) {
@@ -342,6 +400,16 @@ try {
       // needs real props/children to expand — leave behaviors unknown, not guessed
     }
     const line = lineOf(def.name);
+    // A one-line `elementDef` has no prose above it because there is nothing
+    // prose would add — so state the one fact it does carry (what it lowers to)
+    // rather than leaving the entry blank. Derived from the call, not written by
+    // hand, so it stays true if the tag changes.
+    const tag = elementDefTag(def.name);
+    const doc =
+      docFor(line) ??
+      (tag
+        ? `${def.name} — lowers to \`<${tag}>\`${def.container ? ", holding its children" : ", carrying `props.text` as its content"}.`
+        : undefined);
     return {
       name: def.name,
       package: scoped("silicaui-html"),
@@ -350,6 +418,13 @@ try {
       icon: def.icon,
       container: !!def.container,
       behaviors,
+      ...(doc ? { doc: mention(doc) } : {}),
+      // Embed is the one component whose behavior depends on an EXTERNAL
+      // allowlist, so the answer to "what URL can I paste?" cannot be inferred
+      // from its shape. Publish the list itself, from the same export the
+      // resolver and its probe use — a hand-copied list here would be one more
+      // thing to drift.
+      ...(def.name === "Embed" && EMBED_PROVIDERS ? { providers: EMBED_PROVIDERS } : {}),
       sourceFile: line ? `silicaui-html/src/component.ts:${line}` : "silicaui-html/src/component.ts",
     };
   });

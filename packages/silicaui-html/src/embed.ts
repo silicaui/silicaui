@@ -36,6 +36,57 @@
  * the host rather than merely appear somewhere in the string.
  */
 
+/** One provider the `Embed` component can frame. */
+export interface EmbedProvider {
+  /** Display name, e.g. "YouTube". */
+  name: string;
+  /** What it plays — lets a host group the list, and a coding agent pick one. */
+  kind: "video" | "audio" | "podcast" | "map";
+  /** A URL shape that resolves. Asserted to actually resolve by verify-embed.mjs. */
+  example: string;
+  /** Set when only the provider's OWN embed-dialog URL resolves, because the
+   *  player id is absent from a shareable link (see rule 3). */
+  embedUrlOnly?: boolean;
+}
+
+/**
+ * Every provider `resolveEmbed` accepts, as data.
+ *
+ * This exists because the answer to "what can I paste into an Embed?" was
+ * previously unanswerable from outside this file — the MCP catalog carries no
+ * props for node-tree components, so a host or a coding agent building on
+ * silicaui had no way to know a Spotify link would frame and a Bandcamp album
+ * page would not. A list nobody can read is the same as no list.
+ *
+ * `verify-embed.mjs` asserts every `example` here still resolves AND that these
+ * entries cover every host in `EMBED_URL` — so adding a provider to the resolver
+ * without documenting it fails the probe, in both directions.
+ */
+export const EMBED_PROVIDERS: readonly EmbedProvider[] = [
+  { name: "YouTube", kind: "video", example: "https://www.youtube.com/watch?v=VIDEO_ID" },
+  { name: "Vimeo", kind: "video", example: "https://vimeo.com/123456789" },
+  { name: "Google Maps", kind: "map", example: "https://www.google.com/maps/embed?pb=…", embedUrlOnly: true },
+  { name: "Spotify", kind: "audio", example: "https://open.spotify.com/track/TRACK_ID" },
+  { name: "SoundCloud", kind: "audio", example: "https://soundcloud.com/artist/track" },
+  { name: "Apple Music", kind: "audio", example: "https://music.apple.com/us/album/name/1441164426" },
+  { name: "Apple Podcasts", kind: "podcast", example: "https://podcasts.apple.com/us/podcast/name/id1200361736" },
+  {
+    name: "Bandcamp",
+    kind: "audio",
+    example: "https://bandcamp.com/EmbeddedPlayer/album=123456789/size=large/",
+    embedUrlOnly: true,
+  },
+  { name: "Simplecast", kind: "podcast", example: "https://player.simplecast.com/EPISODE_ID", embedUrlOnly: true },
+  { name: "Megaphone", kind: "podcast", example: "https://player.megaphone.fm/EPISODE_ID", embedUrlOnly: true },
+  { name: "Transistor", kind: "podcast", example: "https://share.transistor.fm/e/EPISODE_ID", embedUrlOnly: true },
+  {
+    name: "Buzzsprout",
+    kind: "podcast",
+    example: "https://www.buzzsprout.com/123456/9876543?iframe=true",
+    embedUrlOnly: true,
+  },
+];
+
 /** A player we are willing to frame. */
 export interface ResolvedEmbed {
   /** The URL an `<iframe src>` may point at. */
