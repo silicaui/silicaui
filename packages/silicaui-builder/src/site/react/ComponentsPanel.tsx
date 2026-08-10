@@ -11,6 +11,7 @@ import * as React from "react";
 import { Button, Input } from "@wizeworks/silicaui-react";
 import { useEditingSymbol, useEditor, useSymbols } from "./editor-context";
 import { Icon } from "../../shared/react/Icon";
+import { Hint, IconButton } from "../../shared/react/Hint";
 import { NewComponentButton } from "./ComponentStarterDialog";
 
 export function ComponentsPanel() {
@@ -34,13 +35,27 @@ export function ComponentsPanel() {
       <div className="flex items-center gap-1.5 h-10 px-3.5 border-b border-base-200 text-sm font-semibold">
         <Icon name="box" /> Components
         <span className="ml-auto" />
-        <NewComponentButton
-          trigger={
-            <Button variant="ghost" size="sm" shape="square" aria-label="New component" data-testid="new-component">
-              <Icon name="plus" />
-            </Button>
-          }
-        />
+        {/* The tooltip wraps the DIALOG, not the trigger button: two Base UI
+            triggers (tooltip + dialog) can't render one element — the second
+            clone clobbers the first's ref and the dialog stops opening. So the
+            trigger stays a plain `Button` and the hint lives on the span. */}
+        <Hint label="New component — a reusable block you can drop on any page" side="bottom">
+          <span className="inline-flex">
+            <NewComponentButton
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  shape="square"
+                  aria-label="New component"
+                  data-testid="new-component"
+                >
+                  <Icon name="plus" />
+                </Button>
+              }
+            />
+          </span>
+        </Hint>
       </div>
 
       {symbols.length === 0 ? (
@@ -81,23 +96,20 @@ export function ComponentsPanel() {
                   <Icon name="box" className={open ? "text-primary" : "text-secondary"} />
                   <span className="truncate">{s.name}</span>
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
-                  title="Rename"
+                <IconButton
+                  icon="pencil"
+                  label={`Rename ${s.name}`}
+                  className="flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
                   onClick={() => startRename(s.id, s.name)}
-                >
-                  <Icon name="pencil" />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
-                  title="Delete component (unlinks every instance)"
+                />
+                <IconButton
+                  icon="trash"
+                  label={`Delete ${s.name}`}
+                  hint="Unlinks every instance"
+                  className="flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
                   data-testid={`component-delete:${s.id}`}
                   onClick={() => editor.deleteSymbol(s.id)}
-                >
-                  <Icon name="trash" />
-                </button>
+                />
               </li>
             );
           })}

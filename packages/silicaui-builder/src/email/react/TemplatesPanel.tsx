@@ -1,16 +1,16 @@
 /**
  * The Templates switcher — top of the left rail, mirroring the site builder's
  * `PagesPanel` control-for-control: a @wizeworks/silicaui `Select` for the current
- * template, with rename / add / delete as ghost icon `Button`s beside it.
+ * template, with rename / add / delete as ghost `IconButton`s beside it.
  * Renaming swaps the Select for an `Input` (Enter/blur commits, Esc cancels).
  * This is the fix for the email builder's missing multi-template support — an
  * email project can now hold more than one template, same as a site holds
  * more than one page.
  */
 import * as React from "react";
-import { Button, Select, SelectItem, Input } from "@wizeworks/silicaui-react";
+import { Select, SelectItem, Input } from "@wizeworks/silicaui-react";
 import { useEmailEditor, useEmailTemplates } from "./editor-context";
-import { Icon } from "../../shared/react/Icon";
+import { IconButton } from "../../shared/react/Hint";
 
 export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
   const { templates, activeId } = useEmailTemplates();
@@ -67,23 +67,20 @@ export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
 
         {!renaming && (
           <>
-            <Button variant="ghost" size="sm" shape="square" aria-label="Rename template" onClick={startRename}>
-              <Icon name="pencil" />
-            </Button>
-            <Button variant="ghost" size="sm" shape="square" aria-label="Add template" onClick={() => editor.addTemplate()}>
-              <Icon name="plus" />
-            </Button>
-            <Button
-              variant="ghost"
+            <IconButton icon="pencil" label="Rename template" size="sm" side="bottom" onClick={startRename} />
+            <IconButton icon="plus" label="Add template" size="sm" side="bottom" onClick={() => editor.addTemplate()} />
+            <IconButton
+              icon="trash"
+              label="Delete template"
+              // Says why it's dead rather than leaving a greyed button with no
+              // explanation — the case a person is most likely to hover.
+              hint={templates.length <= 1 ? "A project needs at least one template" : undefined}
+              side="bottom"
               size="sm"
-              shape="square"
-              aria-label="Delete template"
               disabled={templates.length <= 1}
               className="hover:text-error"
               onClick={() => active && editor.removeTemplate(active.id)}
-            >
-              <Icon name="trash" />
-            </Button>
+            />
           </>
         )}
       </div>

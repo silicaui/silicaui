@@ -35,6 +35,15 @@ export interface TooltipProps {
   arrow?: boolean;
   /** Extra class on the popup surface. */
   className?: string;
+  /**
+   * Props forwarded to the popup surface itself. The popup renders in a PORTAL,
+   * so it sits OUTSIDE any `[data-theme]` island the trigger lives in — pass
+   * `popupProps={{ "data-theme": "…" }}` to re-establish the theme tokens on the
+   * popup's own root (mirrors `Select`'s and `Combobox`'s `popupProps`).
+   */
+  popupProps?: React.ComponentProps<typeof BaseTooltip.Popup> & {
+    [key: `data-${string}`]: string | undefined;
+  };
 }
 
 /**
@@ -61,6 +70,7 @@ export function Tooltip({
   disabled,
   arrow = true,
   className,
+  popupProps,
 }: TooltipProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
@@ -80,7 +90,7 @@ export function Tooltip({
       />
       <BaseTooltip.Portal container={portalContainer}>
         <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset}>
-          <BaseTooltip.Popup className={cx(sc("tooltip"), className)}>
+          <BaseTooltip.Popup {...popupProps} className={cx(sc("tooltip"), className)}>
             {arrow && <BaseTooltip.Arrow className={cx(sc("tooltip-arrow"))} />}
             {content}
           </BaseTooltip.Popup>

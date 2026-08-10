@@ -18,6 +18,7 @@ import { Input } from "@wizeworks/silicaui-react";
 import { useEditor, useSelectedNode, useSymbols } from "./editor-context";
 import { useHost, useHostDisplay } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
+import { Hint, IconButton } from "../../shared/react/Hint";
 import { paletteGroups, catalogForHost, makeInsertNode } from "../palette";
 import type { PaletteItem, PaletteGroup } from "../palette";
 import { nodeName } from "../node-display";
@@ -108,28 +109,30 @@ function scoreItem(q: string, f: FlatItem): number | null {
 function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string }) {
   const editor = useEditor();
   return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
-      draggable
-      // Falling back to the label keeps a truncated row readable on hover — the
-      // rows most likely to lose text are the ones with no hint to show instead.
-      title={item.hint ?? item.label}
-      data-insert-key={item.key}
-      onDragStart={(e) => {
-        e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: item.key }));
-        e.dataTransfer.effectAllowed = "copy";
-      }}
-      onClick={() => editor.insertRelative(makeInsertNode(item))}
-    >
-      <Icon name={item.icon} className="shrink-0 text-base-content/55" />
-      <span className="min-w-0 flex-auto truncate text-left">{item.label}</span>
-      {groupLabel && (
-        <span className="min-w-0 shrink-[99] truncate text-xs uppercase tracking-wide text-base-content/35">
-          {groupLabel}
-        </span>
-      )}
-    </button>
+    // `right`: the palette is a narrow left rail, so a tooltip above a row lands
+    // on the row above it. Falling back to the label keeps a truncated row
+    // readable — the rows most likely to lose text are the ones with no hint.
+    <Hint label={item.hint ?? item.label} side="right">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+        draggable
+        data-insert-key={item.key}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: item.key }));
+          e.dataTransfer.effectAllowed = "copy";
+        }}
+        onClick={() => editor.insertRelative(makeInsertNode(item))}
+      >
+        <Icon name={item.icon} className="shrink-0 text-base-content/55" />
+        <span className="min-w-0 flex-auto truncate text-left">{item.label}</span>
+        {groupLabel && (
+          <span className="min-w-0 shrink-[99] truncate text-xs uppercase tracking-wide text-base-content/35">
+            {groupLabel}
+          </span>
+        )}
+      </button>
+    </Hint>
   );
 }
 
@@ -142,39 +145,39 @@ function SymbolRow({ id, name }: { id: string; name: string }) {
   const editor = useEditor();
   return (
     <div className="group flex items-center gap-0.5 rounded-btn hover:bg-base-200">
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm flex-1 min-w-0 justify-start gap-2 font-normal hover:bg-transparent"
-        draggable
-        data-insert-key={`symbol:${id}`}
-        title={`Insert an instance of ${name}`}
-        onDragStart={(e) => {
-          e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `symbol:${id}` }));
-          e.dataTransfer.effectAllowed = "copy";
-        }}
-        onClick={() => editor.insertSymbolInstance(id)}
-      >
-        <Icon name="box" className="text-secondary" />
-        <span className="truncate">{name}</span>
-      </button>
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
-        title="Edit component"
+      <Hint label={`Insert an instance of ${name}`} side="right">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm flex-1 min-w-0 justify-start gap-2 font-normal hover:bg-transparent"
+          draggable
+          data-insert-key={`symbol:${id}`}
+          onDragStart={(e) => {
+            e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `symbol:${id}` }));
+            e.dataTransfer.effectAllowed = "copy";
+          }}
+          onClick={() => editor.insertSymbolInstance(id)}
+        >
+          <Icon name="box" className="text-secondary" />
+          <span className="truncate">{name}</span>
+        </button>
+      </Hint>
+      <IconButton
+        icon="pencil"
+        label={`Edit ${name}`}
+        side="right"
+        className="flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
         data-testid={`symbol-edit:${id}`}
         onClick={() => editor.enterSymbol(id)}
-      >
-        <Icon name="pencil" />
-      </button>
-      <button
-        type="button"
-        className="btn btn-ghost btn-xs flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
-        title="Delete component (unlinks every instance)"
+      />
+      <IconButton
+        icon="trash"
+        label={`Delete ${name}`}
+        hint="Unlinks every instance"
+        side="right"
+        className="flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
         data-testid={`symbol-delete:${id}`}
         onClick={() => editor.deleteSymbol(id)}
-      >
-        <Icon name="trash" />
-      </button>
+      />
     </div>
   );
 }

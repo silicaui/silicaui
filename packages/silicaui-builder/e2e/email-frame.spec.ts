@@ -4,9 +4,9 @@ import { test, expect, type Page } from "@playwright/test";
  * Host chrome around an authored email, through the real builder: an
  * `EmailFrame` renders on the canvas as inert context (no selection, no
  * `data-sui-id`, no drop target) and composes into every projection (Preview /
- * Export HTML / Send test) — while never entering the document the host
- * persists. Plus its in-document counterpart: a host-locked section, which IS
- * saved but refuses delete/move.
+ * Send test / the host's own `toEmailHtml`) — while never entering the document
+ * the host persists. Plus its in-document counterpart: a host-locked section,
+ * which IS saved but refuses delete/move.
  *
  * Mounted via `?editor=email&frame=1` in the shared harness (see
  * `harness/main.tsx`), which supplies a demo brand bar + legal footer and seeds
@@ -105,11 +105,13 @@ test("a frame region wears NO body-editor chrome — a real footer can't read as
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("Export HTML composes the frame around the body — the same markup a send would produce", async ({ page }) => {
+test("the projection composes the frame around the body — the same markup a send would produce", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
-  await page.getByRole("button", { name: "Export HTML" }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported ?? ""))
+    .toContain("ACME");
   const html = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported ?? "");
 
   expect(html).toContain("ACME");

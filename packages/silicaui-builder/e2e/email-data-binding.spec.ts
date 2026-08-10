@@ -109,7 +109,7 @@ test("the demo host's catalog-contributed block appears in Insert and can be pla
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("Export HTML resolves a bound node through the host, not the static placeholder", async ({ page }) => {
+test("the projected HTML resolves a bound node through the host, not the static placeholder", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
@@ -122,7 +122,6 @@ test("Export HTML resolves a bound node through the host, not the static placeho
   const refRow = page.locator(ROW, { hasText: "Reference" }).first();
   await refRow.locator("select").selectOption("customer.firstName");
 
-  await page.getByRole("button", { name: "Export HTML", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported)).toContain("Jordan");
   const exported = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported);
   expect(exported).not.toContain("Start writing your email");
@@ -130,15 +129,15 @@ test("Export HTML resolves a bound node through the host, not the static placeho
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("toolbarSlot renders host UI in the header, next to Send test/Export HTML", async ({ page }) => {
+test("toolbarSlot renders host UI in the header, next to Send test", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
   await expect(page.getByTestId("email-toolbar-slot")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Export HTML", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send test", exact: true })).toBeVisible();
 
   // The status/action split the site builder makes, mirrored here: status leads
-  // the right-hand cluster, actions stay grouped with Send test/Export.
+  // the right-hand cluster, actions stay grouped with Send test.
   const status = page.getByTestId("email-toolbar-status-slot");
   await expect(status).toBeVisible();
   const beforeActions = await status.evaluate((el) => {
@@ -169,7 +168,7 @@ test("toolbarSlot renders host UI in the header, next to Send test/Export HTML",
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("a Collection bind's 'Omit when empty' toggle drops the node from Export HTML when it resolves to zero items", async ({ page }) => {
+test("a Collection bind's 'Omit when empty' toggle drops the node from the projected HTML when it resolves to zero items", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
@@ -191,13 +190,16 @@ test("a Collection bind's 'Omit when empty' toggle drops the node from Export HT
   await omitRow.getByText("Yes", { exact: true }).click();
   await expect(page.getByText("0 items — the node is omitted entirely", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Export HTML", exact: true }).click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported)).toBeTruthy();
-  const exported = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported);
   // The Section (and its only child, the seeded intro text) is gone entirely
   // — not just rendered empty — proving `omitWhenEmpty` drops the SUBTREE,
-  // the same way a `visible: false` value bind does.
-  expect(exported).not.toContain("Start writing your email");
+  // the same way a `visible: false` value bind does. Polled rather than read
+  // once: the projection tracks the live document, so this waits for the toggle
+  // to actually land instead of racing it.
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported ?? ""))
+    .not.toContain("Start writing your email");
+  const exported = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported);
+  expect(exported).toBeTruthy();
 
   expect(errors, errors.join("\n")).toHaveLength(0);
 });

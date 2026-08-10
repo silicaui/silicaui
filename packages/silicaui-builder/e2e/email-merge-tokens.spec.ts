@@ -53,7 +53,7 @@ test("typing {{ inside a text block opens the merge-token popover, and picking o
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("an inline token inside a text block resolves through the host on Export HTML", async ({ page }) => {
+test("an inline token inside a text block resolves through the host in the projected HTML", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
@@ -65,7 +65,6 @@ test("an inline token inside a text block resolves through the host on Export HT
   await page.keyboard.press("Enter"); // picks the highlighted (only) match
   await page.keyboard.press("ControlOrMeta+Enter"); // commits the text edit
 
-  await page.getByRole("button", { name: "Export HTML", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported)).toContain("Welcome, Jordan");
   const exported = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported);
   expect(exported).not.toContain("{{customer");
@@ -100,7 +99,7 @@ test("the Subject field's token autocomplete inserts a token that resolves in th
   await ready(page);
 
   // Subject lives on the document root's Settings tab (see email.spec.ts's
-  // "Export HTML produces valid table-based markup" for the same selection
+  // "the projected HTML is valid table-based markup" for the same selection
   // pattern) — click the row's own `.tree-node`, not the `treeitem` <li>.
   await page.locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
@@ -117,7 +116,6 @@ test("the Subject field's token autocomplete inserts a token that resolves in th
   await expect(subjectInput).toHaveValue("Hi {{product.price}}");
   await subjectInput.blur();
 
-  await page.getByRole("button", { name: "Export HTML", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported)).toContain("<title>Hi");
   const exported = await page.evaluate(() => (window as unknown as { __exported?: string }).__exported);
   // `product.price` has no scope (`scope.item` is undefined) at document

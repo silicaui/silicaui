@@ -12,6 +12,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, I
 import { useEditor, useStudioTheme } from "./editor-context";
 import { useHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
+import { Hint } from "../../shared/react/Hint";
 import { componentStarterGroups } from "../component-starters";
 import type { PaletteItem } from "../palette";
 
@@ -104,6 +105,9 @@ export function NewComponentButton({ trigger }: { trigger: React.ReactElement })
 /** One starter option — an icon + name + one-line hint. */
 function StarterCard({ item, onPick }: { item: PaletteItem; onPick: () => void }) {
   return (
+    // The card already shows the label AND the hint, so the tooltip says the one
+    // thing neither does: what pressing it produces.
+    <Hint label={`Create a component starting from ${item.label}`}>
     <button
       type="button"
       data-testid={`starter:${item.key}`}
@@ -118,5 +122,6 @@ function StarterCard({ item, onPick }: { item: PaletteItem; onPick: () => void }
         {item.hint && <span className="block truncate text-xs text-base-content/50">{item.hint}</span>}
       </span>
     </button>
+    </Hint>
   );
 }

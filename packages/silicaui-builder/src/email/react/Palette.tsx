@@ -14,6 +14,7 @@ import * as React from "react";
 import { useEmailEditor, useEmailSelectedNode } from "./editor-context";
 import { useEmailHost } from "./host-context";
 import { Icon } from "../../shared/react/Icon";
+import { Hint, IconButton } from "../../shared/react/Hint";
 import { EMAIL_PALETTE, mergeEmailCatalog } from "../palette";
 import type { EmailPaletteItem } from "../palette";
 import { nodeName } from "../node-display";
@@ -24,21 +25,25 @@ import type { SavedBlock } from "./saved-blocks";
 function ItemRow({ item }: { item: EmailPaletteItem }) {
   const editor = useEmailEditor();
   return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
-      title={item.hint}
-      draggable
-      data-insert-key={item.key}
-      onDragStart={(e) => {
-        e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: item.key }));
-        e.dataTransfer.effectAllowed = "copy";
-      }}
-      onClick={() => editor.insertRelative(item.make(editor.colorDefaults))}
-    >
-      <Icon name={item.icon} className="text-base-content/55" />
-      <span className="truncate">{item.label}</span>
-    </button>
+    // `right`: this is a narrow left rail, so a tooltip above a row would land
+    // on the row above it. Falls back to the label so a truncated row still
+    // reads on hover.
+    <Hint label={item.hint ?? item.label} side="right">
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal"
+        draggable
+        data-insert-key={item.key}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: item.key }));
+          e.dataTransfer.effectAllowed = "copy";
+        }}
+        onClick={() => editor.insertRelative(item.make(editor.colorDefaults))}
+      >
+        <Icon name={item.icon} className="text-base-content/55" />
+        <span className="truncate">{item.label}</span>
+      </button>
+    </Hint>
   );
 }
 
@@ -51,42 +56,42 @@ function SavedBlockRow({ block }: { block: SavedBlock }) {
   const { remove, rename, readOnly } = useSavedBlocks();
   return (
     <div className="group flex items-center gap-0.5 rounded-btn hover:bg-base-200">
-      <button
-        type="button"
-        className="btn btn-ghost btn-sm flex-1 min-w-0 justify-start gap-2 font-normal hover:bg-transparent"
-        draggable
-        data-insert-key={`saved:${block.id}`}
-        title={`Insert "${block.name}"`}
-        onDragStart={(e) => {
-          e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `saved:${block.id}` }));
-          e.dataTransfer.effectAllowed = "copy";
-        }}
-        onClick={() => editor.insertRelative(structuredClone(block.node))}
-      >
-        <Icon name="saved" className="text-secondary" />
-        <span className="truncate">{block.name}</span>
-      </button>
+      <Hint label={`Insert "${block.name}"`} side="right">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm flex-1 min-w-0 justify-start gap-2 font-normal hover:bg-transparent"
+          draggable
+          data-insert-key={`saved:${block.id}`}
+          onDragStart={(e) => {
+            e.dataTransfer.setData(DRAG_MIME, encodeDrag({ kind: "insert", key: `saved:${block.id}` }));
+            e.dataTransfer.effectAllowed = "copy";
+          }}
+          onClick={() => editor.insertRelative(structuredClone(block.node))}
+        >
+          <Icon name="saved" className="text-secondary" />
+          <span className="truncate">{block.name}</span>
+        </button>
+      </Hint>
       {!readOnly && (
         <>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
-            title="Rename"
+          <IconButton
+            icon="pencil"
+            label={`Rename "${block.name}"`}
+            side="right"
+            className="flex-none opacity-0 group-hover:opacity-100 focus:opacity-100"
             onClick={() => {
               const name = window.prompt("Rename saved block", block.name);
               if (name) rename(block.id, name);
             }}
-          >
-            <Icon name="pencil" />
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
-            title="Delete saved block"
+          />
+          <IconButton
+            icon="trash"
+            label={`Delete "${block.name}"`}
+            hint="Removes it from your library; blocks already inserted stay"
+            side="right"
+            className="flex-none text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
             onClick={() => remove(block.id)}
-          >
-            <Icon name="trash" />
-          </button>
+          />
         </>
       )}
     </div>

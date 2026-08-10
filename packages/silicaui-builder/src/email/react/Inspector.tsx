@@ -36,6 +36,7 @@ import { useEmailHost } from "./host-context";
 import type { EmailInspectorPanelCtx, EmailInspectorTabDef } from "./host";
 import { Icon } from "../../shared/react/Icon";
 import { PanelTabs } from "../../shared/react/chrome";
+import { Hint, IconButton } from "../../shared/react/Hint";
 import { mergeInspectorTabs, tabIcon } from "../../shared/inspector-tabs";
 import type { IconName } from "../../shared/icons";
 import { ancestorPath, nodeIcon, nodeName } from "../node-display";
@@ -294,14 +295,15 @@ function NumberField({
     <Row label={label} group>
       <div className="flex items-center gap-1.5">
         {autoValue !== undefined && (
-          <button
-            type="button"
-            title="Reset to default"
-            className={`btn btn-xs ${defaultValue === autoValue ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => onCommit(autoValue)}
-          >
-            Auto
-          </button>
+          <Hint label={`Reset ${label.toLowerCase()} to its default`}>
+            <button
+              type="button"
+              className={`btn btn-xs ${defaultValue === autoValue ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => onCommit(autoValue)}
+            >
+              Auto
+            </button>
+          </Hint>
         )}
         <Input
           type="number"
@@ -367,10 +369,15 @@ function ChipGroup<T extends string | number>({
   return (
     <div className="flex flex-wrap gap-1">
       {onAuto && (
-        <button type="button" title="Reset to default" className="btn btn-xs btn-ghost" onClick={onAuto}>
-          Auto
-        </button>
+        <Hint label="Reset to default">
+          <button type="button" className="btn btn-xs btn-ghost" onClick={onAuto}>
+            Auto
+          </button>
+        </Hint>
       )}
+      {/* The value chips carry their own visible labels, so they get no tooltip
+          — a popup that repeats the word already on the button is noise, and
+          `Rule #3`'s test applies here too: a hint has to be doing work. */}
       {options.map((o) => (
         <button
           key={String(o.value)}
@@ -382,14 +389,15 @@ function ChipGroup<T extends string | number>({
         </button>
       ))}
       {onCustom && (
-        <button
-          type="button"
-          title="Enter a custom value"
-          className={`btn btn-xs ${customActive ? "btn-primary" : "btn-ghost"}`}
-          onClick={onCustom}
-        >
-          Custom
-        </button>
+        <Hint label="Enter a value the presets can't express">
+          <button
+            type="button"
+            className={`btn btn-xs ${customActive ? "btn-primary" : "btn-ghost"}`}
+            onClick={onCustom}
+          >
+            Custom
+          </button>
+        </Hint>
       )}
     </div>
   );
@@ -450,41 +458,50 @@ function SwatchGroup({
   const isPreset = options.some((o) => o.hex.toLowerCase() === active.toLowerCase());
   return (
     <div className="flex flex-wrap gap-1.5">
+      {/* A swatch is an EMPTY element — its only content is a background colour,
+          so `aria-label` is its whole accessible name, and the tooltip is the
+          only way a sighted user learns which role they're picking. Both come
+          from the same string. */}
       {onAuto && (
-        <button
-          type="button"
-          title="Reset to default"
-          onClick={onAuto}
-          className="size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40"
-        >
-          <Icon name="close" className="text-[10px]" />
-        </button>
+        <Hint label="Reset to default" side="bottom">
+          <button
+            type="button"
+            aria-label="Reset to default"
+            onClick={onAuto}
+            className="size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40"
+          >
+            <Icon name="close" className="text-[10px]" />
+          </button>
+        </Hint>
       )}
       {options.map((o) => (
-        <button
-          // Keyed by ROLE, not hex — two roles legitimately resolve to the same
-          // hex in a real theme (e.g. `neutral` and `baseContent` both #0f172a),
-          // and a hex key makes those a React duplicate-key collision.
-          key={o.role}
-          type="button"
-          title={o.title}
-          onClick={() => onPick(o.hex, o.role)}
-          style={{ backgroundColor: o.hex }}
-          className={`size-6 rounded-field border border-base-300 ${
-            active.toLowerCase() === o.hex.toLowerCase() ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
-          }`}
-        />
+        // Keyed by ROLE, not hex — two roles legitimately resolve to the same
+        // hex in a real theme (e.g. `neutral` and `baseContent` both #0f172a),
+        // and a hex key makes those a React duplicate-key collision.
+        <Hint key={o.role} label={o.title} side="bottom">
+          <button
+            type="button"
+            aria-label={o.title}
+            onClick={() => onPick(o.hex, o.role)}
+            style={{ backgroundColor: o.hex }}
+            className={`size-6 rounded-field border border-base-300 ${
+              active.toLowerCase() === o.hex.toLowerCase() ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
+            }`}
+          />
+        </Hint>
       ))}
       <Popover>
         <PopoverTrigger>
-          <button
-            type="button"
-            title="Custom color"
-            style={{ backgroundColor: active }}
-            className={`size-6 rounded-field border border-dashed border-base-content/40 ${
-              !isPreset ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
-            }`}
-          />
+          <Hint label="Custom colour" side="bottom">
+            <button
+              type="button"
+              aria-label="Custom colour"
+              style={{ backgroundColor: active }}
+              className={`size-6 rounded-field border border-dashed border-base-content/40 ${
+                !isPreset ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
+              }`}
+            />
+          </Hint>
         </PopoverTrigger>
         <PopoverContent className="p-2">
           {/* No role — a one-off hex from the picker is a deliberate freeze. */}
@@ -529,39 +546,44 @@ function RadiusSwatchGroup({
   return (
     <div className="flex flex-wrap gap-1.5">
       {onAuto && (
-        <button
-          type="button"
-          title="Reset to default"
-          onClick={onAuto}
-          className="grid size-[30px] place-items-center border border-base-300 bg-base-200 text-base-content/40"
-        >
-          <Icon name="close" className="text-[10px]" />
-        </button>
+        <Hint label="Reset to default" side="bottom">
+          <button
+            type="button"
+            aria-label="Reset to default"
+            onClick={onAuto}
+            className="grid size-[30px] place-items-center border border-base-300 bg-base-200 text-base-content/40"
+          >
+            <Icon name="close" className="text-[10px]" />
+          </button>
+        </Hint>
       )}
       {RADIUS_PX.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          title={o.label}
-          onClick={() => onPick(o.value)}
-          style={{ borderTopLeftRadius: o.previewPx }}
-          className={`size-[30px] border bg-base-200 ${
-            active === o.value ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
-          }`}
-        />
+        <Hint key={o.value} label={`${o.label} corners`} side="bottom">
+          <button
+            type="button"
+            aria-label={`${o.label} corners`}
+            onClick={() => onPick(o.value)}
+            style={{ borderTopLeftRadius: o.previewPx }}
+            className={`size-[30px] border bg-base-200 ${
+              active === o.value ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+            }`}
+          />
+        </Hint>
       ))}
       {onCustom && (
-        <button
-          type="button"
-          title="Custom radius"
-          onClick={onCustom}
-          // Previews the live value, like the custom colour swatch previews the
-          // live hex — so "what is set" is legible before you open anything.
-          style={{ borderTopLeftRadius: Math.min(active, 14) }}
-          className={`size-[30px] border border-dashed bg-base-200 ${
-            !isPreset ? "border-primary ring-1 ring-inset ring-primary" : "border-base-content/40"
-          }`}
-        />
+        <Hint label="Custom radius" side="bottom">
+          <button
+            type="button"
+            aria-label="Custom radius"
+            onClick={onCustom}
+            // Previews the live value, like the custom colour swatch previews the
+            // live hex — so "what is set" is legible before you open anything.
+            style={{ borderTopLeftRadius: Math.min(active, 14) }}
+            className={`size-[30px] border border-dashed bg-base-200 ${
+              !isPreset ? "border-primary ring-1 ring-inset ring-primary" : "border-base-content/40"
+            }`}
+          />
+        </Hint>
       )}
     </div>
   );
@@ -671,9 +693,11 @@ function OptionalColorField({
           onPick={(v, role) => onCommit(v, role !== undefined, role)}
         />
         {value !== undefined && (
-          <button type="button" className="btn btn-ghost btn-xs self-start" onClick={onClear}>
-            Clear
-          </button>
+          <Hint label="Drop the frozen colour and follow the theme again">
+            <button type="button" className="btn btn-ghost btn-xs self-start" onClick={onClear}>
+              Clear
+            </button>
+          </Hint>
         )}
       </div>
     </Row>
@@ -1073,9 +1097,11 @@ function SocialSettingsFields({ node, update }: { node: SocialNode; update: (pat
               <IconButton icon="close" label="Remove link" onClick={() => removeLink(i)} />
             </div>
           ))}
-          <button type="button" className="btn btn-outline btn-sm" onClick={addLink}>
-            <Icon name="plus" /> Add link
-          </button>
+          <Hint label="Add another destination to this link group">
+            <button type="button" className="btn btn-outline btn-sm" onClick={addLink}>
+              <Icon name="plus" /> Add link
+            </button>
+          </Hint>
         </div>
       </Pad>
     </Group>
@@ -1184,14 +1210,21 @@ function ColumnsSettingsFields({ node }: { node: ColumnsNode }) {
   return (
     <Group label="Structure">
       <Row label={`Columns (${node.children.length})`}>
-        <button
-          type="button"
-          className="btn btn-outline btn-sm w-full"
-          disabled={node.children.length >= 6}
-          onClick={() => editor.addColumn(node.id)}
+        <Hint
+          label={node.children.length >= 6 ? "A row holds at most 6 columns" : "Add a column to this row"}
+
         >
-          <Icon name="plus" /> Add column
-        </button>
+          <span className="inline-flex w-full">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm w-full"
+              disabled={node.children.length >= 6}
+              onClick={() => editor.addColumn(node.id)}
+            >
+              <Icon name="plus" /> Add column
+            </button>
+          </span>
+        </Hint>
       </Row>
     </Group>
   );
@@ -1330,9 +1363,11 @@ function WebFontFields({ node, update }: { node: EmailBody; update: (patch: Reco
               </div>
             </div>
           ))}
+          <Hint label="Link a hosted font file — clients that can't load it fall back to the stack above">
           <button type="button" className="btn btn-outline btn-sm" onClick={addFont}>
             <Icon name="plus" /> Add web font
           </button>
+          </Hint>
           <p className="text-xs text-base-content">
             Rendered by Apple Mail, iOS Mail, Outlook for Mac and Samsung Mail. Gmail, Outlook for Windows and Yahoo fall
             back to the font family above — keep that a complete stack. Link a hosted file rather than embedding one:
@@ -1412,42 +1447,82 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
         {path.map((n, i) => (
           <React.Fragment key={n.id}>
             {i > 0 && <span className="text-base-content/30">/</span>}
-            <button
-              type="button"
-              className={`inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 hover:bg-base-200 ${n.id === selectedId ? "font-semibold text-base-content" : ""}`}
-              onClick={() => editor.select(n.id)}
-            >
-              <Icon name={nodeIcon(n)} />
-              <span className="max-w-[90px] truncate">{nodeName(n)}</span>
-            </button>
+            {/* Names truncate at 90px, so the tooltip is often the ONLY place the
+                full one is readable — and it says what clicking does, which a
+                bare name doesn't. */}
+            <Hint label={n.id === selectedId ? nodeName(n) : `Select ${nodeName(n)}`} side="bottom">
+              <button
+                type="button"
+                className={`inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 hover:bg-base-200 ${n.id === selectedId ? "font-semibold text-base-content" : ""}`}
+                onClick={() => editor.select(n.id)}
+              >
+                <Icon name={nodeIcon(n)} />
+                <span className="max-w-[90px] truncate">{nodeName(n)}</span>
+              </button>
+            </Hint>
           </React.Fragment>
         ))}
       </div>
+      {/* Every disabled state names its REASON — this toolbar's buttons go dead
+          for four different reasons (locked by the host, it's the root, a column
+          count floor/ceiling), and a greyed square that explains none of them is
+          the papercut. */}
       <div className="flex items-center gap-1">
-        <IconButton
+        <NodeActionButton
           icon="chevronUp"
           label="Move up"
+          hint={locked ? "This block is locked by the host" : !sibling || sibling.index <= 0 ? "Already first" : undefined}
           disabled={locked || !sibling || sibling.index <= 0}
           onClick={() => editor.moveUp(selectedId)}
         />
-        <IconButton
+        <NodeActionButton
           icon="chevronDown"
           label="Move down"
+          hint={
+            locked
+              ? "This block is locked by the host"
+              : !sibling || sibling.index >= sibling.count - 1
+                ? "Already last"
+                : undefined
+          }
           disabled={locked || !sibling || sibling.index >= sibling.count - 1}
           onClick={() => editor.moveDown(selectedId)}
         />
-        <IconButton
+        <NodeActionButton
           icon="copy"
           label="Duplicate"
+          hint={
+            isRoot
+              ? "The email itself can't be duplicated"
+              : isColumn && (sibling?.count ?? 0) >= 6
+                ? "A row holds at most 6 columns"
+                : undefined
+          }
           disabled={isRoot || (isColumn && (sibling?.count ?? 0) >= 6)}
           onClick={duplicate}
         />
-        {!isRoot && !blocksReadOnly && <IconButton icon="saved" label="Save as block" onClick={saveAsBlock} />}
+        {!isRoot && !blocksReadOnly && (
+          <NodeActionButton
+            icon="saved"
+            label="Save as block"
+            hint="Adds it to the Insert palette for reuse"
+            onClick={saveAsBlock}
+          />
+        )}
         <div className="flex-1" />
-        <IconButton
+        <NodeActionButton
           icon="trash"
           label="Delete"
           tone="error"
+          hint={
+            locked
+              ? "This block is locked by the host"
+              : isRoot
+                ? "The email itself can't be deleted"
+                : isColumn && (sibling?.count ?? 0) <= 1
+                  ? "A row needs at least one column"
+                  : undefined
+          }
           disabled={locked || isRoot || (isColumn && (sibling?.count ?? 0) <= 1)}
           onClick={remove}
         />
@@ -1456,30 +1531,35 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
   );
 }
 
-function IconButton({
+/**
+ * The node-toolbar's button shape. A thin adapter over the shared `IconButton`
+ * (which owns the tooltip + `aria-label` pairing) so this file's five call sites
+ * keep their `tone="error"` vocabulary instead of each spelling out a class.
+ */
+function NodeActionButton({
   icon,
   label,
+  hint,
   onClick,
   disabled,
   tone,
 }: {
   icon: IconName;
   label: string;
+  hint?: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   tone?: "error";
 }) {
   return (
-    <button
-      type="button"
-      className={`btn btn-ghost btn-xs btn-square ${tone === "error" ? "text-error" : ""}`}
-      aria-label={label}
-      title={label}
+    <IconButton
+      icon={icon}
+      label={label}
+      hint={hint}
+      className={tone === "error" ? "text-error" : undefined}
       disabled={disabled}
       onClick={onClick}
-    >
-      <Icon name={icon} />
-    </button>
+    />
   );
 }
 
