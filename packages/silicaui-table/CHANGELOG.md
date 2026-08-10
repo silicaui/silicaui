@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-table
 
+## 0.52.0
+
 ## 0.51.0
 
 ## 0.50.0
