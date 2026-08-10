@@ -25,6 +25,7 @@ import { tokenStateAt } from "../class-tokens";
 import type { TokenState } from "../class-tokens";
 import { Icon } from "../../shared/react/Icon";
 import { PanelTabs } from "../../shared/react/chrome";
+import { Hint, IconButton } from "../../shared/react/Hint";
 import { mergeInspectorTabs, tabIcon } from "../../shared/inspector-tabs";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 import { unbackedClasses } from "../class-support";
@@ -319,9 +320,14 @@ function ChipGroup({
 }) {
   return (
     <div className="flex flex-wrap gap-1">
-      <button type="button" className={`btn btn-xs ${active === "" ? "btn-primary" : "btn-ghost"}`} onClick={() => onPick("")}>
-        Auto
-      </button>
+      {/* "Auto" is the one chip whose label doesn't say what it does — it means
+          "no class in this group", not a value. The rest carry their own visible
+          labels and need no popup repeating them. */}
+      <Hint label="Clear this group — inherit whatever the layout gives it">
+        <button type="button" className={`btn btn-xs ${active === "" ? "btn-primary" : "btn-ghost"}`} onClick={() => onPick("")}>
+          Auto
+        </button>
+      </Hint>
       {options.map((o) => (
         <button
           key={o.cls}
@@ -356,17 +362,17 @@ function BreakpointBar() {
       <span className="text-xs font-medium text-base-content">Editing</span>
       <div className="flex flex-wrap gap-1">
         {choices.map((c) => (
-          <button
-            key={c.prefix || "base"}
-            type="button"
-            title={c.hint}
-            aria-pressed={prefix === c.prefix}
-            data-testid={`breakpoint-${c.prefix || "base"}`}
-            className={`btn btn-xs ${prefix === c.prefix ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setPrefix(c.prefix)}
-          >
-            {c.label}
-          </button>
+          <Hint key={c.prefix || "base"} label={c.hint} side="bottom">
+            <button
+              type="button"
+              aria-pressed={prefix === c.prefix}
+              data-testid={`breakpoint-${c.prefix || "base"}`}
+              className={`btn btn-xs ${prefix === c.prefix ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setPrefix(c.prefix)}
+            >
+              {c.label}
+            </button>
+          </Hint>
         ))}
       </div>
     </div>
@@ -413,18 +419,18 @@ function FocalGrid({ active, onPick }: { active: string; onPick: (cls: string) =
   return (
     <div className="grid w-fit grid-cols-3 gap-1" data-testid="focal-grid">
       {OBJECT_POSITION.map((o) => (
-        <button
-          key={o.cls}
-          type="button"
-          title={o.label}
-          aria-label={o.label}
-          aria-pressed={active === o.cls}
-          data-testid={`focal-${o.cls}`}
-          className={`btn btn-xs btn-square ${active === o.cls ? "btn-primary" : "btn-ghost"}`}
-          onClick={() => onPick(active === o.cls ? "" : o.cls)}
-        >
-          <span className="size-1.5 rounded-full bg-current" />
-        </button>
+        <Hint key={o.cls} label={o.label} side="bottom">
+          <button
+            type="button"
+            aria-label={o.label}
+            aria-pressed={active === o.cls}
+            data-testid={`focal-${o.cls}`}
+            className={`btn btn-xs btn-square ${active === o.cls ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => onPick(active === o.cls ? "" : o.cls)}
+          >
+            <span className="size-1.5 rounded-full bg-current" />
+          </button>
+        </Hint>
       ))}
     </div>
   );
@@ -443,27 +449,34 @@ function SwatchGroup({
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      <button
-        type="button"
-        title="Auto"
-        onClick={() => onPick("")}
-        className={`size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40 ${
-          active === "" ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
-        }`}
-      >
-        <Icon name="close" className="text-[10px]" />
-      </button>
-      {options.map((o) => (
+      {/* A swatch is an EMPTY element — the background colour is its only
+          content, so `aria-label` is its entire accessible name and the tooltip
+          is the only way a sighted user learns which role they're picking. Both
+          come from the same string, so they can't disagree. */}
+      <Hint label="Auto — no colour class, inherit the surface" side="bottom">
         <button
-          key={o.cls}
           type="button"
-          title={o.title}
-          onClick={() => onPick(o.cls)}
-          style={{ backgroundColor: o.color }}
-          className={`size-6 rounded-field border border-base-300 ${
-            active === o.cls ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
+          aria-label="Auto"
+          onClick={() => onPick("")}
+          className={`size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40 ${
+            active === "" ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
           }`}
-        />
+        >
+          <Icon name="close" className="text-[10px]" />
+        </button>
+      </Hint>
+      {options.map((o) => (
+        <Hint key={o.cls} label={o.title} side="bottom">
+          <button
+            type="button"
+            aria-label={o.title}
+            onClick={() => onPick(o.cls)}
+            style={{ backgroundColor: o.color }}
+            className={`size-6 rounded-field border border-base-300 ${
+              active === o.cls ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
+            }`}
+          />
+        </Hint>
       ))}
     </div>
   );
@@ -488,27 +501,30 @@ function RadiusSwatchGroup({
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      <button
-        type="button"
-        title="Auto"
-        onClick={() => onPick("")}
-        className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/40 ${
-          active === "" ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
-        }`}
-      >
-        <Icon name="close" className="text-[10px]" />
-      </button>
-      {options.map((o) => (
+      <Hint label="Auto — no radius class, inherit the default" side="bottom">
         <button
-          key={o.cls}
           type="button"
-          title={o.label}
-          onClick={() => onPick(o.cls)}
-          style={{ borderTopLeftRadius: o.radius }}
-          className={`size-[30px] border bg-base-200 ${
-            active === o.cls ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+          aria-label="Auto"
+          onClick={() => onPick("")}
+          className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/40 ${
+            active === "" ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
           }`}
-        />
+        >
+          <Icon name="close" className="text-[10px]" />
+        </button>
+      </Hint>
+      {options.map((o) => (
+        <Hint key={o.cls} label={`${o.label} corners`} side="bottom">
+          <button
+            type="button"
+            aria-label={`${o.label} corners`}
+            onClick={() => onPick(o.cls)}
+            style={{ borderTopLeftRadius: o.radius }}
+            className={`size-[30px] border bg-base-200 ${
+              active === o.cls ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
+            }`}
+          />
+        </Hint>
       ))}
     </div>
   );
@@ -927,17 +943,27 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
             {ANIMATE_TRIGGER.map((t) => {
               const disabled = t.cls === "scroll" && behaviorConflict;
               return (
-                <button
+                // The disabled chip's REASON is the whole point of the hover —
+                // a greyed trigger with no explanation is the papercut. Wrapped
+                // in a span because a disabled <button> emits no pointer events,
+                // so Base UI's trigger would never see the hover.
+                <Hint
                   key={t.cls}
-                  type="button"
-                  data-testid={`animate-trigger-${t.cls}`}
-                  disabled={disabled}
-                  title={disabled ? `Already used by this element's "${existingBehavior?.type}" behavior` : undefined}
-                  className={`btn btn-xs ${animateTrigger === t.cls ? "btn-primary" : "btn-ghost"} ${disabled ? "btn-disabled" : ""}`}
-                  onClick={() => setAnimateTrigger(t.cls)}
+                  label={disabled ? `Already used by this element's "${existingBehavior?.type}" behavior` : ""}
+
                 >
-                  {t.label}
-                </button>
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      data-testid={`animate-trigger-${t.cls}`}
+                      disabled={disabled}
+                      className={`btn btn-xs ${animateTrigger === t.cls ? "btn-primary" : "btn-ghost"} ${disabled ? "btn-disabled" : ""}`}
+                      onClick={() => setAnimateTrigger(t.cls)}
+                    >
+                      {t.label}
+                    </button>
+                  </span>
+                </Hint>
               );
             })}
           </div>
@@ -986,21 +1012,30 @@ function NodeFooter({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
   const hostDisplay = useHostDisplay();
   return (
+    // These carry visible labels, so each tooltip states the CONSEQUENCE the
+    // label leaves out — what a person actually wants to know before pressing a
+    // button in a footer they can't undo their way out of by guessing.
     <div className="flex-none border-t border-base-200 px-3.5 py-3">
-      <button
-        type="button"
-        className="btn btn-sm btn-soft btn-secondary w-full mb-2"
-        onClick={() => editor.createSymbol(nodeName(node, hostDisplay))}
-      >
-        <Icon name="box" /> Save as component
-      </button>
+      <Hint label="Turn this element into a reusable component you can drop on any page">
+        <button
+          type="button"
+          className="btn btn-sm btn-soft btn-secondary w-full mb-2"
+          onClick={() => editor.createSymbol(nodeName(node, hostDisplay))}
+        >
+          <Icon name="box" /> Save as component
+        </button>
+      </Hint>
       <div className="flex gap-2">
-        <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
-          Duplicate
-        </button>
-        <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
-          Delete
-        </button>
+        <Hint label="Insert a copy directly after this element">
+          <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
+            Duplicate
+          </button>
+        </Hint>
+        <Hint label="Remove this element and everything inside it">
+          <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
+            Delete
+          </button>
+        </Hint>
       </div>
     </div>
   );
@@ -1160,14 +1195,13 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
       <Row label="ID" group>
         <div className="flex items-center gap-1">
           <Input className="w-full font-mono text-xs" size="sm" aria-label="Node ID" value={id} readOnly spellCheck={false} />
-          <button
-            type="button"
-            title="Copy id"
-            className="btn btn-xs btn-ghost flex-none"
+          <IconButton
+            icon="hash"
+            label="Copy id"
+            hint="For linking to this element, or quoting it in a bug report"
+            className="flex-none"
             onClick={() => navigator.clipboard?.writeText(id)}
-          >
-            <Icon name="hash" />
-          </button>
+          />
         </div>
       </Row>
       <Row label="Visibility" group>
@@ -1705,14 +1739,12 @@ function CustomDataRow({
         }}
       />
       {existingKey !== null && (
-        <button
-          type="button"
-          title="Remove"
-          className="btn btn-xs btn-ghost flex-none text-error"
+        <IconButton
+          icon="close"
+          label="Remove this data attribute"
+          className="flex-none text-error"
           onClick={() => editor.setAttr(id, `data-${existingKey}`, undefined)}
-        >
-          <Icon name="close" />
-        </button>
+        />
       )}
     </div>
   );
@@ -1758,32 +1790,44 @@ function InstancePanel({ id, symbolId, node }: { id: string; symbolId: string; n
             }}
           />
         </Row>
+        {/* Edit / Detach / Delete component read almost identically at a glance
+            and do very different things to every OTHER instance on the site —
+            exactly where the label alone isn't enough. */}
         <div className="flex gap-2">
-          <button type="button" className="btn btn-sm btn-primary flex-1" onClick={() => editor.enterSymbol(symbolId)}>
-            Edit component
-          </button>
-          <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.detachInstance(id)}>
-            Detach
-          </button>
+          <Hint label="Open the master — edits reach every instance on the site">
+            <button type="button" className="btn btn-sm btn-primary flex-1" onClick={() => editor.enterSymbol(symbolId)}>
+              Edit component
+            </button>
+          </Hint>
+          <Hint label="Break this instance's link and keep it as an ordinary copy">
+            <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.detachInstance(id)}>
+              Detach
+            </button>
+          </Hint>
         </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost w-full mt-2 text-error"
-          title="Delete this component everywhere — every instance is unlinked into a real copy"
-          onClick={() => editor.deleteSymbol(symbolId)}
-        >
-          <Icon name="trash" /> Delete component
-        </button>
+        <Hint label="Delete this component everywhere — every instance is unlinked into a real copy, so no content is lost">
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost w-full mt-2 text-error"
+            onClick={() => editor.deleteSymbol(symbolId)}
+          >
+            <Icon name="trash" /> Delete component
+          </button>
+        </Hint>
       </Group>
       <OverridesGroup instanceId={id} node={node} symbolId={symbolId} />
       <Group label="Node">
         <div className="flex gap-2">
-          <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
-            Duplicate
-          </button>
-          <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
-            Delete
-          </button>
+          <Hint label="Insert a copy of this instance directly after it">
+            <button type="button" className="btn btn-sm btn-ghost flex-1" onClick={() => editor.duplicate(id)}>
+              Duplicate
+            </button>
+          </Hint>
+          <Hint label="Remove this instance only — the component itself stays">
+            <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
+              Delete
+            </button>
+          </Hint>
         </div>
       </Group>
     </div>
@@ -1937,14 +1981,13 @@ function OverrideRow({
           }}
         />
         {current !== undefined && (
-          <button
-            type="button"
-            title="Reset to component default"
-            className="btn btn-xs btn-ghost flex-none text-secondary"
+          <IconButton
+            icon="undo"
+            label="Reset to component default"
+            hint="Drops this instance's override and follows the master again"
+            className="flex-none text-secondary"
             onClick={() => editor.setInstanceOverrideText(instanceId, target.masterId, undefined)}
-          >
-            <Icon name="undo" />
-          </button>
+          />
         )}
       </div>
     </Row>
@@ -2219,9 +2262,13 @@ function AssetProp({
           }}
         />
         {host?.pickAsset && (
-          <button type="button" className="btn btn-xs btn-ghost flex-none" title="Browse…" onClick={() => void browse()}>
-            <Icon name="image" />
-          </button>
+          <IconButton
+            icon="image"
+            label="Browse…"
+            hint="Pick from your host's asset library"
+            className="flex-none"
+            onClick={() => void browse()}
+          />
         )}
       </div>
     </Row>

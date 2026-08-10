@@ -28,6 +28,7 @@ import {
 import { useEditor, useTheme, useStudioTheme } from "./editor-context";
 import { randomizePalette, themeToCss, isCustomRole, cssToTheme, sanitizeThemeName } from "../theme-ops";
 import { Icon } from "../../shared/react/Icon";
+import { Hint } from "../../shared/react/Hint";
 import { googleFontsCatalog } from "./google-fonts-catalog";
 import { inferThemeFonts, pickWeights } from "./google-fonts-loader";
 
@@ -86,7 +87,10 @@ function ColorTile({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} title={name} className="flex flex-col gap-1.5">
+    // The tile's visible caption is the token NAME; the tooltip adds what
+    // pressing it does, which the caption alone never says.
+    <Hint label={`Edit ${name}`} side="bottom">
+    <button type="button" onClick={onClick} aria-label={`Edit ${name}`} className="flex flex-col gap-1.5">
       <span
         className={`relative grid place-items-center aspect-[1/0.9] rounded-[10px] border border-black/10 font-extrabold text-md ${
           active ? "outline outline-2 outline-primary outline-offset-2" : ""
@@ -98,6 +102,7 @@ function ColorTile({
       </span>
       <span className="text-xs font-semibold text-center truncate text-base-content/55">{name}</span>
     </button>
+    </Hint>
   );
 }
 
@@ -381,9 +386,11 @@ export function ThemeEditor() {
         className="w-full font-semibold"
       />
       <div className="mt-2 flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1" onClick={() => editor.setTheme(randomizePalette(theme))}>
-          <Icon name="shuffle" /> Random
-        </Button>
+        <Hint label="Roll a new palette — keeps your base surfaces, re-picks the accents">
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => editor.setTheme(randomizePalette(theme))}>
+            <Icon name="shuffle" /> Random
+          </Button>
+        </Hint>
         <Dialog
           open={cssOpen}
           onOpenChange={(o: boolean) => {
@@ -394,11 +401,17 @@ export function ThemeEditor() {
             }
           }}
         >
-          <DialogTrigger>
-            <Button variant="outline" size="sm" className="flex-1">
-              <Icon name="download" /> CSS
-            </Button>
-          </DialogTrigger>
+          {/* Tooltip on the wrapper, dialog on the button — two Base UI triggers
+              rendering one element clobber each other's refs (see SendTest). */}
+          <Hint label="View, copy, or paste this theme as CSS custom properties">
+            <span className="inline-flex flex-1">
+              <DialogTrigger>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <Icon name="download" /> CSS
+                </Button>
+              </DialogTrigger>
+            </span>
+          </Hint>
           <DialogContent data-theme={studioTheme} className="w-[min(560px,94vw)] max-h-[82vh] overflow-hidden flex flex-col p-5">
             <DialogTitle>Theme CSS</DialogTitle>
             <DialogDescription>
@@ -418,15 +431,21 @@ export function ThemeEditor() {
             />
             {cssError && <p className="mt-2 text-xs text-error">{cssError}</p>}
             <div className="mt-3 flex gap-2">
-              <Button variant="outline" size="sm" onClick={resetCss}>
-                <Icon name="undo" /> Reset
-              </Button>
-              <Button variant="outline" size="sm" className="ml-auto" onClick={copyCss}>
-                <Icon name={copied ? "check" : "copy"} /> {copied ? "Copied" : "Copy"}
-              </Button>
-              <Button size="sm" onClick={applyCss}>
-                <Icon name={applied ? "check" : "upload"} /> {applied ? "Applied" : "Apply"}
-              </Button>
+              <Hint label="Discard your edits and re-read the CSS from the live theme">
+                <Button variant="outline" size="sm" onClick={resetCss}>
+                  <Icon name="undo" /> Reset
+                </Button>
+              </Hint>
+              <Hint label="Copy this CSS to the clipboard">
+                <Button variant="outline" size="sm" className="ml-auto" onClick={copyCss}>
+                  <Icon name={copied ? "check" : "copy"} /> {copied ? "Copied" : "Copy"}
+                </Button>
+              </Hint>
+              <Hint label="Replace the live theme with the CSS in this box">
+                <Button size="sm" onClick={applyCss}>
+                  <Icon name={applied ? "check" : "upload"} /> {applied ? "Applied" : "Apply"}
+                </Button>
+              </Hint>
             </div>
           </DialogContent>
         </Dialog>
@@ -496,14 +515,16 @@ export function ThemeEditor() {
               style={{ background: resolveColor(theme, openColor, mode) }}
             />
             <b>{openColor}</b>
-            <button
-              type="button"
-              onClick={() => setOpenColor(null)}
-              aria-label="Close"
-              className="ml-auto inline-flex rounded p-1 text-base-content/45 hover:bg-base-200 hover:text-base-content"
-            >
-              <Icon name="close" />
-            </button>
+            <Hint label="Close the colour picker" side="left">
+              <button
+                type="button"
+                onClick={() => setOpenColor(null)}
+                aria-label="Close the colour picker"
+                className="ml-auto inline-flex rounded p-1 text-base-content/45 hover:bg-base-200 hover:text-base-content"
+              >
+                <Icon name="close" />
+              </button>
+            </Hint>
           </div>
           <ColorPicker
             value={resolveColor(theme, openColor, mode)}
@@ -521,16 +542,19 @@ export function ThemeEditor() {
           <span className="w-[62px] text-sm text-base-content/70">{r.label}</span>
           <div className="flex gap-1.5">
             {r.opts.map((o) => (
+              // An empty element — `aria-label` IS its accessible name, and the
+              // tooltip is the only way a sighted user reads the value.
+              <Hint key={o} label={`${r.label} — ${o === "0" ? "square" : o}`} side="bottom">
               <button
-                key={o}
                 type="button"
                 onClick={() => setToken(r.key, o)}
-                title={o === "0" ? "square" : o}
+                aria-label={`${r.label} ${o === "0" ? "square" : o}`}
                 className={`size-[30px] border bg-base-200 cursor-pointer ${
                   tokenOf(r.key, r.dflt) === o ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
                 }`}
                 style={{ borderTopLeftRadius: o === "999px" ? "14px" : o }}
               />
+              </Hint>
             ))}
           </div>
         </div>

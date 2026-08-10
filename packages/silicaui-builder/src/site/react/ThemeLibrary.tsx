@@ -19,6 +19,7 @@ import { useHost } from "./host-context";
 import { themeShelves } from "../theme-catalog";
 import { themeToCss } from "../theme-ops";
 import { Icon } from "../../shared/react/Icon";
+import { Hint } from "../../shared/react/Hint";
 
 /** Four identity dots for a theme (primary/secondary/accent + a surface). */
 function dots(theme: Theme): string[] {
@@ -38,6 +39,7 @@ function ThemeRow({
     <div
       className={`group flex items-center gap-2.5 rounded-lg pr-1.5 ${active ? "bg-primary/10" : "hover:bg-base-200"}`}
     >
+      <Hint label={`Apply "${theme.name}" to the whole site`} side="right">
       <button type="button" onClick={onApply} className="flex flex-1 items-center gap-2.5 px-2.5 py-2 text-left">
         <span className="grid grid-cols-2 gap-0.5">
           {dots(theme).map((c, i) => (
@@ -46,6 +48,7 @@ function ThemeRow({
         </span>
         <span className={`text-sm capitalize ${active ? "font-semibold text-primary" : ""}`}>{theme.name}</span>
       </button>
+      </Hint>
       {trailing}
     </div>
   );
@@ -87,13 +90,15 @@ export function ThemeLibrary() {
     <div className="pb-6">
       <div className={SUBHEAD}>
         <Icon name="theme" /> This site
-        <button
-          type="button"
-          onClick={() => editor.saveTheme()}
-          className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold normal-case tracking-normal text-primary hover:bg-primary/10"
-        >
-          <Icon name={dirty ? "plus" : "check"} /> {dirty ? "Save current" : "Saved"}
-        </button>
+        <Hint label={dirty ? "Save these edits to the library as a reusable theme" : "No unsaved changes"}>
+          <button
+            type="button"
+            onClick={() => editor.saveTheme()}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold normal-case tracking-normal text-primary hover:bg-primary/10"
+          >
+            <Icon name={dirty ? "plus" : "check"} /> {dirty ? "Save current" : "Saved"}
+          </button>
+        </Hint>
       </div>
       <div className="px-2">
         {saved.map((t) => (
@@ -104,15 +109,16 @@ export function ThemeLibrary() {
             onApply={() => editor.applySavedTheme(t.name)}
             trailing={
               saved.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => editor.deleteSavedTheme(t.name)}
-                  aria-label={`Delete ${t.name}`}
-                  title={`Delete ${t.name}`}
-                  className="inline-flex rounded p-1 text-base-content/40 opacity-0 hover:bg-base-300 hover:text-error group-hover:opacity-100"
-                >
-                  <Icon name="close" />
-                </button>
+                <Hint label={`Delete "${t.name}" from the library`} side="left">
+                  <button
+                    type="button"
+                    onClick={() => editor.deleteSavedTheme(t.name)}
+                    aria-label={`Delete ${t.name}`}
+                    className="inline-flex rounded p-1 text-base-content/40 opacity-0 hover:bg-base-300 hover:text-error group-hover:opacity-100"
+                  >
+                    <Icon name="close" />
+                  </button>
+                </Hint>
               ) : undefined
             }
           />
@@ -142,13 +148,15 @@ export function ThemeLibrary() {
       ))}
 
       <div className={SUBHEAD}>Output</div>
-      <button
-        type="button"
-        onClick={exportCss}
-        className="mx-3.5 flex h-9 w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200 text-sm font-semibold text-base-content/80 hover:border-primary hover:text-primary"
-      >
-        <Icon name={copied ? "check" : "download"} /> {copied ? "Copied to clipboard" : "Export theme as CSS"}
-      </button>
+      <Hint label="Copy this theme's OKLCH custom properties to the clipboard">
+        <button
+          type="button"
+          onClick={exportCss}
+          className="mx-3.5 flex h-9 w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200 text-sm font-semibold text-base-content/80 hover:border-primary hover:text-primary"
+        >
+          <Icon name={copied ? "check" : "download"} /> {copied ? "Copied to clipboard" : "Export theme as CSS"}
+        </button>
+      </Hint>
       <div className="mx-3.5 mt-2 text-xs leading-relaxed text-base-content/45">
         OKLCH <code className="font-mono text-base-content/60">--color-*</code> custom properties on{" "}
         <code className="font-mono text-base-content/60">[data-theme]</code>. Sparx emits them directly.

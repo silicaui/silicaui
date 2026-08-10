@@ -40,6 +40,7 @@ import { useThemeWebfonts } from "./google-fonts-loader";
 import { Icon } from "../../shared/react/Icon";
 import { IconItem, PanelHead, PanelTabs } from "../../shared/react/chrome";
 import type { PanelTabSpec } from "../../shared/react/chrome";
+import { BuilderTooltipProvider, Hint, IconButton } from "../../shared/react/Hint";
 import type { LayerDepth } from "../layer-tree";
 
 type Mode = "page" | "layout" | "component" | "theme";
@@ -60,11 +61,15 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
         actions={
           <>
             {canUndo && (
-              <Button size="sm" color="primary" onClick={() => { editor.undo(); reset(); }}>
-                Undo last change
-              </Button>
+              <Hint label="Roll back the edit that broke the canvas, then re-render">
+                <Button size="sm" color="primary" onClick={() => { editor.undo(); reset(); }}>
+                  Undo last change
+                </Button>
+              </Hint>
             )}
-            <Button size="sm" variant="outline" onClick={reset}>Try again</Button>
+            <Hint label="Re-render without changing anything — your work is untouched">
+              <Button size="sm" variant="outline" onClick={reset}>Try again</Button>
+            </Hint>
           </>
         }
       />
@@ -89,28 +94,27 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
  * The accessible name is fixed and the state is `aria-pressed` — a toggle whose
  * LABEL flips is a control that changes identity under a screen reader, and you
  * can never tell whether the words describe the current state or the next one.
- * The `title` carries the plain-English version of both states for the mouse.
+ * The tooltip's `hint` line carries the plain-English version of both states.
  */
 function LayerDepthToggle({ value, onChange }: { value: LayerDepth; onChange: (v: LayerDepth) => void }) {
   const detailed = value === "all";
   return (
-    <Button
-      type="button"
-      size="xs"
-      shape="square"
+    <IconButton
+      icon="code"
+      label="Show layout wrappers"
+      hint={detailed ? "Showing every layer — click for the simple tree" : "Show every layer, including layout wrappers"}
+      // Sits in the rail's 40px header; a top-side tooltip would cover the tab
+      // strip this filter applies to.
+      side="bottom"
       // A real component state, not a hand-mixed tint: ghost when off, and the
       // `soft` primary the rest of the chrome uses for "this filter is armed".
       variant={detailed ? "soft" : "ghost"}
       color={detailed ? "primary" : undefined}
       className="flex-none"
       aria-pressed={detailed}
-      aria-label="Show layout wrappers"
-      title={detailed ? "Showing every layer — click for the simple tree" : "Show every layer, including layout wrappers"}
       data-testid="layer-depth"
       onClick={() => onChange(detailed ? "simple" : "all")}
-    >
-      <Icon name="code" />
-    </Button>
+    />
   );
 }
 
@@ -123,7 +127,11 @@ function ChromeErrorFallback({ error, reset }: { error: Error; reset: () => void
         icon={<Icon name="warning" />}
         title="The builder hit an error"
         description={error.message || "Something went wrong."}
-        actions={<Button size="sm" color="primary" onClick={reset}>Reload editor</Button>}
+        actions={
+          <Hint label="Rebuild the chrome — your document and undo history survive">
+            <Button size="sm" color="primary" onClick={reset}>Reload editor</Button>
+          </Hint>
+        }
       />
     </div>
   );
@@ -303,12 +311,24 @@ function Chrome({
           <IconItem value="component" icon="box">Component</IconItem>
         </ToggleGroup>
 
-        <Button variant="ghost" size="sm" aria-label="Undo" disabled={!canUndo} onClick={() => editor.undo()}>
-          <Icon name="undo" />
-        </Button>
-        <Button variant="ghost" size="sm" aria-label="Redo" disabled={!canRedo} onClick={() => editor.redo()}>
-          <Icon name="redo" />
-        </Button>
+        <IconButton
+          icon="undo"
+          label="Undo"
+          shortcut="⌘Z"
+          size="sm"
+          shape={undefined}
+          disabled={!canUndo}
+          onClick={() => editor.undo()}
+        />
+        <IconButton
+          icon="redo"
+          label="Redo"
+          shortcut="⇧⌘Z"
+          size="sm"
+          shape={undefined}
+          disabled={!canRedo}
+          onClick={() => editor.redo()}
+        />
 
         {mode !== "theme" && (
           <ToggleGroup
@@ -329,17 +349,25 @@ function Chrome({
             what ships when data is absent, so an author has to be able to see
             and edit it (and to work when a host's resolver is wrong or slow). */}
         {mode !== "theme" && resolvesData && dataToggle && (
-          <Button
-            variant="ghost"
+          <IconButton
+            icon={dataPreview ? "database" : "eyeOff"}
+            // The NAME is fixed and the state rides on `aria-pressed` — a toggle
+            // whose label flips changes identity under a screen reader, and you
+            // can never tell whether the words describe the current state or the
+            // next one. The `hint` carries the plain-English version of both.
+            label="Preview data"
+            hint={
+              dataPreview
+                ? "Showing the host's real data — click for the authored placeholders"
+                : "Showing authored placeholders — click for the host's real data"
+            }
             size="sm"
-            aria-label="Preview data"
+            shape={undefined}
             aria-pressed={dataPreview}
             data-testid="data-preview-toggle"
             className={dataPreview ? "btn-active" : undefined}
             onClick={() => setDataPreview((v) => !v)}
-          >
-            <Icon name={dataPreview ? "database" : "eyeOff"} />
-          </Button>
+          />
         )}
 
         <div className="flex-1" />
@@ -382,9 +410,23 @@ function Chrome({
           <IconItem value="dark" icon="moon">Dark</IconItem>
         </ToggleGroup>
         {toolbarSlot}
-        <Button color="primary" size="sm" disabled={!onPublish || publishing} onClick={publish}>
-          {publishing ? "Publishing…" : "Publish"}
-        </Button>
+        {/* Labelled, so the tooltip adds the CONSEQUENCE rather than repeating
+            the word — and, when the host wired no `onPublish`, says why it's
+            dead instead of leaving a greyed button with no explanation. */}
+        <Hint
+          label={
+            !onPublish
+              ? "Publishing isn't available here — this editor's host hasn't wired it up"
+              : "Push every page live"
+          }
+
+        >
+          <span className="inline-flex">
+            <Button color="primary" size="sm" disabled={!onPublish || publishing} onClick={publish}>
+              {publishing ? "Publishing…" : "Publish"}
+            </Button>
+          </span>
+        </Hint>
       </header>
 
       {/* body — a resizable 3-pane layout (deep trees need the room); widths
@@ -929,6 +971,10 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
               portals to document.body, outside the island (same fix PagesPanel's
               Select and ComponentStarterDialog's Dialog use). */}
           <ImperativeAlertDialogProvider popupProps={{ "data-theme": studioTheme }}>
+            {/* One shared hover delay for the whole chrome, so running along a
+                toolbar of icons shows each label instantly instead of
+                re-waiting per button. */}
+            <BuilderTooltipProvider>
             <div
               className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased"
               data-theme={studioTheme}
@@ -948,6 +994,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
                 />
               </ErrorBoundary>
             </div>
+            </BuilderTooltipProvider>
           </ImperativeAlertDialogProvider>
         </StudioThemeProvider>
       </EditorProvider>

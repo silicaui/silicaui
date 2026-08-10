@@ -5,7 +5,9 @@
  * `../persistence`'s `DraftStore`).
  */
 import * as React from "react";
+import { Button } from "@wizeworks/silicaui-react";
 import { Icon } from "./Icon";
+import { Hint, IconButton } from "./Hint";
 
 export function RecoveryBanner({
   at,
@@ -29,12 +31,18 @@ export function RecoveryBanner({
       <Icon name="database" />
       <span>Restored your last session ({relativeTime(at)}).</span>
       <span className="flex-1" />
-      <button type="button" className="btn btn-xs btn-ghost" onClick={onStartFresh}>
-        Start fresh
-      </button>
-      <button type="button" className="btn btn-xs btn-ghost btn-square" aria-label="Dismiss" onClick={onDismiss}>
-        <Icon name="close" />
-      </button>
+      <Hint label="Discard the restored draft and reopen the original" side="bottom">
+        <Button size="xs" variant="ghost" onClick={onStartFresh}>
+          Start fresh
+        </Button>
+      </Hint>
+      <IconButton
+        icon="close"
+        label="Dismiss"
+        hint="Keeps the restored work — just hides this bar"
+        side="bottom"
+        onClick={onDismiss}
+      />
     </div>
   );
 }

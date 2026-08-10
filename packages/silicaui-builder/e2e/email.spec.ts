@@ -4,10 +4,12 @@ import { ROW } from "./inspector-row";
 /**
  * The email builder's core loop: render the seeded document, select/insert/edit
  * blocks on the canvas, move/duplicate/delete via the Inspector toolbar, and
- * export real table-based HTML. Mounted via `?editor=email` in the shared
+ * project real table-based HTML. Mounted via `?editor=email` in the shared
  * harness (see `harness/main.tsx`), which exposes the same `window.__ready` /
- * `window.__changeCount` bus the site builder's specs use, plus `__exported`
- * (set from `EmailBuilder`'s `onExport`).
+ * `window.__changeCount` bus the site builder's specs use, plus `__exported` —
+ * the harness's own `toEmailHtml(doc, { resolver, frame })`, recomputed on every
+ * render. The builder has no export button; projection is the HOST's job, so
+ * that call is what these specs assert.
  */
 
 function trackErrors(page: Page): string[] {
@@ -131,7 +133,7 @@ test("move up / duplicate / delete act on the selected block via the Inspector t
   expect(errors, errors.join("\n")).toHaveLength(0);
 });
 
-test("Export HTML produces valid table-based markup with the current subject", async ({ page }) => {
+test("the projected HTML is valid table-based markup carrying the current subject", async ({ page }) => {
   const errors = trackErrors(page);
   await ready(page);
 
@@ -144,9 +146,10 @@ test("Export HTML produces valid table-based markup with the current subject", a
   await page.locator(ROW, { hasText: "Subject" }).locator("input").fill("Weekend sale");
   await page.locator(ROW, { hasText: "Subject" }).locator("input").blur();
 
-  await page.getByRole("button", { name: /export html/i }).click();
-
-  const html = await page.waitForFunction(() => (window as unknown as { __exported?: string }).__exported);
+  const html = await page.waitForFunction(
+    () => (window as unknown as { __exported?: string }).__exported?.includes("Weekend sale") &&
+      (window as unknown as { __exported?: string }).__exported,
+  );
   const value = await html.jsonValue();
   expect(value).toContain("<title>Weekend sale</title>");
   expect(value).toContain("role=\"presentation\"");
@@ -222,7 +225,11 @@ test("the rich text toolbar bolds the selected text", async ({ page }) => {
   // to its exact title (not a name regex) — the Inspector's Weight chip is
   // also labeled "Bold" and is visible at the same time.
   await page.keyboard.press("ControlOrMeta+a");
-  await page.getByRole("button", { name: "Bold (Ctrl/Cmd+B)" }).click();
+  // The shortcut moved out of the accessible name and into the tooltip's own
+  // line — a name that reads "Bold (Ctrl/Cmd+B)" to a screen reader is worse
+  // than one that reads "Bold". Scoped to the canvas, since the Inspector's
+  // font-weight chip is also legitimately named "Bold".
+  await page.locator(".sui-email-canvas").getByRole("button", { name: "Bold", exact: true }).click();
 
   // Commit the edit and confirm the HTML actually carries a <b>/<strong>.
   await page.keyboard.press("ControlOrMeta+Enter");
@@ -275,8 +282,10 @@ test("saving a block adds it to the palette, inserts a copy, and can be deleted"
   await expect.poll(() => canvas.locator("[data-sui-id]").count()).toBeGreaterThan(before);
 
   // Delete it — the row disappears from the palette (existing canvas copies stay).
+  // Located by ROLE + accessible name: these buttons carry a real tooltip now,
+  // not a `title`, and the name names the block rather than the verb alone.
   await page.locator('[data-insert-key^="saved:"]').hover();
-  await page.getByTitle("Delete saved block").click();
+  await page.getByRole("button", { name: /^Delete "/ }).click();
   await expect(page.locator('[data-insert-key^="saved:"]')).toHaveCount(0);
 
   expect(errors, errors.join("\n")).toHaveLength(0);
@@ -341,11 +350,11 @@ test("a host-owned saved-block library round-trips through the controlled seam",
   // Rename + delete travel the same seam.
   page.once("dialog", (d) => d.accept("Renamed Intro"));
   await savedRow.hover();
-  await page.getByTitle("Rename").click();
+  await page.getByRole("button", { name: /^Rename "/ }).click();
   await expect(page.locator('[data-insert-key^="saved:"]')).toContainText("Renamed Intro");
 
   await page.locator('[data-insert-key^="saved:"]').hover();
-  await page.getByTitle("Delete saved block").click();
+  await page.getByRole("button", { name: /^Delete "/ }).click();
   await expect(page.locator('[data-insert-key^="saved:"]')).toHaveCount(0);
 
   expect(await page.evaluate(() => (window as unknown as BlocksBus).__savedBlockChanges.map((c) => c.type))).toEqual([
@@ -372,8 +381,8 @@ test("a curated (read-only) host library inserts but offers no Save/rename/delet
 
   // …but the mutating affordances are absent rather than silently inert.
   await savedRow.hover();
-  await expect(page.getByTitle("Rename")).toHaveCount(0);
-  await expect(page.getByTitle("Delete saved block")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Rename "/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Delete "/ })).toHaveCount(0);
   await canvas.getByText("Start writing your email…").first().click();
   await expect(page.getByLabel("Save as block")).toHaveCount(0);
 

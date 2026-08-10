@@ -10,9 +10,9 @@
  * `popupProps={{ "data-theme": … }}` re-establishes the studio tokens.
  */
 import * as React from "react";
-import { Button, Select, SelectItem, Input, useImperativeAlertDialog } from "@wizeworks/silicaui-react";
+import { Select, SelectItem, Input, useImperativeAlertDialog } from "@wizeworks/silicaui-react";
 import { useEditor, usePages, useStudioTheme } from "./editor-context";
-import { Icon } from "../../shared/react/Icon";
+import { IconButton } from "../../shared/react/Hint";
 
 export function PagesPanel() {
   const { pages, activeId } = usePages();
@@ -90,23 +90,20 @@ export function PagesPanel() {
 
         {!renaming && (
           <>
-            <Button variant="ghost" size="sm" shape="square" aria-label="Rename page" onClick={startRename}>
-              <Icon name="pencil" />
-            </Button>
-            <Button variant="ghost" size="sm" shape="square" aria-label="Add page" onClick={() => editor.addPage()}>
-              <Icon name="plus" />
-            </Button>
-            <Button
-              variant="ghost"
+            <IconButton icon="pencil" label="Rename page" size="sm" side="bottom" onClick={startRename} />
+            <IconButton icon="plus" label="Add page" size="sm" side="bottom" onClick={() => editor.addPage()} />
+            <IconButton
+              icon="trash"
+              label="Delete page"
+              // Says why it's dead rather than leaving a greyed button with no
+              // explanation — the case a person is most likely to hover.
+              hint={pages.length <= 1 ? "A site needs at least one page" : undefined}
+              side="bottom"
               size="sm"
-              shape="square"
-              aria-label="Delete page"
               disabled={pages.length <= 1}
               className="hover:text-error"
               onClick={() => void deleteActive()}
-            >
-              <Icon name="trash" />
-            </Button>
+            />
           </>
         )}
       </div>

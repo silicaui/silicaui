@@ -50,6 +50,8 @@ import { TemplatesPanel } from "./TemplatesPanel";
 import { Icon } from "../../shared/react/Icon";
 import { IconItem, PanelTabs } from "../../shared/react/chrome";
 import type { PanelTabSpec } from "../../shared/react/chrome";
+import { BuilderTooltipProvider, Hint, IconButton } from "../../shared/react/Hint";
+import { StudioThemeProvider } from "../../shared/react/studio-theme";
 
 /** The left rail's two pages. Static — email has no mode that removes one. */
 const LEFT_TABS: PanelTabSpec[] = [
@@ -69,11 +71,15 @@ function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void
         actions={
           <>
             {canUndo && (
-              <Button size="sm" color="primary" onClick={() => { editor.undo(); reset(); }}>
-                Undo last change
-              </Button>
+              <Hint label="Roll back the edit that broke the canvas, then re-render">
+                <Button size="sm" color="primary" onClick={() => { editor.undo(); reset(); }}>
+                  Undo last change
+                </Button>
+              </Hint>
             )}
-            <Button size="sm" variant="outline" onClick={reset}>Try again</Button>
+            <Hint label="Re-render without changing anything — your work is untouched">
+              <Button size="sm" variant="outline" onClick={reset}>Try again</Button>
+            </Hint>
           </>
         }
       />
@@ -88,28 +94,14 @@ function ChromeErrorFallback({ error, reset }: { error: Error; reset: () => void
         icon={<Icon name="warning" />}
         title="The email builder hit an error"
         description={error.message || "Something went wrong."}
-        actions={<Button size="sm" color="primary" onClick={reset}>Reload editor</Button>}
+        actions={
+          <Hint label="Rebuild the chrome — your document and undo history survive">
+            <Button size="sm" color="primary" onClick={reset}>Reload editor</Button>
+          </Hint>
+        }
       />
     </div>
   );
-}
-
-/** Client-side download of the exported HTML — works standalone with no host
- *  wiring; `onExport` (if given) additionally hands the host the same string.
- *  With a `resolver` (the host's `resolveBinding`/`resolveCollection`), the
- *  downloaded file carries real data too, same as the host's own copy — the
- *  Q25 "one projector" guarantee applies to every export path, not just the
- *  callback. */
-function downloadHtml(doc: EmailDocument, resolver?: EmailBuilderHost, frame?: EmailFrame): void {
-  const html = toEmailHtml(doc, { resolver, frame });
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  const slug = doc.subject.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "email";
-  a.download = `${slug}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -141,9 +133,9 @@ function SendTestButton({
     if (!onSendTest || !EMAIL_RE.test(to)) return;
     setStatus("sending");
     try {
-      // Resolved through the SAME projector + host + frame as Export HTML
-      // (Q25) — a test send shows exactly what a real recipient with real data
-      // would get, chrome included.
+      // Resolved through the SAME projector + host + frame as Preview and the
+      // host's own send path (Q25) — a test send shows exactly what a real
+      // recipient with real data would get, chrome included.
       await onSendTest({ to, html: toEmailHtml(doc, { resolver: host, frame }), subject: doc.subject });
       setStatus("sent");
       setTimeout(() => setOpen(false), 900);
@@ -163,11 +155,26 @@ function SendTestButton({
         }
       }}
     >
-      <DialogTrigger>
-        <Button variant="outline" size="sm" disabled={!onSendTest}>
-          <Icon name="send" /> Send test
-        </Button>
-      </DialogTrigger>
+      {/* The tooltip owns the WRAPPER, the dialog owns the button. Two Base UI
+          triggers can't render the same element — each clones it and the second
+          clobbers the first's ref, so the dialog silently stops opening. The
+          span also keeps the hint alive while the button is disabled ("why is
+          this greyed out" is precisely when a person hovers it). */}
+      <Hint
+        label={
+          onSendTest
+            ? "Send this draft to one address, exactly as a recipient would see it"
+            : "Test sends aren't available here — this editor's host hasn't wired them up"
+        }
+      >
+        <span className="inline-flex">
+          <DialogTrigger>
+            <Button variant="outline" size="sm" disabled={!onSendTest}>
+              <Icon name="send" /> Send test
+            </Button>
+          </DialogTrigger>
+        </span>
+      </Hint>
       <DialogContent data-theme={studioTheme} className="w-[min(420px,94vw)] p-5">
         <DialogTitle className="text-base font-semibold">Send a test email</DialogTitle>
         <DialogDescription className="text-sm text-base-content/60">
@@ -182,14 +189,21 @@ function SendTestButton({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)}
             onKeyDown={(e: React.KeyboardEvent) => e.key === "Enter" && send()}
           />
-          <Button
-            color="primary"
-            size="sm"
-            disabled={!EMAIL_RE.test(to) || status === "sending"}
-            onClick={send}
+          <Hint
+            label={EMAIL_RE.test(to) ? `Send this draft to ${to}` : "Enter a valid email address first"}
+
           >
-            {status === "sending" ? "Sending…" : status === "sent" ? "Sent!" : "Send"}
-          </Button>
+            <span className="inline-flex">
+              <Button
+                color="primary"
+                size="sm"
+                disabled={!EMAIL_RE.test(to) || status === "sending"}
+                onClick={send}
+              >
+                {status === "sending" ? "Sending…" : status === "sent" ? "Sent!" : "Send"}
+              </Button>
+            </span>
+          </Hint>
           {status === "error" && <p className="text-xs text-error">Couldn't send — try again.</p>}
         </div>
       </DialogContent>
@@ -199,7 +213,6 @@ function SendTestButton({
 
 function Chrome({
   studioTheme,
-  onExport,
   onSendTest,
   toolbarSlot,
   toolbarStatusSlot,
@@ -207,7 +220,6 @@ function Chrome({
   frame,
 }: {
   studioTheme: string;
-  onExport?: (html: string) => void;
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
   toolbarStatusSlot?: React.ReactNode;
@@ -216,18 +228,12 @@ function Chrome({
 }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
-  const host = useEmailHost();
   const { canUndo, canRedo } = useEmailHistory();
   const [device, setDevice] = React.useState("desktop");
   const [mode, setMode] = React.useState<"edit" | "preview">("edit");
   const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
 
   useEmailEditorShortcuts();
-
-  const exportHtml = () => {
-    downloadHtml(doc, host, frame);
-    onExport?.(toEmailHtml(doc, { resolver: host, frame }));
-  };
 
   return (
     <>
@@ -246,12 +252,24 @@ function Chrome({
           <IconItem value="preview" icon="eye">Preview</IconItem>
         </ToggleGroup>
 
-        <Button variant="ghost" size="sm" aria-label="Undo" disabled={!canUndo} onClick={() => editor.undo()}>
-          <Icon name="undo" />
-        </Button>
-        <Button variant="ghost" size="sm" aria-label="Redo" disabled={!canRedo} onClick={() => editor.redo()}>
-          <Icon name="redo" />
-        </Button>
+        <IconButton
+          icon="undo"
+          label="Undo"
+          shortcut="⌘Z"
+          size="sm"
+          shape={undefined}
+          disabled={!canUndo}
+          onClick={() => editor.undo()}
+        />
+        <IconButton
+          icon="redo"
+          label="Redo"
+          shortcut="⇧⌘Z"
+          size="sm"
+          shape={undefined}
+          disabled={!canRedo}
+          onClick={() => editor.redo()}
+        />
 
         <ToggleGroup
           className="toggle-group-sm"
@@ -269,7 +287,7 @@ function Chrome({
             makes: state about the session (a lock holder, a send window, an
             environment tag) sits off the end of the spacer with no control
             beside it, while `toolbarSlot` stays actions grouped with Send
-            test/Export. */}
+            test. */}
         {toolbarStatusSlot}
 
         {/* Subject and preview text are document fields, not toolbar controls:
@@ -280,9 +298,6 @@ function Chrome({
             host's own `toolbarSlot`. */}
         {toolbarSlot}
         <SendTestButton studioTheme={studioTheme} onSendTest={onSendTest} frame={frame} />
-        <Button color="primary" size="sm" onClick={exportHtml}>
-          <Icon name="download" /> Export HTML
-        </Button>
       </header>
 
       {/* A resizable 3-pane layout in Edit mode — same widths persist locally
@@ -416,9 +431,9 @@ export interface EmailBuilderProps {
    * persisted, isn't in `onChange`, isn't on the undo stack, and the engine is
    * never told it exists. On the canvas it renders at full fidelity but inert —
    * no selection, no drag, no inline edit — so an author designs against the
-   * real thing without being able to delete or reorder it. Preview, Export HTML
-   * and Send test all project through it, via the same `composeEmailDocument`
-   * a host should use in its own send path.
+   * real thing without being able to delete or reorder it. Preview and Send test
+   * both project through it, via the same `composeEmailDocument` a host should
+   * use in its own send path.
    *
    * Two guarantees follow from it living outside the document, and both are the
    * reason it isn't just a locked section:
@@ -465,9 +480,6 @@ export interface EmailBuilderProps {
    * as it did before.
    */
   onChange?: (project: EmailProject, ops: readonly Op[], meta: OpMeta) => void;
-  /** Fires (in addition to the built-in client-side download) when the user
-   *  clicks Export HTML, with the projected HTML string. */
-  onExport?: (html: string) => void;
   /**
    * Fires when the user sends a test email — the builder never sends mail
    * itself (no SMTP/ESP credentials, and shouldn't own that), so this hands
@@ -520,11 +532,15 @@ export interface EmailBuilderProps {
    */
   onSavedBlocksChange?: (next: SavedBlock[], change: SavedBlockChange) => void;
   /**
-   * Host ACTIONS rendered in the header, immediately before the Send
-   * test/Export HTML buttons — or (per the site `<Builder toolbarSlot>` this
-   * mirrors) a host's own lifecycle strip (template switch/new/fork/publish)
-   * that would otherwise have to render OUTSIDE the builder entirely, stacking
-   * a second header above it.
+   * Host ACTIONS rendered in the header, immediately before the Send test
+   * button — or (per the site `<Builder toolbarSlot>` this mirrors) a host's own
+   * lifecycle strip (template switch/new/fork/publish) that would otherwise have
+   * to render OUTSIDE the builder entirely, stacking a second header above it.
+   *
+   * The builder ships no HTML-export button of its own, so this slot is where a
+   * host's own terminal action (Save, Publish, Schedule, Send) belongs. Project
+   * the document yourself with `toEmailHtml(doc, { resolver, frame })` — the
+   * same one projector Preview and Send test use.
    *
    * For non-interactive state — a save-status badge, a "last saved" timestamp,
    * a send window — use `toolbarStatusSlot`. The builder has no opinion on
@@ -587,7 +603,6 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
   studioTheme = "studio",
   theme,
   onChange,
-  onExport,
   onSendTest,
   persistKey = DEFAULT_PERSIST_KEY,
   savedBlocks,
@@ -710,24 +725,30 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
   return (
     <EmailHostProvider host={host}>
       <SavedBlocksProvider value={savedBlocksController}>
-        <EmailEditorProvider key={current.gen} editor={editor}>
-          <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
-            <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
-              {current.recoveredAt !== null && (
-                <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
-              )}
-              <Chrome
-                studioTheme={studioTheme}
-                onExport={onExport}
-                onSendTest={onSendTest}
-                toolbarSlot={toolbarSlot}
-                toolbarStatusSlot={toolbarStatusSlot}
-                statusBarSlot={statusBarSlot}
-                frame={frame}
-              />
-            </ErrorBoundary>
-          </div>
-        </EmailEditorProvider>
+        {/* The studio theme reaches portaled surfaces (tooltips, select popups,
+            dialogs) through context rather than a prop threaded per panel — they
+            render outside this `[data-theme]` island and have to re-stamp it. */}
+        <StudioThemeProvider value={studioTheme}>
+          <EmailEditorProvider key={current.gen} editor={editor}>
+            <BuilderTooltipProvider>
+              <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
+                <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
+                  {current.recoveredAt !== null && (
+                    <RecoveryBanner at={current.recoveredAt} onDismiss={dismissBanner} onStartFresh={startFresh} />
+                  )}
+                  <Chrome
+                    studioTheme={studioTheme}
+                    onSendTest={onSendTest}
+                    toolbarSlot={toolbarSlot}
+                    toolbarStatusSlot={toolbarStatusSlot}
+                    statusBarSlot={statusBarSlot}
+                    frame={frame}
+                  />
+                </ErrorBoundary>
+              </div>
+            </BuilderTooltipProvider>
+          </EmailEditorProvider>
+        </StudioThemeProvider>
       </SavedBlocksProvider>
     </EmailHostProvider>
   );

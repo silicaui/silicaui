@@ -43,7 +43,9 @@ test("a section can be given a border, radius and margin from the Inspector", as
   // Radius: the "Medium" (8px) preset is the third swatch (Auto, None, Small,
   // Medium, Full) — read by title so the assertion survives a reorder.
   const radiusRow = page.locator(ROW, { hasText: "Corner radius" }).first();
-  await radiusRow.locator('button[title="Medium"]').click();
+  // Located by accessible name, not `title` — a radius swatch is an empty
+  // element whose `aria-label` is now its whole name (and its tooltip).
+  await radiusRow.getByRole("button", { name: "Medium corners" }).click();
   await expect(section).toHaveCSS("border-radius", "8px");
 
   const widthRow = page.locator(ROW, { hasText: "Border width" }).first();
@@ -134,7 +136,9 @@ test("picking a theme swatch TRACKS that role — a tinted section follows a the
   // order: primary…error, baseContent, base100, base200).
   const bgRow = page.locator(ROW, { hasText: "Background" }).first();
   const base200 = bgRow.locator("button").nth(11);
-  await expect(base200).toHaveAttribute("title", "Base 200");
+  // A swatch's name is its `aria-label` now (it has no text and no `title`) —
+  // which is also what its tooltip shows.
+  await expect(base200).toHaveAttribute("aria-label", "Base 200");
   const base200Color = await base200.evaluate((el) => getComputedStyle(el).backgroundColor);
 
   await base200.click();

@@ -62,9 +62,11 @@ so nothing new has to be rendered, projected, or resolved for them.
   the region it names. The region is deliberately **not** dimmed or ghosted:
   fading it would say "unfinished", when the true message is "real, and not
   yours to edit here".
-- **Preview / Export HTML / Send test** — all project through
+- **Preview / Send test / the host's own `toEmailHtml`** — all project through
   `composeEmailDocument`, so every path a user can reach shows the framed
-  email. The Preview button stops being the only framed view.
+  email. The Preview button stops being the only framed view. (The builder
+  shipped an Export HTML button until v0.51; projection is the host's job, and
+  a host calling `toEmailHtml(doc, { resolver, frame })` gets the same bytes.)
 - **Persistence** — nothing. The frame is never written to the document, never
   in `onChange`, never on the undo stack, and the engine is never told it
   exists. There is no code path from a frame back into an `EmailDocument`.

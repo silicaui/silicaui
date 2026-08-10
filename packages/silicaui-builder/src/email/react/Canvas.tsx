@@ -39,6 +39,7 @@ import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelecti
 import { useEmailHost } from "./host-context";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
 import { Icon } from "../../shared/react/Icon";
+import { IconButton } from "../../shared/react/Hint";
 import type { IconName } from "../../shared/icons";
 import { DRAG_MIME, decodeDrag, edgeFor, siblingAxis } from "../../shared/dnd";
 import type { Axis, DropEdge } from "../../shared/dnd";
@@ -418,16 +419,17 @@ function TextFormatToolbar() {
     const url = window.prompt("Link URL");
     if (url) cmd("createLink", url);
   };
-  const item = (icon: IconName, title: string, onClick: () => void) => (
-    <button
-      type="button"
-      className="btn btn-ghost btn-xs btn-square"
-      title={title}
-      onMouseDown={(e) => e.preventDefault()}
+  const item = (icon: IconName, label: string, onClick: () => void, shortcut?: string) => (
+    // `bottom`: this bar floats ABOVE the text being edited, so a top-side
+    // tooltip would sit off over the block before it.
+    <IconButton
+      icon={icon}
+      label={label}
+      shortcut={shortcut}
+      side="bottom"
+      onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
       onClick={onClick}
-    >
-      <Icon name={icon} />
-    </button>
+    />
   );
   return (
     <div
@@ -435,8 +437,8 @@ function TextFormatToolbar() {
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      {item("bold", "Bold (Ctrl/Cmd+B)", () => cmd("bold"))}
-      {item("italic", "Italic (Ctrl/Cmd+I)", () => cmd("italic"))}
+      {item("bold", "Bold", () => cmd("bold"), "⌘B")}
+      {item("italic", "Italic", () => cmd("italic"), "⌘I")}
       {item("link", "Link", link)}
       {item("list", "Bullet list", () => cmd("insertUnorderedList"))}
     </div>

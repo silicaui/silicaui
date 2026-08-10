@@ -7,6 +7,7 @@
 import * as React from "react";
 import { Button, Tabs, TabsList, TabsPanel, TabsTab, ToggleGroupItem } from "@wizeworks/silicaui-react";
 import { Icon } from "./Icon";
+import { Hint, IconButton } from "./Hint";
 import type { IconName } from "../icons";
 
 /** Toggle item with a leading icon — a flex row so icon + label align. */
@@ -82,22 +83,28 @@ export function StatusItem({
       </span>
     );
   }
+  // Interactive, so `title` becomes a real tooltip rather than the native
+  // attribute — same rule as every other control in the chrome. (The
+  // non-interactive branch above keeps `title`: it's a plain `<span>`, not a
+  // control, and giving unfocusable text a hover-only popup would hide it from
+  // anyone not using a mouse.)
   return (
-    <Button
-      type="button"
-      size="xs"
-      variant="ghost"
-      // `font-normal`: it is still status, and a status bar that bolds one fact
-      // because it happens to be clickable has made clickability the hierarchy.
-      className={`h-6 font-normal ${className}`}
-      title={title}
-      aria-expanded={expanded}
-      aria-controls={controls}
-      onClick={onClick}
-      {...rest}
-    >
-      {children}
-    </Button>
+    <Hint label={title} side="top">
+      <Button
+        type="button"
+        size="xs"
+        variant="ghost"
+        // `font-normal`: it is still status, and a status bar that bolds one fact
+        // because it happens to be clickable has made clickability the hierarchy.
+        className={`h-6 font-normal ${className}`}
+        aria-expanded={expanded}
+        aria-controls={controls}
+        onClick={onClick}
+        {...rest}
+      >
+        {children}
+      </Button>
+    </Hint>
   );
 }
 
@@ -289,17 +296,16 @@ function PageButton({
   onClick: () => void;
 }) {
   return (
-    <Button
-      type="button"
+    <IconButton
+      icon={dir === -1 ? "chevronLeft" : "chevron"}
+      label={dir === -1 ? "Scroll tabs left" : "Scroll tabs right"}
+      // `bottom`: these sit in a 40px header at the top of a rail, where a
+      // top-side tooltip would cover the tab strip it's describing.
+      side="bottom"
       shape="circle"
-      size="xs"
-      variant="ghost"
       className="flex-none"
       disabled={disabled}
-      aria-label={dir === -1 ? "Scroll tabs left" : "Scroll tabs right"}
       onClick={onClick}
-    >
-      <Icon name={dir === -1 ? "chevronLeft" : "chevron"} />
-    </Button>
+    />
   );
 }

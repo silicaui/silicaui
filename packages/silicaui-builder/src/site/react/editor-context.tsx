@@ -13,20 +13,10 @@ export function EditorProvider({ editor, children }: { editor: Editor; children:
   return <EditorContext.Provider value={editor}>{children}</EditorContext.Provider>;
 }
 
-// The chrome's `[data-theme]` value. Base UI popups (dropdowns, dialogs) render in a
-// PORTAL at document.body — outside the chrome's theme island — so a portaled popup
-// must re-stamp this on its own root to recover the studio tokens (else base/primary
-// resolve to nothing). Threaded here so any chrome popup can read it.
-const StudioThemeContext = React.createContext<string>("studio");
-
-export function StudioThemeProvider({ value, children }: { value: string; children: React.ReactNode }) {
-  return <StudioThemeContext.Provider value={value}>{children}</StudioThemeContext.Provider>;
-}
-
-/** The chrome's `[data-theme]` name — stamp it on portaled popups to keep tokens. */
-export function useStudioTheme(): string {
-  return React.useContext(StudioThemeContext);
-}
+// The chrome's `[data-theme]` value now lives in `shared/react/studio-theme`, so
+// the email shell can stamp the same portaled surfaces. Re-exported here because
+// this is where every site-side caller already imports it from.
+export { StudioThemeProvider, useStudioTheme } from "../../shared/react/studio-theme";
 
 /** The shared engine. Mutate through it; reads go through the hooks below. */
 export function useEditor(): Editor {

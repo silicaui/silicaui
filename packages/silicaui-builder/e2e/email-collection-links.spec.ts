@@ -10,7 +10,7 @@ import { ROW } from "./inspector-row";
  * card to its own record. A `link` group holds the destination, so its `href`
  * binds per item while every child keeps its own marker for its own field.
  *
- * The assertions that matter run against the EXPORTED HTML (`__exported`, the
+ * The assertions that matter run against the PROJECTED HTML (`__exported`, the
  * host's real projection through `toEmailHtml` + the demo resolver), not the
  * canvas: the canvas is an approximation, and "each card links to its own URL"
  * is a claim about what actually sends.
@@ -108,7 +108,6 @@ test("inside a collection repeat, each card links to ITS OWN url while its image
   await bind(page, "collection", "products");
   await expect(page.getByText("3 items", { exact: true })).toBeVisible();
 
-  await page.getByRole("button", { name: "Export HTML", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __exported?: string }).__exported))
     .toContain("shop.example.com/p/widget");

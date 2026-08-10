@@ -3,7 +3,7 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { Builder, StatusItem, useEditor } from "@wizeworks/silicaui-builder/react";
 import type { BuilderHandle, BuilderHost, Editor, Op, OpMeta, Peer } from "@wizeworks/silicaui-builder/react";
-import { EmailBuilder } from "@wizeworks/silicaui-builder/email/react";
+import { EmailBuilder, useEmailDocument, useEmailHost } from "@wizeworks/silicaui-builder/email/react";
 import type {
   EmailBuilderHandle,
   EmailBuilderHost,
@@ -11,7 +11,7 @@ import type {
   SavedBlock,
   SavedBlockChange,
 } from "@wizeworks/silicaui-builder/email/react";
-import { emptyEmailDocument } from "@wizeworks/silicaui-builder/email";
+import { emptyEmailDocument, toEmailHtml } from "@wizeworks/silicaui-builder/email";
 import type { EmailProject, SectionNode, TextNode } from "@wizeworks/silicaui-builder/email";
 import { stamp, el } from "@wizeworks/silicaui-html";
 import { heroSplitCta } from "@wizeworks/silicaui-html/blocks";
@@ -483,6 +483,11 @@ const bus = window as unknown as {
   __lastChange?: unknown;
   __changeCount: number;
   __published?: unknown;
+  // The projected email HTML, recomputed on every render from the live document
+  // — what a HOST gets when it calls `toEmailHtml(doc, { resolver, frame })` in
+  // its own save/send path. The builder ships no export button, so this is the
+  // real integration shape, not a UI affordance: specs assert the projection,
+  // which is what actually reaches an inbox.
   __exported?: string;
   __sentTest?: { to: string; subject: string };
   __activePage?: unknown;
@@ -608,6 +613,23 @@ function useHostSavedBlocks(mode: string | null): {
   return {};
 }
 
+/**
+ * The host's own projection, mirrored to the bus — exactly what a real host does
+ * in its save/send path, and the same seam the site harness uses to reach the
+ * `Editor` (`ToolbarSlot` → `bus.__editor`): render INSIDE the builder so it can
+ * read the same context the built-in panels do, with no bespoke test API.
+ *
+ * Rendered as `toolbarSlot` content, so it re-runs on every committed edit and
+ * the bus always holds the CURRENT projection. It draws nothing of its own —
+ * the demo host's visible label is a sibling, mounted only under `?host=demo`.
+ */
+function EmailProjection({ frame }: { frame?: EmailFrame }) {
+  const doc = useEmailDocument();
+  const host = useEmailHost();
+  bus.__exported = toEmailHtml(doc, { resolver: host, frame });
+  return null;
+}
+
 /** The email builder plus whatever host-owned state it needs — a component, not
  *  a bare `root.render`, because a controlled prop needs a state owner above it. */
 function EmailHarness(props: React.ComponentProps<typeof EmailBuilder>) {
@@ -657,20 +679,20 @@ if (editorMode === "email") {
           bus.__ops.push(...(ops as unknown as Op[]));
           bus.__lastMeta = meta;
         }}
-        onExport={(html) => {
-          bus.__exported = html;
-        }}
         onSendTest={async ({ to, subject }) => {
           // Simulate a real (slow, sometimes-fails) send: a host's ESP call.
           await new Promise((r) => setTimeout(r, 150));
           bus.__sentTest = { to, subject };
         }}
         toolbarSlot={
-          emailHost ? (
-            <span data-testid="email-toolbar-slot" className="text-xs text-base-content/50 px-1">
-              Demo host UI
-            </span>
-          ) : undefined
+          <>
+            <EmailProjection frame={framed ? demoEmailFrame : undefined} />
+            {emailHost && (
+              <span data-testid="email-toolbar-slot" className="text-xs text-base-content/50 px-1">
+                Demo host UI
+              </span>
+            )}
+          </>
         }
         toolbarStatusSlot={
           emailHost ? (

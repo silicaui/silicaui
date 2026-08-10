@@ -35,9 +35,29 @@ export type DialogProps = React.ComponentProps<typeof BaseDialog.Root>;
  */
 export const Dialog = BaseDialog.Root;
 
-/** Wraps its single child element as the element that opens the dialog. */
-export function DialogTrigger({ children }: { children: React.ReactElement }) {
-  return <BaseDialog.Trigger render={asRender(children)} />;
+export interface DialogTriggerProps {
+  children: React.ReactElement;
+  /**
+   * Whether `children` is a real `<button>`. Base UI assumes it is and logs an
+   * error on every render when it isn't — pass `false` when the child is
+   * legitimately something else, e.g. a `<span>` wrapping a DISABLED button so
+   * a tooltip explaining why it's disabled can still be hovered.
+   */
+  nativeButton?: boolean;
+  /** Anything else goes straight to Base UI's trigger. */
+  [key: string]: unknown;
+}
+
+/**
+ * Wraps its single child element as the element that opens the dialog.
+ *
+ * Forwards every other prop to Base UI's trigger rather than dropping it — a
+ * trigger wrapper that silently swallows props is indistinguishable from a
+ * broken dialog at the call site, since nothing errors and the button simply
+ * stops opening anything.
+ */
+export function DialogTrigger({ children, ...rest }: DialogTriggerProps) {
+  return <BaseDialog.Trigger render={asRender(children)} {...rest} />;
 }
 
 /** Wraps its single child element as an element that closes the dialog. */

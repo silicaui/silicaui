@@ -64,8 +64,12 @@ test("a host component is a first-class palette row", async ({ page }) => {
     "cta",
   );
 
-  // `hint` reaches the row as its tooltip.
-  await expect(priceRow).toHaveAttribute("title", "The live price of the product this page is about.");
+  // `hint` reaches the row as its tooltip — a real one now, not a native
+  // `title`, so it's asserted by hovering rather than by reading an attribute.
+  await priceRow.hover();
+  await expect(
+    page.getByText("The live price of the product this page is about.", { exact: true }),
+  ).toBeVisible();
 
   // `category` is display copy: "Media" names a shelf the builder already has,
   // so the row lands INSIDE it — one heading, not two identical ones.
