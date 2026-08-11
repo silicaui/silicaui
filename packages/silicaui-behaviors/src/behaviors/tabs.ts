@@ -1,4 +1,5 @@
-import { DisposeBag, ownParts } from "../dom";
+import { DisposeBag, ownParts, parseParams } from "../dom";
+import { wireScrollStrip } from "./scroll-strip-core";
 import type { BehaviorHandler } from "../types";
 
 /**
@@ -6,11 +7,30 @@ import type { BehaviorHandler } from "../types";
  * navigation (Left/Right, Up/Down, Home/End) per the standard tabs pattern.
  * Pairing is positional (Nth `tab` ↔ Nth `panel`), same nesting-scoped lookup
  * as `disclosure`.
+ *
+ * If the macro also emitted a `track` (the tab list) plus `prev`/`next`
+ * controls, the strip announces its own overflow — a tab past the edge with
+ * nothing saying so is a tab that, to the person looking, does not exist.
+ * That is wired HERE rather than by nesting a `scroll-strip` root around the
+ * list, because part lookup stops at a nested behavior boundary: every `tab`
+ * would resolve to the inner root and this handler would find none.
  */
 export const tabs: BehaviorHandler = (root, _opts) => {
   const tabEls = ownParts(root, "tab");
   const panels = ownParts(root, "panel");
   const bag = new DisposeBag();
+
+  const track = ownParts(root, "track")[0] as HTMLElement | undefined;
+  if (track) {
+    const step = parseParams(root).step;
+    wireScrollStrip(root, track, ownParts(root, "prev")[0], ownParts(root, "next")[0], bag, {
+      step: typeof step === "number" ? step : undefined,
+      // Never actually used: a tab list is full of real buttons, so it never
+      // needs a tab stop of its own. Passed anyway so the one place that
+      // decides that isn't silently relying on the caller's content.
+      label: "tabs",
+    });
+  }
 
   const pairs = tabEls
     .map((tab, i) => ({ tab, panel: panels[i] }))

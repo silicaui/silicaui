@@ -29,6 +29,7 @@ export type BehaviorType =
   | "number-field"
   | "toggle-group"
   | "scroll-area"
+  | "scroll-strip"
   | "overflow-list"
   | "dropzone"
   | "slider"

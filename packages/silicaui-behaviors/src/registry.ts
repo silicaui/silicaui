@@ -20,6 +20,7 @@ import { wizard } from "./behaviors/wizard";
 import { numberField } from "./behaviors/number-field";
 import { toggleGroup } from "./behaviors/toggle-group";
 import { scrollArea } from "./behaviors/scroll-area";
+import { scrollStrip } from "./behaviors/scroll-strip";
 import { overflowList } from "./behaviors/overflow-list";
 import { dropzone } from "./behaviors/dropzone";
 import { slider } from "./behaviors/slider";
@@ -58,6 +59,7 @@ export const HANDLERS: Record<BehaviorType, BehaviorHandler> = {
   "number-field": numberField,
   "toggle-group": toggleGroup,
   "scroll-area": scrollArea,
+  "scroll-strip": scrollStrip,
   "overflow-list": overflowList,
   dropzone,
   slider,

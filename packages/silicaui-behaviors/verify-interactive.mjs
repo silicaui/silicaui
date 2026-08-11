@@ -449,5 +449,192 @@ console.log("marquee — pause flag");
   d3();
 }
 
+// ── SCROLL-STRIP: overflow drives the PAIR, position drives `disabled` ───────
+// jsdom has no layout, so the geometry is stubbed — which is the point: the
+// browser owns scrollWidth/clientWidth, and everything this handler is actually
+// responsible for is the DECISIONS it makes from them. Those decisions are what
+// a structural read can't see (a strip renders identically whether the buttons
+// are correctly hidden or just never revealed).
+console.log("scroll-strip — overflow controls");
+{
+  const node = {
+    kind: "component",
+    component: "ScrollStrip",
+    props: { label: "tabs" },
+    children: [{ kind: "element", tag: "span", class: "chip", children: ["Overview"] }],
+  };
+  const doc = mount(toHtml(node));
+  const root = doc.querySelector(".scroll-strip");
+  const track = doc.querySelector('[data-sui-part="track"]');
+  const prev = doc.querySelector('[data-sui-part="prev"]');
+  const next = doc.querySelector('[data-sui-part="next"]');
+
+  check("authored: a track between two controls", Boolean(root && track && prev && next));
+  check("pre-hydrate: BOTH controls ship hidden (no-JS sees a plain scroller)", hidden(prev) && hidden(next));
+  check("pre-hydrate: the label reaches the controls", prev.getAttribute("aria-label") === "Scroll tabs back" && next.getAttribute("aria-label") === "Scroll tabs forward");
+
+  // Stub the layout the browser would supply, plus the scroll API jsdom lacks.
+  let viewport = 100;
+  let content = 300;
+  Object.defineProperty(track, "clientWidth", { get: () => viewport, configurable: true });
+  Object.defineProperty(track, "scrollWidth", { get: () => content, configurable: true });
+  track.scrollLeft = 0;
+  track.scrollBy = ({ left }) => {
+    track.scrollLeft = Math.max(0, Math.min(content - viewport, track.scrollLeft + left));
+    track.dispatchEvent(new globalThis.Event("scroll"));
+  };
+
+  const dispose = hydrate(doc, {});
+  check("overflowing: the pair is revealed", !hidden(prev) && !hidden(next));
+  check("at the start: only `back` is disabled", prev.hasAttribute("disabled") && !next.hasAttribute("disabled"));
+  check("at the start: data-at-start is set for the edge fade", root.hasAttribute("data-at-start") && !root.hasAttribute("data-at-end"));
+  // Nothing tabbable inside, so the scroller must become the tab stop itself —
+  // otherwise the clipped content is unreachable by keyboard entirely.
+  check("no focusable children: the track takes a tab stop", track.getAttribute("tabindex") === "0" && track.getAttribute("aria-label") === "tabs");
+
+  click(next);
+  check("`forward` moves by 0.8 of the visible width", track.scrollLeft === 80);
+  check("mid-strip: neither control is disabled", !prev.hasAttribute("disabled") && !next.hasAttribute("disabled"));
+  check("mid-strip: both fade edges are live", !root.hasAttribute("data-at-start") && !root.hasAttribute("data-at-end"));
+
+  click(next);
+  click(next);
+  check("`forward` stops at the end rather than overshooting", track.scrollLeft === 200);
+  check("at the end: only `forward` is disabled", next.hasAttribute("disabled") && !prev.hasAttribute("disabled"));
+  check("at the end: data-at-end is set", root.hasAttribute("data-at-end") && !root.hasAttribute("data-at-start"));
+
+  click(prev);
+  check("`back` moves the other way", track.scrollLeft === 120);
+
+  // The content shrinks to fit — the pair must go together. Hiding only the
+  // disabled one would widen the scroller, erase the overflow, and re-mount it.
+  content = 100;
+  track.scrollLeft = 0;
+  track.dispatchEvent(new globalThis.Event("scroll"));
+  check("content now fits: BOTH controls hide, not just one", hidden(prev) && hidden(next));
+  check("...and the track gives its tab stop back", !track.hasAttribute("tabindex"));
+
+  dispose();
+  click(next);
+  check("dispose: a click on a stale control scrolls nothing", track.scrollLeft === 0);
+}
+
+// A strip whose own children are tabbable must NOT add a stop in front of them.
+console.log("scroll-strip — no redundant tab stop");
+{
+  const doc = mount(
+    toHtml({
+      kind: "component",
+      component: "ScrollStrip",
+      props: { label: "tabs" },
+      children: [{ kind: "element", tag: "button", attrs: { type: "button" }, children: ["Overview"] }],
+    }),
+  );
+  const track = doc.querySelector('[data-sui-part="track"]');
+  Object.defineProperty(track, "clientWidth", { get: () => 100, configurable: true });
+  Object.defineProperty(track, "scrollWidth", { get: () => 300, configurable: true });
+  const dispose = hydrate(doc, {});
+  check("focusable children: the track stays out of the tab order", !track.hasAttribute("tabindex"));
+  dispose();
+}
+
+// ── TABS + SCROLL STRIP: the composition that could quietly kill selection ───
+// A tab list that announces its own overflow is NOT a nested `scroll-strip`
+// root, because part lookup stops at a nested behavior boundary — every `tab`
+// would resolve to the inner root and the tabs handler would find none, leaving
+// a strip that scrolls beautifully and selects nothing. Prove both halves work
+// off the SAME root.
+console.log("tabs — overflow controls without losing selection");
+{
+  const tabsNode = {
+    kind: "component",
+    component: "Tabs",
+    class: "tabs",
+    children: [
+      {
+        kind: "component",
+        component: "TabsList",
+        class: "tabs-list",
+        children: ["Overview", "Activity", "Documents"].map((t) => ({
+          kind: "component",
+          component: "TabsTab",
+          class: "tabs-tab",
+          children: [t],
+        })),
+      },
+      ...["Overview", "Activity", "Documents"].map((t) => ({
+        kind: "component",
+        component: "TabsPanel",
+        class: "tabs-panel",
+        children: [`${t} panel`],
+      })),
+    ],
+  };
+  const doc = mount(toHtml(tabsNode));
+  const root = doc.querySelector(".tabs");
+  const list = doc.querySelector('[data-sui-part="track"]');
+  const tabEls = [...doc.querySelectorAll('[data-sui-part="tab"]')];
+  const panels = [...doc.querySelectorAll('[data-sui-part="panel"]')];
+  const prev = doc.querySelector('[data-sui-part="prev"]');
+  const next = doc.querySelector('[data-sui-part="next"]');
+
+  check("the list is the scroller, not a wrapper around it", list?.getAttribute("role") === "tablist");
+  check("...and it still carries the authored class", list?.className.includes("tabs-list"));
+  check("the controls live on the SAME root as the tabs", Boolean(prev && next));
+
+  Object.defineProperty(list, "clientWidth", { get: () => 100, configurable: true });
+  Object.defineProperty(list, "scrollWidth", { get: () => 300, configurable: true });
+  list.scrollLeft = 0;
+  list.scrollBy = ({ left }) => {
+    list.scrollLeft = Math.max(0, Math.min(200, list.scrollLeft + left));
+    list.dispatchEvent(new globalThis.Event("scroll"));
+  };
+
+  const dispose = hydrate(doc, {});
+  // The whole point of the composition: BOTH behaviors are live at once.
+  check("selection still works — tab 1 is selected", tabEls[0].getAttribute("aria-selected") === "true");
+  click(tabEls[2]);
+  check("clicking tab 3 switches the panel", hidden(panels[0]) && !hidden(panels[2]));
+  key(tabEls[2], "Home");
+  check("arrow/Home roving survives too", tabEls[0].getAttribute("aria-selected") === "true");
+
+  check("overflowing: the pair is revealed", !hidden(prev) && !hidden(next));
+  check("at the start: only `back` is disabled", prev.hasAttribute("disabled") && !next.hasAttribute("disabled"));
+  click(next);
+  check("`forward` scrolls the tab list", list.scrollLeft === 80);
+  check("...and `back` comes alive", !prev.hasAttribute("disabled"));
+
+  // A tab list is full of real buttons, so it must never take a stop of its own.
+  check("no redundant tab stop on the list", !list.hasAttribute("tabindex"));
+  dispose();
+}
+
+// Opting out is real, not cosmetic — and must leave a plain tablist behind.
+console.log("tabs — scrollable:false");
+{
+  const doc = mount(
+    toHtml({
+      kind: "component",
+      component: "Tabs",
+      class: "tabs",
+      children: [
+        {
+          kind: "component",
+          component: "TabsList",
+          class: "tabs-list",
+          props: { scrollable: false },
+          children: [{ kind: "component", component: "TabsTab", class: "tabs-tab", children: ["Only"] }],
+        },
+        { kind: "component", component: "TabsPanel", class: "tabs-panel", children: ["Only panel"] },
+      ],
+    }),
+  );
+  check("no controls are emitted", doc.querySelector('[data-sui-part="prev"]') === null);
+  check("no track part either", doc.querySelector('[data-sui-part="track"]') === null);
+  const dispose = hydrate(doc, {});
+  check("selection still works", doc.querySelector('[data-sui-part="tab"]').getAttribute("aria-selected") === "true");
+  dispose();
+}
+
 console.log(`\n${failures === 0 ? "✅ interactive composites: all checks passed" : `❌ ${failures} check(s) failed`}`);
 process.exit(failures === 0 ? 0 : 1);

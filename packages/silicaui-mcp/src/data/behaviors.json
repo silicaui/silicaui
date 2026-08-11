@@ -9,7 +9,7 @@
   },
   {
     "type": "tabs",
-    "description": "`tabs` — a `tab`/`panel` list, exclusive selection, with roving arrow-key navigation (Left/Right, Up/Down, Home/End) per the standard tabs pattern. Pairing is positional (Nth `tab` ↔ Nth `panel`), same nesting-scoped lookup as `disclosure`."
+    "description": "`tabs` — a `tab`/`panel` list, exclusive selection, with roving arrow-key navigation (Left/Right, Up/Down, Home/End) per the standard tabs pattern. Pairing is positional (Nth `tab` ↔ Nth `panel`), same nesting-scoped lookup as `disclosure`. If the macro also emitted a `track` (the tab list) plus `prev`/`next` controls, the strip announces its own overflow — a tab past the edge with nothing saying so is a tab that, to the person looking, does not exist. That is wired HERE rather than by nesting a `scroll-strip` root around the list, because part lookup stops at a nested behavior boundary: every `tab` would resolve to the inner root and this handler would find none."
   },
   {
     "type": "menu",
@@ -90,6 +90,10 @@
   {
     "type": "scroll-area",
     "description": "`scroll-area` — a real `overflow:auto` `track` (the CSS hides its native scrollbar) with a custom `thumb` whose size/position is computed from the viewport/content ratio on `scroll` + `ResizeObserver`. This can't be a pure-CSS `scrollbar-gutter` trick — the CSS expects an addressable thumb element to size/position, which only JS can drive."
+  },
+  {
+    "type": "scroll-strip",
+    "description": "`scroll-strip` — a real `overflow-x: auto` `track` whose `prev`/`next` controls appear only once the content stops fitting, then disable at each end. `params.step` is the fraction of the visible width moved per press (default 0.8). Not `carousel`, which translates a track of full-width slides one at a time and marks the off-screen ones `inert` — here every item is meant to be visible at once and the scroll position is continuous, so there is no slide index to speak of. Not `scroll-area` either: that one paints a decorative thumb for a scrollbar it hid, whereas this hides the scrollbar precisely because the buttons replace it. `Tabs` carries the same wiring itself (see `scroll-strip-core`) rather than nesting one of these inside its list. The controls ship in the static markup already `hidden`, so a no-JS render shows a plain scroller rather than two dead buttons."
   },
   {
     "type": "overflow-list",

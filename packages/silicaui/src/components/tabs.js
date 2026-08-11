@@ -39,6 +39,46 @@ export function tabs(colors, prefix = "") {
       borderBottom: "var(--border, 1px) solid var(--color-base-300)",
     },
 
+    // The `.scroll-strip` wrapping a scrollable tab list. Pins the control
+    // spacing to the tab list's OWN gap, so a later change to the generic
+    // strip's rhythm can't silently reflow every tab strip in the system.
+    [sel("-scroller")]: { gap: "0.25rem" },
+
+    // A tab strip that says so when tabs don't fit. The LIST itself is the
+    // scroller (rather than a div wrapped around it) so Base UI's indicator,
+    // which is absolutely positioned inside the list, keeps measuring against
+    // the same box and scrolls along with the tab it marks.
+    //
+    // `flex: 0 1 auto` is doing real work: grow-0 keeps the baseline rule
+    // ending after the last tab exactly as an `inline-flex` list always has,
+    // while shrink-1 + `min-width: 0` is what lets the parent squeeze it
+    // narrower than its content — which is the only way it can overflow at
+    // all. An `inline-flex` list shrink-wraps and therefore can NEVER detect
+    // that it overflows.
+    [sel("-list-scroll")]: {
+      display: "flex",
+      flex: "0 1 auto",
+      minWidth: "0",
+      overflowX: "auto",
+      overflowY: "hidden",
+      scrollBehavior: "smooth",
+      overscrollBehaviorX: "contain",
+      // The controls carry the message now, and a bar across a strip this
+      // short reads as broken.
+      scrollbarWidth: "none",
+      "&::-webkit-scrollbar": { display: "none" },
+      // Tabs must keep their natural width; the default `flex-shrink: 1` would
+      // squeeze them to fit, so nothing would ever overflow or scroll.
+      "& > *": { flexShrink: "0" },
+    },
+
+    // `overflow-x: auto` forces the other axis off `visible` (per spec), so a
+    // horizontal scroller necessarily clips vertically — and the indicator
+    // deliberately overhangs the baseline by 1px, which would be shaved off.
+    // Sit it flush inside instead; it still covers the border it replaces
+    // because the border is outside the padding box the clip applies to.
+    [`${sel("-list-scroll")} ${sel("-indicator")}`]: { bottom: "0" },
+
     [sel("-tab")]: {
       appearance: "none",
       background: "transparent",

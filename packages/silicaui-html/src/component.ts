@@ -197,6 +197,24 @@ function elc(
 }
 
 /**
+ * A prev/next control for a scroll strip, shared by `ScrollStrip` and
+ * `TabsList`. Ships `hidden` so a no-JS render is a plain scroller rather than
+ * two dead buttons; the behavior reveals the PAIR once the content stops
+ * fitting (never one at a time — see `scroll-strip-core` for why that
+ * oscillates).
+ */
+function scrollControl(role: "prev" | "next", label: string): ElementNode {
+  const btn = elc(
+    "button",
+    "scroll-strip-control",
+    [{ kind: "component", component: "Icon", props: { name: role === "prev" ? "chevronLeft" : "chevron" } }],
+    { type: "button", hidden: true, "aria-label": `Scroll ${label} ${role === "prev" ? "back" : "forward"}` },
+  );
+  btn.part = role;
+  return btn;
+}
+
+/**
  * A structural copy of a subtree with every instance `id` stripped — what a
  * component that renders its children MORE THAN ONCE has to hand the extra
  * copies. Ids are globally unique by contract (selection, React keys, and dnd
@@ -2287,7 +2305,32 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
     label: "Tabs list",
     icon: "box",
     container: true,
-    expand: (n) => lower(n, "div", { attrs: { role: "tablist" }, children: n.children }),
+    expand: (n) => {
+      const list = lower(n, "div", { attrs: { role: "tablist" }, children: n.children });
+      // Opt OUT, matching the React component: a tab past the edge with nothing
+      // saying so is a tab that, to the person looking, does not exist.
+      if (n.props?.scrollable === false) return list;
+
+      // The LIST is the scroller (not a div wrapped around it) so an indicator
+      // positioned inside it keeps measuring against the same box. `part=track`
+      // stays on the list; the `tabs` behavior on the ancestor Tabs root reads
+      // it, which is why this is NOT a nested `scroll-strip` root — part lookup
+      // stops at a nested behavior boundary and every `tab` would go dark.
+      list.class = [list.class, "tabs-list-scroll"].filter(Boolean).join(" ");
+      list.part = "track";
+      // The id identifies the authored node, so it belongs to the outermost
+      // element the author actually placed.
+      const id = list.id;
+      delete list.id;
+      const root: ElementNode = {
+        kind: "element",
+        tag: "div",
+        class: "scroll-strip tabs-scroller",
+        children: [scrollControl("prev", "tabs"), list, scrollControl("next", "tabs")],
+      };
+      if (id != null) root.id = id;
+      return root;
+    },
   },
   {
     name: "TabsTab",
@@ -3585,6 +3628,48 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
       thumb.part = "thumb";
       const out = lower(n, "div", { children: [track, thumb] });
       if (!out.behavior) out.behavior = { type: "scroll-area" };
+      return out;
+    },
+  },
+
+  // `scroll-strip` — a horizontal strip that SAYS SO when part of it is
+  // off-screen. The prev/next controls ship `hidden` so a no-JS render is a
+  // plain scroller rather than two dead buttons; the behavior reveals the
+  // PAIR once the content stops fitting (never one at a time — see the
+  // handler for why that oscillates).
+  {
+    name: "ScrollStrip",
+    category: "layout",
+    label: "Scroll strip",
+    icon: "list",
+    container: true,
+    expand: (n) => {
+      const p = n.props ?? {};
+      const label = typeof p.label === "string" && p.label ? p.label : "content";
+      const track = elc("div", "scroll-strip-track", n.children);
+      track.part = "track";
+
+      // The root class is STRUCTURAL here (without `.scroll-strip` there is no
+      // flex row for the controls to sit in), so it is asserted rather than
+      // left to the author — but only when absent, so an authored class list
+      // that already names it doesn't get a duplicate token.
+      const authored = (n.class ?? "").split(/\s+/).filter(Boolean);
+      const size = typeof p.size === "string" ? p.size : undefined;
+      const cls = [
+        ...(authored.includes("scroll-strip") ? [] : ["scroll-strip"]),
+        ...authored,
+        ...(size ? [`scroll-strip-${size}`] : []),
+        ...(p.fade === true ? ["scroll-strip-faded"] : []),
+      ].join(" ");
+      const out = lower(n, "div", {
+        class: cls,
+        children: [scrollControl("prev", label), track, scrollControl("next", label)],
+      });
+      if (!out.behavior) {
+        const params: Record<string, unknown> = { label };
+        if (typeof p.step === "number") params.step = p.step;
+        out.behavior = { type: "scroll-strip", params };
+      }
       return out;
     },
   },

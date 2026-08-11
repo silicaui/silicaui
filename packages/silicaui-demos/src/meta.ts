@@ -68,6 +68,7 @@ export const DEMO_META: DemoMeta[] = [
   { id: "mask", title: "Mask" },
   { id: "meter", title: "Meter" },
   { id: "scroll-area", title: "Scroll Area" },
+  { id: "scroll-strip", title: "Scroll Strip" },
   { id: "preview-card", title: "Preview Card" },
   { id: "toolbar", title: "Toolbar" },
   { id: "navigation-menu", title: "Navigation Menu" },

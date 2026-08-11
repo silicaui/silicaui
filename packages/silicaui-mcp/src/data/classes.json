@@ -862,6 +862,17 @@
     "scroll-area-thumb",
     "scroll-area-viewport"
   ],
+  "scroll-strip": [
+    "scroll-strip",
+    "scroll-strip-control",
+    "scroll-strip-faded",
+    "scroll-strip-lg",
+    "scroll-strip-md",
+    "scroll-strip-sm",
+    "scroll-strip-track",
+    "scroll-strip-xl",
+    "scroll-strip-xs"
+  ],
   "segment-field": [
     "date-range-input",
     "date-range-input-sep",
@@ -1062,10 +1073,12 @@
     "tabs-indicator",
     "tabs-info",
     "tabs-list",
+    "tabs-list-scroll",
     "tabs-neutral",
     "tabs-panel",
     "tabs-pills",
     "tabs-primary",
+    "tabs-scroller",
     "tabs-secondary",
     "tabs-success",
     "tabs-tab",

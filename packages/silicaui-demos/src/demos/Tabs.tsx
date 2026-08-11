@@ -25,6 +25,30 @@ export function TabsDemo() {
                 </Row>
             </Section>
 
+            <Section title="More tabs than fit — the strip says so on its own">
+                <div className="flex flex-col gap-4">
+                    {(["underline", "boxed", "pills"] as const).map((variant) => (
+                        <div key={variant} className="w-72" data-demo={`overflow-${variant}`}>
+                            <Tabs variant={variant} color="primary" defaultValue="overview">
+                                <TabsList>
+                                    {["Overview", "Timeline", "Messages", "Activity", "Documents"].map(
+                                        (t) => (
+                                            <TabsTab key={t} value={t.toLowerCase()}>
+                                                {t}
+                                            </TabsTab>
+                                        ),
+                                    )}
+                                </TabsList>
+                            </Tabs>
+                        </div>
+                    ))}
+                    <p className="max-w-md text-sm">
+                        No wrapper at the call site: <code>TabsList</code> carries this
+                        itself, because a tab nobody can see is a tab that does not exist.
+                    </p>
+                </div>
+            </Section>
+
             <Section title="Variants">
                 {(["underline", "boxed", "pills"] as const).map((variant) => (
                     <Tabs key={variant} variant={variant} color="primary" defaultValue="a">
