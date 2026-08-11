@@ -90,6 +90,7 @@ import { segmentField } from "./components/segment-field.js";
 import { lightbox } from "./components/lightbox.js";
 import { overlay } from "./components/overlay.js";
 import { overflowList } from "./components/overflow-list.js";
+import { scrollStrip } from "./components/scroll-strip.js";
 import { metadataList } from "./components/metadata-list.js";
 import { chatSuite } from "./components/chat-suite.js";
 import { powerSearch } from "./components/power-search.js";
@@ -252,6 +253,7 @@ export default plugin.withOptions(
       addBase(lightbox(prefix));
       addBase(overlay(prefix));
       addBase(overflowList(prefix));
+      addBase(scrollStrip(prefix));
       addBase(metadataList(prefix));
       addBase(chatSuite(prefix));
       addBase(powerSearch(prefix));

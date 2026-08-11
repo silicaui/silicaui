@@ -59,6 +59,7 @@ import { DiffDemo } from "./demos/Diff";
 import { MaskDemo } from "./demos/Mask";
 import { MeterDemo } from "./demos/Meter";
 import { ScrollAreaDemo } from "./demos/ScrollArea";
+import { ScrollStripDemo } from "./demos/ScrollStrip";
 import { PreviewCardDemo } from "./demos/PreviewCard";
 import { ToolbarDemo } from "./demos/Toolbar";
 import { NavigationMenuDemo } from "./demos/NavigationMenu";
@@ -190,6 +191,7 @@ export const DEMOS: DemoEntry[] = [
     { id: "mask", title: "Mask", Demo: MaskDemo },
     { id: "meter", title: "Meter", Demo: MeterDemo },
     { id: "scroll-area", title: "Scroll Area", Demo: ScrollAreaDemo },
+    { id: "scroll-strip", title: "Scroll Strip", Demo: ScrollStripDemo },
     { id: "preview-card", title: "Preview Card", Demo: PreviewCardDemo },
     { id: "toolbar", title: "Toolbar", Demo: ToolbarDemo },
     { id: "navigation-menu", title: "Navigation Menu", Demo: NavigationMenuDemo },

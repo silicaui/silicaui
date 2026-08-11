@@ -325,6 +325,9 @@ export type { MeterProps, MeterColor, MeterSize } from "./meter";
 export { ScrollArea } from "./scroll-area";
 export type { ScrollAreaProps, ScrollAreaOrientation } from "./scroll-area";
 
+export { ScrollStrip } from "./scroll-strip";
+export type { ScrollStripProps } from "./scroll-strip";
+
 export { PreviewCard } from "./preview-card";
 export type {
   PreviewCardProps,

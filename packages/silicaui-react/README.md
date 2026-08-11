@@ -134,7 +134,7 @@ interaction patterns:
 | **Data input** | `Autocomplete` `Calendar` `Checkbox` `CheckboxGroup` `CheckboxOption` `ColorPicker` `Combobox` `DateInput` `DatePicker` `DateRangeInput` `DateRangePicker` `DateTimeInput` `Field` `Fieldset` `FileInput` `FileUpload` `Filter` `FloatingLabel` `Form` `Input` `InputGroup` `Join` `Label` `MultiSelect` `NativeSelect` `NumberField` `PasswordInput` `PhoneInput` `PinInput` `Radio` `RadioGroup` `RadioOption` `Range` `Rating` `SearchInput` `Select` `SelectionList` `Slider` `Switch` `TagInput` `Textarea` `TimeInput` `Toggle` `ToggleGroup` `Validator` |
 | **Navigation** | `Breadcrumb` `Dock` `Link` `Menu` `Menubar` `Navbar` `NavigationMenu` `Outline` `OverflowList` `Pagination` `Sidebar` `Steps` `Tabs` |
 | **Feedback & overlay** | `Alert` `AlertDialog` `ContextMenu` `Dialog` `Drawer` `ImperativeAlertDialogProvider` `Indicator` `Lightbox` `Loading` `Overlay` `Popover` `Progress` `RadialProgress` `Skeleton` `Status` `ToastProvider` `Tooltip` |
-| **Layout** | `AppShell` `Divider` `Footer` `Hero` `Mask` `ScrollArea` `Stack` |
+| **Layout** | `AppShell` `Divider` `Footer` `Hero` `Mask` `ScrollArea` `ScrollStrip` `Stack` |
 | **Advanced / composite** | `Collapsible` `CommandPalette` `Dropzone` `EmptyState` `PowerSearch` `ThemeController` `Toolbar` `TreeView` `Wizard` |
 | **Typography** | `Blockquote` `Display` `Heading` `Prose` `Text` `Wordmark` |
 
