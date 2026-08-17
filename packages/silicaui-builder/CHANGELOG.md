@@ -1,5 +1,14 @@
 # @wizeworks/silicaui-builder
 
+## 0.54.0
+
+### Patch Changes
+
+- Updated dependencies [d57570c]
+  - @wizeworks/silicaui@0.54.0
+  - @wizeworks/silicaui-html@0.54.0
+  - @wizeworks/silicaui-panels@0.54.0
+
 ## 0.53.0
 
 ### Patch Changes
