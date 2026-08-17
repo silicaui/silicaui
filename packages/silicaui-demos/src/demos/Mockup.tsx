@@ -26,6 +26,17 @@ export function MockupDemo() {
                 </MockupWindow>
             </Section>
 
+            <Section title="Neutral dots">
+                <MockupBrowser
+                    url="https://silica.ui"
+                    className="mockup-plain max-w-lg border border-base-300"
+                >
+                    <div className="flex h-24 items-center justify-center bg-base-200">
+                        Colorless traffic lights
+                    </div>
+                </MockupBrowser>
+            </Section>
+
             <Section title="Code block">
                 <MockupCode className="max-w-lg">
                     <MockupCodeLine prefix="$">pnpm add @wizeworks/silicaui</MockupCodeLine>

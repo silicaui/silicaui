@@ -21,7 +21,10 @@
  *   - transient animation states     `[data-starting-style]`/`[data-ending-style]`
  *   - icons and glyphs               not text (see ALLOW_EXPLICIT)
  *   - structural punctuation         segment separators (`/`, `–`), userSelect:none
- *   - deliberately faux chrome       the mockup browser's fake URL bar
+ *
+ * "Faux chrome" is NOT on that list either: the mockup browser's URL bar used to
+ * be faded on the grounds that it is fake, but it carries the domain a marketing
+ * shot exists to show off — so it reads as real text and gets real ink.
  *
  * Selection state is NOT on that list: `tabs-tab` and `outline-link` mark the
  * active item with a real accent color already, so fading the inactive ones was
@@ -42,7 +45,6 @@ const ALLOW_EXPLICIT = new Set([
   "segment-field|-literal", // date-field separators ("/"), userSelect: none
   "empty-state|-icon", // an icon chip, not text
   "select-menu|-scroll-arrow", // a glyph
-  "mockup|browser(-input", // faux browser URL bar — deliberately fake chrome
   "calendar|.date-field-icon", // the calendar glyph, not text
 ]);
 

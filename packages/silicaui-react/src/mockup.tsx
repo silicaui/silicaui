@@ -10,6 +10,9 @@ export type MockupWindowProps = React.HTMLAttributes<HTMLDivElement>;
  *   <MockupWindow>
  *     <div className="p-8 text-center">Hello!</div>
  *   </MockupWindow>
+ *
+ * The dots are themed (error / warning / success). Add `mockup-plain` for
+ * neutral, colorless dots.
  */
 export const MockupWindow = React.forwardRef<HTMLDivElement, MockupWindowProps>(
   function MockupWindow({ className, ...rest }, ref) {
@@ -31,6 +34,9 @@ export interface MockupBrowserProps extends React.HTMLAttributes<HTMLDivElement>
  *   <MockupBrowser url="https://silica.ui">
  *     <div className="p-8 text-center">Your page</div>
  *   </MockupBrowser>
+ *
+ * The traffic-light dots are themed (error / warning / success), so they track
+ * whatever theme is in scope. Add `mockup-plain` for neutral, colorless dots.
  */
 export const MockupBrowser = React.forwardRef<HTMLDivElement, MockupBrowserProps>(
   function MockupBrowser({ url, toolbar, className, children, ...rest }, ref) {

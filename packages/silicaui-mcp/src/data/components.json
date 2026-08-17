@@ -1518,7 +1518,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
     "sourceFile": "silicaui-react/src/mockup.tsx",
-    "description": "Silica MockupBrowser — a browser frame with a toolbar and faux address bar. <MockupBrowser url=\"https://silica.ui\"> <div className=\"p-8 text-center\">Your page</div> </MockupBrowser>",
+    "description": "Silica MockupBrowser — a browser frame with a toolbar and faux address bar. <MockupBrowser url=\"https://silica.ui\"> <div className=\"p-8 text-center\">Your page</div> </MockupBrowser> The traffic-light dots are themed (error / warning / success), so they track whatever theme is in scope. Add `mockup-plain` for neutral, colorless dots.",
     "props": [
       {
         "name": "MockupWindowProps",
@@ -1726,7 +1726,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
     "sourceFile": "silicaui-react/src/mockup.tsx",
-    "description": "Silica MockupWindow — an app window frame with faux traffic-light dots. <MockupWindow> <div className=\"p-8 text-center\">Hello!</div> </MockupWindow>",
+    "description": "Silica MockupWindow — an app window frame with faux traffic-light dots. <MockupWindow> <div className=\"p-8 text-center\">Hello!</div> </MockupWindow> The dots are themed (error / warning / success). Add `mockup-plain` for neutral, colorless dots.",
     "props": [
       {
         "name": "MockupWindowProps",
@@ -12620,7 +12620,7 @@
     "package": "@wizeworks/silicaui",
     "category": "css",
     "sourceFile": "silicaui/src/components/mockup.js",
-    "description": "The Mockup components — frames for showcasing UI and code in docs and marketing pages. Colorless (the code frame paints itself with the neutral surface). Three independent frames: .mockup-window — an app window with three faux traffic-light dots .mockup-browser — a window plus a toolbar that holds a faux address bar .mockup-code — a dark terminal/code block; each `<pre data-prefix>` line renders its prefix (`$`, `>`, a line number…) The window titlebar and its dots are drawn with pseudo-elements so authors just wrap their content — no chrome markup required. The browser toolbar is real markup because it carries a URL. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "description": "The Mockup components — frames for showcasing UI and code in docs and marketing pages. Colorless (the code frame paints itself with the neutral surface). Three independent frames: .mockup-window — an app window with three faux traffic-light dots .mockup-browser — a window plus a toolbar that holds a faux address bar .mockup-code — a dark terminal/code block; each `<pre data-prefix>` line renders its prefix (`$`, `>`, a line number…) The window titlebar and its dots are drawn with pseudo-elements so authors just wrap their content — no chrome markup required. The browser toolbar is real markup because it carries a URL. The dots are themed: close/minimize/zoom read `--color-error`, `--color-warning` and `--color-success`, so any theme that registers those roles gets correct traffic lights for free. `.mockup-plain` restores neutral, colorless dots. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
     "root": null,
     "familyPrefix": "mockup-",
     "rootNote": "No bare `.mockup` class exists — this family is only its `mockup-*` parts.",
@@ -12631,6 +12631,7 @@
       "mockup-code",
       "mockup-phone",
       "mockup-phone-display",
+      "mockup-plain",
       "mockup-window"
     ]
   },

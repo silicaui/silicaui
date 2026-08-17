@@ -14,6 +14,10 @@
  * just wrap their content — no chrome markup required. The browser toolbar is
  * real markup because it carries a URL.
  *
+ * The dots are themed: close/minimize/zoom read `--color-error`, `--color-warning`
+ * and `--color-success`, so any theme that registers those roles gets correct
+ * traffic lights for free. `.mockup-plain` restores neutral, colorless dots.
+ *
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
  */
 export function mockup(prefix = "") {
@@ -21,28 +25,49 @@ export function mockup(prefix = "") {
   const browser = (suffix = "") => `.${prefix}mockup-browser${suffix}`;
   const code = (suffix = "") => `.${prefix}mockup-code${suffix}`;
   const phone = (suffix = "") => `.${prefix}mockup-phone${suffix}`;
+  const plain = `.${prefix}mockup-plain`;
 
-  // Three faux traffic-light dots, drawn as one element repeated via box-shadow.
+  // Traffic-light geometry, single-sourced. Both frames derive their titlebar
+  // padding from these, so the dots and the content beside them cannot drift
+  // out of alignment the way a hand-tuned `padding-inline-start` did.
+  const DOT_SIZE = "0.6rem";
+  const DOT_STEP = "1rem"; // center-to-center
+  const DOT_INSET = "1rem"; // from the frame's inline start
+  // The cluster is one element plus two box-shadow copies, so it spans
+  // 2 steps + one dot beyond the inset: 1 + 2 + 0.6 = 3.6rem.
+  const DOT_SPAN = `calc(${DOT_INSET} + 2 * ${DOT_STEP} + ${DOT_SIZE})`;
+  const TITLEBAR_H = "2.25rem";
+
+  // Named once here so a frame can retint them without reaching into the
+  // pseudo-element, and so `.mockup-plain` is a three-line override.
+  const dotColors = {
+    "--mockup-dot-1": "var(--color-error)",
+    "--mockup-dot-2": "var(--color-warning)",
+    "--mockup-dot-3": "var(--color-success)",
+  };
+
+  // Three faux traffic-light dots, drawn as one element repeated via box-shadow
+  // (each shadow carries its own color). Callers set `top` — the two frames
+  // center them against different boxes.
   const dots = {
     content: '""',
     position: "absolute",
-    top: "0.875rem",
-    insetInlineStart: "1rem",
-    width: "0.6rem",
-    height: "0.6rem",
+    insetInlineStart: DOT_INSET,
+    width: DOT_SIZE,
+    height: DOT_SIZE,
     borderRadius: "9999px",
-    backgroundColor: "color-mix(in oklab, currentColor 30%, transparent)",
-    boxShadow:
-      "1rem 0 0 color-mix(in oklab, currentColor 30%, transparent), 2rem 0 0 color-mix(in oklab, currentColor 30%, transparent)",
+    backgroundColor: "var(--mockup-dot-1)",
+    boxShadow: `${DOT_STEP} 0 0 var(--mockup-dot-2), calc(${DOT_STEP} * 2) 0 0 var(--mockup-dot-3)`,
   };
 
   return {
     // ---- Window ------------------------------------------------------------
     [win()]: {
+      ...dotColors,
       position: "relative",
       overflow: "hidden",
       width: "100%",
-      paddingTop: "2.25rem",
+      paddingTop: TITLEBAR_H,
       borderRadius: "var(--radius-box, 0.5rem)",
       border: "1px solid var(--color-base-300)",
       backgroundColor: "var(--color-base-100)",
@@ -54,16 +79,21 @@ export function mockup(prefix = "") {
         position: "absolute",
         insetInline: "0",
         top: "0",
-        height: "2.25rem",
+        height: TITLEBAR_H,
         backgroundColor: "var(--color-base-200)",
         borderBottom: "1px solid var(--color-base-300)",
       },
-      // Traffic-light dots.
-      "&::after": dots,
+      // Traffic-light dots. The dots hang off the window box, not the titlebar
+      // strip (which is itself a pseudo-element), so center them by hand.
+      "&::after": {
+        ...dots,
+        top: `calc((${TITLEBAR_H} - ${DOT_SIZE}) / 2)`,
+      },
     },
 
     // ---- Browser -----------------------------------------------------------
     [browser()]: {
+      ...dotColors,
       overflow: "hidden",
       width: "100%",
       borderRadius: "var(--radius-box, 0.5rem)",
@@ -77,13 +107,20 @@ export function mockup(prefix = "") {
       alignItems: "center",
       minHeight: "2.75rem",
       paddingBlock: "0.5rem",
-      // Leave room for the dots on the left.
-      paddingInlineStart: "3.5rem",
+      // Clear the dot cluster, plus a gutter. Derived so a taller toolbar or a
+      // resized dot can't leave the address bar sitting on top of the dots.
+      paddingInlineStart: `calc(${DOT_SPAN} + 1rem)`,
       paddingInlineEnd: "1rem",
       backgroundColor: "var(--color-base-200)",
       borderBottom: "1px solid var(--color-base-300)",
 
-      "&::before": dots,
+      // Centered against the toolbar itself, so custom `toolbar` content that
+      // grows the bar keeps the dots on the address bar's centerline.
+      "&::before": {
+        ...dots,
+        top: "50%",
+        transform: "translateY(-50%)",
+      },
     },
     // Faux address bar inside the toolbar.
     [browser("-input")]: {
@@ -93,13 +130,21 @@ export function mockup(prefix = "") {
       minHeight: "1.75rem",
       paddingInline: "0.875rem",
       fontSize: "0.8125rem",
-      color: "color-mix(in oklab, var(--color-base-content) 65%, transparent)",
+      // A URL is meant to be read — real ink, not a faded one.
+      color: "var(--color-base-content)",
       backgroundColor: "var(--color-base-100)",
       borderRadius: "9999px",
       border: "1px solid var(--color-base-300)",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
+    },
+
+    // Opt back out of the colored traffic lights — neutral dots, as before.
+    [plain]: {
+      "--mockup-dot-1": "color-mix(in oklab, currentColor 30%, transparent)",
+      "--mockup-dot-2": "color-mix(in oklab, currentColor 30%, transparent)",
+      "--mockup-dot-3": "color-mix(in oklab, currentColor 30%, transparent)",
     },
 
     // ---- Code --------------------------------------------------------------
