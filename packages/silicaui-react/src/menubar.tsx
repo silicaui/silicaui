@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Menubar as BaseMenubar } from "@base-ui-components/react/menubar";
-import { Menu as BaseMenu } from "@base-ui-components/react/menu";
+import { Menubar as BaseMenubar } from "@base-ui/react/menubar";
+import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";

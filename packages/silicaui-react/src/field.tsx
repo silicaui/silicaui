@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Field as BaseField } from "@base-ui-components/react/field";
+import { Field as BaseField } from "@base-ui/react/field";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { InputGroup, InputGroupAddon } from "./input-group";

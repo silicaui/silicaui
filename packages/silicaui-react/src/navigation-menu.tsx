@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NavigationMenu as BaseNav } from "@base-ui-components/react/navigation-menu";
+import { NavigationMenu as BaseNav } from "@base-ui/react/navigation-menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";

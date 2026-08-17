@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Toolbar as BaseToolbar } from "@base-ui-components/react/toolbar";
+import { Toolbar as BaseToolbar } from "@base-ui/react/toolbar";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaSize } from "./lib/tokens";

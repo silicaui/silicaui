@@ -22,7 +22,7 @@ export default defineConfig({
     "react",
     "react-dom",
     /^@wizeworks\/silicaui-/,
-    /^@base-ui-components\//,
+    /^@base-ui\//,
   ],
   async onSuccess() {
     // Every demo uses hooks — same "use client" banner fix as silicaui-react's
