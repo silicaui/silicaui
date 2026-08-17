@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Meter as BaseMeter } from "@base-ui-components/react/meter";
+import { Meter as BaseMeter } from "@base-ui/react/meter";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";

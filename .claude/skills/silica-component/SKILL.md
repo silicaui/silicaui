@@ -150,14 +150,14 @@ Rules:
 
 ## 3. Interactive components — wrap Base UI
 
-Base UI (`@base-ui-components/react@1.0.0-rc.0`) is a regular dependency of
-@wizeworks/silicaui-react; tsup already externalizes it (`/^@base-ui-components\//`). Base
+Base UI (`@base-ui/react@^1.7.0`) is a regular dependency of
+@wizeworks/silicaui-react; tsup already externalizes it (`/^@base-ui\//`). Base
 UI owns behavior; Silica owns the CSS surface attached via `className`.
 
 **Before writing, inspect the real component in the pnpm store** (names/attrs
 change between components):
 ```bash
-base=$(find . -type d -path "*@base-ui-components/react" -not -path "*/esm/*" | head -n1)
+base=$(find . -type d -path "*@base-ui/react" -not -path "*/esm/*" | head -n1)
 grep -oE 'exports, "[A-Za-z]+"' "$base/<part>/index.parts.js" | grep -oE '"[A-Za-z]+"'   # parts
 grep -rhoE "data-[a-z-]+|--[a-z-]+" "$base/<part>/" | sort -u                             # data-attrs + css vars
 sed -n '1,60p' "$base/<part>/root/*Root.d.ts"                                             # Root props
@@ -165,7 +165,7 @@ sed -n '1,60p' "$base/<part>/root/*Root.d.ts"                                   
 
 Pattern:
 ```tsx
-import { Widget as BaseWidget } from "@base-ui-components/react/<part>";
+import { Widget as BaseWidget } from "@base-ui/react/<part>";
 type Styled<T extends React.ElementType> = Omit<React.ComponentPropsWithoutRef<T>, "className"> & { className?: string };
 const asRender = (el: React.ReactElement) => el as React.ReactElement<Record<string, unknown>>; // React19 vs Base UI cast
 ```

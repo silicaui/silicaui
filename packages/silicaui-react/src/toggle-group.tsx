@@ -1,6 +1,6 @@
 import * as React from "react";
-import { ToggleGroup as BaseToggleGroup } from "@base-ui-components/react/toggle-group";
-import { Toggle as BaseToggle } from "@base-ui-components/react/toggle";
+import { ToggleGroup as BaseToggleGroup } from "@base-ui/react/toggle-group";
+import { Toggle as BaseToggle } from "@base-ui/react/toggle";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";

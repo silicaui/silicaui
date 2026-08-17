@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Autocomplete as BaseAutocomplete } from "@base-ui-components/react/autocomplete";
+import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
