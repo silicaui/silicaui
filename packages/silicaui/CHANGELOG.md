@@ -1,5 +1,7 @@
 # @wizeworks/silicaui
 
+## 0.55.0
+
 ## 0.54.0
 
 ### Minor Changes

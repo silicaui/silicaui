@@ -1,5 +1,77 @@
 # @wizeworks/silicaui-react
 
+## 0.55.0
+
+### Minor Changes
+
+- 81408d3: Base UI moves to `@base-ui/react@^1.7.0` — off a deprecated release candidate
+
+  Every published version of `@base-ui-components/react` is deprecated with the same message: _"Package was renamed to `@base-ui/react`."_ We were pinned to `1.0.0-rc.0` from **2025-12-04**, so the warning printed on every consumer's install while the library itself went 1.0 stable and shipped seven more minors. This moves to the live name at `^1.7.0`.
+
+  ### It is transparent to consumers
+
+  Base UI is a regular `dependency` of `@wizeworks/silicaui-react`, not a peer, so nobody declares it and nobody has to change a package.json. Confirmed by measurement rather than assumption: the generated MCP catalog — every documented component, prop, and type — came out **byte-identical in content** after the swap. No prop was renamed, added, or removed.
+
+  **One case does need action.** If you install `@base-ui-components/react` yourself to use Base UI directly alongside Silica, you now have two different copies in the tree, and Base UI's React contexts won't cross between them — a `Field` from one package can't talk to a `Form` from the other. Rename your own dependency to `@base-ui/react` and the duplication goes away.
+
+  ### What actually changed upstream
+
+  Four components became generic function components — `Form`, `Slider.Root`, `Toggle`, and `ToggleGroup`:
+
+  ```ts
+  export declare const Form: {
+    <FormValues extends Record<string, any> = Record<string, any>>(
+      props: Form.Props<FormValues> & { ref?: React.Ref<HTMLFormElement> }
+    ): React.JSX.Element;
+  };
+  ```
+
+  That shape matters because `React.ComponentPropsWithoutRef<typeof X>` cannot extract props from a generic callable — it collapses, taking `children` and every callback parameter's type with it. Our wrappers were checked against this and the derived types still resolve; the `verify-form-focus` probe, which depends on Base UI's internal focus sequencing more than anything else we ship, passes unchanged.
+
+  `Form` also gained `validationMode`, `onFormSubmit`, and an `actionsRef` imperative handle. Silica doesn't surface those yet — the existing `errors` / `onSubmit` / `focusOnError` API is untouched.
+
+  ### How this was verified
+
+  The risk in a nine-release jump isn't the compiler, it's silent breakage: a renamed data-attribute keeps typechecking and quietly stops matching CSS. So the 24 data-attributes and 13 CSS custom properties our stylesheets actually select on were extracted and diffed across versions — **none were dropped**. Twelve interactive components were then driven in a real browser (open, keyboard, hover, select, Escape) with zero console errors, confirming the attributes and variables are emitted in the states we style, including the ones our CSS positions things with: `--active-tab-left/-width` on the tabs indicator, `--anchor-width` on the select popup, `--transform-origin` on the popover.
+
+  Also fixed: the tsup `external` regexes in `silicaui-react` and `silicaui-demos` still matched `/^@base-ui-components\//`, which after the rename would have **bundled Base UI into the published output** instead of externalizing it — a duplicate copy for every consumer. Both now match `/^@base-ui\//`, verified against the built bundle.
+
+- c335b4f: Floating components can be anchored to something other than their own trigger
+
+  Every Silica component that renders a Base UI `Positioner` forwarded exactly three of its props — `side`, `align`, `sideOffset` — and dropped the rest. The most consequential omission was `anchor`, which meant a popup could physically only sit against the element that opened it. Anchoring a panel to a table row, a chart mark, a text caret, or the pointer was not merely undocumented; it was unreachable through the wrapper, and passing `anchor` was a type error.
+
+  This forwards the whole shared positioning surface on all twelve of them: `Popover`, `Tooltip`, `DropdownMenu`, `Menubar`, `ContextMenu`, `Select`, `Combobox`, `MultiSelect`, `Autocomplete`, `NavigationMenu`, `PreviewCard`, and `DatePicker`/`DateRangePicker`.
+
+  ```tsx
+  // anchor to a different element entirely
+  <PopoverContent anchor={rowRef} side="right">…</PopoverContent>
+
+  // a virtual element — anything with getBoundingClientRect() — pins a popup
+  // to a point that has no DOM node of its own
+  <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }}>…</PopoverContent>
+
+  // stay inside a scroll container instead of colliding with the viewport
+  <DropdownMenuContent collisionBoundary={scrollerRef.current} collisionPadding={8}>…</DropdownMenuContent>
+  ```
+
+  New on each: `anchor`, `positionMethod`, `alignOffset`, `collisionBoundary`, `collisionPadding`, `collisionAvoidance`, `sticky`, `arrowPadding`, `disableAnchorTracking`. `ContextMenuContent` additionally gained `side`/`align`/`sideOffset`, which it forwarded none of — those stay undefaulted there so Base UI's pointer anchoring is unchanged.
+
+  ### One definition, not twelve
+
+  The set lives in a single `PositioningProps` interface, with each member's type read off Base UI's own Positioner rather than hand-copied, so it tracks upstream. Twelve private copies of a positioning prop list is how this drifts back apart — the same reasoning behind the shared `COLOR_VARIANTS` table.
+
+  Props are split by key rather than passed through blindly, and keys absent from a call stay absent from the Positioner: for `collisionAvoidance`, an explicit `undefined` is not the same as omitting it and would have overridden Base UI's default.
+
+  ### Additive
+
+  `side`, `align`, and `sideOffset` keep their Silica defaults and behavior. Nothing was renamed or removed, and every existing probe passes unchanged.
+
+  ### Verified in a browser, not a compiler
+
+  Positioning is a layout claim, and jsdom reports every element as a zero rect — "the popup moved to the anchor" and "the popup never moved" are indistinguishable there, which is precisely the failure being defended against. `examples/playground/e2e/popover-anchor.spec.ts` drives real Chromium: it asserts the popup's box sits against the anchor's box and is centred on a line the trigger is demonstrably _not_ on, then clicks an arbitrary point and asserts a virtual element pins the popup there. Both were confirmed to fail when the forwarding is reverted.
+
+  The MCP catalog now inlines shared props interfaces into the components that extend them. Without that it reported `extends PositioningProps` and stopped, so an agent reading the catalog to check what a popup accepts would have concluded — correctly, before this change, and wrongly after it — that there is no way to anchor one.
+
 ## 0.54.0
 
 ### Minor Changes
