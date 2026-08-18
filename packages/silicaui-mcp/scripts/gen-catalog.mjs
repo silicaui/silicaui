@@ -444,6 +444,40 @@ function getLeadingDoc(sourceText, node, sf) {
   return ranges.map((r) => cleanComment(sourceText.slice(r.pos, r.end))).join(" ").trim();
 }
 
+/**
+ * Members of a shared props interface the component files extend, keyed by
+ * interface name. Without this the catalog reports `extends PositioningProps`
+ * and stops — an agent reading it would conclude a popup can only sit against
+ * its own trigger, which is exactly the wrong answer `anchor` exists to fix.
+ */
+let sharedPropsCache = null;
+function sharedPropsInterfaces() {
+  if (sharedPropsCache) return sharedPropsCache;
+  sharedPropsCache = new Map();
+  const file = path.join(packagesRoot, "silicaui-react", "src", "lib", "positioning.ts");
+  if (!existsSync(file)) return sharedPropsCache;
+  const source = readFileSync(file, "utf8");
+  const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  ts.forEachChild(sf, (node) => {
+    if (!ts.isInterfaceDeclaration(node) || !hasExportModifier(node)) return;
+    sharedPropsCache.set(
+      node.name.text,
+      node.members.flatMap((member) =>
+        ts.isPropertySignature(member) && member.name
+          ? [{
+              name: member.name.getText(sf),
+              optional: !!member.questionToken,
+              type: member.type ? member.type.getText(sf) : "unknown",
+              doc: getLeadingDoc(source, member, sf),
+              inheritedFrom: node.name.text,
+            }]
+          : [],
+      ),
+    );
+  });
+  return sharedPropsCache;
+}
+
 function parseComponentFile(filePath, componentName) {
   const source = readFileSync(filePath, "utf8");
   const sf = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -472,6 +506,14 @@ function parseComponentFile(filePath, componentName) {
       const extendsClause = ts.isInterfaceDeclaration(node) && node.heritageClauses
         ? node.heritageClauses.map((h) => h.getText(sf)).join(" ")
         : undefined;
+      // Inline the members of shared props interfaces so the catalog reports
+      // what the component actually ACCEPTS, not just what it inherits from.
+      for (const [name, inherited] of sharedPropsInterfaces()) {
+        if (extendsClause?.includes(name)) {
+          const own = new Set(members.map((m) => m.name));
+          members.push(...inherited.filter((m) => !own.has(m.name)));
+        }
+      }
       props.push({ name: node.name.text, extends: extendsClause, members });
     }
 

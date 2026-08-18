@@ -3,13 +3,14 @@ import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import type { PositioningProps } from "./lib/positioning";
 
 // Derive the side/align unions straight from Base UI so they never drift.
 type PositionerProps = React.ComponentProps<typeof BaseTooltip.Positioner>;
 export type TooltipSide = NonNullable<PositionerProps["side"]>;
 export type TooltipAlign = NonNullable<PositionerProps["align"]>;
 
-export interface TooltipProps {
+export interface TooltipProps extends PositioningProps {
   /** The floating content. */
   content: React.ReactNode;
   /** The trigger element — Base UI merges hover/focus behavior onto it. */
@@ -71,6 +72,7 @@ export function Tooltip({
   arrow = true,
   className,
   popupProps,
+  ...positioning
 }: TooltipProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
@@ -89,7 +91,7 @@ export function Tooltip({
         closeDelay={closeDelay}
       />
       <BaseTooltip.Portal container={portalContainer}>
-        <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset}>
+        <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset} {...positioning}>
           <BaseTooltip.Popup {...popupProps} className={cx(sc("tooltip"), className)}>
             {arrow && <BaseTooltip.Arrow className={cx(sc("tooltip-arrow"))} />}
             {content}

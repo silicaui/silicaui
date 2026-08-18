@@ -3,13 +3,14 @@ import { PreviewCard as BasePreviewCard } from "@base-ui/react/preview-card";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import type { PositioningProps } from "./lib/positioning";
 
 // Derive side/align straight from Base UI so they never drift.
 type PositionerProps = React.ComponentProps<typeof BasePreviewCard.Positioner>;
 export type PreviewCardSide = NonNullable<PositionerProps["side"]>;
 export type PreviewCardAlign = NonNullable<PositionerProps["align"]>;
 
-export interface PreviewCardProps {
+export interface PreviewCardProps extends PositioningProps {
   /** The trigger (usually a link). Base UI merges hover/focus behavior onto it. */
   children: React.ReactElement;
   /** The card body shown on hover/focus. */
@@ -56,6 +57,7 @@ export function PreviewCard({
   onOpenChange,
   arrow = false,
   className,
+  ...positioning
 }: PreviewCardProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
@@ -77,6 +79,7 @@ export function PreviewCard({
           side={side}
           align={align}
           sideOffset={sideOffset}
+          {...positioning}
         >
           <BasePreviewCard.Popup className={cx(sc("preview-card"), className)}>
             {arrow && (

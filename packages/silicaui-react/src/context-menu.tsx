@@ -3,11 +3,16 @@ import { ContextMenu as BaseContextMenu } from "@base-ui/react/context-menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
   "className"
 > & { className?: string };
+
+type PositionerProps = React.ComponentProps<typeof BaseContextMenu.Positioner>;
+export type ContextMenuSide = NonNullable<PositionerProps["side"]>;
+export type ContextMenuAlign = NonNullable<PositionerProps["align"]>;
 
 export type ContextMenuProps = React.ComponentProps<typeof BaseContextMenu.Root>;
 
@@ -44,22 +49,38 @@ export const ContextMenuTrigger = React.forwardRef<
 });
 
 export interface ContextMenuContentProps
-  extends Omit<Styled<typeof BaseContextMenu.Popup>, "children"> {
+  extends Omit<Styled<typeof BaseContextMenu.Popup>, "children">,
+    PositioningProps {
   children?: React.ReactNode;
+  /** Preferred side of the pointer anchor. Base UI's default when omitted. */
+  side?: ContextMenuSide;
+  /** Alignment along that side. Base UI's default when omitted. */
+  align?: ContextMenuAlign;
+  /** Gap from the pointer anchor, in px. */
+  sideOffset?: number;
 }
 
 /** Portal + positioner + the menu popup (shared dropdown surface). */
 export function ContextMenuContent({
   className,
   children,
+  side,
+  align,
+  sideOffset,
   ...rest
 }: ContextMenuContentProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
+  const [positioning, popupProps] = splitPositioning(rest);
   return (
     <BaseContextMenu.Portal container={portalContainer}>
-      <BaseContextMenu.Positioner>
-        <BaseContextMenu.Popup className={cx(sc("dropdown"), className)} {...rest}>
+      <BaseContextMenu.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        {...positioning}
+      >
+        <BaseContextMenu.Popup className={cx(sc("dropdown"), className)} {...popupProps}>
           {children}
         </BaseContextMenu.Popup>
       </BaseContextMenu.Positioner>

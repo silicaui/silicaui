@@ -3,6 +3,7 @@ import { NavigationMenu as BaseNav } from "@base-ui/react/navigation-menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -14,7 +15,8 @@ export type NavigationMenuSide = NonNullable<PositionerProps["side"]>;
 export type NavigationMenuAlign = NonNullable<PositionerProps["align"]>;
 
 export interface NavigationMenuProps
-  extends Omit<Styled<typeof BaseNav.Root>, "children"> {
+  extends Omit<Styled<typeof BaseNav.Root>, "children">,
+    PositioningProps {
   children?: React.ReactNode;
   /** Preferred side for the dropdown panel. Default `bottom`. */
   side?: NavigationMenuSide;
@@ -59,8 +61,9 @@ export function NavigationMenu({
 }: NavigationMenuProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
+  const [positioning, rootProps] = splitPositioning(rest);
   return (
-    <BaseNav.Root className={cx(sc("navigation-menu"), className)} {...rest}>
+    <BaseNav.Root className={cx(sc("navigation-menu"), className)} {...rootProps}>
       <BaseNav.List className={cx(sc("navigation-menu-list"))}>
         {children}
       </BaseNav.List>
@@ -70,6 +73,7 @@ export function NavigationMenu({
           side={side}
           align={align}
           sideOffset={sideOffset}
+          {...positioning}
         >
           <BaseNav.Popup className={cx(sc("navigation-menu-popup"))}>
             <BaseNav.Viewport

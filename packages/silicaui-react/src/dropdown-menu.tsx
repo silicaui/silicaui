@@ -3,6 +3,7 @@ import { Menu as BaseMenu } from "@base-ui/react/menu";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -40,7 +41,8 @@ export function DropdownMenuTrigger({ children }: { children: React.ReactElement
 }
 
 export interface DropdownMenuContentProps
-  extends Omit<Styled<typeof BaseMenu.Popup>, "children"> {
+  extends Omit<Styled<typeof BaseMenu.Popup>, "children">,
+    PositioningProps {
   children?: React.ReactNode;
   side?: DropdownMenuSide;
   align?: DropdownMenuAlign;
@@ -58,10 +60,11 @@ export function DropdownMenuContent({
 }: DropdownMenuContentProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
+  const [positioning, popupProps] = splitPositioning(rest);
   return (
     <BaseMenu.Portal container={portalContainer}>
-      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset}>
-        <BaseMenu.Popup className={cx(sc("dropdown"), className)} {...rest}>
+      <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} {...positioning}>
+        <BaseMenu.Popup className={cx(sc("dropdown"), className)} {...popupProps}>
           {children}
         </BaseMenu.Popup>
       </BaseMenu.Positioner>
