@@ -3,6 +3,7 @@ import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -68,7 +69,7 @@ export function ComboboxItem({
   );
 }
 
-export interface ComboboxProps {
+export interface ComboboxProps extends PositioningProps {
   /** The full option set (strings or `{ value, label }`); Base UI filters it. */
   items: readonly unknown[];
   /** Controlled selected value. */
@@ -156,6 +157,7 @@ export function Combobox({
   id,
   ...aria
 }: ComboboxProps) {
+  const [positioning, ariaProps] = splitPositioning(aria);
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
   return (
@@ -180,7 +182,7 @@ export function Combobox({
             sc("combobox-input"),
             className,
           )}
-          {...aria}
+          {...ariaProps}
         />
         {clearable && (
           <BaseCombobox.Clear
@@ -199,7 +201,7 @@ export function Combobox({
       </div>
 
       <BaseCombobox.Portal container={portalContainer}>
-        <BaseCombobox.Positioner side={side} align={align} sideOffset={sideOffset}>
+        <BaseCombobox.Positioner side={side} align={align} sideOffset={sideOffset} {...positioning}>
           <BaseCombobox.Popup {...popupProps} className={cx(sc("select-popup"), popupClassName)}>
             <BaseCombobox.Empty className={cx(sc("combobox-empty"))}>
               {emptyMessage}

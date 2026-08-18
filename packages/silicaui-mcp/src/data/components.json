@@ -94,7 +94,7 @@
       },
       {
         "name": "DropdownMenuContentProps",
-        "extends": "extends Omit<Styled<typeof BaseMenu.Popup>, \"children\">",
+        "extends": "extends Omit<Styled<typeof BaseMenu.Popup>, \"children\">,\n    PositioningProps",
         "members": [
           {
             "name": "children",
@@ -119,6 +119,69 @@
             "optional": true,
             "type": "number",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -1782,6 +1845,7 @@
     "props": [
       {
         "name": "PreviewCardProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "children",
@@ -1854,6 +1918,69 @@
             "optional": true,
             "type": "string",
             "doc": "Extra class on the card surface."
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -2078,6 +2205,7 @@
       },
       {
         "name": "AutocompleteProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "items",
@@ -2210,6 +2338,69 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -2628,6 +2819,7 @@
       },
       {
         "name": "ComboboxProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "items",
@@ -2766,6 +2958,69 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -2939,6 +3194,7 @@
     "props": [
       {
         "name": "DatePickerProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "value",
@@ -3059,11 +3315,75 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       },
       {
         "name": "DateRangePickerProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "value",
@@ -3190,6 +3510,69 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -3363,6 +3746,7 @@
     "props": [
       {
         "name": "DatePickerProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "value",
@@ -3483,11 +3867,75 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       },
       {
         "name": "DateRangePickerProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "value",
@@ -3614,6 +4062,69 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -4193,6 +4704,7 @@
       },
       {
         "name": "MultiSelectProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "items",
@@ -4331,6 +4843,69 @@
             "optional": true,
             "type": "string",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -5019,6 +5594,7 @@
       },
       {
         "name": "SelectProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "value",
@@ -5157,6 +5733,69 @@
             "optional": true,
             "type": "React.ReactNode",
             "doc": "`SelectItem`/`SelectGroup`/`SelectSeparator`s. Omit to auto-render `items`."
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -5665,7 +6304,7 @@
       },
       {
         "name": "MenubarContentProps",
-        "extends": "extends Omit<Styled<typeof BaseMenu.Popup>, \"children\">",
+        "extends": "extends Omit<Styled<typeof BaseMenu.Popup>, \"children\">,\n    PositioningProps",
         "members": [
           {
             "name": "children",
@@ -5690,6 +6329,69 @@
             "optional": true,
             "type": "number",
             "doc": ""
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -5719,7 +6421,7 @@
     "props": [
       {
         "name": "NavigationMenuProps",
-        "extends": "extends Omit<Styled<typeof BaseNav.Root>, \"children\">",
+        "extends": "extends Omit<Styled<typeof BaseNav.Root>, \"children\">,\n    PositioningProps",
         "members": [
           {
             "name": "children",
@@ -5744,6 +6446,69 @@
             "optional": true,
             "type": "number",
             "doc": "Gap between the bar and the panel, in px. Default `8`."
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       },
@@ -6270,13 +7035,94 @@
       },
       {
         "name": "ContextMenuContentProps",
-        "extends": "extends Omit<Styled<typeof BaseContextMenu.Popup>, \"children\">",
+        "extends": "extends Omit<Styled<typeof BaseContextMenu.Popup>, \"children\">,\n    PositioningProps",
         "members": [
           {
             "name": "children",
             "optional": true,
             "type": "React.ReactNode",
             "doc": ""
+          },
+          {
+            "name": "side",
+            "optional": true,
+            "type": "ContextMenuSide",
+            "doc": "Preferred side of the pointer anchor. Base UI's default when omitted."
+          },
+          {
+            "name": "align",
+            "optional": true,
+            "type": "ContextMenuAlign",
+            "doc": "Alignment along that side. Base UI's default when omitted."
+          },
+          {
+            "name": "sideOffset",
+            "optional": true,
+            "type": "number",
+            "doc": "Gap from the pointer anchor, in px."
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
@@ -6604,7 +7450,7 @@
       },
       {
         "name": "PopoverContentProps",
-        "extends": "extends Omit<Styled<typeof BasePopover.Popup>, \"children\">",
+        "extends": "extends Omit<Styled<typeof BasePopover.Popup>, \"children\">,\n    PositioningProps",
         "members": [
           {
             "name": "children",
@@ -6635,11 +7481,74 @@
             "optional": true,
             "type": "boolean",
             "doc": "Show the little arrow. Default `false`."
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       }
     ],
-    "usageExample": "import {\n    Popover,\n    PopoverTrigger,\n    PopoverContent,\n    PopoverTitle,\n    PopoverDescription,\n    Button,\n} from \"@wizeworks/silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nexport function PopoverDemo() {\n    return (\n        <>\n            <Section title=\"Real use · click-triggered info panel\">\n                <Popover>\n                    <PopoverTrigger>\n                        <Button variant=\"outline\" color=\"neutral\">\n                            Storage details\n                        </Button>\n                    </PopoverTrigger>\n                    <PopoverContent arrow>\n                        <PopoverTitle>Storage</PopoverTitle>\n                        <PopoverDescription>\n                            92% of your 100 GB quota is used. Upgrade your plan for more\n                            space.\n                        </PopoverDescription>\n                    </PopoverContent>\n                </Popover>\n            </Section>\n\n            <Section title=\"Glass · frosted panel\">\n                <div\n                    className=\"flex justify-center rounded-box p-16\"\n                    style={{\n                        backgroundImage:\n                            \"linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))\",\n                    }}\n                >\n                    <Popover>\n                        <PopoverTrigger>\n                            <Button variant=\"outline\" color=\"neutral\">\n                                Storage details\n                            </Button>\n                        </PopoverTrigger>\n                        <PopoverContent className=\"glass\" arrow>\n                            <PopoverTitle>Storage</PopoverTitle>\n                            <PopoverDescription>\n                                <code>PopoverContent className=&quot;glass&quot;</code> — the\n                                gradient behind it shows through the blur.\n                            </PopoverDescription>\n                        </PopoverContent>\n                    </Popover>\n                </div>\n            </Section>\n        </>\n    );\n}"
+    "usageExample": "import { useRef, useState } from \"react\";\nimport {\n    Popover,\n    PopoverTrigger,\n    PopoverContent,\n    PopoverTitle,\n    PopoverDescription,\n    Button,\n} from \"@wizeworks/silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nexport function PopoverDemo() {\n    return (\n        <>\n            <Section title=\"Real use · click-triggered info panel\">\n                <Popover>\n                    <PopoverTrigger>\n                        <Button variant=\"outline\" color=\"neutral\">\n                            Storage details\n                        </Button>\n                    </PopoverTrigger>\n                    <PopoverContent arrow>\n                        <PopoverTitle>Storage</PopoverTitle>\n                        <PopoverDescription>\n                            92% of your 100 GB quota is used. Upgrade your plan for more\n                            space.\n                        </PopoverDescription>\n                    </PopoverContent>\n                </Popover>\n            </Section>\n\n            <Section title=\"Glass · frosted panel\">\n                <div\n                    className=\"flex justify-center rounded-box p-16\"\n                    style={{\n                        backgroundImage:\n                            \"linear-gradient(135deg, var(--color-primary), var(--color-accent), var(--color-secondary))\",\n                    }}\n                >\n                    <Popover>\n                        <PopoverTrigger>\n                            <Button variant=\"outline\" color=\"neutral\">\n                                Storage details\n                            </Button>\n                        </PopoverTrigger>\n                        <PopoverContent className=\"glass\" arrow>\n                            <PopoverTitle>Storage</PopoverTitle>\n                            <PopoverDescription>\n                                <code>PopoverContent className=&quot;glass&quot;</code> — the\n                                gradient behind it shows through the blur.\n                            </PopoverDescription>\n                        </PopoverContent>\n                    </Popover>\n                </div>\n            </Section>\n\n            <ElementAnchor />\n            <PointerAnchor />\n        </>\n    );\n}\n\n/**\n * `anchor` — position against something OTHER than the trigger. Without it a\n * popup can only ever sit against the element that opened it, which breaks the\n * common case of a toolbar button that annotates a row, a cell, or a chart mark.\n */\nfunction ElementAnchor() {\n    const target = useRef<HTMLDivElement>(null);\n\n    return (\n        <Section title=\"anchor · position against another element\">\n            <div className=\"flex items-start gap-8\">\n                <Popover>\n                    <PopoverTrigger>\n                        <Button variant=\"outline\" color=\"neutral\" data-demo=\"anchor-trigger\">\n                            Explain the total\n                        </Button>\n                    </PopoverTrigger>\n                    <PopoverContent\n                        anchor={target}\n                        side=\"right\"\n                        arrow\n                        data-demo=\"anchor-popup\"\n                    >\n                        <PopoverTitle>Order total</PopoverTitle>\n                        <PopoverDescription>\n                            The panel is anchored to the figure, not to the button that\n                            opened it.\n                        </PopoverDescription>\n                    </PopoverContent>\n                </Popover>\n\n                <div\n                    ref={target}\n                    data-demo=\"anchor-target\"\n                    className=\"rounded-box border border-base-300 px-6 py-4 text-2xl font-bold\"\n                >\n                    $1,284.00\n                </div>\n            </div>\n        </Section>\n    );\n}\n\n/**\n * A virtual element is just `{ getBoundingClientRect() }` — enough to pin a\n * popup to a caret, a pointer, or a spot on a canvas that has no DOM node.\n */\nfunction PointerAnchor() {\n    const [point, setPoint] = useState<{ x: number; y: number } | null>(null);\n\n    return (\n        <Section title=\"anchor · a virtual element at the pointer\">\n            <div\n                data-demo=\"pointer-surface\"\n                className=\"grid h-40 place-items-center rounded-box border border-dashed border-base-300\"\n                onClick={(e) => setPoint({ x: e.clientX, y: e.clientY })}\n            >\n                Click anywhere in this box\n            </div>\n\n            <Popover open={point !== null} onOpenChange={() => setPoint(null)}>\n                <PopoverContent\n                    data-demo=\"pointer-popup\"\n                    side=\"bottom\"\n                    align=\"start\"\n                    anchor={\n                        point && {\n                            getBoundingClientRect: () =>\n                                new DOMRect(point.x, point.y, 0, 0),\n                        }\n                    }\n                >\n                    <PopoverDescription>\n                        Anchored at {point?.x}, {point?.y}\n                    </PopoverDescription>\n                </PopoverContent>\n            </Popover>\n        </Section>\n    );\n}"
   },
   {
     "name": "Progress",
@@ -6824,6 +7733,7 @@
     "props": [
       {
         "name": "TooltipProps",
+        "extends": "extends PositioningProps",
         "members": [
           {
             "name": "content",
@@ -6908,6 +7818,69 @@
             "optional": true,
             "type": "React.ComponentProps<typeof BaseTooltip.Popup> & {\n    [key: `data-${string}`]: string | undefined;\n  }",
             "doc": "Props forwarded to the popup surface itself. The popup renders in a PORTAL, so it sits OUTSIDE any `[data-theme]` island the trigger lives in — pass `popupProps={{ \"data-theme\": \"…\" }}` to re-establish the theme tokens on the popup's own root (mirrors `Select`'s and `Combobox`'s `popupProps`)."
+          },
+          {
+            "name": "anchor",
+            "optional": true,
+            "type": "BasePositionerProps[\"anchor\"]",
+            "doc": "What to position against. Defaults to the component's own trigger. Accepts an element, a ref, a function returning either, or a VIRTUAL element — anything with `getBoundingClientRect()` — which is how you pin a popup to a pointer, a text caret, or a spot on a canvas that has no DOM node. <PopoverContent anchor={rowRef} /> <PopoverContent anchor={{ getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }} />",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "positionMethod",
+            "optional": true,
+            "type": "BasePositionerProps[\"positionMethod\"]",
+            "doc": "`absolute` (default) or `fixed`. Use `fixed` to escape a clipping ancestor.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "alignOffset",
+            "optional": true,
+            "type": "BasePositionerProps[\"alignOffset\"]",
+            "doc": "Offset along the alignment axis, in px. Pairs with `align`.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionBoundary",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionBoundary\"]",
+            "doc": "The element the popup must stay inside. Defaults to the viewport — set it to a scroll container so the popup collides with the panel, not the window.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionPadding\"]",
+            "doc": "Inset from the collision boundary, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "collisionAvoidance",
+            "optional": true,
+            "type": "BasePositionerProps[\"collisionAvoidance\"]",
+            "doc": "Which collision strategy runs per axis (`flip`, `shift`, `none`).",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "sticky",
+            "optional": true,
+            "type": "BasePositionerProps[\"sticky\"]",
+            "doc": "Keep the popup glued to the anchor while it scrolls out of view.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "arrowPadding",
+            "optional": true,
+            "type": "BasePositionerProps[\"arrowPadding\"]",
+            "doc": "Minimum distance from the popup's corner to the arrow, in px.",
+            "inheritedFrom": "PositioningProps"
+          },
+          {
+            "name": "disableAnchorTracking",
+            "optional": true,
+            "type": "BasePositionerProps[\"disableAnchorTracking\"]",
+            "doc": "Stop re-measuring when the anchor moves. Cheaper, but goes stale.",
+            "inheritedFrom": "PositioningProps"
           }
         ]
       },

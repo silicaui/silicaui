@@ -3,6 +3,7 @@ import { Popover as BasePopover } from "@base-ui/react/popover";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import type { PositioningProps } from "./lib/positioning";
 import { Calendar } from "./calendar";
 import type {
   CalendarColor,
@@ -70,7 +71,7 @@ function DateTrigger({
   );
 }
 
-interface PopupShellProps {
+interface PopupShellProps extends PositioningProps {
   side: DatePickerSide;
   align: DatePickerAlign;
   sideOffset: number;
@@ -84,12 +85,18 @@ function DatePopup({
   sideOffset,
   popupClassName,
   children,
+  ...positioning
 }: PopupShellProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
   return (
     <BasePopover.Portal container={portalContainer}>
-      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset}>
+      <BasePopover.Positioner
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        {...positioning}
+      >
         <BasePopover.Popup className={cx(sc("calendar-popup"), popupClassName)}>
           {children}
         </BasePopover.Popup>
@@ -102,7 +109,7 @@ function DatePopup({
 // DatePicker (single)
 // ---------------------------------------------------------------------------
 
-export interface DatePickerProps {
+export interface DatePickerProps extends PositioningProps {
   value?: Date | null;
   defaultValue?: Date | null;
   onValueChange?: (value: Date | null) => void;
@@ -152,6 +159,7 @@ export function DatePicker({
   popupClassName,
   id,
   "aria-label": ariaLabel,
+  ...positioning
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [internal, setInternal] = React.useState<Date | null>(
@@ -189,6 +197,7 @@ export function DatePicker({
         align={align}
         sideOffset={sideOffset}
         popupClassName={popupClassName}
+        {...positioning}
       >
         <Calendar
           mode="single"
@@ -210,7 +219,7 @@ export function DatePicker({
 // DateRangePicker
 // ---------------------------------------------------------------------------
 
-export interface DateRangePickerProps {
+export interface DateRangePickerProps extends PositioningProps {
   value?: DateRange;
   defaultValue?: DateRange;
   onValueChange?: (value: DateRange) => void;
@@ -264,6 +273,7 @@ export function DateRangePicker({
   popupClassName,
   id,
   "aria-label": ariaLabel,
+  ...positioning
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [internal, setInternal] = React.useState<DateRange>(
@@ -306,6 +316,7 @@ export function DateRangePicker({
         align={align}
         sideOffset={sideOffset}
         popupClassName={popupClassName}
+        {...positioning}
       >
         <Calendar
           mode="range"

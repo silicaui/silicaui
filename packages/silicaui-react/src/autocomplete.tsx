@@ -3,6 +3,7 @@ import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -46,7 +47,7 @@ export function AutocompleteItem({
   );
 }
 
-export interface AutocompleteProps {
+export interface AutocompleteProps extends PositioningProps {
   /** Suggestion set; filtered by the input value (in `list`/`both` modes). */
   items: readonly string[];
   /** Controlled input value. */
@@ -117,6 +118,7 @@ export function Autocomplete({
   id,
   ...aria
 }: AutocompleteProps) {
+  const [positioning, ariaProps] = splitPositioning(aria);
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
   return (
@@ -141,7 +143,7 @@ export function Autocomplete({
             sc("combobox-input"),
             className,
           )}
-          {...aria}
+          {...ariaProps}
         />
         {clearable && (
           <BaseAutocomplete.Clear
@@ -158,6 +160,7 @@ export function Autocomplete({
           side={side}
           align={align}
           sideOffset={sideOffset}
+          {...positioning}
         >
           <BaseAutocomplete.Popup className={cx(sc("select-popup"), popupClassName)}>
             <BaseAutocomplete.Empty className={cx(sc("combobox-empty"))}>

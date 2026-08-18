@@ -3,6 +3,7 @@ import { Popover as BasePopover } from "@base-ui/react/popover";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 
 type Styled<T extends React.ElementType> = Omit<
   React.ComponentPropsWithoutRef<T>,
@@ -40,7 +41,8 @@ export function PopoverClose({ children }: { children: React.ReactElement }) {
 }
 
 export interface PopoverContentProps
-  extends Omit<Styled<typeof BasePopover.Popup>, "children"> {
+  extends Omit<Styled<typeof BasePopover.Popup>, "children">,
+    PositioningProps {
   children?: React.ReactNode;
   side?: PopoverSide;
   align?: PopoverAlign;
@@ -71,10 +73,11 @@ export function PopoverContent({
 }: PopoverContentProps) {
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
+  const [positioning, popupProps] = splitPositioning(rest);
   return (
     <BasePopover.Portal container={portalContainer}>
-      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset}>
-        <BasePopover.Popup className={cx(sc("popover"), className)} {...rest}>
+      <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} {...positioning}>
+        <BasePopover.Popup className={cx(sc("popover"), className)} {...popupProps}>
           {arrow && <BasePopover.Arrow className={cx(sc("popover-arrow"))} />}
           {children}
         </BasePopover.Popup>

@@ -3,6 +3,7 @@ import { Select as BaseSelect } from "@base-ui/react/select";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -100,7 +101,7 @@ export type SelectItems =
   | Record<string, React.ReactNode>
   | ReadonlyArray<SelectOptionData>;
 
-export interface SelectProps {
+export interface SelectProps extends PositioningProps {
   /** Controlled value (array when `multiple`). */
   value?: unknown;
   /** Uncontrolled initial value. */
@@ -197,6 +198,7 @@ export function Select({
   children,
   ...aria
 }: SelectProps) {
+  const [positioning, ariaProps] = splitPositioning(aria);
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
 
@@ -236,7 +238,7 @@ export function Select({
           sc("select-trigger"),
           className,
         )}
-        {...aria}
+        {...ariaProps}
       >
         <BaseSelect.Value className={cx(sc("select-value"))} />
         {placeholder != null && (
@@ -253,6 +255,7 @@ export function Select({
           align={align}
           sideOffset={sideOffset}
           alignItemWithTrigger={alignItemWithTrigger}
+          {...positioning}
         >
           <BaseSelect.Popup {...popupProps} className={cx(sc("select-popup"), popupClassName)}>
             <BaseSelect.ScrollUpArrow

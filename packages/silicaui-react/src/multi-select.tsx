@@ -3,6 +3,7 @@ import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 import { cx } from "./lib/cx";
 import { useSilicaClass } from "./lib/config";
 import { usePortalContainer } from "./portal-container";
+import { splitPositioning, type PositioningProps } from "./lib/positioning";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
 type Styled<T extends React.ElementType> = Omit<
@@ -59,7 +60,7 @@ export function MultiSelectItem({ className, children, ...rest }: MultiSelectIte
   );
 }
 
-export interface MultiSelectProps {
+export interface MultiSelectProps extends PositioningProps {
   /** The full option set (strings or `{ value, label }`); Base UI filters it. */
   items: readonly unknown[];
   /** Controlled selected values. */
@@ -140,6 +141,7 @@ export function MultiSelect({
   id,
   ...aria
 }: MultiSelectProps) {
+  const [positioning, ariaProps] = splitPositioning(aria);
   const sc = useSilicaClass();
   const portalContainer = usePortalContainer();
   const chipLabel = renderChipLabel ?? defaultLabel;
@@ -185,7 +187,7 @@ export function MultiSelect({
             id={id}
             placeholder={placeholder}
             className={cx(sc("multi-select-input"))}
-            {...aria}
+            {...ariaProps}
           />
         </BaseCombobox.Chips>
 
@@ -200,7 +202,7 @@ export function MultiSelect({
       </div>
 
       <BaseCombobox.Portal container={portalContainer}>
-        <BaseCombobox.Positioner side={side} align={align} sideOffset={sideOffset}>
+        <BaseCombobox.Positioner side={side} align={align} sideOffset={sideOffset} {...positioning}>
           <BaseCombobox.Popup className={cx(sc("select-popup"), popupClassName)}>
             <BaseCombobox.Empty className={cx(sc("combobox-empty"))}>
               {emptyMessage}
