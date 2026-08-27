@@ -314,22 +314,20 @@ jobs:
             --name "$CLUSTER" \
             --overwrite-existing
 
-      # The namespace and the pull secret must exist BEFORE the Deployment, or the first
-      # pods land in ImagePullBackOff and the rollout burns its timeout waiting for a
-      # retry that only succeeds by luck.
-      #
+      # The namespace must exist BEFORE the Deployment, or the apply below fails.
       # `create --dry-run | apply` is the idempotent form: plain `create` fails on the
-      # second run, and `apply` alone cannot build a Secret from literals. GITHUB_TOKEN
-      # is scoped to this run, so the registry credential in the cluster is refreshed on
-      # every deploy by construction.
-      - name: Ensure namespace and registry credential
+      # second run.
+      #
+      # There is deliberately NO registry credential here. This step used to also build
+      # a `ghcr` pull Secret from GITHUB_TOKEN — but that token is REVOKED the moment the
+      # run ends, so the cluster was left holding a dead credential that only ever worked
+      # during the rollout that created it. The first node replacement after a deploy
+      # took silicaui.com down for six days in ImagePullBackOff. The GHCR package is
+      # public now and the kubelet pulls anonymously — do not reintroduce a run-scoped
+      # token here.
+      - name: Ensure namespace
         run: |
           kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-          kubectl create secret docker-registry ghcr -n "$NAMESPACE" \
-            --docker-server=ghcr.io \
-            --docker-username='${{ github.actor }}' \
-            --docker-password='${{ secrets.GITHUB_TOKEN }}' \
-            --dry-run=client -o yaml | kubectl apply -f -
 
       # Pin the tag in the overlay and apply ONCE, rather than applying `latest` and
       # correcting it with `kubectl set image` — that sequence starts a rollout on a

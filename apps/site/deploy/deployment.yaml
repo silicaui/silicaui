@@ -19,13 +19,20 @@ spec:
       labels:
         app.kubernetes.io/name: silicaui-site
     spec:
-      # The GHCR package is private, so every pull needs a credential. CI
-      # recreates this Secret from the run-scoped GITHUB_TOKEN on every deploy
-      # (the `deploy` job in .github/workflows/ci.yml) — the same pattern sparx uses,
-      # so the token is refreshed by construction and the cluster never holds a
-      # long-lived registry credential.
-      imagePullSecrets:
-        - name: ghcr
+      # No imagePullSecrets: the GHCR package is PUBLIC, so the kubelet pulls
+      # anonymously. This is deliberate, not an oversight.
+      #
+      # It used to carry a `ghcr` Secret that CI rebuilt from the run-scoped
+      # GITHUB_TOKEN on every deploy. That token is REVOKED when the workflow run
+      # ends, so the credential in the cluster was dead minutes after each deploy —
+      # pulls only ever succeeded during the rollout itself, while the token was
+      # still alive. The bill came due when AKS replaced the node: the pods
+      # rescheduled onto a fresh image cache, re-pulled with the revoked token, and
+      # sat in ImagePullBackOff for six days (403 from the GHCR token endpoint).
+      #
+      # The image is nginx plus the static `out/` export this site already serves
+      # publicly, so a private package was protecting nothing. Public + anonymous
+      # removes the credential — and its expiry — from the path entirely.
       containers:
         - name: site
           # CI rewrites this tag to the immutable sha-<gitsha> it just pushed
