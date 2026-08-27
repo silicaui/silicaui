@@ -34,6 +34,19 @@ recreated on AKS, so everything in front of it was healthy and pointing at an
 empty namespace. That is why the `deploy` job ends by curling the public URL: a
 green rollout would not have caught it.
 
+**Then it 502'd again, for six days.** The pods carried a `ghcr` pull Secret that
+CI rebuilt from `secrets.GITHUB_TOKEN` on every deploy. That token is revoked when
+the workflow run ends, so the credential sitting in the cluster was dead minutes
+after each deploy — the pull only ever succeeded inside the rollout that created
+it, while the token was still alive. Nothing surfaced this, because nothing re-pulls
+a running pod. When AKS replaced the node, both pods rescheduled onto an empty image
+cache, re-pulled with the revoked token, and sat in `ImagePullBackOff` (403 from the
+GHCR token endpoint) until someone noticed. The fix was to make the package public
+and delete the credential from the path entirely — the image is nginx plus the static
+export this site already serves to the world, so the private package protected
+nothing. **Don't reintroduce a run-scoped token as a pull Secret;** its failure is
+silent and arrives days later.
+
 ## Files here
 
 | File | What it is |
@@ -58,6 +71,11 @@ green rollout would not have caught it.
 4. **DNS** — `silicaui.com` and `www.silicaui.com` A records point at
    `20.12.217.0`, grey-cloud / DNS-only in Cloudflare so ACME challenges reach
    the origin. Caddy issues the cert on the first HTTPS request.
+5. **GHCR package visibility** — the `silicaui/site` container package must be
+   **Public** (org packages → `silicaui%2Fsite` → change visibility). This is
+   load-bearing: the Deployment carries no `imagePullSecrets`, so the kubelet
+   pulls anonymously. Flipping the package private takes the site down at the
+   next node replacement, not at the next deploy — see below.
 
 ## Ongoing
 
