@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * The Validator component — validity-driven coloring for form controls.
  *
@@ -54,7 +55,7 @@ export function validator(prefix = "") {
       fontSize: "0.75rem",
       lineHeight: "1.25",
       marginTop: "0.25rem",
-      color: "var(--color-error)",
+      color: inkOfRole("error"),
     },
     // Reveal the hint only when the control right before it is invalid.
     [`${sel()}:user-invalid + ${sel("-hint")}`]: { display: "block" },

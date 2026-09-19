@@ -80,7 +80,6 @@ export function dropdown(prefix = "") {
       fontSize: "0.75rem",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
-      opacity: "0.55",
     },
   };
 }

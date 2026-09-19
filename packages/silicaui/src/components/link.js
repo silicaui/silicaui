@@ -16,7 +16,7 @@ export function link(colors, prefix = "") {
 
   const base = {
     [sel()]: {
-      color: "var(--link-accent, currentColor)",
+      color: "var(--link-ink, currentColor)",
       cursor: "pointer",
       textDecorationLine: "underline",
       textUnderlineOffset: "0.2em",

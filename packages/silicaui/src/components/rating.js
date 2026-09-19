@@ -29,7 +29,7 @@ export function rating(colors, prefix = "") {
       background: "none",
       lineHeight: "0",
       cursor: "pointer",
-      color: "var(--rating-accent, var(--color-warning))",
+      color: "var(--rating-ink, var(--color-warning))",
       transition: "color 0.15s, transform 0.1s",
 
       "& svg": {

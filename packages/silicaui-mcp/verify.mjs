@@ -175,6 +175,77 @@ check("search_docs surfaces custom colors for 'brand'", brandHits.some((r) => r.
 const customHits = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "custom color" } })));
 check("search_docs surfaces custom colors for 'custom color'", customHits.some((r) => r.kind === "concept"));
 
+// A component's name is TWO WORDS to everybody except the JavaScript parser, and
+// the matcher used to demand the identifier spelling: `"app shell"` returned []
+// while `"appshell"` returned seven things. The cost lands on an agent, which
+// does not retry with the space removed — it concludes there is no app shell and
+// hand-rolls a grid, which is the RULE #1 violation this server exists to
+// prevent. Both spellings are asserted so a future "optimisation" of the matcher
+// cannot quietly drop either. (docs/personas/issues/014.)
+const SPLIT_NAMES = [
+  ["app shell", "AppShell"],
+  ["data table", "DataTable"],
+  ["empty state", "EmptyState"],
+  ["command palette", "CommandPalette"],
+  ["number field", "NumberField"],
+  ["tree view", "TreeView"],
+];
+for (const [spaced, identifier] of SPLIT_NAMES) {
+  const jammed = identifier.toLowerCase();
+  const byWords = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: spaced } })));
+  const byIdent = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: jammed } })));
+  check(
+    `search_docs finds ${identifier} by "${spaced}" as well as "${jammed}"`,
+    byWords.some((r) => r.name === identifier) && byIdent.some((r) => r.name === identifier),
+  );
+}
+// Every term has to hit, or a two-word query degrades into "anything matching
+// either word" and buries the answer it was supposed to find. That still holds —
+// what changed is what happens when NOTHING matches every term: the query relaxes
+// by one word rather than returning empty, and SAYS SO.
+//
+// This check used to assert `length === 0` and correctly went red when the
+// relaxation was added. It is not weakened here; it is made stronger. Empty was
+// only ever a proxy for "the tool did not quietly pretend the nonsense word
+// matched", and the note tests that directly.
+const bothTerms = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "phone zzzznotathing" } })));
+const note = bothTerms[0];
+check(
+  "search_docs never ORs its terms together",
+  // A real OR would return everything matching "phone" AND everything matching
+  // "zzzznotathing" with no explanation. Relaxation returns ONE narrower query.
+  note?.kind === "search-note" && note.ignored?.includes("zzzznotathing"),
+);
+check(
+  "a relaxed search says which word it ignored",
+  typeof note?.note === "string" && note.note.includes("zzzznotathing") === false && note.note.includes("phone"),
+);
+const pureNonsense = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: "zzzznotathing" } })));
+check("a query with no real word still returns nothing", pureNonsense.length === 0);
+
+// The words a person types instead of the component's name. Measured against a
+// live server in act 9: eight of forty-one returned NOTHING while the component
+// sat right there, which is the failure a searchable catalog exists to prevent —
+// an agent handed `[]` concludes the thing does not exist and hand-rolls it.
+//
+// Each phrase must find its component IN THE RESULTS, not merely return
+// something: `status history` returning forty-three entries with Timeline buried
+// at index thirty is the same failure wearing a number.
+for (const [phrase, expected] of [
+  ["status history", "Timeline"],
+  ["activity feed", "Timeline"],
+  ["audit trail", "Timeline"],
+  ["history", "Timeline"],
+  ["snackbar", "Toast"],
+  ["loader", "Skeleton"],
+  ["user picture", "Avatar"],
+  ["toast message", "Toast"],
+]) {
+  const got = JSON.parse(text(await client.callTool({ name: "search_docs", arguments: { query: phrase } })));
+  const blob = JSON.stringify(got).toLowerCase();
+  check(`search_docs finds ${expected} for "${phrase}"`, blob.includes(expected.toLowerCase()));
+}
+
 // ── the theme layer ─────────────────────────────────────────────────────────
 // This server used to return a `light` map and a `dark` map and never say how
 // either one is ACTIVATED — `data-theme` appeared nowhere in the catalog, the

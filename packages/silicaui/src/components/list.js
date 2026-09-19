@@ -45,7 +45,6 @@ export function list(prefix = "") {
       fontWeight: "700",
       letterSpacing: "0.05em",
       textTransform: "uppercase",
-      opacity: "0.6",
     },
 
     // Hover affordance for interactive rows.

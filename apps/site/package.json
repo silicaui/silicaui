@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "next dev --port 4011",
-        "build": "node scripts/gen-og.mjs && next build",
+        "build": "node scripts/gen-counts.mjs && node scripts/gen-catalog.mjs && node scripts/gen-og.mjs && next build",
         "og": "node scripts/gen-og.mjs",
         "start": "next start",
         "typecheck": "tsc --noEmit"

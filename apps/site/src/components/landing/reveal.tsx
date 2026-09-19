@@ -22,9 +22,18 @@ import { useEffect, useRef, useState } from "react";
 export function Reveal({
   children,
   delay = 0,
+  className = "",
 }: {
   children: React.ReactNode;
   delay?: number;
+  /**
+   * Extra classes for the wrapper. This exists because the wrapper is a real box
+   * in the layout, not a passthrough: inside an `items-center` column it sizes to
+   * its content, so wrapping something wider than the screen makes the Reveal
+   * itself overflow and no amount of `w-full` on the child can fix it from below.
+   * See docs/personas/issues/004.
+   */
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [armed, setArmed] = useState(false);
@@ -66,7 +75,7 @@ export function Reveal({
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
       className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
         hidden ? "translate-y-6 opacity-0" : "translate-y-0 opacity-100"
-      }`}
+      } ${className}`}
     >
       {children}
     </div>

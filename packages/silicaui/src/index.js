@@ -1,7 +1,7 @@
 import plugin from "tailwindcss/plugin";
 import { LIGHT, SEMANTIC_COLORS } from "./colors.js";
 import { buildBase } from "./theme.js";
-import { colorUtilities, softUtilities, glassUtilities } from "./color-utilities.js";
+import { colorUtilities, softUtilities, glassUtilities, textInkUtilities } from "./color-utilities.js";
 import { warnUnregisteredColors } from "./lib/warn-unregistered-colors.js";
 import { button } from "./components/button.js";
 import { badge } from "./components/badge.js";
@@ -139,6 +139,22 @@ function parsePrefix(option) {
 }
 
 /**
+ * Parse `prefersdark` from `@plugin "@wizeworks/silicaui" { prefersdark: true; }`.
+ *
+ * Opt-in and default OFF: turning it on changes what an app looks like on a
+ * dark-OS visitor's first paint, and Silica never repaints a page you did not
+ * opt into (same principle as the `[data-theme]`-scoped surface painting in
+ * buildBase). Tailwind hands option values through as strings, so `true`,
+ * `"true"` and a bare `prefersdark;` all count.
+ */
+function parsePrefersDark(option) {
+  if (option == null) return false;
+  const raw = Array.isArray(option) ? option.join("") : String(option);
+  const v = raw.trim().replace(/^['"]+|['"]+$/g, "").toLowerCase();
+  return v === "" || v === "true" || v === "1" || v === "yes";
+}
+
+/**
  * Silica CSS — a Tailwind v4 plugin.
  *
  * Usage (CSS-first, no tailwind.config):
@@ -157,6 +173,16 @@ function parsePrefix(option) {
  * separator. Must match `<SilicaProvider prefix>` in @wizeworks/silicaui-react:
  *
  *   @plugin "@wizeworks/silicaui" { prefix: sx-; }   // → .sx-btn, .sx-btn-primary, …
+ *
+ * Follow the visitor's operating system on first paint, with no theme script:
+ *
+ *   @plugin "@wizeworks/silicaui" { prefersdark: true; }
+ *
+ * Off by default. It emits `@media (prefers-color-scheme: dark)` scoped to
+ * `:root:not([data-theme])`, so an explicit `data-theme` — a stored choice from
+ * `<ThemeController>`, or a theme island — always outranks the OS. Do NOT also
+ * hardcode `<html data-theme="light">`: that makes the rule permanently
+ * unmatchable and silently disables this.
  */
 export default plugin.withOptions(
   (options = {}) =>
@@ -167,7 +193,13 @@ export default plugin.withOptions(
       // `bg-*` utilities and silently missing `btn-*`/`badge-*` variants. Say
       // so rather than letting it read as "the color is broken".
       warnUnregisteredColors(theme, colors);
-      addBase(buildBase());
+      // Read ONCE and passed to everything that scopes to a Silica surface.
+      // `prefersdark` adds the unthemed root as a second surface, and anything
+      // that only knew about `[data-theme]` silently switched itself off for
+      // apps that turned the option on — the surface paint and then the whole
+      // type ramp (docs/personas/issues/013, /015).
+      const prefersDark = parsePrefersDark(options.prefersdark);
+      addBase(buildBase({ prefersDark }));
       // Components are emitted via addBase, not addComponents, on purpose.
       // Tailwind v4 tree-shakes addComponents/addUtilities output against
       // scanned content — but a React component library builds its class names
@@ -201,7 +233,7 @@ export default plugin.withOptions(
       addBase(indicator(prefix));
       addBase(loading(prefix));
       addBase(prose(prefix));
-      addBase(typography(prefix));
+      addBase(typography(prefix, prefersDark));
       addBase(navbar(prefix));
       addBase(footer(prefix));
       addBase(hero(prefix));
@@ -296,6 +328,9 @@ export default plugin.withOptions(
       // base-layer rule regardless of source order. addUtilities lands `.soft`/
       // `.bg-soft`/`.text-soft`/`.border-soft` in that same utilities layer, after
       // Tailwind's core output, so they reliably win. See softUtilities' doc.
+      // `text-<role>` in the utilities layer, so the ink form beats Tailwind's own
+      // raw-token rule for any colour whose literal class gets scanned.
+      addUtilities(textInkUtilities(colors, prefix));
       addUtilities(softUtilities(prefix));
       // `glass` — Tier-0 frosted-glass utility (blur/saturate, no SVG
       // refraction). Same addUtilities + [class] bump as `soft`, for the

@@ -107,6 +107,21 @@ export function ThemeController({
   );
   const current = value ?? internal;
 
+  // Whether anything has actually CHOSEN a theme — a controlled `value`, an
+  // explicit `defaultValue`, a stored choice, an attribute already on the target,
+  // or a click. Until something has, this control must not write `data-theme` at
+  // all.
+  //
+  // Why it matters: the plugin's `prefersdark` rule is scoped to
+  // `:root:not([data-theme])`, so merely RENDERING this control used to stamp
+  // `data-theme="light"` on mount and permanently override the visitor's
+  // operating system. The control nobody touched silently won the argument, and
+  // the only symptom was a light page on a dark machine. See
+  // docs/personas/issues/002.
+  const [chosen, setChosen] = React.useState(
+    () => value !== undefined || defaultValue !== undefined,
+  );
+
   // Post-mount: adopt the stored / already-applied theme. Controlled callers
   // own the value, so this only runs for the uncontrolled case.
   const adopted = React.useRef(false);
@@ -117,24 +132,44 @@ export function ThemeController({
       const stored = window.localStorage.getItem(storageKey);
       if (stored && themes.includes(stored)) {
         setInternal(stored);
+        setChosen(true);
         return;
       }
     }
     const attr = getTarget()?.dataset.theme;
-    if (attr && themes.includes(attr)) setInternal(attr);
+    if (attr && themes.includes(attr)) {
+      setInternal(attr);
+      setChosen(true);
+      return;
+    }
+    // Nothing has chosen. Read the OS so the control SHOWS the theme the visitor
+    // is actually looking at — without writing the attribute, which would be the
+    // bug above. Read here rather than in the state initializer so the server and
+    // the pre-hydration client still agree.
+    if (
+      themes.includes("dark") &&
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ) {
+      setInternal("dark");
+    }
     // `themes` is a fresh array literal on most renders; the `adopted` guard is
     // what makes this run once, so it deliberately isn't a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, storageKey, getTarget]);
 
-  // Keep the target in sync with the current theme.
+  // Keep the target in sync — but only once something has chosen (see above).
   React.useEffect(() => {
+    if (!chosen) return;
     const el = getTarget();
     if (el) el.dataset.theme = current;
-  }, [current, getTarget]);
+  }, [chosen, current, getTarget]);
 
   const apply = (next: string) => {
     if (value === undefined) setInternal(next);
+    // A click IS a choice, so from here on the attribute is written and the
+    // visitor's pick outranks their operating system.
+    setChosen(true);
     const el = getTarget();
     if (el) el.dataset.theme = next;
     if (storageKey && typeof window !== "undefined") {

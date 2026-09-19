@@ -1,3 +1,5 @@
+import { surfaceScopes } from "../theme.js";
+
 /**
  * Typography — @wizeworks/silicaui's UI type ramp (distinct from `.prose`, which styles a
  * block of long-form/markdown content). This gives the *application* a designed
@@ -11,24 +13,52 @@
  * display ramp is fluid (`clamp` + container units) — see DISPLAY_STEPS.
  *
  * Two deliberate scoping choices:
- *  • Global element defaults are scoped to `[data-theme]` — the same opt-in
- *    surface @wizeworks/silicaui paints (theme.js) — so @wizeworks/silicaui NEVER restyles a host
- *    page's headings you didn't opt into (the embeddable/Sparx case).
+ *  • Global element defaults are scoped to the SURFACE — whatever @wizeworks/silicaui
+ *    paints (theme.js `surfaceScopes`) — so @wizeworks/silicaui NEVER restyles a host
+ *    page's headings you didn't opt into (the embeddable/Sparx case). Read from
+ *    that one list rather than spelled out here: this file used to hardcode
+ *    `[data-theme]`, so an app on `prefersdark` — which must NOT set the
+ *    attribute — got no type ramp at all and every `<h1>` rendered at 16px/400,
+ *    indistinguishable from a paragraph (docs/personas/issues/015).
  *  • They use `:where(...)` (zero specificity) so a Tailwind utility
  *    (`text-sm`) OR a `.h*` class always wins without `!important`.
  *
  * @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)
+ * @param {boolean} [prefersDark] - whether `prefersdark` is on, which adds the
+ *   unthemed root as a second surface. Passed through to `surfaceScopes`.
  */
-export function typography(prefix = "") {
+export function typography(prefix = "", prefersDark = false) {
   const cls = (name) => `.${prefix}${name}`;
+  // One selector list, every global default. `on("p")` -> "[data-theme] :where(p)"
+  // or "[data-theme] :where(p), :root:not([data-theme]) :where(p)".
+  const scopes = surfaceScopes(prefersDark);
+  const on = (sel) => scopes.map((scope) => `${scope} :where(${sel})`).join(", ");
 
   // The heading ramp — one source of truth, shared by the global element defaults
   // and the explicit override classes. `tag` maps each step to the native element
   // whose bare default it drives. The oversized DISPLAY ramp is separate (it maps
   // to no tag and is fluid) — see DISPLAY_STEPS below.
   const STEP = {
-    h1: { tag: "h1", fontSize: "2.25rem", lineHeight: "1.1", fontWeight: "700", letterSpacing: "-0.02em" }, // 36
-    h2: { tag: "h2", fontSize: "1.875rem", lineHeight: "1.2", fontWeight: "700", letterSpacing: "-0.02em" }, // 30
+    // h1/h2 are FLUID, on the same `clamp(min, base + Ncqi, max)` shape as
+    // DISPLAY_STEPS below — same technique, same units, ceilings unchanged.
+    //
+    // They were flat `2.25rem`/`1.875rem`, i.e. 36px on a 360px phone and 36px
+    // on a 27" monitor. Measured at 360px, a 68-character page title set five
+    // lines and 198px — 26% of the screen before any content. At 28px the same
+    // title is three lines and 92px; below 28 there is almost nothing further to
+    // win, which is what puts the floor there rather than taste
+    // (docs/personas/issues/016).
+    //
+    // `cqi`, not `vw`: this is the CQ-first direction the type scale already
+    // settled on, so a heading sizes to the COLUMN it is in — correct inside a
+    // sidebar layout, where the viewport is not the measure. With no query
+    // container it resolves against the small viewport, so it degrades sanely.
+    //
+    // Both reach today's size at roughly a 680px container and are flat above
+    // it: desktop output is unchanged, only narrow containers move. h3–h6 stay
+    // flat deliberately — 24px and below already set fine at 360px.
+    h1: { tag: "h1", fontSize: "clamp(1.75rem, 1.15rem + 2.6cqi, 2.25rem)", lineHeight: "1.1", fontWeight: "700", letterSpacing: "-0.02em" }, // 28 → 36
+    h2: { tag: "h2", fontSize: "clamp(1.5rem, 1.05rem + 2cqi, 1.875rem)", lineHeight: "1.2", fontWeight: "700", letterSpacing: "-0.02em" }, // 24 → 30
     h3: { tag: "h3", fontSize: "1.5rem", lineHeight: "1.25", fontWeight: "650", letterSpacing: "-0.01em" }, // 24
     h4: { tag: "h4", fontSize: "1.25rem", lineHeight: "1.3", fontWeight: "650", letterSpacing: "-0.01em" }, // 20
     h5: { tag: "h5", fontSize: "1.125rem", lineHeight: "1.4", fontWeight: "600", letterSpacing: "0" }, // 18
@@ -65,23 +95,23 @@ export function typography(prefix = "") {
   // follows, for any role, including one invented at runtime.
   //
   // Shared heading treatment: balance the ragged line, inherit the head font.
-  rules["[data-theme] :where(h1, h2, h3, h4, h5, h6)"] = {
+  rules[on("h1, h2, h3, h4, h5, h6")] = {
     fontFamily: "var(--font-head, var(--font-sans))",
     color: "inherit",
     textWrap: "balance",
   };
   for (const s of Object.values(STEP)) {
-    if (s.tag) rules[`[data-theme] :where(${s.tag})`] = decls(s);
+    if (s.tag) rules[on(s.tag)] = decls(s);
   }
   // Body copy: comfortable measure-independent leading; `<small>` as caption.
-  rules["[data-theme] :where(p)"] = { lineHeight: "1.6" };
-  rules["[data-theme] :where(small)"] = {
+  rules[on("p")] = { lineHeight: "1.6" };
+  rules[on("small")] = {
     fontSize: "0.875rem",
     color: "inherit",
   };
   // Bare `<blockquote>` — a pull-quote/testimonial treatment (distinct from
   // `.prose`'s smaller, italic, inline-quote-in-a-paragraph style).
-  rules["[data-theme] :where(blockquote)"] = {
+  rules[on("blockquote")] = {
     margin: "0",
     paddingInlineStart: "1.25rem",
     borderInlineStart: "0.25rem solid var(--color-primary)",
@@ -89,7 +119,7 @@ export function typography(prefix = "") {
     lineHeight: "1.6",
     color: "inherit",
   };
-  rules["[data-theme] :where(blockquote > footer, blockquote > cite)"] = {
+  rules[on("blockquote > footer, blockquote > cite")] = {
     display: "block",
     marginTop: "0.5rem",
     fontSize: "0.875rem",

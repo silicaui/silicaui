@@ -85,6 +85,37 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
 
     const isDisabled = Boolean(disabled) || Boolean(loading);
+
+    /**
+     * A BUSY button keeps the native `disabled` attribute OFF, and the reason is
+     * focus, not styling.
+     *
+     * When the element a keyboard user is standing on gains `disabled`, the
+     * browser blows focus to `<body>`. So pressing Enter on a submit button
+     * stranded them for the length of the request: no ring anywhere, the next
+     * Tab restarting from the top of the document, and a screen reader losing
+     * its place entirely — with `aria-busy` set and nothing focused to announce
+     * it (docs/personas/issues/023).
+     *
+     * `aria-disabled` says the same thing to assistive tech, stays focusable,
+     * and is ALREADY styled identically: `&:disabled, &[aria-disabled='true']`
+     * share one rule in button.js, and the spinner keys off `aria-busy`. So
+     * nothing about the look changes. The polymorphic `render` path has always
+     * taken this route; only the native `<button>` differed from it.
+     *
+     * A genuinely `disabled` button still gets the real attribute. That one is
+     * not temporary, the user did not just press it, and taking it out of the
+     * tab order is the correct platform behaviour.
+     */
+    const busyOnly = Boolean(loading) && !disabled;
+    const blockWhileBusy = busyOnly
+      ? (e: React.MouseEvent<HTMLButtonElement>) => {
+          // `aria-disabled` is advisory — the element is still clickable and
+          // still submits a form on Enter, so the activation is stopped here.
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      : undefined;
     const content = (
       <>
         {iconStart}
@@ -116,9 +147,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type ?? "button"}
         className={classes}
-        disabled={isDisabled}
+        disabled={Boolean(disabled)}
+        aria-disabled={isDisabled || undefined}
         aria-busy={loading || undefined}
         {...rest}
+        onClick={blockWhileBusy ?? rest.onClick}
       >
         {content}
       </button>

@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * Dropzone — a file drag-and-drop / click-to-browse target.
  *
@@ -74,7 +75,7 @@ export function dropzone(prefix = "") {
     },
     [`${sel()}[data-dragging] ${sel("-icon")}`]: {
       backgroundColor: "color-mix(in oklab, var(--color-primary) 18%, transparent)",
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
     },
 
     [sel("-title")]: {

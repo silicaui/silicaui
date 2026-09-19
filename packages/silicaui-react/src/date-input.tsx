@@ -8,6 +8,7 @@ import {
   daysInMonth,
   partsFromDate,
   dateFromParts,
+  datePartsEqual,
   getDateTokens,
   dateOrder,
   parseDateString,
@@ -80,8 +81,28 @@ export const DateInput = React.forwardRef<HTMLDivElement, DateInputProps>(
       partsFromDate(value ?? defaultValue),
     );
 
+    // A HALF-TYPED DATE HAS NOWHERE ELSE TO LIVE.
+    //
+    // `onValueChange` only ever fires with a whole `Date`, which is the right
+    // contract — a parent must never be handed the 4th of no month. But it
+    // means the two keystrokes before the last one are not representable in
+    // the parent, so the segments are this component's own state whether it is
+    // controlled or not, and syncing `value` down unconditionally erases them
+    // between digits. That made an EMPTY controlled field impossible to fill:
+    // every digit reported `null`, `value` stayed `null`, and the effect put
+    // the placeholders straight back. Only pasting a complete date worked.
+    //
+    // So sync down only when `value` says something the segments do not
+    // already say. An incomplete set of segments beside a `null` value is the
+    // user part-way through typing, never a parent clearing the field.
     React.useEffect(() => {
-      if (isControlled) setInternal(partsFromDate(value));
+      if (!isControlled) return;
+      setInternal((prev) => {
+        const incoming = partsFromDate(value);
+        if (datePartsEqual(prev, incoming)) return prev;
+        if (value == null && dateFromParts(prev) === null) return prev;
+        return incoming;
+      });
     }, [value, isControlled]);
 
     const parts = internal;
@@ -90,7 +111,10 @@ export const DateInput = React.forwardRef<HTMLDivElement, DateInputProps>(
     const segmentRefs = React.useRef<Partial<Record<DateSegmentKey, HTMLDivElement | null>>>({});
 
     function commit(next: DateParts) {
-      if (!isControlled) setInternal(next);
+      // Always, controlled or not: see the effect above. Clearing one segment
+      // now leaves its neighbours alone, too — before this, a single Backspace
+      // on the month emptied the day and the year with it.
+      setInternal(next);
       let date = dateFromParts(next);
       if (date) {
         if (min && date < min) date = min;

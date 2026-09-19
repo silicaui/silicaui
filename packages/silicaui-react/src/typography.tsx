@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
+import { composeRender } from "./lib/render-slot";
 import { useSilicaClass } from "./lib/config";
 
 /**
@@ -93,22 +94,32 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
    * by `variant`; omit to use the variant's own size.
    */
   size?: TextSize;
-  /** Element to render. Default `p`. */
+  /** @deprecated Use `render`. Element to render. Default `p`. */
   as?: React.ElementType;
+  /**
+   * Render as a different element, composing your props with this component's —
+   * the same `render` Button/Badge/Card take, and Base UI's own composition
+   * model:
+   *
+   *   <Text render={{<Link href="/shipments" />}}>Shipments</Text>
+   *
+   * Preferred over `as`, because the element carries its OWN props and they are
+   * type-checked against it (Text cannot know that `Link` needs an `href`).
+   */
+  render?: React.ReactElement;
 }
 
 /** Body-copy text with a semantic variant. `body` carries no class (bare `<p>`). */
 export const Text = React.forwardRef<HTMLElement, TextProps>(
-  function Text({ variant = "body", size, as, className, ...rest }, ref) {
+  function Text({ variant = "body", size, as, render, className, ...rest }, ref) {
     const sc = useSilicaClass();
     const Tag = (as ?? "p") as React.ElementType;
     const variantClass = variant === "lead" ? sc("lead") : variant === "caption" ? sc("caption") : undefined;
     // `text-*` is a Tailwind utility (not a silica class), so no prefix; placed
     // after the variant class so it wins the font-size when both are present.
     const sizeClass = size ? `text-${size}` : undefined;
-    return (
-      <Tag ref={ref as React.Ref<HTMLElement>} className={cx(variantClass, sizeClass, className) || undefined} {...rest} />
-    );
+    const own = { ref, className: cx(variantClass, sizeClass, className) || undefined, ...rest };
+    return composeRender(render, own, "Text") ?? <Tag {...(own as object)} />;
   },
 );
 
@@ -131,17 +142,27 @@ export const Blockquote = React.forwardRef<HTMLQuoteElement, BlockquoteProps>(
 );
 
 export interface BlockquoteCiteProps extends React.HTMLAttributes<HTMLElement> {
-  /** Element to render. Default `footer`. */
+  /** @deprecated Use `render`. Element to render. Default `footer`. */
   as?: React.ElementType;
+  /**
+   * Render as a different element, composing your props with this component's —
+   * the same `render` Button/Badge/Card take, and Base UI's own composition
+   * model:
+   *
+   *   <BlockquoteCite render={<cite />}>…</BlockquoteCite>
+   *
+   * Preferred over `as`, because the element carries its OWN props and they are
+   * type-checked against it (BlockquoteCite cannot know that `Link` needs an `href`).
+   */
+  render?: React.ReactElement;
 }
 
 /** The attribution line for a `Blockquote` (e.g. "— Name, Title"). */
 export const BlockquoteCite = React.forwardRef<HTMLElement, BlockquoteCiteProps>(
-  function BlockquoteCite({ as, className, ...rest }, ref) {
+  function BlockquoteCite({ as, render, className, ...rest }, ref) {
     const sc = useSilicaClass();
     const Tag = (as ?? "footer") as React.ElementType;
-    return (
-      <Tag ref={ref as React.Ref<HTMLElement>} className={cx(sc("blockquote-cite"), className)} {...rest} />
-    );
+    const own = { ref, className: cx(sc("blockquote-cite"), className), ...rest };
+    return composeRender(render, own, "BlockquoteCite") ?? <Tag {...(own as object)} />;
   },
 );

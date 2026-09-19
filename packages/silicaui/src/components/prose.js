@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * The Prose component — typographic defaults for a block of rich/markdown
  * content (Silica's answer to `@tailwindcss/typography`).
@@ -63,7 +64,7 @@ export function prose(prefix = "") {
       // ---- Flow text -------------------------------------------------------
       "& p": { marginTop: "0", marginBottom: "1.25em" },
       "& a": {
-        color: "var(--color-primary)",
+        color: inkOfRole("primary"),
         fontWeight: "500",
         textDecorationLine: "underline",
         textDecorationThickness: "1px",

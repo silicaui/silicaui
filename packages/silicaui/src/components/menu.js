@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * The Menu component — a styled vertical list of links/actions (sidebars, and
  * later the contents of a dropdown/popover).
@@ -56,7 +57,7 @@ export function menu(prefix = "") {
       "& .menu-active, & [aria-current='page']": {
         backgroundColor:
           "color-mix(in oklab, var(--color-primary) 15%, transparent)",
-        color: "var(--color-primary)",
+        color: inkOfRole("primary"),
         fontWeight: "500",
       },
     },
@@ -67,7 +68,6 @@ export function menu(prefix = "") {
       fontSize: "0.75rem",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
-      opacity: "0.55",
     },
   };
 }

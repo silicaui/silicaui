@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * RichTextEditor chrome — the visual shell around a TipTap editor.
  *
@@ -63,7 +64,7 @@ export function richTextEditor(prefix = "") {
     },
     [`${sel("-btn")}[data-active]`]: {
       backgroundColor: "color-mix(in oklab, var(--color-primary) 16%, transparent)",
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
     },
     [sel("-sep")]: {
       alignSelf: "stretch",
@@ -117,7 +118,7 @@ export function richTextEditor(prefix = "") {
       fontStyle: "italic",
     },
     [`${sel("-content")} a`]: {
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
       textDecoration: "underline",
       cursor: "pointer",
     },

@@ -158,9 +158,9 @@ export function button(colors, prefix = "") {
     [sel("-outline")]: {
       backgroundColor: "transparent",
       boxShadow: "none",
-      color: "var(--btn-accent, var(--color-base-content))",
-      borderColor: "var(--btn-accent, var(--color-base-content))",
-      "--btn-spinner": "var(--btn-accent, var(--color-base-content))",
+      color: "var(--btn-ink, var(--color-base-content))",
+      borderColor: "var(--btn-ink, var(--color-base-content))",
+      "--btn-spinner": "var(--btn-ink, var(--color-base-content))",
       "&:hover": {
         backgroundColor: "var(--btn-accent, var(--color-base-content))",
         borderColor: "var(--btn-accent, var(--color-base-content))",
@@ -170,23 +170,23 @@ export function button(colors, prefix = "") {
     [sel("-dash")]: {
       backgroundColor: "transparent",
       boxShadow: "none",
-      color: "var(--btn-accent, var(--color-base-content))",
-      borderColor: "var(--btn-accent, var(--color-base-content))",
+      color: "var(--btn-ink, var(--color-base-content))",
+      borderColor: "var(--btn-ink, var(--color-base-content))",
       borderStyle: "dashed",
-      "--btn-spinner": "var(--btn-accent, var(--color-base-content))",
+      "--btn-spinner": "var(--btn-ink, var(--color-base-content))",
       "&:hover": {
         backgroundColor:
           "color-mix(in oklab, var(--btn-accent, var(--color-base-content)) 12%, transparent)",
-        borderColor: "var(--btn-accent, var(--color-base-content))",
+        borderColor: "var(--btn-ink, var(--color-base-content))",
       },
     },
     [sel("-soft")]: {
       backgroundColor:
         "color-mix(in oklab, var(--btn-accent, var(--color-base-content)) 15%, var(--color-base-100))",
       boxShadow: "none",
-      color: "var(--btn-accent, var(--color-base-content))",
+      color: "var(--btn-ink, var(--color-base-content))",
       borderColor: "transparent",
-      "--btn-spinner": "var(--btn-accent, var(--color-base-content))",
+      "--btn-spinner": "var(--btn-ink, var(--color-base-content))",
       "&:hover": {
         backgroundColor:
           "color-mix(in oklab, var(--btn-accent, var(--color-base-content)) 25%, var(--color-base-100))",
@@ -196,9 +196,9 @@ export function button(colors, prefix = "") {
     [sel("-ghost")]: {
       backgroundColor: "transparent",
       boxShadow: "none",
-      color: "var(--btn-accent, var(--color-base-content))",
+      color: "var(--btn-ink, var(--color-base-content))",
       borderColor: "transparent",
-      "--btn-spinner": "var(--btn-accent, var(--color-base-content))",
+      "--btn-spinner": "var(--btn-ink, var(--color-base-content))",
       "&:hover": {
         backgroundColor:
           "color-mix(in oklab, var(--btn-accent, var(--color-base-content)) 12%, transparent)",
@@ -209,10 +209,10 @@ export function button(colors, prefix = "") {
       backgroundColor: "transparent",
       boxShadow: "none",
       borderColor: "transparent",
-      color: "var(--btn-accent, var(--color-primary))",
+      color: "var(--btn-ink, var(--color-primary))",
       textDecorationLine: "underline",
       textUnderlineOffset: "2px",
-      "--btn-spinner": "var(--btn-accent, var(--color-primary))",
+      "--btn-spinner": "var(--btn-ink, var(--color-primary))",
       "&:hover": {
         textDecorationThickness: "2px",
         backgroundColor: "transparent",

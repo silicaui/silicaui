@@ -145,3 +145,29 @@ export {
   srgbToOklch,
 } from "./contrast";
 export type { DerivedContent, Oklch } from "./contrast";
+
+/**
+ * Not a Tailwind plugin — and it says so when it is mistaken for one.
+ *
+ * `@plugin "@wizeworks/silicaui-html"` is an easy line to type, because this is the
+ * package a node-tree user imports from all day; the plugin lives in a different one.
+ * Without this guard Tailwind resolves the module, calls whatever it found, and
+ * dies inside its own minified code with `b is not a function` — a message that
+ * names no package, no cause and no fix, and reads like a crash in silicaui
+ * rather than a one-word mistake (docs/personas/issues/012).
+ *
+ * Tailwind invokes the default export, so throwing from here puts a real
+ * sentence in the build overlay in its place. Nothing else imports this.
+ */
+export default function notATailwindPlugin(): never {
+  throw new Error(
+    `@wizeworks/silicaui-html is a node-tree schema and HTML projector, not a Tailwind plugin. ` +
+      `Only @wizeworks/silicaui is.\n` +
+      `  Fix: in your CSS, name the plugin package instead —\n` +
+      `    @plugin "@wizeworks/silicaui" {\n` +
+      `      colors: primary, secondary, accent, neutral, info, success, warning, error;\n` +
+      `    }\n` +
+      `  Keep importing @wizeworks/silicaui-html from your build step as normal; the two are ` +
+      `separate packages on purpose.`,
+  );
+}

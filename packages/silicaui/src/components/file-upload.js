@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * FileUpload — a Dropzone plus a managed preview list. The dropzone itself is
  * unstyled here (reuses `.dropzone`); this only styles the list of
@@ -95,7 +96,7 @@ export function fileUpload(prefix = "") {
       "& svg": { width: "1rem", height: "1rem", flexShrink: "0" },
       "&:hover": {
         backgroundColor: "var(--color-base-200)",
-        color: "var(--color-error)",
+        color: inkOfRole("error"),
       },
       "&:focus-visible": {
         outline: "2px solid var(--color-primary)",
@@ -108,7 +109,7 @@ export function fileUpload(prefix = "") {
       flexDirection: "column",
       gap: "0.2rem",
       fontSize: "0.78rem",
-      color: "var(--color-error)",
+      color: inkOfRole("error"),
     },
   };
 }

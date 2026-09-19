@@ -58,24 +58,24 @@ export function badge(colors, prefix = "") {
     // ---- Style variants ----------------------------------------------------
     [sel("-outline")]: {
       backgroundColor: "transparent",
-      color: "var(--badge-accent, var(--color-base-content))",
-      borderColor: "var(--badge-accent, var(--color-base-content))",
+      color: "var(--badge-ink, var(--color-base-content))",
+      borderColor: "var(--badge-ink, var(--color-base-content))",
     },
     [sel("-dash")]: {
       backgroundColor: "transparent",
-      color: "var(--badge-accent, var(--color-base-content))",
-      borderColor: "var(--badge-accent, var(--color-base-content))",
+      color: "var(--badge-ink, var(--color-base-content))",
+      borderColor: "var(--badge-ink, var(--color-base-content))",
       borderStyle: "dashed",
     },
     [sel("-soft")]: {
       backgroundColor:
         "color-mix(in oklab, var(--badge-accent, var(--color-base-content)) 15%, var(--color-base-100))",
-      color: "var(--badge-accent, var(--color-base-content))",
+      color: "var(--badge-ink, var(--color-base-content))",
       borderColor: "transparent",
     },
     [sel("-ghost")]: {
       backgroundColor: "transparent",
-      color: "var(--badge-accent, var(--color-base-content))",
+      color: "var(--badge-ink, var(--color-base-content))",
       borderColor: "transparent",
     },
 

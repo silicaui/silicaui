@@ -90,7 +90,6 @@ export function toast(colors, prefix = "") {
     [sel("-description")]: {
       margin: "0",
       fontSize: "inherit",
-      opacity: "0.9",
       lineHeight: "1.4",
     },
     // Optional trailing action button (`toast.add({ actionProps: {...} })`) —
@@ -117,12 +116,10 @@ export function toast(colors, prefix = "") {
       borderRadius: "var(--radius-field, 0.375rem)",
       background: "transparent",
       color: "inherit",
-      opacity: "0.9",
       cursor: "pointer",
-      transition: "opacity 0.15s, background-color 0.15s",
+      transition: "background-color 0.15s",
 
       "&:hover": {
-        opacity: "1",
         backgroundColor: "color-mix(in oklab, currentColor 15%, transparent)",
       },
       "&:focus-visible": {

@@ -4,7 +4,7 @@ import { url } from "@/lib/site";
 
 /**
  * The complete URL set — the marketing surfaces, the docs entry points, and
- * every one of the ~113 generated component pages — so search and answer
+ * every one of the generated component pages — so search and answer
  * engines discover the whole library from one file instead of only what they
  * stumble onto via links. Generated from the same `DEMO_META` the pages are,
  * so a new component appears here automatically.

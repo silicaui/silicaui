@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * The Field component — an accessible form field that wires a label, control,
  * description, and error together (ids + aria + validity). Behavior is Base UI's
@@ -62,7 +63,7 @@ export function field(prefix = "") {
     [sel("-error")]: {
       fontSize: "0.75rem",
       lineHeight: "1.4",
-      color: "var(--color-error)",
+      color: inkOfRole("error"),
     },
 
     // When Base UI flags the control invalid, drive the shared input accent to

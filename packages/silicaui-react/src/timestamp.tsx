@@ -63,7 +63,13 @@ export const Timestamp = React.forwardRef<HTMLTimeElement, TimestampProps>(
       <time
         ref={ref}
         dateTime={date.toISOString()}
-        title={format === "auto" ? formatAbsoluteTime(date, now) : undefined}
+        // The tooltip goes wherever the visible label is RELATIVE, which is the
+        // only case that needs one — and used to be the one case without it.
+        // `format="auto"` carried it whether it landed on "2 minutes ago" or on
+        // "Jul 8"; an explicit `format="relative"` carried none, so "2 weeks
+        // ago" had no way to become the date a person quotes down the phone.
+        // `format="absolute"` still carries none: the text is already the answer.
+        title={useRelative ? formatAbsoluteTime(date, now) : undefined}
         className={cx(sc("timestamp"), className)}
         {...rest}
       >

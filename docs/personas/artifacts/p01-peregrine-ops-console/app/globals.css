@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Peregrine runs a night shift. The console follows the machine by default, so
+   Sardor opens it at 22:00 and it is already dark — no flash, nothing to click.
+   An explicit choice from the toggle still wins and is remembered. */
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+  prefersdark: true;
+}
+
+html,
+body {
+  height: 100%;
+}

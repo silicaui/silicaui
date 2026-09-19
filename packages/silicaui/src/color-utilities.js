@@ -1,4 +1,5 @@
 import { contentVar } from "./lib/auto-content.js";
+import { ink } from "./lib/ink.js";
 
 /**
  * Color UTILITIES as pure var-setters — `.text-<c>`, `.bg-<c>`, `.border-<c>`.
@@ -35,9 +36,63 @@ export function colorUtilityRules(names, prefix = "") {
       "--u-accent": v,
       "--u-accent-content": contentVar(name),
     };
-    rules[`.${prefix}text-${name}`] = { color: v, ...accentVars };
+    // `text-<role>` paints the role as TEXT, so it takes the ink form. The fill
+    // form is what a palette tunes: in light, `--color-warning` is a soft amber
+    // that reads 8.8:1 behind near-black content and **1.78:1** as the words
+    // themselves. Five of the seven chromatic roles were under AA that way.
+    //
+    // This is the same gap issue 024 closed inside the components, one layer out:
+    // after issue 019, `<Button color="warning" variant="ghost">` measured 5.60
+    // while `<span class="text-warning">` still measured 1.78 — and RULE #1 names
+    // Tailwind utilities as the other half of the sanctioned toolbox, so the
+    // sanctioned path produced unreadable text (docs/personas/issues/026).
+    //
+    // `bg-` and `border-` keep the raw token: a background IS the fill, and a
+    // border is a boundary rather than text (WCAG 1.4.11, a different threshold
+    // this run has deliberately left alone).
+    //
+    // `base-*` and every `-content` token are skipped — both are already inks.
+    // Deriving an ink from an ink would drag `text-primary-content` toward the
+    // page's own ink, which is the opposite of what it is for.
+    const isAlreadyInk = name.startsWith("base-") || name.endsWith("-content");
+    rules[`.${prefix}text-${name}`] = { color: isAlreadyInk ? v : ink(v), ...accentVars };
     rules[`.${prefix}bg-${name}`] = { backgroundColor: v, ...accentVars };
     rules[`.${prefix}border-${name}`] = { borderColor: v, ...accentVars };
+  }
+  return rules;
+}
+
+/**
+ * `text-<role>` again, in the UTILITIES layer, so the ink form actually wins.
+ *
+ * `colorUtilityRules` above emits through `addBase`, and that is enough only for
+ * a colour Tailwind never emits itself. The moment a literal `text-warning`
+ * appears in scanned source, Tailwind writes its OWN utilities-layer rule with
+ * the raw token, and the utilities layer beats base regardless of order.
+ *
+ * Measured, which is the only reason this second pass exists: after the base-layer
+ * fix, `text-accent` moved 2.96 -> 6.88 because nothing scans it, while
+ * `text-warning`, `text-info`, `text-success` and `text-error` did not move at
+ * all. A fix that works for whichever colours happen not to be used is not a fix.
+ *
+ * The `[class]` bump is the same device `softUtilities` uses below and for the
+ * same reason — see its comment for why Tailwind's own re-sorting makes source
+ * order useless here, and why `[class]` rather than a doubled class.
+ *
+ * Takes the same `colors` list `colorUtilities` does, so the two passes cannot
+ * drift apart as colours are added.
+ *
+ * @param {string[]} colors - the plugin's colour list
+ * @param {string} [prefix] - prepended verbatim to every class
+ */
+export function textInkUtilities(colors, prefix = "") {
+  const rules = {};
+  for (const name of colors) {
+    // `base-*` and every `-content` token are already inks; deriving from them
+    // would drag `text-primary-content` toward the page's ink, which is backwards.
+    // (`colorUtilities` adds both of those; this pass covers only the roles.)
+    if (name.startsWith("base-") || name.endsWith("-content")) continue;
+    rules[`.${prefix}text-${name}[class]`] = { color: ink(`var(--color-${name})`) };
   }
   return rules;
 }

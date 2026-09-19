@@ -36,11 +36,11 @@ export function countdown(prefix = "") {
       fontVariantNumeric: "tabular-nums",
     },
 
+    // "days" / "hours" — the word that says what the number means.
     [sel("-label")]: {
       fontSize: "0.6875rem",
       textTransform: "uppercase",
       letterSpacing: "0.05em",
-      opacity: "0.6",
     },
 
     // Boxless inline variant.
@@ -56,7 +56,7 @@ export function countdown(prefix = "") {
         alignItems: "baseline",
         gap: "0.125rem",
       },
-      [`& ${sel("-label")}`]: { fontSize: "0.875rem", opacity: "0.5" },
+      [`& ${sel("-label")}`]: { fontSize: "0.875rem" },
       [`& ${sel("-value")}`]: { fontSize: "1.5rem" },
     },
   };

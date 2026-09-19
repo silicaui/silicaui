@@ -5,6 +5,12 @@
    purpose: this is the real product default, not a re-derived site palette. */
 @plugin "@wizeworks/silicaui" {
   colors: primary, secondary, accent, neutral, info, success, warning, error, brand;
+  /* Follow the visitor's OS on first paint. A site that sells theming cannot be
+     the one site that ignores `prefers-color-scheme` — see
+     docs/personas/issues/002. Pure CSS, so there is no theme script, no flash
+     and nothing for a CSP to refuse. `<ThemeController>` in the headers writes
+     an explicit `data-theme`, which outranks this. */
+  prefersdark: true;
 }
 
 /* `brand` is not one of silicaui's roles — it's invented here, by this site,

@@ -8,6 +8,7 @@ import {
   resolveHour12,
   timeValueToParts,
   partsToTimeValue,
+  timePartsEqual,
   parseTimeString,
 } from "./lib/time-parts";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
@@ -69,9 +70,26 @@ export const TimeInput = React.forwardRef<HTMLDivElement, TimeInputProps>(
     const hour12 = resolveHour12(locale, hourCycle);
     const isControlled = value !== undefined;
     const [internal, setInternal] = React.useState<TimeParts>(() =>
-      timeValueToParts(defaultValue, hour12),
+      timeValueToParts(value ?? defaultValue, hour12),
     );
-    const parts = isControlled ? timeValueToParts(value, hour12) : internal;
+
+    // The segments are this component's own state even when controlled, for
+    // the reason spelled out in `date-input.tsx`: a half-typed time is not
+    // representable in the parent, so deriving the cells straight from `value`
+    // threw every keystroke away and left an empty controlled field
+    // permanently unfillable. Sync down only when `value` disagrees with what
+    // the cells already say.
+    React.useEffect(() => {
+      if (!isControlled) return;
+      setInternal((prev) => {
+        const incoming = timeValueToParts(value, hour12);
+        if (timePartsEqual(prev, incoming)) return prev;
+        if (value == null && partsToTimeValue(prev, hour12) === null) return prev;
+        return incoming;
+      });
+    }, [value, isControlled, hour12]);
+
+    const parts = internal;
 
     const order: SegKey[] = React.useMemo(() => {
       const base: SegKey[] = showSeconds ? ["hour", "minute", "second"] : ["hour", "minute"];
@@ -81,7 +99,7 @@ export const TimeInput = React.forwardRef<HTMLDivElement, TimeInputProps>(
     const segmentRefs = React.useRef<Partial<Record<SegKey, HTMLDivElement | null>>>({});
 
     function commit(next: TimeParts) {
-      if (!isControlled) setInternal(next);
+      setInternal(next);
       onValueChange?.(partsToTimeValue(next, hour12));
     }
 

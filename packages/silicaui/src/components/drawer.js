@@ -67,6 +67,11 @@ export function drawer(prefix = "") {
       fontWeight: "600",
     },
     [sel("-description")]: {
+      // Full basis so it takes its own row inside `-header` rather than sitting
+      // beside the title; inert elsewhere, since `flex-basis` does nothing
+      // outside a flex parent. Same reasoning as Dialog
+      // (docs/personas/issues/022) — Drawer had the identical shape.
+      flexBasis: "100%",
       fontSize: "0.9375rem",
       color: "var(--color-base-content)",
     },
@@ -78,6 +83,10 @@ export function drawer(prefix = "") {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
+      // A title on one side, a close button on the other — and a description on
+      // its own row underneath when one is put here, which is the obvious thing
+      // to do with something called "header".
+      flexWrap: "wrap",
       gap: "1rem",
       marginInline: "-1.5rem",
       paddingInline: "1.5rem",

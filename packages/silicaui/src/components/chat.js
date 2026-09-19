@@ -39,13 +39,13 @@ export function chat(colors, prefix = "") {
       gridColumn: "2",
     },
 
+    // Who said it and when, and the delivery line under it. Both are read.
+    // 12px against the bubble's 16px is the hierarchy; the fade was extra.
     [sel("-header")]: {
       fontSize: "0.75rem",
-      opacity: "0.7",
     },
     [sel("-footer")]: {
       fontSize: "0.75rem",
-      opacity: "0.6",
     },
 
     [sel("-bubble")]: {

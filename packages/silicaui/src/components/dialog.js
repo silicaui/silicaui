@@ -57,6 +57,9 @@ export function dialog(prefix = "") {
       lineHeight: "1.4",
     },
     [sel("-description")]: {
+      // Full basis so it takes its own row inside `-header`; inert everywhere
+      // else, since `flex-basis` does nothing outside a flex parent.
+      flexBasis: "100%",
       margin: "0.375rem 0 0",
       fontSize: "0.875rem",
       lineHeight: "1.5",
@@ -72,6 +75,18 @@ export function dialog(prefix = "") {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
+      // The bar is a ROW — a title on one side, a close button on the other.
+      // But `DialogHeader` is named after the place a title goes, so putting the
+      // dialog's description in it is the obvious move, and it used to land the
+      // description BESIDE the title in a squeezed column: "New / shipment" over
+      // two lines with the sentence next to it. No error, no warning, just a
+      // wrong-looking dialog (docs/personas/issues/022).
+      //
+      // Wrapping plus a full-basis description makes the obvious move correct
+      // without changing the case the bar was designed for: title and close stay
+      // on one row and nothing wraps, because a description is the only child
+      // wide enough to.
+      flexWrap: "wrap",
       gap: "1rem",
       marginInline: "-1.5rem",
       marginBlockEnd: "1rem",

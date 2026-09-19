@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * TreeView — a hierarchical, keyboard-navigable tree (page trees, file/section
  * hierarchies, nav builders).
@@ -51,7 +52,7 @@ export function treeView(prefix = "") {
     },
     [`${sel("-node")}[data-selected]`]: {
       backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, transparent)",
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
     },
     [`${sel("-node")}[data-disabled]`]: {
       opacity: "0.45",

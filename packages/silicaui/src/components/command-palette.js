@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * CommandPalette — the ⌘K launcher surface.
  *
@@ -122,7 +123,7 @@ export function commandPalette(prefix = "") {
       scrollMargin: "0.4rem",
       "&[data-active]": {
         backgroundColor: "color-mix(in oklab, var(--color-primary) 14%, transparent)",
-        color: "var(--color-primary)",
+        color: inkOfRole("primary"),
       },
       "&[data-disabled]": {
         opacity: "0.45",

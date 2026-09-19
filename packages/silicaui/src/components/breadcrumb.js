@@ -42,20 +42,20 @@ export function breadcrumb(prefix = "") {
         transform: "rotate(45deg)",
         opacity: "0.35",
       },
+      // Links read at full strength. The current page was already marked by
+      // weight, so fading every ancestor to 70% bought no hierarchy and cost
+      // legibility on the one control that says where you are.
       "& a": {
         color: "inherit",
         textDecoration: "none",
-        opacity: "0.7",
-        transitionProperty: "opacity",
+        transitionProperty: "text-decoration-color",
         transitionDuration: "var(--duration, 150ms)",
         transitionTimingFunction: "var(--ease, cubic-bezier(0.4, 0, 0.2, 1))",
       },
       "& a:hover": {
-        opacity: "1",
         textDecoration: "underline",
       },
       "& [aria-current='page']": {
-        opacity: "1",
         fontWeight: "500",
       },
     },

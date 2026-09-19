@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
+import { composeRender } from "./lib/render-slot";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor } from "./lib/tokens";
 
@@ -180,35 +181,50 @@ export interface SidebarItemProps extends Omit<React.AllHTMLAttributes<HTMLEleme
    * when doing so.
    */
   as?: React.ElementType;
+  /**
+   * Render as a different element, composing your props with this component's —
+   * the same `render` Button/Badge/Card take, and Base UI's own composition
+   * model:
+   *
+   *   <SidebarItem render={<Link href="/shipments" />}>…</SidebarItem>
+   *
+   * Preferred over `as`, because the element carries its OWN props and they are
+   * type-checked against it (SidebarItem cannot know that `Link` needs an `href`).
+   */
+  render?: React.ReactElement;
 }
 
 /** One nav row inside `SidebarContent`/`SidebarFooter` — icon + label + trailing. */
 export const SidebarItem = React.forwardRef<HTMLElement, SidebarItemProps>(
   function SidebarItem(
-    { icon, trailing, active, disabled, as, className, children, ...rest },
+    { icon, trailing, active, disabled, as, render, className, children, ...rest },
     ref,
   ) {
     const sc = useSilicaClass();
     const Tag = (as ?? "button") as React.ElementType;
-    const extra = Tag === "button" ? { type: "button" as const } : {};
-    return (
-      <Tag
-        ref={ref}
-        data-active={active || undefined}
-        data-disabled={disabled || undefined}
-        aria-disabled={disabled || undefined}
-        aria-current={active ? "page" : undefined}
-        className={cx(sc("sidebar-item"), className)}
-        {...extra}
-        {...rest}
-      >
+    // `type="button"` only when we own the element — a composed <a> must not get it.
+    const extra = !render && Tag === "button" ? { type: "button" as const } : {};
+    const inner = (
+      <>
         {icon != null && <span className={cx(sc("sidebar-item-icon"))}>{icon}</span>}
         <span className={cx(sc("sidebar-item-label"))}>{children}</span>
         {trailing != null && (
           <span className={cx(sc("sidebar-item-trailing"))}>{trailing}</span>
         )}
-      </Tag>
+      </>
     );
+    const own = {
+      ref,
+      "data-active": active || undefined,
+      "data-disabled": disabled || undefined,
+      "aria-disabled": disabled || undefined,
+      "aria-current": active ? ("page" as const) : undefined,
+      className: cx(sc("sidebar-item"), className),
+      ...extra,
+      ...rest,
+      children: inner,
+    };
+    return composeRender(render, own, "SidebarItem") ?? <Tag {...(own as object)} />;
   },
 );
 

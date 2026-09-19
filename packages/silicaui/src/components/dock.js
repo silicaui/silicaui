@@ -37,17 +37,18 @@ export function dock(colors, prefix = "") {
       border: "0",
       background: "none",
       color: "inherit",
-      opacity: "0.55",
       cursor: "pointer",
-      transition: "color 0.15s, opacity 0.15s",
+      transition: "color 0.15s",
 
       "& svg": { width: "1.35rem", height: "1.35rem", display: "block" },
-      "&:hover": { opacity: "0.85" },
+      "&:hover": { color: "var(--dock-accent, var(--color-primary))" },
     },
 
+    // The active item is marked by a real accent color, so fading the others to
+    // 55% added nothing a person could use and made an 11px label on a phone's
+    // bottom bar hard to read (RULE #3, docs/personas/issues/021).
     [sel("-item-active")]: {
-      opacity: "1",
-      color: "var(--dock-accent, var(--color-primary))",
+      color: "var(--dock-ink, var(--color-primary))",
     },
 
     [sel("-label")]: {

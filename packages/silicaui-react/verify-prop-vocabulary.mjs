@@ -103,9 +103,43 @@ for (const file of files) {
 }
 
 console.log(`  checked ${checked} \`size\` prop declaration(s) across ${files.length} files`);
+
+// ── one CONCEPT, one name — the mirror of the rule above ────────────────────
+//
+// The `size` checks catch one name meaning several things. This catches the
+// reverse: several names meaning one thing. Polymorphism — "render this as a
+// different element" — shipped under BOTH `render` (Button, Badge, Card,
+// PowerSearch) and `as` (SidebarItem, Text, BlockquoteCite, Wordmark), so
+// copying a working line from a Button onto a SidebarItem was a type error with
+// no hint as to the right spelling (docs/personas/issues/017).
+//
+// `render` is canonical: @wizeworks/silicaui-react IS the Base UI layer and this is Base
+// UI's model, and it type-checks the composed element's own props, which `as`
+// plus a widened parent cannot. `as` stays as a deprecated alias — the rule is
+// that it never appears WITHOUT `render` beside it.
+let polymorphic = 0;
+for (const file of files) {
+  const src = readFileSync(join(SRC, file), "utf8");
+  // Per interface block, so two interfaces in one file are judged separately.
+  for (const block of src.split(/^export interface |^export type /m)) {
+    const hasAs = /^\s*as\?:\s*React\.ElementType/m.test(block);
+    if (!hasAs) continue;
+    polymorphic++;
+    if (!/^\s*render\?:/m.test(block)) {
+      const name = (block.match(/^(\w+)/) ?? ["", "?"])[1];
+      fail(
+        `${file}: \`${name}\` declares \`as\` with no \`render\` beside it. ` +
+          `Polymorphism has ONE name in Silica — \`render\`, the Base UI model that ` +
+          `Button/Badge/Card use and that type-checks the composed element's own props. ` +
+          `Keep \`as\` as a deprecated alias if you like, but \`render\` must exist.`,
+      );
+    }
+  }
+}
+console.log(`  checked ${polymorphic} polymorphic component(s) for one spelling of \`render\``);
 console.log(
   failed
     ? `\n❌ ${failed} prop-vocabulary check(s) failed\n`
-    : "\n✅ `size` means a silicaui scale everywhere (xs–xl for controls, type/display for typographic)\n",
+    : "\n✅ one name per concept: `size` is always a scale, polymorphism is always `render`\n",
 );
 process.exit(failed ? 1 : 0);

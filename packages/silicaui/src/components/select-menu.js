@@ -1,4 +1,5 @@
 import { affordanceIcon, INSET } from "../lib/field-affordance.js";
+import { inkOfRole } from "../lib/ink.js";
 
 /**
  * The Select (listbox) surface — the visual half of the Base-UI-backed `Select`,
@@ -117,7 +118,7 @@ export function selectMenu(prefix = "") {
       insetInlineStart: "0.5rem",
       display: "inline-flex",
       alignItems: "center",
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
     },
 
     [sel("-group-label")]: {
@@ -125,7 +126,6 @@ export function selectMenu(prefix = "") {
       fontSize: "0.75rem",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
-      opacity: "0.55",
     },
 
     [sel("-separator")]: {

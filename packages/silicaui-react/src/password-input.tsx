@@ -23,6 +23,15 @@ export interface PasswordInputProps
   defaultVisible?: boolean;
   /** Accessible label for the show/hide toggle. Default `"Show password"` / `"Hide password"`. */
   toggleAriaLabel?: { show: string; hide: string };
+  /**
+   * Classes for the component's OUTER box — the `input-group` that lays out the
+   * field and its affixes. This is where `w-*`, `max-w-*` and margins belong:
+   * sizing only the inner `<input>` leaves the group at its own width and strands
+   * the trailing button against the container's edge (docs/personas/issues/020).
+   */
+  className?: string;
+  /** Classes for the `<input>` itself, for the rarer case of styling the field. */
+  inputClassName?: string;
 }
 
 const EyeIcon = () => (
@@ -55,6 +64,7 @@ export const PasswordInput = React.forwardRef<
     defaultVisible = false,
     toggleAriaLabel = { show: "Show password", hide: "Hide password" },
     className,
+    inputClassName,
     disabled,
     ...rest
   },
@@ -68,11 +78,11 @@ export const PasswordInput = React.forwardRef<
     sc("input-affix-end"),
     color && sc(`input-${color}`),
     size !== "md" && sc(`input-${size}`),
-    className,
+    inputClassName,
   );
 
   return (
-    <InputGroup>
+    <InputGroup className={className}>
       <input
         ref={ref}
         type={visible ? "text" : "password"}

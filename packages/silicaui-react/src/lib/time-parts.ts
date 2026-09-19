@@ -44,6 +44,16 @@ export function partsToTimeValue(p: TimeParts, hour12: boolean): TimeValue | nul
   return { hour: hour24, minute: p.minute, second: p.second ?? undefined };
 }
 
+/** Whether two sets of segments spell the same thing, empty cells included. */
+export function timePartsEqual(a: TimeParts, b: TimeParts): boolean {
+  return (
+    a.hour === b.hour &&
+    a.minute === b.minute &&
+    a.second === b.second &&
+    a.dayPeriod === b.dayPeriod
+  );
+}
+
 /** Parse a pasted time string: "14:30", "2:30 PM", "2:30:15 pm" → canonical 24h. */
 export function parseTimeString(text: string): TimeValue | null {
   const m = text
