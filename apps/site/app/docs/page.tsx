@@ -39,7 +39,10 @@ export default function DocsIndexPage() {
         SilicaUI is a CSS-first Tailwind component library built on Base UI
         behavior and OKLCH design tokens. Every one of the{" "}
         {COMPONENT_LINKS.length} components below has a live, interactive demo —
-        pick one from the sidebar, or jump in with search (⌘K).
+        {/* "the sidebar" was true only on a desktop. Since the nav became a drawer
+            behind a menu button on narrow screens (docs/personas/issues/003), that
+            sentence pointed at something a phone visitor could not see. */}
+        pick one from the list, or jump in with search (⌘K).
       </p>
       {first && (
         <Link href={first.href} className="btn btn-primary mt-6 inline-block">

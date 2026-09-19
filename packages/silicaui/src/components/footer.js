@@ -48,7 +48,6 @@ export function footer(prefix = "") {
       fontWeight: "700",
       letterSpacing: "0.05em",
       textTransform: "uppercase",
-      opacity: "0.6",
     },
 
     // Centered variant — everything on one centered row.

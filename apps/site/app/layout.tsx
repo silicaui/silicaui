@@ -76,7 +76,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light">
+    // No `data-theme` here on purpose. Hardcoding it makes the plugin's
+    // `:root:not([data-theme])` prefers-dark rule permanently unmatchable, which
+    // is how this site shipped forcing light at every dark-OS visitor
+    // (docs/personas/issues/002). `:root` already carries the light tokens, so
+    // the default is unchanged; `<ThemeController>` sets an explicit value when
+    // a visitor chooses one, and that outranks both.
+    <html lang="en" suppressHydrationWarning>
       <body>
         {/* Site-wide structured data — present on every prerendered page so an
             answer engine gets the same unambiguous facts wherever it lands. */}

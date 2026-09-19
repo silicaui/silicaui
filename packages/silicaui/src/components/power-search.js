@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * PowerSearch — a structured search field: free text plus removable
  * `field: value` filter chips, added via a field-picker → value-picker
@@ -53,12 +54,14 @@ export function powerSearch(prefix = "") {
       paddingInline: "0.5rem",
       paddingBlock: "0.2rem",
       borderRadius: "9999px",
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
       fontSize: "0.8125rem",
       cursor: "pointer",
       "&:hover": { backgroundColor: "color-mix(in oklab, var(--color-primary) 15%, transparent)" },
     },
-    [sel("-chip-field")]: { fontWeight: "600", opacity: "0.85" },
+    // "status:" in `status: open` — the half of the chip that says what is
+    // being filtered. Its weight already separates it from the value.
+    [sel("-chip-field")]: { fontWeight: "600" },
     [sel("-chip-remove")]: {
       display: "inline-flex",
       alignItems: "center",
@@ -69,7 +72,7 @@ export function powerSearch(prefix = "") {
       borderRadius: "9999px",
       border: "0",
       background: "none",
-      color: "var(--color-primary)",
+      color: inkOfRole("primary"),
       opacity: "0.7",
       cursor: "pointer",
       "& svg": { width: "0.65rem", height: "0.65rem" },

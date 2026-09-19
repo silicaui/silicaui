@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * The Label components — a static `.label` and an animated `.floating-label`.
  *
@@ -53,7 +54,7 @@ export function label(prefix = "") {
     },
 
     [sel("-required")]: {
-      color: "var(--color-error)",
+      color: inkOfRole("error"),
       marginInlineStart: "0.125rem",
     },
 
@@ -98,7 +99,7 @@ export function label(prefix = "") {
     // reads as the active field (matches the input focus ring color).
     [`${floating}:focus-within > span`]: {
       ...floatUp(),
-      color: "var(--input-accent, var(--color-primary))",
+      color: "var(--input-ink, var(--color-primary))",
     },
   };
 }

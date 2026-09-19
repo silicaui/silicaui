@@ -25,6 +25,16 @@ export interface SearchInputProps
   onValueChange?: (value: string) => void;
   /** Fires when the clear (×) button is pressed. */
   onClear?: () => void;
+  /**
+   * Classes for the component's OUTER box — the `input-group` that lays out the
+   * field and its affixes. This is where `w-*`, `max-w-*` and margins belong:
+   * sizing only the inner `<input>` leaves the group at its own width and strands
+   * the trailing button against the container's edge, 700px from the field it
+   * belongs to (docs/personas/issues/020).
+   */
+  className?: string;
+  /** Classes for the `<input>` itself, for the rarer case of styling the field. */
+  inputClassName?: string;
 }
 
 const SearchIcon = () => (
@@ -57,6 +67,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
       size = "md",
       clearable = true,
       className,
+      inputClassName,
       disabled,
       placeholder = "Search…",
       ...rest
@@ -94,11 +105,11 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
       showClear && sc("input-affix-end"),
       color && sc(`input-${color}`),
       size !== "md" && sc(`input-${size}`),
-      className,
+      inputClassName,
     );
 
     return (
-      <InputGroup>
+      <InputGroup className={className}>
         <InputGroupAddon placement="start">
           <SearchIcon />
         </InputGroupAddon>

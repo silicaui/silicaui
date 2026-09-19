@@ -1,4 +1,5 @@
 import { contentVar } from "./lib/auto-content.js";
+import { ink as inkOf } from "./lib/ink.js";
 
 /**
  * Every component's COLOR VARIANT mapping, in one declarative table.
@@ -33,6 +34,14 @@ import { contentVar } from "./lib/auto-content.js";
  */
 const fieldBorder = (name) =>
   `color-mix(in oklab, var(--color-${name}) var(--field-border-tint, 45%), var(--color-base-100))`;
+
+// The ink derivation lives in lib/ink.js: components that paint a role colour as
+// text directly (a required asterisk, a validator message) need the identical
+// formula, and two copies of it would stop agreeing.
+//
+// See that file for why it is a mix toward `--color-base-content` rather than the
+// lightness clamp issue 019 first proposed — the clamp needs to know which way to
+// go, and a hand-rolled theme would omit the flag and invert it.
 
 /** The common selector shape: `.<prefix><root>-<name>`. */
 const cls = (root) => (prefix, name) => `.${prefix}${root}-${name}`;
@@ -210,6 +219,64 @@ export const COLOR_VARIANTS = {
 };
 
 /**
+ * Roles whose colour is a FILL and never an INK.
+ *
+ * `neutral` is the only one today, and it is not an arbitrary exception — it is
+ * the one role the dark palette deliberately keeps DARK. Every chromatic role
+ * lightens for dark (`accent` 64%→72%, `info` 68%→74%); `neutral` goes 26%→32%,
+ * because its job is a subtle chip a shade lighter than the page, carrying light
+ * `neutral-content` on top. As a fill that is right and measures 10.4:1.
+ *
+ * As an ink it is invisible. `soft`/`outline`/`ghost` paint the role colour as
+ * TEXT on the base surface, and `oklch(32%)` on a `oklch(16%)` page is
+ * **1.5:1** — a third of the AA floor. Thirty-one of the thirty-two
+ * role × variant pairs pass; these three are the failures, and they are what a
+ * night-shift operator reads at 22:00 (docs/personas/issues/018).
+ *
+ * MOVING THE TOKEN CANNOT FIX IT, which is why this is a mapping and not a new
+ * colour. The two uses pull opposite ways and no lightness satisfies both —
+ * measured across the range, they cross around 53% where each is only ~3.5:
+ *
+ *     L  32%   38%   44%   50%   56%   62%   68%   74%
+ *     as ink on the page   1.5   1.9   2.5   3.2   4.2   5.3   6.7   8.4
+ *     content on top of it 10.4   8.1   6.3   4.9   3.8   3.0   2.3   1.9
+ *
+ * So the ink form takes its own source. "Neutral ink on a neutral surface" IS
+ * the surface's own ink, which is per-theme already and therefore correct in
+ * both modes without a conditional CSS cannot express. It is also what an
+ * UNCOLOURED button has always used: every rule reads
+ * `var(--btn-accent, var(--color-base-content))`, so this makes `btn-neutral`
+ * agree with the default it was overriding rather than inventing a value.
+ */
+const FILL_ONLY_ROLES = new Set(["neutral"]);
+
+/**
+ * Applied to every family's output rather than to 28 table entries, so a
+ * component added later is covered without anyone remembering this — and so the
+ * builder's runtime cascade, which calls the same generator, fixes a live
+ * colour identically.
+ */
+function inkSafe(name, vars) {
+  if (!FILL_ONLY_ROLES.has(name)) return vars;
+  const out = {};
+  for (const [k, v] of Object.entries(vars)) {
+    // Only the INK moves. `-accent` stays the real `neutral`, so a variant that
+    // FILLS with it still fills with neutral and still carries its declared
+    // `neutral-content` — which was always the correct pair and is not what
+    // issue 018 was about.
+    //
+    // `inkOf(neutral)` would in fact clear AA on its own now (1.53 -> 5.45 in
+    // dark), so this entry is no longer load-bearing for correctness. It is kept
+    // because "neutral ink on a neutral surface" IS the surface's own ink, which
+    // measures 15.75 rather than 5.45 and is per-theme by construction. A better
+    // answer than the general formula, for the one role that has one.
+    if (k.endsWith("-ink")) out[k] = "var(--color-base-content)";
+    else out[k] = v;
+  }
+  return out;
+}
+
+/**
  * The `.<root>-<name>` variant rules for ONE component.
  *
  * @param {string} key - a key of COLOR_VARIANTS (the factory name in index.js)
@@ -221,7 +288,15 @@ export function colorVariantRules(key, colors, prefix = "") {
   if (!spec) throw new Error(`[silicaui] unknown color-variant component "${key}"`);
   const rules = {};
   for (const name of colors) {
-    rules[spec.sel(prefix, name)] = spec.vars(name, `var(--color-${name})`, contentVar(name));
+    const vars = spec.vars(name, `var(--color-${name})`, contentVar(name));
+    // Every family that has an `--<root>-accent` gets an `--<root>-ink` beside
+    // it, derived here rather than declared in 28 table entries — so a component
+    // added later is covered by existing, and the builder's runtime cascade
+    // produces the identical pair for a colour invented live.
+    for (const key of Object.keys(vars)) {
+      if (key.endsWith("-accent")) vars[`${key.slice(0, -"-accent".length)}-ink`] = inkOf(`var(--color-${name})`);
+    }
+    rules[spec.sel(prefix, name)] = inkSafe(name, vars);
   }
   return rules;
 }

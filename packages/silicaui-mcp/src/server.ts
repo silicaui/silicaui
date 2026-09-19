@@ -849,22 +849,119 @@ export function createServer(): McpServer {
     },
     async ({ query }) => {
       const q = query.toLowerCase();
+      // Every group below matches through `matches()`. It used to be a literal
+      // `name.toLowerCase().includes(q)` written out thirteen times, which meant
+      // the whole query had to appear verbatim — so `"app shell"` found nothing
+      // while `"appshell"` found seven things, and the same for DataTable,
+      // EmptyState, CommandPalette and most of the React surface. Nobody types
+      // the identifier; they type the words.
+      //
+      // That matters more here than in a human search box, and the site's own ⌘K
+      // palette is in fact fine. This server exists so an AGENT reaches for a
+      // real component instead of hand-rolling one, and an agent handed `[]`
+      // does not retry with the space removed — it concludes there is no app
+      // shell and writes its own grid. The tool manufactures the exact RULE #1
+      // violation it exists to prevent, silently.
+      //
+      // The two hardcoded keyword lists further down are the fossil record of
+      // this: both comments say "the exact failure above", and both patched a
+      // call site instead of the test. They stay — they map real synonyms that
+      // no normalisation reaches — but they are no longer load-bearing.
+      // (docs/personas/issues/014.)
+      const terms = q.split(/\s+/).filter(Boolean);
+
+      /**
+       * Index a haystack BOTH as written and word-split, so `AppShell` answers
+       * to `appshell`, `app shell` and `shell`, and `data-table` to `data table`.
+       */
+      const normalize = (s: string): string => {
+        const raw = s.toLowerCase();
+        const split = s
+          .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+          .replace(/[-_]+/g, " ")
+          .toLowerCase();
+        return split === raw ? raw : `${raw} ${split}`;
+      };
+
+      /**
+       * Industry words that share no substring with what this library calls the
+       * thing. Normalisation cannot reach these: `snackbar` and `toast` have no
+       * letters in common in the right order, so no amount of splitting or
+       * casing helps.
+       *
+       * Measured, not invented — 41 phrases a person would actually type were run
+       * against the server and these are the ones that returned NOTHING while the
+       * component sat right there (docs/personas/issues/025). Everything else in
+       * that run already worked, which is why this list is short and stays short:
+       * it is for true synonyms, not for spelling variants.
+       */
+      const ALIASES: Record<string, string[]> = {
+        snackbar: ["toast"],
+        loader: ["loading", "spinner"],
+        loading: ["skeleton", "spinner"],
+        history: ["timeline"],
+        audit: ["timeline"],
+        trail: ["timeline"],
+        activity: ["timeline"],
+        feed: ["timeline"],
+        log: ["timeline"],
+        picture: ["avatar", "image"],
+        photo: ["avatar", "image"],
+        headshot: ["avatar"],
+        crumbs: ["breadcrumb"],
+      };
+      /** A term matches if ANY of its spellings does. */
+      const spellings = terms.map((t) => [t, ...(ALIASES[t] ?? [])]);
+
+      /**
+       * `strict` is the AND pass — every term must appear in the SAME entry, which
+       * is what a search should do and what issue 014 established.
+       *
+       * It has one failure mode, and it is the one an agent hits: add an ordinary
+       * descriptive word and a working query stops working. `toast` returns 12 and
+       * `message` returns 22, but `toast message` returns **0**, because no single
+       * entry carries both. A person reads that as "there is no toast component"
+       * and hand-rolls one — the exact RULE #1 violation this tool exists to stop,
+       * and the same failure issue 014 was filed for, one layer further in.
+       *
+       * So a zero-result query RELAXES rather than switching to OR. OR was tried
+       * first and is worse than it sounds: `toast message` returned 34 entries
+       * with Toast nowhere in the first eight, because every Chat* component
+       * matches "message" and nothing ranks them. A result set that buries the
+       * answer is not much better than an empty one.
+       *
+       * Dropping the least useful WORD keeps the AND, and therefore the
+       * precision: `toast message` -> `toast` -> the twelve toast entries.
+       * Subsets are tried largest first, so as much of the query is honoured as
+       * can be. Anything that returns results today is untouched, because the
+       * full query is always tried first.
+       */
+      let active = spellings;
+
+      /** True when every term in the ACTIVE subset (or its alias) appears. */
+      const matches = (...parts: (string | null | undefined)[]): boolean => {
+        if (!active.length) return false;
+        const hay = parts.filter(Boolean).map((p) => normalize(p as string)).join(" ");
+        return active.every((alts) => alts.some((t) => hay.includes(t)));
+      };
+
+      const collect = () => {
       const matchedComponents = components
-        .filter((c) => c.name.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q) || (c.label ?? "").toLowerCase().includes(q))
+        .filter((c) => matches(c.name, c.description, c.label))
         .map((c) => ({ kind: "component", name: c.name, package: c.package }));
       const matchedBlocks = blocks
-        .filter((b) => b.name.toLowerCase().includes(q) || b.description.toLowerCase().includes(q))
+        .filter((b) => matches(b.name, b.description))
         .map((b) => ({ kind: "block", key: b.key, name: b.name }));
       const matchedBehaviors = behaviors
-        .filter((b) => b.type.toLowerCase().includes(q) || b.description.toLowerCase().includes(q))
+        .filter((b) => matches(b.type, b.description))
         .map((b) => ({ kind: "behavior", type: b.type }));
       const matchedClasses = Object.entries(classesByComponent).flatMap(([component, classes]) =>
         classes
-          .filter((cls) => cls.toLowerCase().includes(q))
+          .filter((cls) => matches(cls))
           .map((cls) => ({ kind: "class" as const, component, class: cls })),
       );
       const matchedTokens = tokens.semanticColors
-        .filter((name) => name.toLowerCase().includes(q))
+        .filter((name) => matches(name))
         .map((name) => ({ kind: "token" as const, name }));
       // Custom colors are a CONCEPT, not a literal name, so nothing above could
       // ever match them: "brand", "custom color", "register" and "@plugin" all
@@ -902,7 +999,7 @@ export function createServer(): McpServer {
       // name is the only handle an agent has on it, and twenty of them are
       // unguessable — `clay`, `dune`, `frost` match nothing else in the catalog.
       const matchedThemes = themes.presets
-        .filter((p) => p.name.toLowerCase().includes(q) || p.character.toLowerCase().includes(q))
+        .filter((p) => matches(p.name, p.character))
         .map((p) => ({ kind: "theme" as const, name: p.name, applyAs: p.applyAs, tool: "get_theme" }));
       // Theming is a MECHANISM, not a literal name — the exact failure the
       // custom-colors entry above was added for. "dark mode", "data-theme",
@@ -941,15 +1038,10 @@ export function createServer(): McpServer {
       // "conditional" found nothing here and an agent concluded the concept did
       // not exist — the exact failure a searchable catalog is meant to prevent.
       const matchedBindings = schema.dataBindings
-        .filter(
-          (b) =>
-            b.kind.toLowerCase().includes(q) ||
-            b.doc.toLowerCase().includes(q) ||
-            b.fields.some((f) => f.name.toLowerCase().includes(q)),
-        )
+        .filter((b) => matches(b.kind, b.doc, ...b.fields.map((f) => f.name)))
         .map((b) => ({ kind: "data-binding" as const, binding: b.kind, tool: "get_node_schema" }));
       const matchedNodeKinds = schema.kinds
-        .filter((k) => k.kind.toLowerCase().includes(q) || k.typeName.toLowerCase().includes(q) || k.doc.toLowerCase().includes(q))
+        .filter((k) => matches(k.kind, k.typeName, k.doc))
         .map((k) => ({ kind: "node-kind" as const, node: k.kind, tool: "get_node_schema" }));
       const matchedTags = schema.elementFloor.tags
         .filter((t) => t.tag.toLowerCase() === q || t.attrs.some((a) => a.toLowerCase() === q))
@@ -958,23 +1050,12 @@ export function createServer(): McpServer {
       // declare — "href" should find the `link` group even though no component
       // or class is called that.
       const matchedEmail = email.kinds
-        .filter(
-          (k) =>
-            k.kind.includes(q) ||
-            k.typeName.toLowerCase().includes(q) ||
-            k.doc.toLowerCase().includes(q) ||
-            k.fields.some((f) => f.name.toLowerCase().includes(q)),
-        )
+        .filter((k) => matches(k.kind, k.typeName, k.doc, ...k.fields.map((f) => f.name)))
         .map((k) => ({ kind: "email-node" as const, node: k.kind, typeName: k.typeName }));
       const matchedEmailTypes = email.documentTypes
-        .filter(
-          (t) =>
-            t.typeName.toLowerCase().includes(q) ||
-            t.doc.toLowerCase().includes(q) ||
-            t.fields.some((f) => f.name.toLowerCase().includes(q)),
-        )
+        .filter((t) => matches(t.typeName, t.doc, ...t.fields.map((f) => f.name)))
         .map((t) => ({ kind: "email-type" as const, typeName: t.typeName }));
-      const results = [
+      return [
         ...matchedComponents,
         ...matchedBlocks,
         ...matchedBehaviors,
@@ -989,6 +1070,57 @@ export function createServer(): McpServer {
         ...matchedEmail,
         ...matchedEmailTypes,
       ];
+      };
+
+      let results = collect();
+      // Relax one word at a time and keep the MOST SPECIFIC relaxation that finds
+      // anything — the smallest non-empty result set, not the first one.
+      //
+      // Position is not a reliable signal and trying it proved that: dropping the
+      // first word is right for `status history` (-> `history` -> Timeline) and
+      // wrong for `toast message` (-> `message` -> twenty-two Chat entries with
+      // Toast nowhere). Dropping the last is exactly the reverse. Fewest results
+      // gets both right, because the word that narrows most is the one that
+      // carries the meaning.
+      let ignored: string[] = [];
+      if (!results.length) {
+        for (let keep = spellings.length - 1; keep >= 1 && !results.length; keep--) {
+          let best: typeof results | null = null;
+          let bestDrop = -1;
+          for (let drop = 0; drop < spellings.length; drop++) {
+            active = spellings.filter((_, i) => i !== drop).slice(0, keep);
+            if (active.length !== keep) continue;
+            const got = collect();
+            if (got.length && (best === null || got.length < best.length)) {
+              best = got;
+              bestDrop = drop;
+            }
+          }
+          const dropped = terms[bestDrop];
+          if (best && dropped !== undefined) {
+            results = best;
+            ignored = [dropped];
+          }
+        }
+      }
+      active = spellings;
+
+      // SAY when the query was relaxed. A silent relaxation is its own lie: the
+      // caller asked for two words, got results, and has no way to know one word
+      // was dropped — so `phone zzzznotathing` would read as "zzzznotathing is a
+      // real thing in this library". The note is a first entry rather than a new
+      // response shape, so every existing caller keeps working and an agent
+      // reading the list sees exactly what happened.
+      if (ignored.length) {
+        results = [
+          {
+            kind: "search-note" as const,
+            note: `No entry matched every word. Showing results for "${terms.filter((t) => !ignored.includes(t)).join(" ")}".`,
+            ignored,
+          },
+          ...results,
+        ] as typeof results;
+      }
       return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
     },
   );

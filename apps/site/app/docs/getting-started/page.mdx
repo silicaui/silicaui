@@ -10,11 +10,25 @@ export const metadata = {
 SilicaUI is a Base UI behavior layer with CSS-first styling. Install the
 package, bring your own design tokens, and keep the primitives.
 
+**Requires Tailwind CSS v4.** The `@plugin` directive below is v4 syntax; on v3 it
+will not compile. If you are starting fresh, `create-next-app --tailwind` or
+`create-vite` + `@tailwindcss/vite` both give you v4.
+
+## 1. Install
+
 ```bash
 npm install @wizeworks/silicaui @wizeworks/silicaui-react
 ```
 
-Import the plugin in your CSS entry point:
+`@wizeworks/silicaui` is the CSS — the Tailwind plugin, the tokens, the component
+classes. `@wizeworks/silicaui-react` is the React layer on top of it. Using plain
+HTML or a node tree instead? See [the other two paths](#without-react).
+
+## 2. Register the plugin
+
+Add it to your CSS entry point — the file that already has `@import "tailwindcss"`.
+In a Next.js App Router app that is `app/globals.css`; with Vite it is usually
+`src/index.css`.
 
 ```css
 @import "tailwindcss";
@@ -23,15 +37,72 @@ Import the plugin in your CSS entry point:
 }
 ```
 
-Then use any component directly — no separate theme file, no config object:
+Every name in `colors:` gets the full treatment — `btn-primary`, `badge-primary`,
+`text-primary`, `border-primary` and the rest — with no rebuild and no safelist. Add
+your own names to that list and they behave identically to the built-in ones.
+
+If you declare a color in `@theme` and forget to list it here, SilicaUI tells you at
+build time, names the variants you will not get, and prints the line that fixes it.
+
+## 3. Use a component
+
+No separate theme file, no config object. In a Next.js App Router app, this is
+`app/page.tsx`:
 
 ```tsx
 import { Button } from "@wizeworks/silicaui-react";
 
-export function Example() {
-  return <Button color="primary">Get started</Button>;
+export default function Page() {
+  return (
+    <main className="p-8">
+      <Button color="primary">Get started</Button>
+    </main>
+  );
 }
 ```
 
-See the [component reference](/docs/components/button) for the full catalog,
-each with a live, interactive demo.
+The `<main>` wrapper is not decoration: `create-next-app` scaffolds
+`<body class="flex flex-col">`, so a lone child stretches the full width of the
+window and the button will look wrong without something to sit in.
+
+That is the whole setup. See the [component reference](/docs/components/button) for
+the full catalog, each with a live, interactive demo, a props table and the import
+line for every path.
+
+<h2 id="without-react">Without React</h2>
+
+React is one output, not the product. The same components exist on two other paths,
+and every component page documents all three.
+
+**Plain HTML — CSS classes only.** Install `@wizeworks/silicaui`, register the plugin
+exactly as in step 2, and write the classes on your own markup. Works in Rails,
+Django, PHP, Go, or a static file, with no bundler and no JavaScript at all — which
+also means a component that needs interaction will be styled but inert.
+
+```html
+<button class="btn btn-primary">Get started</button>
+```
+
+**A framework-neutral node tree.** For generated or user-authored documents — a site
+builder, CMS output, a static export — build a node tree, project it to HTML, and let
+the zero-dependency runtime hydrate it. This gives you real keyboard handling and
+focus management on a static page.
+
+```bash
+npm install @wizeworks/silicaui-html @wizeworks/silicaui-behaviors
+```
+
+```ts
+import { atom, toHtml } from "@wizeworks/silicaui-html";
+
+// atom(component, className, props, children)
+const markup = toHtml(atom("Button", "btn btn-primary", { label: "Get started" }));
+// → <button class="btn btn-primary" type="button">Get started</button>
+```
+
+Note where the styling goes: on this path it is the **class string**, the same one you
+would write by hand in the Plain HTML section above. There is no `color` prop here —
+that is the React layer's convenience.
+
+Load `@wizeworks/silicaui-behaviors` on the page, or interactive markup renders
+correctly and does nothing.

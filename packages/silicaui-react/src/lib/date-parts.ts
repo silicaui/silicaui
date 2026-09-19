@@ -19,6 +19,11 @@ export function dateFromParts(p: DateParts): Date | null {
   return new Date(p.year, p.month - 1, p.day);
 }
 
+/** Whether two sets of segments spell the same thing, empty cells included. */
+export function datePartsEqual(a: DateParts, b: DateParts): boolean {
+  return a.month === b.month && a.day === b.day && a.year === b.year;
+}
+
 /** Segment order + locale-native separators, derived from `Intl` (never hardcoded to MM/DD/YYYY). */
 export function getDateTokens(locale?: string): DateToken[] {
   const parts = new Intl.DateTimeFormat(locale, {

@@ -7,6 +7,7 @@ import {
   type DateSegmentKey,
   daysInMonth,
   partsFromDate,
+  datePartsEqual,
   getDateTokens,
   dateOrder,
   parseDateString,
@@ -15,6 +16,7 @@ import {
   type TimeParts,
   resolveHour12,
   timeValueToParts,
+  timePartsEqual,
   parseTimeString,
 } from "./lib/time-parts";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
@@ -55,6 +57,23 @@ function composeDate(d: DateParts, t: TimeParts, hour12: boolean): Date | null {
   return new Date(d.year, d.month - 1, d.day, hour24, t.minute, t.second ?? 0);
 }
 
+/** Both halves of the field, held together so completeness can be judged
+ *  across all six cells rather than three at a time. */
+interface Segments {
+  date: DateParts;
+  time: TimeParts;
+}
+
+function segmentsFromDate(d: Date | null | undefined, hour12: boolean): Segments {
+  return {
+    date: partsFromDate(d),
+    time: timeValueToParts(
+      d ? { hour: d.getHours(), minute: d.getMinutes(), second: d.getSeconds() } : null,
+      hour12,
+    ),
+  };
+}
+
 /**
  * Silica DateTimeInput — `DateInput` + `TimeInput` fused into one segmented
  * field sharing a single `Date` value, for the common "when exactly" case
@@ -88,37 +107,31 @@ export const DateTimeInput = React.forwardRef<HTMLDivElement, DateTimeInputProps
     const hour12 = resolveHour12(locale, hourCycle);
     const isControlled = value !== undefined;
 
-    const [internalDate, setInternalDate] = React.useState<DateParts>(() =>
-      partsFromDate(value ?? defaultValue),
-    );
-    const [internalTime, setInternalTime] = React.useState<TimeParts>(() =>
-      timeValueToParts(
-        (value ?? defaultValue)
-          ? {
-              hour: (value ?? defaultValue)!.getHours(),
-              minute: (value ?? defaultValue)!.getMinutes(),
-              second: (value ?? defaultValue)!.getSeconds(),
-            }
-          : null,
-        hour12,
-      ),
+    const [internal, setInternal] = React.useState<Segments>(() =>
+      segmentsFromDate(value ?? defaultValue, hour12),
     );
 
+    // Six cells have to be filled before the parent can be told anything, so
+    // the five keystrokes before the last one live here and nowhere else. See
+    // `date-input.tsx` for the full reasoning; syncing `value` down on every
+    // render is what made an empty controlled field impossible to type into.
     React.useEffect(() => {
       if (!isControlled) return;
-      setInternalDate(partsFromDate(value));
-      setInternalTime(
-        timeValueToParts(
-          value
-            ? { hour: value.getHours(), minute: value.getMinutes(), second: value.getSeconds() }
-            : null,
-          hour12,
-        ),
-      );
+      setInternal((prev) => {
+        const incoming = segmentsFromDate(value, hour12);
+        if (
+          datePartsEqual(prev.date, incoming.date) &&
+          timePartsEqual(prev.time, incoming.time)
+        ) {
+          return prev;
+        }
+        if (value == null && composeDate(prev.date, prev.time, hour12) === null) return prev;
+        return incoming;
+      });
     }, [value, isControlled, hour12]);
 
-    const dateParts = internalDate;
-    const timeParts = internalTime;
+    const dateParts = internal.date;
+    const timeParts = internal.time;
 
     const dateTokens = React.useMemo(() => getDateTokens(locale), [locale]);
     const dateSegOrder = React.useMemo(() => dateOrder(dateTokens), [dateTokens]);
@@ -134,10 +147,7 @@ export const DateTimeInput = React.forwardRef<HTMLDivElement, DateTimeInputProps
     const segmentRefs = React.useRef<Partial<Record<AnySegKey, HTMLDivElement | null>>>({});
 
     function commit(nextDate: DateParts, nextTime: TimeParts) {
-      if (!isControlled) {
-        setInternalDate(nextDate);
-        setInternalTime(nextTime);
-      }
+      setInternal({ date: nextDate, time: nextTime });
       let composed = composeDate(nextDate, nextTime, hour12);
       if (composed) {
         if (min && composed < min) composed = min;

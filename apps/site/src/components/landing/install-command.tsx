@@ -31,15 +31,22 @@ export function InstallCommand({ className = "" }: { className?: string }) {
     }
   }, []);
 
+  // `min-w-0 max-w-full` rather than a bare `w-fit`: at 360px this control's content
+  // is ~366px, and as an un-shrinkable sibling in the hero's CTA column it used to set
+  // that column's width — pushing the primary "Get started" button off the right edge,
+  // where the section's `overflow-hidden` silently clipped both. The command scrolls
+  // inside itself instead, and `copy` never shrinks, because it was the first thing to
+  // disappear and it is the whole point of the control.
+  // See docs/personas/issues/004.
   return (
     <button
       type="button"
       onClick={copy}
       aria-label={`Copy install command: ${CMD}`}
-      className={`mono inline-flex w-fit items-center gap-3 whitespace-nowrap rounded-btn border border-base-300 bg-base-200 px-4 py-3 text-base-content ${className}`}
+      className={`mono inline-flex w-fit min-w-0 max-w-full items-center gap-3 rounded-btn border border-base-300 bg-base-200 px-4 py-3 text-base-content ${className}`}
     >
-      <code className="whitespace-nowrap">{CMD}</code>
-      <span aria-live="polite" className="border-l border-base-300 pl-3">
+      <code className="min-w-0 overflow-x-auto whitespace-nowrap">{CMD}</code>
+      <span aria-live="polite" className="shrink-0 border-l border-base-300 pl-3">
         {copied ? "copied" : "copy"}
       </span>
     </button>

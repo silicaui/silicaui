@@ -67,10 +67,11 @@ export function alert(colors, prefix = "") {
       fontWeight: "600",
       lineHeight: "1.3",
     },
-    // Secondary line under the title. Full-contrast `-content` softened just
-    // enough for hierarchy against the bold title, not enough to hurt legibility.
+    // Secondary line under the title. Hierarchy comes from the title's weight,
+    // not from fading this one: it is the sentence that says what to DO about
+    // the alert, so it gets the same full-strength ink as everything else
+    // (RULE #3, docs/personas/issues/021).
     [sel("-description")]: {
-      opacity: "0.9",
       lineHeight: "1.4",
     },
     // Trailing action group. `margin-inline-start: auto` claims the row's
@@ -144,19 +145,19 @@ export function alert(colors, prefix = "") {
     // (default is solid, painted by `.alert` reading --alert-bg/-fg)
     [sel("-outline")]: {
       backgroundColor: "transparent",
-      color: "var(--alert-accent, var(--color-base-content))",
-      borderColor: "var(--alert-accent, var(--color-base-300))",
+      color: "var(--alert-ink, var(--color-base-content))",
+      borderColor: "var(--alert-ink, var(--color-base-300))",
     },
     [sel("-dash")]: {
       backgroundColor: "transparent",
-      color: "var(--alert-accent, var(--color-base-content))",
-      borderColor: "var(--alert-accent, var(--color-base-300))",
+      color: "var(--alert-ink, var(--color-base-content))",
+      borderColor: "var(--alert-ink, var(--color-base-300))",
       borderStyle: "dashed",
     },
     [sel("-soft")]: {
       backgroundColor:
         "color-mix(in oklab, var(--alert-accent, var(--color-base-content)) 12%, var(--color-base-100))",
-      color: "var(--alert-accent, var(--color-base-content))",
+      color: "var(--alert-ink, var(--color-base-content))",
       borderColor: "transparent",
     },
     // Chromeless — accent ink only, no surface and no border. Same meaning as
@@ -164,7 +165,7 @@ export function alert(colors, prefix = "") {
     // `variant="ghost"` worked on a Badge and was a type error on an Alert.
     [sel("-ghost")]: {
       backgroundColor: "transparent",
-      color: "var(--alert-accent, var(--color-base-content))",
+      color: "var(--alert-ink, var(--color-base-content))",
       borderColor: "transparent",
     },
 

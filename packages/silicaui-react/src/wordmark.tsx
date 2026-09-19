@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cx } from "./lib/cx";
+import { composeRender } from "./lib/render-slot";
 import { useSilicaClass } from "./lib/config";
 import type { SilicaColor, SilicaSize } from "./lib/tokens";
 
@@ -18,8 +19,19 @@ export interface WordmarkProps
   color?: SilicaColor;
   /** Default `md`. */
   size?: SilicaSize;
-  /** Render as a different element — typically `"a"` when the mark links home. */
+  /** @deprecated Use `render`. Typically `"a"` when the mark links home. */
   as?: React.ElementType;
+  /**
+   * Render as a different element, composing your props with this component's —
+   * the same `render` Button/Badge/Card take, and Base UI's own composition
+   * model:
+   *
+   *   <Wordmark render={<Link href="/" />}>…</Wordmark>
+   *
+   * Preferred over `as`, because the element carries its OWN props and they are
+   * type-checked against it (Wordmark cannot know that `Link` needs an `href`).
+   */
+  render?: React.ReactElement;
   /** A logo image rendered before the name. The one-prop path, for when the mark
    *  is a URL rather than a slotted component; `children` composition is the
    *  richer path and both lower to the same DOM. Ignored when `children` is
@@ -41,24 +53,26 @@ export interface WordmarkProps
  *   <Wordmark src="/logo.svg">Acme</Wordmark>
  */
 export const Wordmark = React.forwardRef<HTMLElement, WordmarkProps>(
-  function Wordmark({ color, size = "md", as, src, alt = "", className, children, ...rest }, ref) {
+  function Wordmark({ color, size = "md", as, render, src, alt = "", className, children, ...rest }, ref) {
     const sc = useSilicaClass();
     const Tag = (as ?? "span") as React.ElementType;
-    return (
-      <Tag
-        ref={ref as React.Ref<HTMLElement>}
-        className={cx(
-          sc("wordmark"),
-          color && sc(`wordmark-${color}`),
-          size !== "md" && sc(`wordmark-${size}`),
-          className,
-        )}
-        {...rest}
-      >
-        {src ? <img className={cx(sc("wordmark-mark"))} src={src} alt={alt} loading="lazy" /> : null}
-        {children}
-      </Tag>
-    );
+    const own = {
+      ref,
+      className: cx(
+        sc("wordmark"),
+        color && sc(`wordmark-${color}`),
+        size !== "md" && sc(`wordmark-${size}`),
+        className,
+      ),
+      ...rest,
+      children: (
+        <>
+          {src ? <img className={cx(sc("wordmark-mark"))} src={src} alt={alt} loading="lazy" /> : null}
+          {children}
+        </>
+      ),
+    };
+    return composeRender(render, own, "Wordmark") ?? <Tag {...(own as object)} />;
   },
 );
 

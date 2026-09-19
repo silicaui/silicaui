@@ -5,6 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { breadcrumbSchema, componentSchema } from "@/lib/schema";
 import { componentDescription } from "@/lib/site";
 import { DemoView } from "./demo-view";
+import { ComponentApiSection } from "./component-api";
 
 // DEMO_META is plain data (no component imports reachable from it), so it's
 // safe to read here in a Server Component. The full DEMOS array (actual
@@ -15,7 +16,7 @@ export function generateStaticParams() {
 }
 
 // Per-page metadata: a unique title + description + canonical for every one of
-// the ~113 component pages, so none reads as a thin duplicate to search or
+// every component page, so none reads as a thin duplicate to search or
 // answer engines. The `%s · SilicaUI` template comes from the root layout.
 export async function generateMetadata({
   params,
@@ -87,6 +88,10 @@ export default async function ComponentDocPage({
       <div className="mt-8 flex flex-col gap-8">
         <DemoView slug={slug} />
       </div>
+      {/* The half of the page that was missing: import, props, and the demo's own
+          source. Server-rendered, so the ~2KB source per component becomes HTML on
+          this page rather than a client bundle. See docs/personas/issues/008. */}
+      <ComponentApiSection slug={slug} title={entry.title} />
     </div>
   );
 }

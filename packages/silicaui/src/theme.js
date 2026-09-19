@@ -49,13 +49,132 @@ function toColorVars(map) {
 }
 
 /**
+ * The selectors that establish a Silica surface — the single answer to "where
+ * does Silica own the page?", which more than one module needs and more than one
+ * module has now got wrong.
+ *
+ * There are exactly two opt-ins and they are equals:
+ *
+ *   [data-theme]            an explicit theme, on <html> or on a nested island
+ *   :root:not([data-theme]) `prefersdark: true`, when nothing has chosen
+ *
+ * Neither matches a page that did not ask, so the embeddable promise holds: a
+ * host app that sets no attribute and no option is never restyled.
+ *
+ * WHY THIS IS A LIST AND NOT TWO STRINGS. `prefersdark` shipped re-pointing the
+ * colour tokens at the second selector while everything that makes a page
+ * actually LOOK like Silica stayed scoped to the first. Two separate features
+ * were silently switched off for anyone who turned the option on: the surface
+ * paint (issues/013) and the ENTIRE type ramp — every `<h1>` in the app rendered
+ * at 16px/400, identical to a paragraph (issues/015). The reduced-motion rule
+ * below already spelled both selectors out by hand, so the knowledge existed and
+ * simply never travelled. Anything scoped to a Silica surface reads this list,
+ * so the next such rule cannot be the fourth mistake.
+ */
+export function surfaceScopes(prefersDark = false) {
+  return prefersDark ? ["[data-theme]", ":root:not([data-theme])"] : ["[data-theme]"];
+}
+
+/**
+ * What it MEANS to be a Silica surface, in one place.
+ *
+ * Two different selectors establish one — `[data-theme]`, and the
+ * `prefers-color-scheme: dark` block below when `prefersdark` is on — and they
+ * have to agree. They did not: `prefersdark` was added beside the token blocks
+ * and re-pointed every `--color-*` to its dark value, while the paint rule lived
+ * further down and still matched `[data-theme]` alone. An OS-dark visitor with
+ * no stored choice therefore got Silica's light ink swapped for its dark ink over
+ * a page background that was never painted at all — readable only because the UA
+ * darkens its own canvas under `color-scheme: dark`, and never actually
+ * `--color-base-100` (docs/personas/issues/013).
+ *
+ * Extracted rather than copied so a sixth declaration added here reaches both
+ * selectors for free. That is the whole point: the drift is the defect.
+ */
+function surface() {
+  return {
+    backgroundColor: "var(--color-base-100)",
+    color: "var(--color-base-content)",
+    // Grain (`--noise`). The themed surface is the ONLY place it belongs: this
+    // rule is what "surface" means in this system, so one declaration covers
+    // the page and every scoped island, and a Card keeps its clean opaque fill
+    // — a raised surface sitting ON textured paper, which is the effect grain
+    // is actually for.
+    //
+    // Gated by `background-size`, not by a pseudo-element: a zero-sized
+    // background image is not painted at all (so `--noise: 0` costs nothing),
+    // and unlike an `::after` overlay this needs no `position: relative` on
+    // every `[data-theme]` — which would silently re-parent any absolutely
+    // positioned descendant that resolves against an ancestor outside the
+    // island. A theme must not move a consumer's layout.
+    //
+    // It is a SWITCH, not a strength dial (SCALAR_TOKENS declares step: 1) —
+    // a fractional value scales the TILE, not the intensity.
+    //
+    // `overlay` blends the grey grain against whatever `--color-base-100` is,
+    // so one texture reads correctly on a light surface and a dark one; the
+    // noise is desaturated in the filter so it never tints the theme.
+    backgroundImage: `var(--noise-image, ${NOISE_IMAGE})`,
+    backgroundSize:
+      "calc(var(--noise, 0) * 128px) calc(var(--noise, 0) * 128px)",
+    backgroundBlendMode: "overlay",
+    // The opt-in surface also adopts the UI typeface, so a theme's `--font-sans`
+    // override reaches the whole island (chrome, canvas, board) — never a host
+    // page you didn't opt into.
+    fontFamily: "var(--font-sans)",
+    // Anchor body text to @wizeworks/silicaui's 16px base. A themed surface IS the
+    // @wizeworks/silicaui context, so it establishes the standard reading size even when
+    // nested inside a denser host (e.g. the builder's 14px chrome) — the preview
+    // then matches a real page. `1rem` (not px) still tracks a raised UA
+    // default. Explicit `text-*` utilities (utilities layer) override per node.
+    fontSize: "1rem",
+  };
+}
+
+/**
  * Base styles injected by the plugin: design tokens, per-theme color overrides,
  * and keyframes. Semantic color *values* are registered through the plugin's
  * theme config (see index.js) so `bg-primary` utilities also exist; here we
  * only add tokens and the theme-switch overrides.
  */
-export function buildBase() {
+export function buildBase({ prefersDark = false } = {}) {
   return {
+    // Opt-in, via `@plugin "@wizeworks/silicaui" { prefersdark: true; }`.
+    //
+    // Emitted FIRST so the explicit `[data-theme]` blocks below outrank it: a
+    // visitor's stored choice must beat their OS, and a theme island must beat
+    // both. `:root:not([data-theme])` is the whole mechanism — the moment
+    // anything sets `data-theme` on <html> (a ThemeController, or a hardcoded
+    // attribute in a layout) this rule stops matching and the explicit value
+    // wins. That is also the classic way to break it: hardcoding
+    // `<html data-theme="light">` makes the OS preference permanently
+    // unreachable, which is exactly how silicaui.com shipped without dark for
+    // its own visitors (docs/personas/issues/002).
+    //
+    // Pure CSS on purpose: no inline theme script, so there is no flash of the
+    // wrong theme and nothing for a strict CSP to refuse.
+    ...(prefersDark
+      ? {
+          // Paint OUTSIDE the media query, deliberately. `surface()` declares
+          // `background: var(--color-base-100)` — it names the token, never a
+          // value — so the one declaration already follows whichever palette is
+          // live, and the media query below only has to move the tokens.
+          //
+          // It was inside at first (issues/013), which painted the dark side and
+          // left OS-LIGHT on the browser's white instead of the theme's
+          // `oklch(98% …)`. That asymmetry was recorded as known and is now
+          // simply gone: asking for `prefersdark` means Silica manages this
+          // page's light AND dark, which is the only reading under which the
+          // option does what its name promises.
+          ":root:not([data-theme])": { ...surface() },
+          "@media (prefers-color-scheme: dark)": {
+            ":root:not([data-theme])": {
+              colorScheme: "dark",
+              ...toColorVars(DARK),
+            },
+          },
+        }
+      : {}),
     ":root": {
       // ---- Token strategy -------------------------------------------------
       // Silica's overridable, NON-namespace tokens are intentionally NOT
@@ -94,6 +213,26 @@ export function buildBase() {
       // context — table headers, indicator dots, step connectors) is deliberately
       // NOT tokenized: it never competes with these, and tokenizing it would
       // invite apps to "fix" a global order by nudging a local one.
+      //
+      // ---- The presence sentinel --------------------------------------------
+      // The one thing that proves, from inside the browser, that this plugin was
+      // actually wired into the app's CSS. Nothing reads its VALUE — only whether
+      // it exists.
+      //
+      // It is here because forgetting the `@plugin` line is completely silent:
+      // `@wizeworks/silicaui-react` renders `class="btn btn-primary"` exactly as
+      // it always does, the class resolves to no rules, and the page renders as
+      // bare unstyled text with no build error, no console warning and a clean
+      // `GET / 200`. The component is the only piece in a position to notice —
+      // but it cannot ask "is my CSS here?" without something to look for
+      // (docs/personas/issues/011).
+      //
+      // A custom property, deliberately: the `prefix` option renames CLASSES,
+      // never custom properties, so this sentinel is spelled the same in a
+      // prefixed install as in a plain one and every path can test it the same
+      // way. Kept out of the theme config so an app's `@theme` block can neither
+      // shadow it nor accidentally declare it.
+      "--sui-plugin": "1",
       colorScheme: "light",
       // Base font size: 16px. `100%` (not a fixed `16px`) DECLARES the anchor
       // while honoring a user who raised their browser's default — the whole rem
@@ -131,46 +270,15 @@ export function buildBase() {
     // so without this every consumer hand-writes `body { background; color }`.
     // Any element carrying [data-theme] adopts the base surface + content color:
     // put it on <html> for the whole page, or on a wrapper for a scoped island
-    // (a dark card in a light page). Scoped to [data-theme] ON PURPOSE — Silica
-    // never repaints a host page you didn't opt into, so it stays embeddable
-    // under another design system (the prefixed Sparx case). One generic rule
-    // covers every theme, built-in or custom (they only redefine the tokens it
-    // reads). Background on <html> propagates to the viewport canvas.
+    // (a dark card in a light page). Scoped to an OPT-IN on purpose — Silica
+    // never repaints a host page you didn't ask it to, so it stays embeddable
+    // under another design system (the prefixed Sparx case). There are exactly
+    // two opt-ins, and both paint through `surface()`: this attribute, and the
+    // `prefersdark` block at the top. One generic rule covers every theme,
+    // built-in or custom (they only redefine the tokens it reads). Background on
+    // <html> propagates to the viewport canvas.
     "[data-theme]": {
-      backgroundColor: "var(--color-base-100)",
-      color: "var(--color-base-content)",
-      // Grain (`--noise`). The themed surface is the ONLY place it belongs: this
-      // rule is what "surface" means in this system, so one declaration covers
-      // the page and every scoped island, and a Card keeps its clean opaque fill
-      // — a raised surface sitting ON textured paper, which is the effect grain
-      // is actually for.
-      //
-      // Gated by `background-size`, not by a pseudo-element: a zero-sized
-      // background image is not painted at all (so `--noise: 0` costs nothing),
-      // and unlike an `::after` overlay this needs no `position: relative` on
-      // every `[data-theme]` — which would silently re-parent any absolutely
-      // positioned descendant that resolves against an ancestor outside the
-      // island. A theme must not move a consumer's layout.
-      //
-      // It is a SWITCH, not a strength dial (SCALAR_TOKENS declares step: 1) —
-      // a fractional value scales the TILE, not the intensity.
-      //
-      // `overlay` blends the grey grain against whatever `--color-base-100` is,
-      // so one texture reads correctly on a light surface and a dark one; the
-      // noise is desaturated in the filter so it never tints the theme.
-      backgroundImage: `var(--noise-image, ${NOISE_IMAGE})`,
-      backgroundSize: "calc(var(--noise, 0) * 128px) calc(var(--noise, 0) * 128px)",
-      backgroundBlendMode: "overlay",
-      // The opt-in surface also adopts the UI typeface, so a theme's `--font-sans`
-      // override reaches the whole island (chrome, canvas, board) — never a host
-      // page you didn't opt into.
-      fontFamily: "var(--font-sans)",
-      // Anchor body text to @wizeworks/silicaui's 16px base. A themed surface IS the
-      // @wizeworks/silicaui context, so it establishes the standard reading size even when
-      // nested inside a denser host (e.g. the builder's 14px chrome) — the preview
-      // then matches a real page. `1rem` (not px) still tracks a raised UA
-      // default. Explicit `text-*` utilities (utilities layer) override per node.
-      fontSize: "1rem",
+      ...surface(),
     },
 
     // Flatten motion in one place for users who ask for it.

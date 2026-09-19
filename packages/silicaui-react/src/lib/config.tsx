@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { assertPluginPresent } from "./assert-plugin";
+
 /**
  * Runtime configuration shared by all Silica React components.
  *
@@ -40,6 +42,12 @@ export function SilicaProvider({ prefix = "", children }: SilicaProviderProps) {
 
 /** Read the full Silica config from context (defaults to `{ prefix: "" }`). */
 export function useSilicaConfig(): SilicaConfig {
+  // Every Silica component builds its class names through this hook or through
+  // `useSilicaClass` below, so this pair is the one place that sees the whole
+  // component set — the right level to notice that the CSS plugin behind those
+  // class names was never loaded. Dev-only, fires once per page, no-op on the
+  // server. See ./assert-plugin.
+  assertPluginPresent();
   return React.useContext(SilicaConfigContext);
 }
 
@@ -50,6 +58,7 @@ export function useSilicaConfig(): SilicaConfig {
  * same conditional style the components already use.
  */
 export function useSilicaClass(): (name: string | false | null | undefined) => string | false | null | undefined {
+  assertPluginPresent(); // see useSilicaConfig above
   const { prefix } = React.useContext(SilicaConfigContext);
   return React.useCallback(
     (name) => (name ? `${prefix}${name}` : name),

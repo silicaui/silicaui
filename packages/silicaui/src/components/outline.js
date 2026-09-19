@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * Outline — a scroll-spy table of contents. A vertical rail (`.outline-list`'s
  * border) with one link per heading; the link nearest the active reading
@@ -42,7 +43,7 @@ export function outline(prefix = "") {
       transition: "color 0.15s ease, border-color 0.15s ease",
       "&:hover": { color: "var(--color-base-content)" },
       "&[data-active]": {
-        color: "var(--color-primary)",
+        color: inkOfRole("primary"),
         borderInlineStartColor: "var(--color-primary)",
         fontWeight: "600",
       },

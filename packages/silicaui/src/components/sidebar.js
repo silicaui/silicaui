@@ -129,10 +129,21 @@ export function sidebar(colors, prefix = "") {
       transition: "background-color 0.15s, color 0.15s",
       "&:hover": { backgroundColor: muted(6) },
     },
+    // A thumb is a different input from a mouse, so it gets a different minimum.
+    // The desktop density above is a deliberate design choice and is left exactly
+    // as it is — this only widens the target where the pointer is coarse, so a
+    // consumer's desktop sidebar does not move at all. 37px computed is under
+    // every published minimum (WCAG 2.5.5 AAA, Apple HIG 44pt, Android 48dp), and
+    // it matters most in a long list: the docs nav is 116 of these stacked.
+    // See docs/personas/issues/005.
+    "@media (pointer: coarse)": {
+      [sel("-item")]: { minHeight: "2.75rem" },
+    },
+
     [`${sel("-item")}[data-active="true"]`]: {
       backgroundColor:
         "color-mix(in oklab, var(--sidebar-accent, var(--color-primary)) 14%, transparent)",
-      color: "var(--sidebar-accent, var(--color-primary))",
+      color: "var(--sidebar-ink, var(--color-primary))",
     },
     [`${sel("-item")}[data-disabled="true"]`]: {
       opacity: "0.45",

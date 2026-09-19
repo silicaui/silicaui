@@ -39,7 +39,7 @@ export function wordmark(colors, prefix = "") {
 
     // The accented portion of the mark (e.g. "UI" in "Silica UI").
     [sel("-accent")]: {
-      color: "var(--wordmark-accent, var(--color-primary))",
+      color: "var(--wordmark-ink, var(--color-primary))",
     },
 
     // ---- Sizes -------------------------------------------------------------
