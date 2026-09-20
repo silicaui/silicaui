@@ -1,5 +1,449 @@
 # @wizeworks/silicaui-builder
 
+## 0.57.0
+
+### Minor Changes
+
+- 9accc71: The site builder, driven by someone who has never seen a developer tool: her work survives, her pages get real addresses, and the text she publishes is readable
+
+  Found by the P03 persona run — Marlene Okonkwo-Bright, 58, who has run a dance studio in
+  Leeds for 22 years, builds a seven-page site with an eleven-row class timetable, and
+  publishes it. Twenty-three defects, twenty-two fixed. What follows is what changes for
+  anyone building on these packages.
+
+  **Her work now survives the tab closing mid-sentence.** Inline editing held new
+  characters in a `contentEditable` and wrote them into the document only on blur or
+  Enter, and the draft store persists the _document_ — so the sentence being typed right
+  now lived nowhere durable. She typed a full sentence, the tab closed, and seven pages
+  came back without it. Both canvases now commit on `pagehide`/`visibilitychange` through
+  one shared hook, and both builders write through synchronously once the page is hiding,
+  so the ordering of those listeners cannot matter. A killed process still loses the
+  sentence in progress; the store's own header comment now states that limit instead of
+  promising otherwise.
+
+  **A page's address follows its name.** Renaming a page changed only its label, so a
+  seven-page site published as `/page-2` through `/page-7`. A derived slug now follows the
+  rename, and `slugify` drops apostrophes rather than turning them into separators —
+  `Marlene's story` is `/marlenes-story`, not `/marlene-s-story`, which reads as three
+  words one of which is the letter s.
+
+  **Deleting a page says what points at it.** `Editor.linksTo(slug, exceptPageId)` counts
+  links across every page, the frame and every symbol master, and the delete prompt uses
+  it: _"One link elsewhere on your site points at this page. It will be left pointing at
+  nothing."_ It counts, it does not block, and it stays silent when there is nothing to
+  say.
+
+  **Text meant to be read is no longer faded, and a table on a public page clears the type
+  floor.** Eleven places handed authors `text-base-content/70` on body copy — including
+  the Insert panel's **Text** item, so every paragraph anyone inserted started faded. All
+  eleven are solid ink. The Table item inserts `table table-lg` (16px cells) rather than
+  the bare 14px default, which is right for the dense admin grids the component is mostly
+  used for and wrong for a class timetable parents read. `.table`'s own default is
+  unchanged.
+
+  **A pasted date is parsed or refused, never invented.** `2026-12-18` pasted into a date
+  field became **10/12/2186**: digit groups were mapped by the locale's display order
+  (ISO is year-first in every locale), and "a `Date` constructed" was used as the validity
+  test, which it is not — `new Date(2018, 2025, 12)` is a perfectly good date in 2186. ISO
+  input is now hand-parsed with no `Date` involved, every route is range-checked against
+  the real length of the month, and anything that fails returns null instead of a
+  plausible wrong year.
+
+  **Other builder repairs from the same run:** the left rail can no longer be dragged
+  narrower than its own tabs; 33 components that arrived as machine keys (`AvatarGroup`,
+  `FieldsetLegend`) read as English; a table's three nested "Table" rows in the Navigator
+  are distinguishable; Undo names what it is about to take back (_"Undo — remove an
+  element"_); a reload lands on the page she was editing with her selection intact; the
+  link field offers her own pages instead of asking her to type an address from memory;
+  duplicating a table column keeps every row the same width; a locked node is no longer
+  draggable on the canvas, matching the Navigator and the locking spec; and naming a page
+  returns focus to the button that opened the field instead of dropping it on
+  `document.body`, which left a keyboard user restarting from the top of the document.
+
+  **`@wizeworks/silicaui`:** a tab panel is in the tab order (`tabindex="0"`) and had
+  `outline: none`, so Tab moved focus and nothing on screen changed. `.tabs-panel` now
+  carries the same ring `.tabs-tab` already had, under `:focus-visible` only — so it
+  appears for the keyboard arrival and not for a click, which is what the original rule
+  was protecting.
+
+  **`@wizeworks/silicaui-react`:** the colour picker's hex field had no accessible name;
+  it now points at the visible "HEX" label.
+
+  The artifact is in `docs/personas/artifacts/p03-bright-step-studio/` — seven pages
+  served under a strict CSP with no `'unsafe-inline'`, built by driving the real builder,
+  with 0 text runs under WCAG AA and 0 console errors.
+
+- 9accc71: The email builder now says an email has a subject, from the first moment
+
+  Getting to the subject took knowing that a tree row called "Email" is the
+  document, and that document fields live behind its Settings tab. Both are true
+  and neither is guessable — and **until you knew them, nothing on screen mentioned
+  a subject line at all.** It is the single most consequential string in an email
+  and the most likely first thing anybody writes.
+
+  There is a slim bar above the canvas now, where every mail client puts it,
+  reading `Subject` and then the subject.
+
+  **It is a read-out, not a second field,** and that is a decision rather than a
+  shortcut. The toolbar already carried a written ruling against a second copy, and
+  a second copy would have had a real bug in it: the field's editor seeds its local
+  state at mount and never re-syncs, so two of them on one value would drift apart
+  inside a session and the last one blurred would win. One value, two views, one
+  editor.
+
+  Clicking it **moves the Inspector's tab as well as the selection.** Selecting the
+  root without asking for Settings lands you on Design, which is the right rail and
+  the wrong page of it — most of the original problem over again.
+
+  And the empty state says what is missing: _"No subject yet — most people write
+  this first"_, rather than rendering as a slightly shorter line of nothing. An
+  email with no subject is the one that goes out wrong.
+
+  Alongside it, the builders' left rail is **288px** rather than 240px. Its tab
+  strip had three pages (Layers, Insert, Find) and 236px of tabs, so at 240px it
+  paged at every width — which put **Find** behind an arrow, the one tab whose
+  entire purpose is that you can see it without knowing it is there. The email
+  builder had been doing this since its own Find shipped; both are fixed.
+
+- 9accc71: The email builder, driven by someone who sends a newsletter to 4,100 people every Thursday: the same email again for another shop, one word changed everywhere at once, a broken link he can see, and an email that fits a phone
+
+  Found by the P04 persona run — Reuben Halloway, 36, marketing lead at a three-shop
+  independent bookshop in Bristol, who builds his weekly newsletter, duplicates it for
+  three shops, gets the offer code wrong, and sends it. Sixteen defects, all fixed. What
+  follows is what changes for anyone building on these packages.
+
+  **An email can be copied.** The template switcher could add one and delete one, so the
+  second version of an email that already existed had to be built again from a starter and
+  retyped word for word — and one send per shop, per region, per language, per list is the
+  ordinary shape of the job, not an edge case. `EmailEditor.duplicateTemplate(id)` and a
+  Duplicate button in the switcher. The copy gets fresh node ids throughout, so editing one
+  never reaches into the other, and it _keeps_ its locks: unlike duplicating a single node,
+  the copy IS the same email for another audience, and a footer the host pinned into the
+  original belongs in it just as much.
+
+  **And so can a page.** The identical gap sat in the site builder's Pages panel.
+  `Editor.duplicatePage(id)`, same Duplicate button, with one difference that matters — the
+  copy's address is derived from its new name rather than copied, because two pages cannot
+  share a route.
+
+  **You can find a word across every email in a project, and change it everywhere in one
+  press.** The offer code went out wrong and sat in twelve places — four per email, three
+  emails — and _six of the twelve were on no screen the author was looking at_: the subject
+  and preview text live behind a tree row, and the code in a button's link is invisible on
+  the canvas. There was nothing at all for finding a word. There is now a Find page on the
+  left rail. It searches every template, including the fields that are not on screen, it
+  says how many places before you start, and Change-all is one undo step however many it
+  touched. The search is exact text including capitals, it never matches inside markup
+  (a replace of "a" must not rewrite `<a href>`), and it never touches colours, sizes or
+  class names.
+
+  **A merge token nothing resolves is marked on the canvas.** The site canvas has outlined
+  an unresolvable reference for a long time; the email canvas did not. The cost showed on
+  the first real send: the shipped newsletter starter's own footer carries
+  `<a href="{{unsubscribeUrl}}">Unsubscribe</a>`, no host declared that reference, and a
+  whole newsletter was written, reviewed and composed with no warning anywhere — leaving
+  every subscriber an unsubscribe link pointing at the literal characters. Same dashes,
+  same warning colour, same `data-sui-unresolved` hook as the site canvas.
+
+  **Emails fit a phone.** Every email this projector produced was 600px wide on a 360px
+  screen. The mobile rule fired and stacked the columns; the body stayed 600px, so a phone
+  either shrank the whole message to 60% — a 14px footer arriving at about 8px — or scrolled
+  sideways. `max-width:100%` on a fixed-pixel element inside an auto-layout table looks like
+  responsiveness and does nothing, because the percentage resolves against a containing
+  block that is sized by its own content. Images are now fluid up to the size the author
+  chose, the body table is fluid with a `max-width`, Outlook gets a real 600px shell through
+  a conditional comment, and the media query narrows the body as well as the columns.
+
+  **A stock button is big enough to press.** 16px of label in an 18px line box with 8px of
+  padding is 34px tall — under the 44px minimum a thumb reliably hits. The padding default
+  was written out in three places; it is one exported constant now, and it is 14.
+
+  **The email projector will not emit a URL it would not follow.** It escaped every URL and
+  checked none of them, so the formatting bar's Link button — which builds a real anchor out
+  of whatever it is handed — put `javascript:` straight into the document and out into the
+  composed email. Harmless in an inbox; live script on the "view in browser" page, which is
+  the sender's own domain. `isSafeUrl` is now exported from `@wizeworks/silicaui-html` (it
+  already handled `" javascript:"`, a newline inside the scheme, and the relative path that
+  merely contains a colon) and runs on all nine URLs the email projector writes. An unsafe
+  anchor inside a text block loses its href and keeps its words. The Link button refuses one
+  up front, in plain English, rather than letting an author believe they made a link that
+  quietly is not one.
+
+  **The builder's own labels are readable ink.** Eleven `text-base-content/70` fades on text
+  a person reads to operate the email builder — every Inspector field label, every group
+  heading, the empty state, the breadcrumb, the canvas hints. Not a contrast failure, but a
+  fade used as a default is exactly what the rule exists to stop. Icons, the breadcrumb
+  separator and the attribution mark keep theirs.
+
+  **`pnpm verify` now fails on a raw control character in source.** While fixing the URL
+  guard, a regex that read `/<a\b…/` turned out to contain a literal backspace byte where
+  the word-boundary escape was meant — and two more of them sat inside a live test
+  assertion, where `!regex.test(html)` had been unconditionally true since the day it was
+  written. A check that cannot fail is worse than no check. The new scan found two further
+  cases the hand sweep missed, one of them in a shipped React component and one in the scan
+  itself.
+
+- 9accc71: The embed seam, driven by the engineer who has to put this inside their own product: a block their customer must not be able to touch, two people in one page, a van that loses signal, and a published page that needs nothing running
+
+  Found by the P05 persona run — Arvid Lindqvist, 27, platform engineer at a
+  four-person B2B SaaS in Malmö, who builds the whole integration from
+  `docs/builder-contract.md` and nothing else, then tries everything the contract
+  says not to. Seven defects, all fixed.
+
+  **A pinned block could be copied out of its own lock.** `HostComponentDef.pinned`
+  stamps a host lock the author cannot clear — and `duplicate()` cleared it, on the
+  reasoning that a copy is author-owned. One Ctrl+D put an unlocked copy of a
+  legally-owned compliance certificate on the page. A host lock now survives
+  duplication; an author's own lock still clears, because that one is theirs.
+
+  **The escape hatch the locking spec pointed at did not exist.** The spec says a
+  host that wants a read-only region "withholds inspector controls", but
+  `validateClass` had the signature `(cls: string)` — it saw a class string and not
+  a tree, so a host protecting ONE block could only ban `hidden` everywhere or
+  nowhere. `ClassValidator` now receives the node (optional, `unknown`, so no
+  existing validator changes), and every write path routes through it.
+
+  **Two windows given the same document did not hold the same document.** A site
+  with no frame gets a default one, materialized independently in each window with
+  minted ids — so a frame op relayed between two people was dropped while a page op
+  from the same batch landed, silently and forever. Defaults the editor conjures
+  are now deterministic, and `replaceState` establishes the same invariants the
+  constructor does instead of leaving Layout mode showing the page.
+
+  **The Layers tree moved one row and stuck.** A treeitem lives inside a treeitem,
+  so the row's keydown handler was bound on every ancestor and a bubbling ArrowDown
+  ran once per level: the child moved focus forward, the parent moved it straight
+  back. Every row below the first child was unreachable by keyboard — and the
+  canvas has no tab stops, so the tree is the only keyboard route to a selection. A
+  flat tree has no ancestor row, which is how this survived every test it had.
+
+  **Nothing pretends any more.** Delete on a locked node is disabled with the
+  reason on it instead of being a live button that does nothing, and the Design tab
+  says the host's own sentence back rather than swallowing a refusal.
+
+  **Every chip row in the Inspector is one tab stop.** Reaching the host's own
+  toolbar action took 142 tab presses with a node selected, because every chip in
+  every mutually-exclusive group was its own stop — one padding row cost thirteen.
+  The builder's tab strips already did this correctly; one shared wrapper brings
+  the roving tabindex to all six components that render chip and swatch rows.
+  142 → 34.
+
+  **Two builders on one page no longer fight over one rail width**, and
+  `BuilderHandle` gained `extract()` — the document on demand, which
+  `builder-contract.md` §10 had listed as part of the minimal buildable surface all
+  along and was the one item the handle did not have.
+
+  `docs/builder-contract.md` gains **§4.1 Mounting it in your app** (React dedupe,
+  the `@source` lines, the studio theme) and **§5.2 Publish — the page a visitor
+  gets**, which says the thing nothing said before: `renderHostNode` is a canvas
+  hook, a host node ships as an empty `data-sui-host` mount point, and filling it
+  is the host's job. Follow the old contract exactly and you published a page with
+  holes where the most important blocks were, valid, 200, and silent.
+
+- 9accc71: The builder threw away its own controls as the window narrowed, Publish first — at 1024px, which is a half-width browser window and not a phone
+
+  Found by P03's deferred 360px pass — Marlene Okonkwo-Bright, a dance teacher with a
+  phone, run as act 10 after the original nine acts were scored at 1280px in light.
+  Four defects, all fixed.
+
+  **The toolbar clipped its own right-hand end.** One flex row, no wrap, no
+  overflow, no width behaviour of any kind. Once the spacer between its two
+  clusters ran out the right cluster simply continued past the edge of the window
+  and was clipped by an ancestor. Nothing scrolled — a wheel event with deltaX 400
+  over it moved it 0px — and nothing said a control was gone:
+
+  ```
+  1280px  lost 0
+  1024px  lost 1  Publish
+   768px  lost 3  Light, Dark, Publish
+   360px  lost 9  Undo, Redo, …, Publish, Settings
+  ```
+
+  **And Publish is the only way to publish.** One call site in the package, and it
+  is that button. So the work was done and could not be shipped, with the screen
+  giving no reason: a control that was there at the last width and is absent at
+  this one reads exactly like a control that never existed.
+
+  Two changes, both at the shared point so both builders get them. `IconItem` now
+  collapses its label on a **container** query — the builder embeds, so its own box
+  is the right thing to measure and the viewport is not — with per-group priority,
+  because a sun and a moon need no caption and a box meaning "Component" does;
+  those four carry a tooltip naming the consequence instead. And the header
+  **wraps**, which is what makes "nothing is ever silently dropped" true at every
+  width rather than true down to a width somebody tested. `aria-label` carries the
+  word whether or not it is painted.
+
+  **Below 600px the canvas was 64px wide.** Two rails with pixel floors — 240px and
+  256px, put there deliberately because a percentage floor once made the left rail
+  164px and "Layers" rendered as "Lay" — against a canvas with no floor at all. The
+  rails' floors are right; what was wrong is that three panes stayed three panes at
+  every width, so the 496px came out of the page being edited. A 64px canvas is not
+  an error state or an empty state; it renders as a working screen.
+
+  Below 900px the rails now collapse and the canvas takes the width, with two
+  toolbar toggles bringing one back over the page. The rails keep their pixels and
+  stop taking them from the page:
+
+  ```
+            before     after
+   768px     253px  ->  747px
+   600px      85px  ->  579px
+   360px      64px  ->  339px
+  ```
+
+  Wide mode renders exactly what it rendered before, which is why the builder's 217
+  end-to-end tests keep testing the same thing.
+
+  **`ResizablePanel` documented an imperative `ref` it never forwarded.** Its own
+  comment listed `ref` among the passthroughs. It was a plain function component and
+  `PanelProps` never declared one, so on React 18 the ref was stripped and
+  `.collapse()` was a silent no-op, and on React 19 — where it would have worked —
+  the type checker rejected it. The peer range is `react: ">=18"`, so there was no
+  version on which the documented API could be used. Now `forwardRef`.
+
+  **And the site builder's toolbar printed a `⌘ /` hint with nothing listening.**
+  The email builder has Find and prints no hint; the site builder printed the hint
+  and has no Find. The claim is gone. The feature stays on the record where it
+  already was.
+
+- 9accc71: Find anywhere on a site — every page, the shared header and footer, and inside your saved components
+
+  The email builder has had Find for months. The site builder had none, and its
+  toolbar printed a `⌘ /` hint for it anyway — a shortcut nothing listened to, for
+  a feature that did not exist. The two were exactly the wrong way round: the one
+  that could search said nothing, and the one that said so could not.
+
+  A site hides text in **three** places no screen shows you:
+
+  | Where                        | Why you cannot see it                                                     |
+  | ---------------------------- | ------------------------------------------------------------------------- |
+  | The shared header and footer | On every page, belonging to none — a different tree, behind a mode switch |
+  | A saved component            | Two clicks away, and every instance changes together                      |
+  | The address behind a link    | Visible only once that exact link is selected                             |
+
+  A phone number, a price, an opening time or a campaign URL is in all four places
+  at once — a card, the header, the contact page, and behind a button — and three
+  of those four are somewhere you are not looking. "Change it everywhere" meant
+  "remember everywhere", and the one you forget is the one a customer rings.
+
+  **The count at the top is the point.** It answers the question you cannot
+  otherwise answer — _how many places is this?_ — before you start, and it is the
+  same number the Change-all button acts on.
+
+  Scope is stated rather than discovered, and it is the email finder's, because the
+  reasons are the same: **exact text, capitals included** (a price, a date, a phone
+  number and a URL are all typed exactly); **only what a reader would see or
+  follow** — never class names, colours or sizes, because a replace that rewrote
+  `#18181b` for containing `18` would be a disaster; and **never inside markup**, so
+  a search for "a" cannot rewrite `<a href=…>` into nonsense.
+
+  Two things are deliberately not rewritten, so their absence is a decision. **A
+  page's slug is listed and left alone** — it is a route, and changing it breaks
+  every link that points at it and every bookmark a visitor has; the Change-all
+  button counts only what it will really touch, so its number and its work match. A
+  **binding reference** names the host's data, not your words.
+
+  Change-all crosses pages, the frame and saved components in **one undo step**,
+  stamping each edit with its own tree so a collaborator sees it as what it is.
+  Clicking a result switches tree first and then selects, because a hit in the
+  frame is on a surface you are not on and selecting into a closed tree would
+  silently do nothing.
+
+  **No keyboard hint went back.** Neither builder advertises a shortcut for Find,
+  which is the consistency the missing feature was really about.
+
+### Patch Changes
+
+- 9accc71: Sixty-nine of the builder's own labels were faded text, on words a person reads to operate it
+
+  RULE #3, in the repo's own words: never `soft`, `muted`, `/opacity` or a
+  `color-mix(…, transparent)` ink on anything a person is meant to READ. Faded text
+  is for text deliberately not meant to be read — a watermark, a disabled control,
+  a de-emphasised duplicate.
+
+  P04 found this in the email builder and fixed eleven. It counted **63 more in the
+  site builder and left them**, because those screens belonged to another persona's
+  run — which is the "a fix leaves its neighbour behind" shape, sitting in the
+  ledger with a number against it. That run is complete, so the neighbour is done.
+  By then the count had grown to **69**.
+
+  ```
+  57  ->  the real ink token
+  12  ->  deliberately left faded
+  ```
+
+  The twelve are the cases the rule names: eight icons, three icon-only controls,
+  and the `silicaui` attribution mark that restores on hover. Three more needed a
+  decision rather than a rule — the Inspector's `hidden (visible: false)` and
+  `empty` markers, which are the ONLY thing on the row when a bound value is
+  missing and are therefore the last text that should be hard to read; and two
+  `<code>` tokens inside an explanatory line, which would otherwise have ended up
+  fainter than the prose around them.
+
+  **This was never a contrast failure and is not being sold as one.** `/70` reads
+  at 4.77:1 at its worst across all 120 shipped theme-and-mode combinations —
+  `verify-chrome-ink.mjs` has guarded that since P03's earlier run. It was a rule
+  breach, and the rule is about whether fading is doing work, not about whether
+  people can squint.
+
+  Confirmed by reading what is **painted** rather than what was typed: every leaf
+  element in the chrome, its computed colour pushed through a canvas so the number
+  is real sRGB bytes. Four inks, all at full alpha, in both themes — the readable
+  ink, the inverse ink on filled controls, primary on the selected crumb, and error
+  on "Delete". Hierarchy from scale, weight and colour, which is what the rule asks
+  for instead.
+
+- 9accc71: Every image in the site Navigator was one row saying "Image", and a separator that announced a floor it went straight through
+
+  **Images now name themselves.** The site Navigator's rule is written in its own
+  source — _"the layer name if the author set one, else the words the node actually
+  holds, else the name it declares, else its type. **Content leads** because that
+  is what a person recognizes when scanning"_ — and the "name it declares" step
+  read `aria-label` and nothing else. An `<img>` has no text child and rarely has
+  `aria-label`, so every image in a tree fell through to its type: eleven rows
+  naming their content and a twelfth saying `Image`, which was the only one whose
+  alt text had been written to say what it is.
+
+  `alt` **is** an image's accessible name, which is exactly the argument that
+  function's own comment already made for `aria-label`. The email Navigator fixed
+  this months ago and quoted the site file while doing it; this is the neighbour it
+  left behind.
+
+  **And a separator no longer declares a minimum it can go past.** Making the rails
+  collapsible walked into an upstream bug: `react-resizable-panels` derives a
+  separator's range from the neighbour's `minSize` and never reads `collapsedSize`,
+  so pressing `Home` parked the rail at 0 while the separator still announced a
+  minimum of 12 — invalid, and on the desktop layout, where nothing had asked for
+  it.
+
+  Fixed at the source of the lie rather than by patching the attribute:
+  `collapsible` is on only at the width that needs it, so the wide layout is
+  byte-identical to what it was, and `minSize` is 0 alongside it because at that
+  width the rail really can be nothing. That makes the declared minimum **true**
+  rather than merely consistent — the distinction that decides whether a wrapper
+  should paper over an upstream bug or leave it alone.
+
+  The 240px rail floor is untouched: it is held by a pixel `min-width` while the
+  rail is shown, which is what was doing the work all along.
+
+  Also: the `silicaui` mark in the status bar is a link, and it was 52×16 — under
+  WCAG 2.2 SC 2.5.8's 24px minimum. It is 52×24 now, inside the same 28px bar.
+
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+- Updated dependencies [9accc71]
+  - @wizeworks/silicaui-html@0.57.0
+  - @wizeworks/silicaui@0.57.0
+  - @wizeworks/silicaui-panels@0.57.0
+
 ## 0.56.0
 
 ### Patch Changes

@@ -1,5 +1,150 @@
 # @wizeworks/silicaui-panels
 
+## 0.57.0
+
+### Patch Changes
+
+- 9accc71: The five opt-in packages, driven by an engineer who reads `package.json` before the README and measures everything he is told: five engines on one screen, a keyboard instead of a mouse, a wall screen and a phone
+
+  Found by the P07 persona run — Hiroshi Tanabe, 41, data-platform engineer at a
+  logistics analytics firm in Yokohama, whose users read the dashboard on a wall
+  screen in a dark operations room all night and on a phone over a ship's satellite
+  link. Ten acts, thirteen defects, all fixed.
+
+  **"Kept out of core so it stays lean" is true again.** Everything Silica wrote
+  across all five opt-in packages weighs **29.6 kB** in a real build — a
+  `SortableList`, a `DataTable`, a `RichTextEditor`, a `Chart` and a
+  `ResizablePanelGroup` together, for less than a third of what `react` alone costs
+  — and their CSS adds 0.5 kB gzipped. The claim was true about the design and false
+  about the artifact when this run opened: one `Button` cost 301 kB because
+  `silicaui-react` shipped as a single pre-bundled file no consumer's bundler could
+  tree-shake. Fixed in act 1; 538 kB of JavaScript became 234 kB.
+
+  **A refresh moved the selection to a different ship and told the app it had
+  not.** `DataTable` never set `getRowId`, so row selection was keyed by position in
+  the array. A fleet feed that drops a berthed vessel out of the middle shifts every
+  row after it — the tick then belonged to a row number, not a ship. And the
+  `onSelectionChange` effect did not depend on `data`, so the caller went on holding
+  the row objects it was handed before the refresh, with a delay figure the table
+  itself no longer showed. Rows with an `id` are identified by it now; a new
+  `getRowId` prop covers data whose identity is something else.
+
+  **A shipping line was painted the colour of a critical delay.** An earlier fix in
+  this run spread the chart palette across the whole hue wheel, which runs straight
+  through the reds and the ambers where `success`, `warning` and `error` live — five
+  degrees from the theme's own "this is critical" red. The palette now reads the
+  reserved hues out of the theme and spreads over what is left, and dropped from
+  eight colours to six, because eight across the remaining arc is 28 degrees apart
+  and only three degrees above the bar. A seventh series repeating the first is the
+  better failure: obviously wrong beats quietly confusable.
+
+  **Twenty-seven controls wore the browser's focus ring instead of the system's.**
+  `.rich-text-editor-btn` had no `:focus-visible` rule, so it fell back to
+  `outline-style: auto` — a value nothing in this codebase authors. Sweeping all 116
+  component pages found the same thing on 26 more, across 17 families: carousel
+  arrows and dots, number-field steppers, power-search chips, the tree toggle, the
+  dropzone, wizard steps, dock items, the sidebar trigger, chip removes, the outline
+  link, the diff resizer, range, stack and wordmark. All 27 now draw the system's
+  ring, in the theme's colour, at the system's width. (Chromium adapts its own ring,
+  so these were visible — this is consistency, not an accessibility failure, and the
+  issue says so.)
+
+  **A `-content` colour you write yourself was never checked.** The engine measures
+  the ink it derives for you and accepted without a glance the ink you picked by
+  eye — which is the one more likely to be wrong. A hand-authored
+  `--color-error-content` measured 3.22:1 on its own `--color-error`, on the badge
+  that says a ship is in serious trouble. The theme plugin now measures every
+  declared pair and names both the number and the way out: _"black measures 6.14:1
+  here"_.
+
+  **`SortableList` paints a row and a drag handle, and said so nowhere.** Following
+  its README produced a bordered box inside a bordered box whose contents fell 258px
+  short of a 467px row, and a hand-rolled grip with no focus ring — because
+  `.sortable-handle` exists, is prefix-dependent, and was not mentioned in the
+  README, the props table or the types. `ctx.handleProps` carries the handle's class
+  now, a single wrapper fills its row, `itemClassName` reaches the `<li>`, and the
+  README describes the component.
+
+  **Reordering without a mouse announced the database key.** _"Draggable item
+  v-santa-catarina was moved over droppable area v-5"_ was the entire feedback
+  channel for someone who cannot see the list move. A new `getItemLabel` gives the
+  announcements a name and a position: _"MV Santa Catarina do Sul Navegação Costeira
+  moved to position 2 of 9."_ The grip itself went from 45% ink to 65% — 2.88:1 to
+  5.31:1 in the light theme.
+
+  **And the smaller ones.** The resize divider moved 10% of the screen per arrow
+  press, leaving a keyboard user six positions in the whole range; it is 1% now, and 51. A numeric column could not put its header over its numbers — `meta.align`
+  moves both. The sort control was 20px tall. The chart's tooltip ran off the edge
+  of a 278px chart and took the series names with it; it is confined. The table now
+  sets `aria-busy` while it loads, and its `sortable` doc describes what it actually
+  does.
+
+- 9accc71: The builder threw away its own controls as the window narrowed, Publish first — at 1024px, which is a half-width browser window and not a phone
+
+  Found by P03's deferred 360px pass — Marlene Okonkwo-Bright, a dance teacher with a
+  phone, run as act 10 after the original nine acts were scored at 1280px in light.
+  Four defects, all fixed.
+
+  **The toolbar clipped its own right-hand end.** One flex row, no wrap, no
+  overflow, no width behaviour of any kind. Once the spacer between its two
+  clusters ran out the right cluster simply continued past the edge of the window
+  and was clipped by an ancestor. Nothing scrolled — a wheel event with deltaX 400
+  over it moved it 0px — and nothing said a control was gone:
+
+  ```
+  1280px  lost 0
+  1024px  lost 1  Publish
+   768px  lost 3  Light, Dark, Publish
+   360px  lost 9  Undo, Redo, …, Publish, Settings
+  ```
+
+  **And Publish is the only way to publish.** One call site in the package, and it
+  is that button. So the work was done and could not be shipped, with the screen
+  giving no reason: a control that was there at the last width and is absent at
+  this one reads exactly like a control that never existed.
+
+  Two changes, both at the shared point so both builders get them. `IconItem` now
+  collapses its label on a **container** query — the builder embeds, so its own box
+  is the right thing to measure and the viewport is not — with per-group priority,
+  because a sun and a moon need no caption and a box meaning "Component" does;
+  those four carry a tooltip naming the consequence instead. And the header
+  **wraps**, which is what makes "nothing is ever silently dropped" true at every
+  width rather than true down to a width somebody tested. `aria-label` carries the
+  word whether or not it is painted.
+
+  **Below 600px the canvas was 64px wide.** Two rails with pixel floors — 240px and
+  256px, put there deliberately because a percentage floor once made the left rail
+  164px and "Layers" rendered as "Lay" — against a canvas with no floor at all. The
+  rails' floors are right; what was wrong is that three panes stayed three panes at
+  every width, so the 496px came out of the page being edited. A 64px canvas is not
+  an error state or an empty state; it renders as a working screen.
+
+  Below 900px the rails now collapse and the canvas takes the width, with two
+  toolbar toggles bringing one back over the page. The rails keep their pixels and
+  stop taking them from the page:
+
+  ```
+            before     after
+   768px     253px  ->  747px
+   600px      85px  ->  579px
+   360px      64px  ->  339px
+  ```
+
+  Wide mode renders exactly what it rendered before, which is why the builder's 217
+  end-to-end tests keep testing the same thing.
+
+  **`ResizablePanel` documented an imperative `ref` it never forwarded.** Its own
+  comment listed `ref` among the passthroughs. It was a plain function component and
+  `PanelProps` never declared one, so on React 18 the ref was stripped and
+  `.collapse()` was a silent no-op, and on React 19 — where it would have worked —
+  the type checker rejected it. The peer range is `react: ">=18"`, so there was no
+  version on which the documented API could be used. Now `forwardRef`.
+
+  **And the site builder's toolbar printed a `⌘ /` hint with nothing listening.**
+  The email builder has Find and prints no hint; the site builder printed the hint
+  and has no Find. The claim is gone. The feature stays on the record where it
+  already was.
+
 ## 0.56.0
 
 ## 0.55.0

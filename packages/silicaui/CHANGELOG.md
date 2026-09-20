@@ -1,5 +1,425 @@
 # @wizeworks/silicaui
 
+## 0.57.0
+
+### Minor Changes
+
+- 9accc71: The five opt-in packages, driven by an engineer who reads `package.json` before the README and measures everything he is told: five engines on one screen, a keyboard instead of a mouse, a wall screen and a phone
+
+  Found by the P07 persona run — Hiroshi Tanabe, 41, data-platform engineer at a
+  logistics analytics firm in Yokohama, whose users read the dashboard on a wall
+  screen in a dark operations room all night and on a phone over a ship's satellite
+  link. Ten acts, thirteen defects, all fixed.
+
+  **"Kept out of core so it stays lean" is true again.** Everything Silica wrote
+  across all five opt-in packages weighs **29.6 kB** in a real build — a
+  `SortableList`, a `DataTable`, a `RichTextEditor`, a `Chart` and a
+  `ResizablePanelGroup` together, for less than a third of what `react` alone costs
+  — and their CSS adds 0.5 kB gzipped. The claim was true about the design and false
+  about the artifact when this run opened: one `Button` cost 301 kB because
+  `silicaui-react` shipped as a single pre-bundled file no consumer's bundler could
+  tree-shake. Fixed in act 1; 538 kB of JavaScript became 234 kB.
+
+  **A refresh moved the selection to a different ship and told the app it had
+  not.** `DataTable` never set `getRowId`, so row selection was keyed by position in
+  the array. A fleet feed that drops a berthed vessel out of the middle shifts every
+  row after it — the tick then belonged to a row number, not a ship. And the
+  `onSelectionChange` effect did not depend on `data`, so the caller went on holding
+  the row objects it was handed before the refresh, with a delay figure the table
+  itself no longer showed. Rows with an `id` are identified by it now; a new
+  `getRowId` prop covers data whose identity is something else.
+
+  **A shipping line was painted the colour of a critical delay.** An earlier fix in
+  this run spread the chart palette across the whole hue wheel, which runs straight
+  through the reds and the ambers where `success`, `warning` and `error` live — five
+  degrees from the theme's own "this is critical" red. The palette now reads the
+  reserved hues out of the theme and spreads over what is left, and dropped from
+  eight colours to six, because eight across the remaining arc is 28 degrees apart
+  and only three degrees above the bar. A seventh series repeating the first is the
+  better failure: obviously wrong beats quietly confusable.
+
+  **Twenty-seven controls wore the browser's focus ring instead of the system's.**
+  `.rich-text-editor-btn` had no `:focus-visible` rule, so it fell back to
+  `outline-style: auto` — a value nothing in this codebase authors. Sweeping all 116
+  component pages found the same thing on 26 more, across 17 families: carousel
+  arrows and dots, number-field steppers, power-search chips, the tree toggle, the
+  dropzone, wizard steps, dock items, the sidebar trigger, chip removes, the outline
+  link, the diff resizer, range, stack and wordmark. All 27 now draw the system's
+  ring, in the theme's colour, at the system's width. (Chromium adapts its own ring,
+  so these were visible — this is consistency, not an accessibility failure, and the
+  issue says so.)
+
+  **A `-content` colour you write yourself was never checked.** The engine measures
+  the ink it derives for you and accepted without a glance the ink you picked by
+  eye — which is the one more likely to be wrong. A hand-authored
+  `--color-error-content` measured 3.22:1 on its own `--color-error`, on the badge
+  that says a ship is in serious trouble. The theme plugin now measures every
+  declared pair and names both the number and the way out: _"black measures 6.14:1
+  here"_.
+
+  **`SortableList` paints a row and a drag handle, and said so nowhere.** Following
+  its README produced a bordered box inside a bordered box whose contents fell 258px
+  short of a 467px row, and a hand-rolled grip with no focus ring — because
+  `.sortable-handle` exists, is prefix-dependent, and was not mentioned in the
+  README, the props table or the types. `ctx.handleProps` carries the handle's class
+  now, a single wrapper fills its row, `itemClassName` reaches the `<li>`, and the
+  README describes the component.
+
+  **Reordering without a mouse announced the database key.** _"Draggable item
+  v-santa-catarina was moved over droppable area v-5"_ was the entire feedback
+  channel for someone who cannot see the list move. A new `getItemLabel` gives the
+  announcements a name and a position: _"MV Santa Catarina do Sul Navegação Costeira
+  moved to position 2 of 9."_ The grip itself went from 45% ink to 65% — 2.88:1 to
+  5.31:1 in the light theme.
+
+  **And the smaller ones.** The resize divider moved 10% of the screen per arrow
+  press, leaving a keyboard user six positions in the whole range; it is 1% now, and 51. A numeric column could not put its header over its numbers — `meta.align`
+  moves both. The sort control was 20px tall. The chart's tooltip ran off the edge
+  of a 278px chart and took the series names with it; it is confined. The table now
+  sets `aria-busy` while it loads, and its `sortable` doc describes what it actually
+  does.
+
+- 9accc71: `md` is 16px now. It meant 14px in a button, 13px in a toggle-group and 12px in a badge, and nobody chose that
+
+  **This changes how every sized component looks.** Read the migration note at the
+  bottom before upgrading.
+
+  Root `CLAUDE.md` RULE #3 says the body floor is 16px. Measured across every
+  component module, counting only DEFAULTS — the size you get without asking for
+  anything — **132 rules were under it, across 72 components**, including the base
+  rule of `.btn`, `.input`, `.select`, `.textarea`, `.table`, `.alert`, `.toast`,
+  `.badge`, `.tooltip`, `.tabs-tab`, `.menu` and `.label`. The system's default
+  control size was 14px.
+
+  And the ladders disagreed with each other. Sixteen components hardcoded their
+  own, and there were **nine different ladders** among them, so `md` meant
+  something different depending on which component you were looking at. Nothing
+  could see it: a font size is an ordinary literal in a module, and no two modules
+  are read together.
+
+  ## What changed
+
+  One ladder, declared once in `src/component-type.js`:
+
+  ```
+  xs  0.75rem   12
+  sm  0.875rem  14
+  md  1rem      16   ← the floor, and the default
+  lg  1.125rem  18
+  xl  1.25rem   20
+  ```
+
+  146 rules across 56 components: 14 ladders re-based, 83 other rules raised to the
+  floor. `prose`, `pin-input` and `wordmark` keep their own ladders, by name and
+  with reasons, because theirs already start at or above the floor.
+
+  A probe holds it: every default must clear 16px, **and** every size variant must
+  match the shared ladder — because without the second rule `md` drifts back one
+  component at a time while the first still passes.
+
+  ## Migrating
+
+  **Everything gets one step bigger by default.** If a screen was laid out around
+  14px controls, the fix is one prop:
+
+  ```tsx
+  <Button>Save</Button>            // was 14px, is now 16px
+  <Button size="sm">Save</Button>  // 14px, as before
+  ```
+
+  The same applies to `Input`, `Select`, `Textarea`, `Table`, `Alert`, `Badge`,
+  `ToggleGroup`, `FileInput`, `MultiSelect`, `SegmentField` and `TagInput`. Where
+  you relied on the old default, ask for `sm`.
+
+  If you had already written `size="lg"` to reach 16px, that is now 18px — drop the
+  prop.
+
+- 9accc71: Measure a declared colour's ink instead of guessing it, and repair five controls that were smaller than WCAG's minimum target.
+
+  **The colour engine now uses the value it already holds.** `theme("color")` hands the
+  Tailwind plugin each registered colour's VALUE, and a `@plugin ".../theme"` block
+  hands it over even more directly — yet both fell through to a CSS lightness rule that
+  cannot compare contrast. For roughly 2.3% of the colour space that rule picks the
+  failing ink while a passing one sits unused (4.28:1 where white gives 4.91:1). A
+  theme block now substitutes the measured ink, but **only** where the rule's pick is
+  below AA, so every other emitted token is byte-identical to before. A colour declared
+  in `@theme` is warned about instead of rewritten, because it is global and an ink
+  emitted at `:root` would outlive any theme that later re-declares the colour.
+
+  Two further silences are now named at build time: a role whose TEXT form cannot be
+  read on its own surface (`text-<role>`, `link-<role>`, `btn-<role>-ghost`), and a
+  value that is not a parseable colour at all — which previously emitted every class
+  and painted a fill the browser discards, with no message anywhere. All of this is
+  silent on the twenty shipped presets in both modes.
+
+  **Five controls were under WCAG 2.2 SC 2.5.8's 24 x 24 px minimum** — the chip
+  removes in `TagInput`, `MultiSelect` and `PowerSearch`, the `Carousel` dot and the
+  `TreeView` toggle. Each keeps its drawn size and gains a full-size hit area, so
+  nothing redraws. The carousel's indicator gap widened from `0.4rem` to `1rem` because
+  neighbouring hit areas were overlapping by 9.6px.
+
+  **Contrast repairs found alongside them:** `TagInput` and `MultiSelect` chips painted
+  the raw role colour as text (2.78:1 in light) where the identical rule in
+  `PowerSearch` already used the derived ink (6.42:1); an inactive `Carousel` dot used
+  `--color-base-300`, the darkest surface in BOTH modes, so it measured 1.96:1 against
+  a dark page. Five more rules painting a raw role as text were found in
+  `CommandPalette`, `DataTable`, `SegmentField` and `Stat` once the guard meant to
+  catch them was widened to see the accent-variable idiom the components actually use.
+
+  `@wizeworks/silicaui-html`'s `contrastRatio` now quantises to 8 bits before
+  measuring, matching what a screen receives — it was off by up to 0.09, though this
+  changes no verdict across all 320 shipped token pairs.
+
+  `@wizeworks/silicaui-react`: the fifteen portalled components that never mentioned it
+  now carry the note that a popup leaves its `[data-theme]` island, and how to bring it
+  back. Documentation only, no behaviour change.
+
+- 9accc71: A real daisyUI migration, run end to end by a developer with low vision and a keyboard habit: what it costs, what is a drop-in, and the one thing that lets you do it a screen at a time
+
+  Found by the P09 persona run — Gordon Pike, 61, six years into maintaining a
+  fishing-tackle shop admin his daughter uses on an iPad while he works at 150%
+  zoom in dark. Eight screens, 2,400 products, 76 daisyUI classes across 28
+  component families, migrated in place. Ten acts, two defects, both fixed.
+
+  **`Steps` could only go across the page.** daisyUI has `steps-vertical`; Silica
+  had nothing — not a prop, not a class, and the CSS module's first line said so:
+  _"a horizontal progress tracker"_. Its neighbour `Stats` has had `vertical` since
+  it shipped, so the answer was yes for one component and no for the next with
+  nothing saying which. `<Steps vertical>` ships now, spelled the way `Stats`
+  spells it, and the colour variants needed no change because a connector is still
+  a connector after it has been turned ninety degrees.
+
+  **The site sold itself to daisyUI users and had nothing for them.** `"daisyUI
+alternative"` is in the site's own keywords, and searching the docs for
+  "daisyui", "migrate", "migration" or "daisy" returned **nothing at all** while
+  "button" returned Button. No page existed under any name. There is one now, and
+  every number in it came from the migration rather than from an estimate:
+
+  |                                      |                            |
+  | ------------------------------------ | -------------------------- |
+  | daisyUI classes in the app           | **76**, across 28 families |
+  | Replaced by a Silica component       | **74**                     |
+  | Silica components it took            | **45**                     |
+  | Lines of code                        | **730 → 819** (+12%)       |
+  | Components with no Silica equivalent | **1**, now fixed           |
+
+  **The section that goes first is the one about doing it gradually.** daisyUI and
+  Silica both own `.btn`, `.card`, `.table` and `.badge`, so "keep the old system
+  on one screen" is two stylesheets fighting — unless Silica is namespaced, which
+  it can be. A third app in the artifact loads **both plugins in one build** with
+  `prefix: sx-`, and the built stylesheet has 81 rules on `.btn`, 14 on `.sx-btn`,
+  and not one Silica class name without its prefix. A forty-screen app can be
+  migrated a screen at a time.
+
+  **What the migration does not change is the code.** Every `useState`, every
+  handler, every bit of filtering and paging in those eight screens is byte-for-byte
+  what it was on daisyUI. The diff is markup.
+
+  **And what it gives back.** Three of the five swaps that were not one-for-one
+  arrived with behaviour the app did not have: `AlertDialog` brought a focus trap,
+  a scroll lock, escape handling and focus return where `modal modal-open` had
+  none; `Tabs` brought arrow-key movement where a `tab-active` class the app
+  maintained itself had none; `Pagination` replaced three hand-rolled buttons with
+  numbered pages and the aria to match.
+
+  The guide publishes **no hours**, on purpose, and says so in those words: the
+  migration behind it was not done by a person at a keyboard, so a figure in hours
+  would be invented. What it publishes instead is the shape of the work — how many
+  call sites move, how many are mechanical, and which five need a decision.
+
+### Patch Changes
+
+- 9accc71: The site builder, driven by someone who has never seen a developer tool: her work survives, her pages get real addresses, and the text she publishes is readable
+
+  Found by the P03 persona run — Marlene Okonkwo-Bright, 58, who has run a dance studio in
+  Leeds for 22 years, builds a seven-page site with an eleven-row class timetable, and
+  publishes it. Twenty-three defects, twenty-two fixed. What follows is what changes for
+  anyone building on these packages.
+
+  **Her work now survives the tab closing mid-sentence.** Inline editing held new
+  characters in a `contentEditable` and wrote them into the document only on blur or
+  Enter, and the draft store persists the _document_ — so the sentence being typed right
+  now lived nowhere durable. She typed a full sentence, the tab closed, and seven pages
+  came back without it. Both canvases now commit on `pagehide`/`visibilitychange` through
+  one shared hook, and both builders write through synchronously once the page is hiding,
+  so the ordering of those listeners cannot matter. A killed process still loses the
+  sentence in progress; the store's own header comment now states that limit instead of
+  promising otherwise.
+
+  **A page's address follows its name.** Renaming a page changed only its label, so a
+  seven-page site published as `/page-2` through `/page-7`. A derived slug now follows the
+  rename, and `slugify` drops apostrophes rather than turning them into separators —
+  `Marlene's story` is `/marlenes-story`, not `/marlene-s-story`, which reads as three
+  words one of which is the letter s.
+
+  **Deleting a page says what points at it.** `Editor.linksTo(slug, exceptPageId)` counts
+  links across every page, the frame and every symbol master, and the delete prompt uses
+  it: _"One link elsewhere on your site points at this page. It will be left pointing at
+  nothing."_ It counts, it does not block, and it stays silent when there is nothing to
+  say.
+
+  **Text meant to be read is no longer faded, and a table on a public page clears the type
+  floor.** Eleven places handed authors `text-base-content/70` on body copy — including
+  the Insert panel's **Text** item, so every paragraph anyone inserted started faded. All
+  eleven are solid ink. The Table item inserts `table table-lg` (16px cells) rather than
+  the bare 14px default, which is right for the dense admin grids the component is mostly
+  used for and wrong for a class timetable parents read. `.table`'s own default is
+  unchanged.
+
+  **A pasted date is parsed or refused, never invented.** `2026-12-18` pasted into a date
+  field became **10/12/2186**: digit groups were mapped by the locale's display order
+  (ISO is year-first in every locale), and "a `Date` constructed" was used as the validity
+  test, which it is not — `new Date(2018, 2025, 12)` is a perfectly good date in 2186. ISO
+  input is now hand-parsed with no `Date` involved, every route is range-checked against
+  the real length of the month, and anything that fails returns null instead of a
+  plausible wrong year.
+
+  **Other builder repairs from the same run:** the left rail can no longer be dragged
+  narrower than its own tabs; 33 components that arrived as machine keys (`AvatarGroup`,
+  `FieldsetLegend`) read as English; a table's three nested "Table" rows in the Navigator
+  are distinguishable; Undo names what it is about to take back (_"Undo — remove an
+  element"_); a reload lands on the page she was editing with her selection intact; the
+  link field offers her own pages instead of asking her to type an address from memory;
+  duplicating a table column keeps every row the same width; a locked node is no longer
+  draggable on the canvas, matching the Navigator and the locking spec; and naming a page
+  returns focus to the button that opened the field instead of dropping it on
+  `document.body`, which left a keyboard user restarting from the top of the document.
+
+  **`@wizeworks/silicaui`:** a tab panel is in the tab order (`tabindex="0"`) and had
+  `outline: none`, so Tab moved focus and nothing on screen changed. `.tabs-panel` now
+  carries the same ring `.tabs-tab` already had, under `:focus-visible` only — so it
+  appears for the keyboard arrival and not for a click, which is what the original rule
+  was protecting.
+
+  **`@wizeworks/silicaui-react`:** the colour picker's hex field had no accessible name;
+  it now points at the visible "HEX" label.
+
+  The artifact is in `docs/personas/artifacts/p03-bright-step-studio/` — seven pages
+  served under a strict CSP with no `'unsafe-inline'`, built by driving the real builder,
+  with 0 text runs under WCAG AA and 0 console errors.
+
+- 9accc71: A scrollbar thumb you could not see in any theme the system ships, and a carousel dot under the bar in half of them
+
+  P07 noticed both faded "the same way the drag handle did", tried to measure it in
+  a browser, could not pin down that page's theme state, and **refused to publish a
+  figure it could not stand behind**. That was the right call, and the reason the
+  browser was the wrong instrument: the question is not "is it visible in one
+  page's theme" but "is it visible in every theme a consumer can pick".
+
+  Computed instead from the declared tokens of all 20 shipped themes, in both
+  modes, over all three surfaces — 120 combinations, the same corpus the builder's
+  chrome-ink check uses for text. The bar is **3:1**, WCAG 2.1 SC 1.4.11 Non-text
+  Contrast, which is what applies to a control rather than to words:
+
+  ```
+  .scroll-area-thumb        25% ink   worst 1.60:1   under 3:1 in 120 of 120
+  .scroll-area-thumb:hover  40% ink   worst 2.22:1   under 3:1 in  60 of 120
+  .carousel-dot (inactive)  45% ink   worst 2.49:1   under 3:1 in  57 of 120
+  ```
+
+  **The thumb failed in all 120.** The scrollbar is `opacity: 0` until you hover or
+  scroll, so it faded _in_ to 1.60:1 — a scroll affordance you still cannot see
+  once it has arrived. And the dot is the control that changes slide; "inactive"
+  there means _not the current slide_, not _disabled_, so 1.4.11's
+  inactive-component exception does not apply.
+
+  |                            | before | after   | worst             |
+  | -------------------------- | ------ | ------- | ----------------- |
+  | `.scroll-area-thumb`       | 25%    | **55%** | 1.60 → **3.22:1** |
+  | `.scroll-area-thumb:hover` | 40%    | **70%** | 2.22 → **4.77:1** |
+  | `.carousel-dot` inactive   | 45%    | **55%** | 2.49 → **3.22:1** |
+
+  53% is the lowest alpha that clears 3:1 in all 120; 55% is that floor with
+  margin. The active dot is untouched — it is `--color-primary` and three times as
+  wide, so it carries hue and size, neither of which depended on the others being
+  faint.
+
+  A probe now guards the class, wired into the root `verify` chain: it composites
+  every faded-ink background in every component over all 120 surfaces. Default
+  strict, exempt by review — the two exemptions are hover tints and are named in
+  the file with the reason, because a hover highlight is not information needed to
+  identify a control when the pointer is already on it. It proves its own
+  arithmetic before judging anything (black-on-white must read 21.0, white-on-white
+  1.0) and was shown to fail before it was trusted.
+
+- 9accc71: The email builder, driven by someone who sends a newsletter to 4,100 people every Thursday: the same email again for another shop, one word changed everywhere at once, a broken link he can see, and an email that fits a phone
+
+  Found by the P04 persona run — Reuben Halloway, 36, marketing lead at a three-shop
+  independent bookshop in Bristol, who builds his weekly newsletter, duplicates it for
+  three shops, gets the offer code wrong, and sends it. Sixteen defects, all fixed. What
+  follows is what changes for anyone building on these packages.
+
+  **An email can be copied.** The template switcher could add one and delete one, so the
+  second version of an email that already existed had to be built again from a starter and
+  retyped word for word — and one send per shop, per region, per language, per list is the
+  ordinary shape of the job, not an edge case. `EmailEditor.duplicateTemplate(id)` and a
+  Duplicate button in the switcher. The copy gets fresh node ids throughout, so editing one
+  never reaches into the other, and it _keeps_ its locks: unlike duplicating a single node,
+  the copy IS the same email for another audience, and a footer the host pinned into the
+  original belongs in it just as much.
+
+  **And so can a page.** The identical gap sat in the site builder's Pages panel.
+  `Editor.duplicatePage(id)`, same Duplicate button, with one difference that matters — the
+  copy's address is derived from its new name rather than copied, because two pages cannot
+  share a route.
+
+  **You can find a word across every email in a project, and change it everywhere in one
+  press.** The offer code went out wrong and sat in twelve places — four per email, three
+  emails — and _six of the twelve were on no screen the author was looking at_: the subject
+  and preview text live behind a tree row, and the code in a button's link is invisible on
+  the canvas. There was nothing at all for finding a word. There is now a Find page on the
+  left rail. It searches every template, including the fields that are not on screen, it
+  says how many places before you start, and Change-all is one undo step however many it
+  touched. The search is exact text including capitals, it never matches inside markup
+  (a replace of "a" must not rewrite `<a href>`), and it never touches colours, sizes or
+  class names.
+
+  **A merge token nothing resolves is marked on the canvas.** The site canvas has outlined
+  an unresolvable reference for a long time; the email canvas did not. The cost showed on
+  the first real send: the shipped newsletter starter's own footer carries
+  `<a href="{{unsubscribeUrl}}">Unsubscribe</a>`, no host declared that reference, and a
+  whole newsletter was written, reviewed and composed with no warning anywhere — leaving
+  every subscriber an unsubscribe link pointing at the literal characters. Same dashes,
+  same warning colour, same `data-sui-unresolved` hook as the site canvas.
+
+  **Emails fit a phone.** Every email this projector produced was 600px wide on a 360px
+  screen. The mobile rule fired and stacked the columns; the body stayed 600px, so a phone
+  either shrank the whole message to 60% — a 14px footer arriving at about 8px — or scrolled
+  sideways. `max-width:100%` on a fixed-pixel element inside an auto-layout table looks like
+  responsiveness and does nothing, because the percentage resolves against a containing
+  block that is sized by its own content. Images are now fluid up to the size the author
+  chose, the body table is fluid with a `max-width`, Outlook gets a real 600px shell through
+  a conditional comment, and the media query narrows the body as well as the columns.
+
+  **A stock button is big enough to press.** 16px of label in an 18px line box with 8px of
+  padding is 34px tall — under the 44px minimum a thumb reliably hits. The padding default
+  was written out in three places; it is one exported constant now, and it is 14.
+
+  **The email projector will not emit a URL it would not follow.** It escaped every URL and
+  checked none of them, so the formatting bar's Link button — which builds a real anchor out
+  of whatever it is handed — put `javascript:` straight into the document and out into the
+  composed email. Harmless in an inbox; live script on the "view in browser" page, which is
+  the sender's own domain. `isSafeUrl` is now exported from `@wizeworks/silicaui-html` (it
+  already handled `" javascript:"`, a newline inside the scheme, and the relative path that
+  merely contains a colon) and runs on all nine URLs the email projector writes. An unsafe
+  anchor inside a text block loses its href and keeps its words. The Link button refuses one
+  up front, in plain English, rather than letting an author believe they made a link that
+  quietly is not one.
+
+  **The builder's own labels are readable ink.** Eleven `text-base-content/70` fades on text
+  a person reads to operate the email builder — every Inspector field label, every group
+  heading, the empty state, the breadcrumb, the canvas hints. Not a contrast failure, but a
+  fade used as a default is exactly what the rule exists to stop. Icons, the breadcrumb
+  separator and the attribution mark keep theirs.
+
+  **`pnpm verify` now fails on a raw control character in source.** While fixing the URL
+  guard, a regex that read `/<a\b…/` turned out to contain a literal backspace byte where
+  the word-boundary escape was meant — and two more of them sat inside a live test
+  assertion, where `!regex.test(html)` had been unconditionally true since the day it was
+  written. A check that cannot fail is worse than no check. The new scan found two further
+  cases the hand sweep missed, one of them in a shipped React component and one in the scan
+  itself.
+
 ## 0.56.0
 
 ### Minor Changes

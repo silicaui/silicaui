@@ -1,6 +1,6 @@
 {
   "name": "@wizeworks/silicaui",
-  "version": "0.56.0",
+  "version": "0.57.0",
   "description": "Silica UI's CSS layer — a Tailwind v4 plugin of themeable, semantic component classes.",
   "type": "module",
   "license": "MIT",
@@ -43,7 +43,7 @@
     "verify:token-contrast": "node scripts/verify-token-contrast.mjs",
     "verify:ink-derivation": "node scripts/verify-ink-derivation.mjs",
     "verify:theme-plugin": "node scripts/verify-theme-plugin.mjs",
-        "verify:auto-ink": "node scripts/verify-auto-ink.mjs"
+    "verify:auto-ink": "node scripts/verify-auto-ink.mjs"
   },
   "peerDependencies": {
     "tailwindcss": ">=4.3.0"

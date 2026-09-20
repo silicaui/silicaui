@@ -1,5 +1,357 @@
 # @wizeworks/silicaui-html
 
+## 0.57.0
+
+### Minor Changes
+
+- 9accc71: The email builder, driven by someone who sends a newsletter to 4,100 people every Thursday: the same email again for another shop, one word changed everywhere at once, a broken link he can see, and an email that fits a phone
+
+  Found by the P04 persona run — Reuben Halloway, 36, marketing lead at a three-shop
+  independent bookshop in Bristol, who builds his weekly newsletter, duplicates it for
+  three shops, gets the offer code wrong, and sends it. Sixteen defects, all fixed. What
+  follows is what changes for anyone building on these packages.
+
+  **An email can be copied.** The template switcher could add one and delete one, so the
+  second version of an email that already existed had to be built again from a starter and
+  retyped word for word — and one send per shop, per region, per language, per list is the
+  ordinary shape of the job, not an edge case. `EmailEditor.duplicateTemplate(id)` and a
+  Duplicate button in the switcher. The copy gets fresh node ids throughout, so editing one
+  never reaches into the other, and it _keeps_ its locks: unlike duplicating a single node,
+  the copy IS the same email for another audience, and a footer the host pinned into the
+  original belongs in it just as much.
+
+  **And so can a page.** The identical gap sat in the site builder's Pages panel.
+  `Editor.duplicatePage(id)`, same Duplicate button, with one difference that matters — the
+  copy's address is derived from its new name rather than copied, because two pages cannot
+  share a route.
+
+  **You can find a word across every email in a project, and change it everywhere in one
+  press.** The offer code went out wrong and sat in twelve places — four per email, three
+  emails — and _six of the twelve were on no screen the author was looking at_: the subject
+  and preview text live behind a tree row, and the code in a button's link is invisible on
+  the canvas. There was nothing at all for finding a word. There is now a Find page on the
+  left rail. It searches every template, including the fields that are not on screen, it
+  says how many places before you start, and Change-all is one undo step however many it
+  touched. The search is exact text including capitals, it never matches inside markup
+  (a replace of "a" must not rewrite `<a href>`), and it never touches colours, sizes or
+  class names.
+
+  **A merge token nothing resolves is marked on the canvas.** The site canvas has outlined
+  an unresolvable reference for a long time; the email canvas did not. The cost showed on
+  the first real send: the shipped newsletter starter's own footer carries
+  `<a href="{{unsubscribeUrl}}">Unsubscribe</a>`, no host declared that reference, and a
+  whole newsletter was written, reviewed and composed with no warning anywhere — leaving
+  every subscriber an unsubscribe link pointing at the literal characters. Same dashes,
+  same warning colour, same `data-sui-unresolved` hook as the site canvas.
+
+  **Emails fit a phone.** Every email this projector produced was 600px wide on a 360px
+  screen. The mobile rule fired and stacked the columns; the body stayed 600px, so a phone
+  either shrank the whole message to 60% — a 14px footer arriving at about 8px — or scrolled
+  sideways. `max-width:100%` on a fixed-pixel element inside an auto-layout table looks like
+  responsiveness and does nothing, because the percentage resolves against a containing
+  block that is sized by its own content. Images are now fluid up to the size the author
+  chose, the body table is fluid with a `max-width`, Outlook gets a real 600px shell through
+  a conditional comment, and the media query narrows the body as well as the columns.
+
+  **A stock button is big enough to press.** 16px of label in an 18px line box with 8px of
+  padding is 34px tall — under the 44px minimum a thumb reliably hits. The padding default
+  was written out in three places; it is one exported constant now, and it is 14.
+
+  **The email projector will not emit a URL it would not follow.** It escaped every URL and
+  checked none of them, so the formatting bar's Link button — which builds a real anchor out
+  of whatever it is handed — put `javascript:` straight into the document and out into the
+  composed email. Harmless in an inbox; live script on the "view in browser" page, which is
+  the sender's own domain. `isSafeUrl` is now exported from `@wizeworks/silicaui-html` (it
+  already handled `" javascript:"`, a newline inside the scheme, and the relative path that
+  merely contains a colon) and runs on all nine URLs the email projector writes. An unsafe
+  anchor inside a text block loses its href and keeps its words. The Link button refuses one
+  up front, in plain English, rather than letting an author believe they made a link that
+  quietly is not one.
+
+  **The builder's own labels are readable ink.** Eleven `text-base-content/70` fades on text
+  a person reads to operate the email builder — every Inspector field label, every group
+  heading, the empty state, the breadcrumb, the canvas hints. Not a contrast failure, but a
+  fade used as a default is exactly what the rule exists to stop. Icons, the breadcrumb
+  separator and the attribution mark keep theirs.
+
+  **`pnpm verify` now fails on a raw control character in source.** While fixing the URL
+  guard, a regex that read `/<a\b…/` turned out to contain a literal backspace byte where
+  the word-boundary escape was meant — and two more of them sat inside a live test
+  assertion, where `!regex.test(html)` had been unconditionally true since the day it was
+  written. A check that cannot fail is worse than no check. The new scan found two further
+  cases the hand sweep missed, one of them in a shipped React component and one in the scan
+  itself.
+
+### Patch Changes
+
+- 9accc71: The site builder, driven by someone who has never seen a developer tool: her work survives, her pages get real addresses, and the text she publishes is readable
+
+  Found by the P03 persona run — Marlene Okonkwo-Bright, 58, who has run a dance studio in
+  Leeds for 22 years, builds a seven-page site with an eleven-row class timetable, and
+  publishes it. Twenty-three defects, twenty-two fixed. What follows is what changes for
+  anyone building on these packages.
+
+  **Her work now survives the tab closing mid-sentence.** Inline editing held new
+  characters in a `contentEditable` and wrote them into the document only on blur or
+  Enter, and the draft store persists the _document_ — so the sentence being typed right
+  now lived nowhere durable. She typed a full sentence, the tab closed, and seven pages
+  came back without it. Both canvases now commit on `pagehide`/`visibilitychange` through
+  one shared hook, and both builders write through synchronously once the page is hiding,
+  so the ordering of those listeners cannot matter. A killed process still loses the
+  sentence in progress; the store's own header comment now states that limit instead of
+  promising otherwise.
+
+  **A page's address follows its name.** Renaming a page changed only its label, so a
+  seven-page site published as `/page-2` through `/page-7`. A derived slug now follows the
+  rename, and `slugify` drops apostrophes rather than turning them into separators —
+  `Marlene's story` is `/marlenes-story`, not `/marlene-s-story`, which reads as three
+  words one of which is the letter s.
+
+  **Deleting a page says what points at it.** `Editor.linksTo(slug, exceptPageId)` counts
+  links across every page, the frame and every symbol master, and the delete prompt uses
+  it: _"One link elsewhere on your site points at this page. It will be left pointing at
+  nothing."_ It counts, it does not block, and it stays silent when there is nothing to
+  say.
+
+  **Text meant to be read is no longer faded, and a table on a public page clears the type
+  floor.** Eleven places handed authors `text-base-content/70` on body copy — including
+  the Insert panel's **Text** item, so every paragraph anyone inserted started faded. All
+  eleven are solid ink. The Table item inserts `table table-lg` (16px cells) rather than
+  the bare 14px default, which is right for the dense admin grids the component is mostly
+  used for and wrong for a class timetable parents read. `.table`'s own default is
+  unchanged.
+
+  **A pasted date is parsed or refused, never invented.** `2026-12-18` pasted into a date
+  field became **10/12/2186**: digit groups were mapped by the locale's display order
+  (ISO is year-first in every locale), and "a `Date` constructed" was used as the validity
+  test, which it is not — `new Date(2018, 2025, 12)` is a perfectly good date in 2186. ISO
+  input is now hand-parsed with no `Date` involved, every route is range-checked against
+  the real length of the month, and anything that fails returns null instead of a
+  plausible wrong year.
+
+  **Other builder repairs from the same run:** the left rail can no longer be dragged
+  narrower than its own tabs; 33 components that arrived as machine keys (`AvatarGroup`,
+  `FieldsetLegend`) read as English; a table's three nested "Table" rows in the Navigator
+  are distinguishable; Undo names what it is about to take back (_"Undo — remove an
+  element"_); a reload lands on the page she was editing with her selection intact; the
+  link field offers her own pages instead of asking her to type an address from memory;
+  duplicating a table column keeps every row the same width; a locked node is no longer
+  draggable on the canvas, matching the Navigator and the locking spec; and naming a page
+  returns focus to the button that opened the field instead of dropping it on
+  `document.body`, which left a keyboard user restarting from the top of the document.
+
+  **`@wizeworks/silicaui`:** a tab panel is in the tab order (`tabindex="0"`) and had
+  `outline: none`, so Tab moved focus and nothing on screen changed. `.tabs-panel` now
+  carries the same ring `.tabs-tab` already had, under `:focus-visible` only — so it
+  appears for the keyboard arrival and not for a click, which is what the original rule
+  was protecting.
+
+  **`@wizeworks/silicaui-react`:** the colour picker's hex field had no accessible name;
+  it now points at the visible "HEX" label.
+
+  The artifact is in `docs/personas/artifacts/p03-bright-step-studio/` — seven pages
+  served under a strict CSP with no `'unsafe-inline'`, built by driving the real builder,
+  with 0 text runs under WCAG AA and 0 console errors.
+
+- 9accc71: The "you named the wrong package" guards only fired on the one line nobody writes
+
+  Name the wrong package in `@plugin` and Tailwind used to die inside its own
+  minified code with `b is not a function` — no package, no cause, no fix. Each
+  non-plugin package got a guard: a default export that throws a real sentence with
+  the real remedy.
+
+  Driven to an actual Vite + Tailwind build for the first time, **none of the three
+  fired.** Tailwind's resolver:
+
+  ```js
+  if (!options) return { plugins: [plugin] };
+  if ("__isOptionsFunction" in plugin) return { plugins: [plugin(options)] };
+  throw new Error(`The plugin "${path}" does not accept options`);
+  ```
+
+  A plain exported function has no `__isOptionsFunction`, so it lands on the third
+  branch and is **never invoked**. The guard's sentence was unreachable.
+
+  And that branch is the one everybody hits. The options form is what the docs
+  write, what every starter writes, and what the guard's own suggested fix tells
+  you to write:
+
+  ```css
+  @plugin "@wizeworks/silicaui" {
+    colors: primary, secondary, accent, neutral, info, success, warning, error;
+  }
+  ```
+
+  So a guard built to replace an unhelpful message was, on the common path,
+  replaced by one: Tailwind's generic `The plugin "@wizeworks/silicaui-html" does
+not accept options` — which names the package and still gives no cause and no
+  fix.
+
+  The fix is one property, and deliberately not an import:
+
+  ```ts
+  notATailwindPlugin.__isOptionsFunction = true as const;
+  ```
+
+  **None of these three packages takes a dependency on Tailwind to carry it**,
+  which is the whole reason they are separate packages.
+
+  Confirmed both ways round. Through the real build, the wrong package name now
+  produces the guard's own sentence with either call shape, while the correct
+  package still builds. And against the published `dist` each package actually
+  ships, all three are marked as options-taking and refuse with a message that
+  names themselves and gives the fix — while `@wizeworks/silicaui` itself, the
+  control, is marked and does **not** refuse, because it is the plugin.
+
+  A probe now guards it — `scripts/verify-plugin-guards.mjs`, in the root `verify`
+  chain — and it was shown able to fail before it was trusted: strip the marker from
+  a built package and it exits 1 naming the package and the fix. Nothing about the
+  source looked wrong for as long as this was broken, which is exactly why a comment
+  would not have been enough.
+
+  Found only because the run that shipped the guards recorded "not checked"
+  instead of "fixed". Both were present in their built output; the gap was between
+  _present_ and _reached_.
+
+- 9accc71: Measure a declared colour's ink instead of guessing it, and repair five controls that were smaller than WCAG's minimum target.
+
+  **The colour engine now uses the value it already holds.** `theme("color")` hands the
+  Tailwind plugin each registered colour's VALUE, and a `@plugin ".../theme"` block
+  hands it over even more directly — yet both fell through to a CSS lightness rule that
+  cannot compare contrast. For roughly 2.3% of the colour space that rule picks the
+  failing ink while a passing one sits unused (4.28:1 where white gives 4.91:1). A
+  theme block now substitutes the measured ink, but **only** where the rule's pick is
+  below AA, so every other emitted token is byte-identical to before. A colour declared
+  in `@theme` is warned about instead of rewritten, because it is global and an ink
+  emitted at `:root` would outlive any theme that later re-declares the colour.
+
+  Two further silences are now named at build time: a role whose TEXT form cannot be
+  read on its own surface (`text-<role>`, `link-<role>`, `btn-<role>-ghost`), and a
+  value that is not a parseable colour at all — which previously emitted every class
+  and painted a fill the browser discards, with no message anywhere. All of this is
+  silent on the twenty shipped presets in both modes.
+
+  **Five controls were under WCAG 2.2 SC 2.5.8's 24 x 24 px minimum** — the chip
+  removes in `TagInput`, `MultiSelect` and `PowerSearch`, the `Carousel` dot and the
+  `TreeView` toggle. Each keeps its drawn size and gains a full-size hit area, so
+  nothing redraws. The carousel's indicator gap widened from `0.4rem` to `1rem` because
+  neighbouring hit areas were overlapping by 9.6px.
+
+  **Contrast repairs found alongside them:** `TagInput` and `MultiSelect` chips painted
+  the raw role colour as text (2.78:1 in light) where the identical rule in
+  `PowerSearch` already used the derived ink (6.42:1); an inactive `Carousel` dot used
+  `--color-base-300`, the darkest surface in BOTH modes, so it measured 1.96:1 against
+  a dark page. Five more rules painting a raw role as text were found in
+  `CommandPalette`, `DataTable`, `SegmentField` and `Stat` once the guard meant to
+  catch them was widened to see the accent-variable idiom the components actually use.
+
+  `@wizeworks/silicaui-html`'s `contrastRatio` now quantises to 8 bits before
+  measuring, matching what a screen receives — it was off by up to 0.09, though this
+  changes no verdict across all 320 shipped token pairs.
+
+  `@wizeworks/silicaui-react`: the fifteen portalled components that never mentioned it
+  now carry the note that a popup leaves its `[data-theme]` island, and how to bring it
+  back. Documentation only, no behaviour change.
+
+- 9accc71: Fix the element floor: plain relative URLs survive, and text direction is expressible
+
+  Found by the P08 persona run — a documentation engineer generating a static heritage guide
+  in Arabic, French and English, with no React anywhere. Two defects in `toHtml`'s security
+  floor, both silent, both landing hardest on the path the package exists for.
+
+  **Every plain relative URL was deleted.** `isSafeUrl` allow-listed four literal prefixes
+  (`/`, `#`, `?`, `.`) and dropped everything else, so `./photos/a.jpg` survived while
+  `photos/a.jpg` — the same URL, and the form a static generator writes — did not. Nor did
+  `chellah.html` or `entree/x/`. The attribute vanished and the page still rendered: an `<img>`
+  with no `src`, an `<a>` that looks like a link and goes nowhere. The function's own comment
+  had always described the correct rule — _"a schemeless (relative/anchor/query) URL is always
+  safe — it can't leave the origin"_ — so the check now asks that question directly, with RFC
+  3986's scheme definition.
+
+  Widening it opened a hole that is closed in the same change: the old code was safe against
+  `" javascript:alert(1)"` and `"java\nscript:alert(1)"` only by dropping everything it did not
+  recognise. The URL parser strips tab/LF/CR from anywhere in a URL, so the safety test now
+  runs against a copy with ASCII whitespace and control characters removed. The original string
+  is what gets emitted.
+
+  **`dir`, `lang`, `translate`, `<bdi>` and `<bdo>` were all stripped**, so the projection could
+  not say which way a line reads. That is not a blank — it is a reversal: measured in a 360px
+  box, an Arabic-first line put its Arabic run at x=0–57 without `dir` and at x=303–360 with
+  `dir="auto"`, with the neutral characters (the em-dash, the slash) landing on the wrong side.
+  Every character present, assembled backwards, and invisible to a reader who cannot read the
+  script. All five are inert metadata — no URL, no script surface — the same category as the
+  `aria-*`/`data-*` prefixes the floor already allows by construction.
+
+  Two new probes wired into `pnpm verify`, each watched fail before being trusted:
+
+  - `verify-url-floor.mjs` — 30 URL values × `href` and `src`. Reverting `isSafeUrl` turns 10
+    red. The dangerous half is pinned in the same file (`javascript:`, `data:`, `vbscript:`,
+    `file:`, a one-letter scheme, and six whitespace/control-character variants), so a fix that
+    let relative URLs through by loosening the scheme test fails here.
+  - `verify-i18n-floor.mjs` — the five i18n forms survive **and** `style`/`on*`/`srcdoc` are
+    still dropped and `<script>`/`<iframe>`/`<object>`/`<style>`/`<base>` still downgrade.
+    Reverting `GLOBAL_ATTRS` turns 7 red.
+
+  `golden.mjs` is byte-identical throughout, so nothing that already worked moved. No class
+  name, token name, prop or public export changed.
+
+- 9accc71: The embed seam, driven by the engineer who has to put this inside their own product: a block their customer must not be able to touch, two people in one page, a van that loses signal, and a published page that needs nothing running
+
+  Found by the P05 persona run — Arvid Lindqvist, 27, platform engineer at a
+  four-person B2B SaaS in Malmö, who builds the whole integration from
+  `docs/builder-contract.md` and nothing else, then tries everything the contract
+  says not to. Seven defects, all fixed.
+
+  **A pinned block could be copied out of its own lock.** `HostComponentDef.pinned`
+  stamps a host lock the author cannot clear — and `duplicate()` cleared it, on the
+  reasoning that a copy is author-owned. One Ctrl+D put an unlocked copy of a
+  legally-owned compliance certificate on the page. A host lock now survives
+  duplication; an author's own lock still clears, because that one is theirs.
+
+  **The escape hatch the locking spec pointed at did not exist.** The spec says a
+  host that wants a read-only region "withholds inspector controls", but
+  `validateClass` had the signature `(cls: string)` — it saw a class string and not
+  a tree, so a host protecting ONE block could only ban `hidden` everywhere or
+  nowhere. `ClassValidator` now receives the node (optional, `unknown`, so no
+  existing validator changes), and every write path routes through it.
+
+  **Two windows given the same document did not hold the same document.** A site
+  with no frame gets a default one, materialized independently in each window with
+  minted ids — so a frame op relayed between two people was dropped while a page op
+  from the same batch landed, silently and forever. Defaults the editor conjures
+  are now deterministic, and `replaceState` establishes the same invariants the
+  constructor does instead of leaving Layout mode showing the page.
+
+  **The Layers tree moved one row and stuck.** A treeitem lives inside a treeitem,
+  so the row's keydown handler was bound on every ancestor and a bubbling ArrowDown
+  ran once per level: the child moved focus forward, the parent moved it straight
+  back. Every row below the first child was unreachable by keyboard — and the
+  canvas has no tab stops, so the tree is the only keyboard route to a selection. A
+  flat tree has no ancestor row, which is how this survived every test it had.
+
+  **Nothing pretends any more.** Delete on a locked node is disabled with the
+  reason on it instead of being a live button that does nothing, and the Design tab
+  says the host's own sentence back rather than swallowing a refusal.
+
+  **Every chip row in the Inspector is one tab stop.** Reaching the host's own
+  toolbar action took 142 tab presses with a node selected, because every chip in
+  every mutually-exclusive group was its own stop — one padding row cost thirteen.
+  The builder's tab strips already did this correctly; one shared wrapper brings
+  the roving tabindex to all six components that render chip and swatch rows.
+  142 → 34.
+
+  **Two builders on one page no longer fight over one rail width**, and
+  `BuilderHandle` gained `extract()` — the document on demand, which
+  `builder-contract.md` §10 had listed as part of the minimal buildable surface all
+  along and was the one item the handle did not have.
+
+  `docs/builder-contract.md` gains **§4.1 Mounting it in your app** (React dedupe,
+  the `@source` lines, the studio theme) and **§5.2 Publish — the page a visitor
+  gets**, which says the thing nothing said before: `renderHostNode` is a canvas
+  hook, a host node ships as an empty `data-sui-host` mount point, and filling it
+  is the host's job. Follow the old contract exactly and you published a page with
+  holes where the most important blocks were, valid, 200, and silent.
+
 ## 0.56.0
 
 ### Patch Changes
