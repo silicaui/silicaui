@@ -1,0 +1,31 @@
+{
+  "name": "kaiho-analytics",
+  "private": true,
+  "type": "module",
+  "description": "Kaiho Analytics - vessel and container analytics for four shipping lines. Built core-only first, on purpose: act 1 is a measurement, and it cannot be taken after the fact.",
+  "scripts": {
+    "dev": "vite --port 5194",
+    "build": "vite build",
+    "preview": "vite preview --port 5195"
+  },
+  "dependencies": {
+    "@wizeworks/silicaui": "file:../../../../packages/silicaui",
+    "@wizeworks/silicaui-react": "file:../../../../packages/silicaui-react",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@wizeworks/silicaui-charts": "file:../../../../packages/silicaui-charts",
+    "@wizeworks/silicaui-table": "file:../../../../packages/silicaui-table",
+    "@wizeworks/silicaui-editor": "file:../../../../packages/silicaui-editor",
+    "@wizeworks/silicaui-dnd": "file:../../../../packages/silicaui-dnd",
+    "@wizeworks/silicaui-panels": "file:../../../../packages/silicaui-panels"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.14"
+  }
+}

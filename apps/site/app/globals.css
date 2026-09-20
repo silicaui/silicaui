@@ -22,6 +22,25 @@
    cannot be true on the page and false in a consumer's app. */
 :root {
   --color-brand: oklch(58% 0.24 320);
+
+  /* The ink is stated, not left to be guessed, and this is the interesting part.
+     Without it `autoContent` picks black or white by comparing OKLCH lightness
+     to 0.57. `brand` is l=0.58 — a hair over — so it took BLACK, at 4.30:1.
+     White on the same purple measures 4.88:1. The demo for the N-color claim was
+     therefore shipping a button below WCAG AA while a passing ink sat unused.
+
+     The threshold is not the bug and was not moved. A 51,480-sample sweep of the
+     l/c/h space says 0.57 is the OPTIMUM for a lightness-only rule (0.56 and 0.58
+     are both measurably worse), and making it chroma-aware — `l - k*c` — was
+     tried and REJECTED on measurement: it more than doubles the wrong-ink count.
+     CSS cannot compute a contrast ratio, so ~2.3% of the space stays wrong, and
+     this hue is in it.
+
+     lib/auto-content.js already says what to do about that: it is "the LAST
+     RESORT, for a color nothing had a chance to measure", and anything the build
+     CAN see "should get a MEASURED foreground … and never reach this fallback".
+     A token written here is exactly that. See docs/personas/issues/032. */
+  --color-brand-content: oklch(100% 0 0);
 }
 
 /* The other shipped presets from packages/silicaui-html/src/themes.ts,

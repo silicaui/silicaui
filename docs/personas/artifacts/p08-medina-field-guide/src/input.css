@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@source "../out";
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+@import "./themes.css";

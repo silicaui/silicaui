@@ -48,20 +48,20 @@ export function field(prefix = "") {
     },
 
     [sel("-label")]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "500",
       lineHeight: "1.25",
       color: "var(--color-base-content)",
     },
 
     [sel("-description")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       lineHeight: "1.4",
       color: "var(--color-base-content)",
     },
 
     [sel("-error")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       lineHeight: "1.4",
       color: inkOfRole("error"),
     },
@@ -90,7 +90,7 @@ export function field(prefix = "") {
       display: "flex",
       alignItems: "center",
       gap: "0.375rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       lineHeight: "1.4",
       color: "var(--field-status-color, var(--color-base-content))",
       "& svg": { width: "1rem", height: "1rem", flexShrink: "0" },

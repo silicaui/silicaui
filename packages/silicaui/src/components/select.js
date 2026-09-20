@@ -36,7 +36,7 @@ export function select(colors, prefix = "") {
       // Room on the trailing edge so text never runs under the caret. Derived
       // from the affordance geometry, not guessed per size.
       paddingInlineEnd: TEXT_CLEARANCE,
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1",
       color: "var(--color-base-content)",
       backgroundColor: "var(--color-base-100)",
@@ -76,26 +76,26 @@ export function select(colors, prefix = "") {
     [sel("-xs")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 6)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 2)",
-      fontSize: "0.6875rem",
+      fontSize: "0.75rem",
     },
     [sel("-sm")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 8)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 2.5)",
-      fontSize: "0.75rem",
+      fontSize: "0.875rem",
     },
     [sel("-md")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 10)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
     },
     [sel("-lg")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 12)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 4)",
-      fontSize: "1rem",
+      fontSize: "1.125rem",
     },
     [sel("-xl")]: {
       "--select-size": "calc(var(--size-field, 0.25rem) * 14)",
       paddingInlineStart: "calc(var(--size-field, 0.25rem) * 4.5)",
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
     },
   };
 

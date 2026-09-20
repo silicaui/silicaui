@@ -41,9 +41,46 @@ export function ComponentApiSection({ slug, title }: { slug: string; title: stri
           <p className="mt-2 max-w-2xl text-md text-base-content">
             The Tailwind v4 plugin. Works in any framework or none — Rails, Django, PHP,
             Go, a static file.{" "}
-            <strong className="font-semibold">This path ships no JavaScript</strong>, so a
-            component that needs interaction is styled but inert. For behavior with no
-            framework, use the node-tree path below.
+            {/*
+              This sentence used to warn EVERY component that it would be "styled but
+              inert" on this path, and point the reader at the node-tree path for
+              behavior. For 57 of the 108 components with a class list that is simply
+              wrong: Card, Menu, Table, Breadcrumb, Collapse and the rest need no
+              JavaScript at all, and Collapse is a native <details> that already opens
+              and closes on its own. A CSS-only reader was being told their disclosure
+              would be dead and sent to install two more packages to fix a component
+              that was never broken. See docs/personas/issues/028.
+
+              The page already KNEW — `html.behaviors` drives the "Hydrated by" field a
+              few sections down, and empty means static markup. The fact just never
+              reached the paragraph that needed it. When there is no node-tree entry at
+              all we cannot tell, so that case keeps the cautious original wording.
+            */}
+            {html && html.behaviors.length === 0 ? (
+              <>
+                <strong className="font-semibold">
+                  This path is complete for {title}
+                </strong>{" "}
+                — it needs no JavaScript, so the classes below are the whole story.
+              </>
+            ) : html ? (
+              <>
+                <strong className="font-semibold">This path ships no JavaScript</strong>,
+                so {title} is styled but inert: its behavior comes from{" "}
+                {html.behaviors.map((b, i) => (
+                  <span key={b}>
+                    {i > 0 && ", "}
+                    <Code>{b}</Code>
+                  </span>
+                ))}
+                . For that behavior with no framework, use the node-tree path below.
+              </>
+            ) : (
+              <>
+                <strong className="font-semibold">This path ships no JavaScript</strong>,
+                so a component that needs interaction is styled but inert.
+              </>
+            )}
           </p>
           <CodeBlock className="mt-4">{`/* in your CSS */\n@import "tailwindcss";\n@plugin "@wizeworks/silicaui";`}</CodeBlock>
           <p className="mt-6 text-md text-base-content">
@@ -194,6 +231,14 @@ function PropsTable({ rows }: { rows: PropRow[] }) {
             <h5 className="mono mb-2 text-sm text-base-content">{iface}</h5>
           )}
           <div className="overflow-x-auto rounded-box border border-base-300">
+            {/* Plain `table`, and that is now the point. This said `table-lg` for
+                about an hour, because the default size was 14px and the prop
+                reference — a sentence somebody has to read, on 116 pages — sat
+                under RULE #3's 16px floor (issues/109). The type ladder has since
+                been re-based so `md` IS 16px (issues/110), which makes `table-lg`
+                an 18px overshoot and the bare class correct. Left as a comment
+                rather than a silent revert: the reason this line is plain again
+                is a different reason from why it was plain before. */}
             <table className="table w-full">
               <thead>
                 <tr>

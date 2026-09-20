@@ -131,7 +131,9 @@ test("the frame never enters the persisted document", async ({ page }) => {
   // Make an edit so `onChange` fires with a real project payload.
   const canvas = page.locator(".sui-email-canvas");
   await canvas.getByText("Start writing your email…").click();
-  await page.getByLabel("Duplicate").click();
+  // `exact` since P04/issues 072 added a "Duplicate template" button to the
+  // rail: this one is the NODE toolbar's, labelled exactly "Duplicate".
+  await page.getByLabel("Duplicate", { exact: true }).click();
   await page.waitForFunction(() => (window as unknown as { __changeCount: number }).__changeCount > 0);
 
   const saved = await page.evaluate(() => JSON.stringify((window as unknown as { __lastChange?: unknown }).__lastChange));

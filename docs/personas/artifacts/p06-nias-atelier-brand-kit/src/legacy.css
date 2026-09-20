@@ -1,0 +1,15 @@
+/* Le site existant du client. Je n'ai pas le droit de l'effacer.
+   Recopié tel quel, y compris le gris en dur et le rayon de 2px. */
+.btn {
+  background: #2b2b2b;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 2px;
+}
+.card {
+  border: 1px solid #ddd;
+}
+.badge {
+  font-size: 10px;
+  text-transform: uppercase;
+}

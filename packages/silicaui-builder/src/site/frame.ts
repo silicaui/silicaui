@@ -41,7 +41,10 @@ function fallbackHeader(): Node {
     return el("header", "flex items-center justify-between px-6 py-4 border-b border-base-300", {
         children: [
             el("div", "text-lg font-semibold text-base-content", { text: "SilicaUI" }),
-            el("nav", "flex items-center gap-6 text-sm text-base-content/70", {
+            // Solid ink, not `/70`: these are links a person is meant to read and
+            // press, which is exactly what RULE #3 reserves a fade away from
+            // (issues/062).
+            el("nav", "flex items-center gap-6 text-sm text-base-content", {
                 children: [
                     el("a", "link link-hover", { text: "Home", attrs: { href: "#" } }),
                     el("a", "link link-hover", { text: "Features", attrs: { href: "#" } }),
@@ -54,7 +57,8 @@ function fallbackHeader(): Node {
 
 /** Neutral footer, used only if the footer block can't be resolved. */
 function fallbackFooter(): Node {
-    return el("footer", "px-6 py-8 border-t border-base-300 text-sm text-base-content/60", {
+    // Solid ink for the same reason as the header nav above (issues/062).
+    return el("footer", "px-6 py-8 border-t border-base-300 text-sm text-base-content", {
         text: "© 2026 SilicaUI. All rights reserved.",
     });
 }

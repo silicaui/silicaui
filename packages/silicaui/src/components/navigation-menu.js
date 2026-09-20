@@ -22,7 +22,7 @@ export function navigationMenu(prefix = "") {
     gap: "0.25rem",
     height: "calc(var(--size-field, 0.25rem) * 9)",
     paddingInline: "0.75rem",
-    fontSize: "0.875rem",
+    fontSize: "1rem",
     fontWeight: "500",
     color: "var(--color-base-content)",
     backgroundColor: "transparent",

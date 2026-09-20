@@ -53,12 +53,29 @@ export function richTextEditor(prefix = "") {
       background: "none",
       color: "inherit",
       font: "inherit",
-      fontSize: "0.85rem",
+      fontSize: "1rem",
       fontWeight: "600",
       lineHeight: "1",
       cursor: "pointer",
       transition: "background-color 0.12s ease, color 0.12s ease",
       "&:hover": { backgroundColor: muted(10) },
+      // Without this the toolbar falls back to the BROWSER's focus ring. That ring
+      // is visible -- Chromium adapts it, white on a dark surface and black on a
+      // light one -- but it is not THIS system's ring: 1px where ours is 2px, no
+      // offset where ours has one, a colour that ignores the theme, and a
+      // shape each browser picks for itself. On a screen that already carries five
+      // engines, focus is the last thing that should change appearance depending
+      // on which control you are standing on.
+      //
+      // The offset is NEGATIVE, unlike the system's usual +2px, because the
+      // toolbar packs its buttons 0.15rem apart: a ring drawn outside the button
+      // lands on its neighbour. Drawing it just inside keeps the whole ring
+      // visible and touching nothing, the same reason the resize handle insets
+      // its own.
+      "&:focus-visible": {
+        outline: "var(--focus-width, 2px) solid var(--color-primary)",
+        outlineOffset: "-1px",
+      },
       "&:disabled": { opacity: "0.4", cursor: "not-allowed" },
       "& svg": { width: "1.05rem", height: "1.05rem", flexShrink: "0" },
     },
@@ -74,13 +91,21 @@ export function richTextEditor(prefix = "") {
       backgroundColor: "var(--color-base-300)",
     },
 
+    // The content area rings when the caret is in it. Scoped to the content and
+    // not to the whole frame with `:focus-within`, which would also fire for
+    // every toolbar button and ring the editor twice.
+    [`${sel("-content")}:focus-within`]: {
+      outline: "var(--focus-width, 2px) solid var(--color-primary)",
+      outlineOffset: "-2px",
+    },
+
     // Editable content surface.
     [sel("-content")]: {
       padding: "0.85rem 1rem",
       minHeight: "8rem",
       maxHeight: "24rem",
       overflowY: "auto",
-      fontSize: "0.9rem",
+      fontSize: "1rem",
       lineHeight: "1.6",
       "& .ProseMirror": { outline: "none" },
       "& .ProseMirror > * + *": { marginTop: "0.6em" },

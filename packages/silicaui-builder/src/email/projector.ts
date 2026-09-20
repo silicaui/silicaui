@@ -17,6 +17,7 @@ import type {
   ColumnNode,
   ColumnsNode,
   ContentNode,
+  DataScope,
   DividerNode,
   EmailDocument,
   HtmlNode,
@@ -28,6 +29,7 @@ import type {
   TextNode,
   VideoNode,
 } from "./schema";
+import { isSafeUrl } from "@wizeworks/silicaui-html";
 import { SOCIAL_PLATFORM } from "./node-display";
 import { resolveEmailTree, resolveTokens } from "./resolve";
 import type { EmailResolveHost } from "./resolve";
@@ -43,6 +45,43 @@ export const FONT_WEIGHT_CSS: Record<TextNode["fontWeight"], number> = {
 
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * A URL this projector is willing to put in front of a subscriber, or nothing.
+ *
+ * `esc` stops a value breaking OUT of the attribute. It does not stop the value
+ * BEING dangerous, and for a long time that was the only guard here: the email
+ * projector emitted whatever href it was handed, including `javascript:`. The
+ * site projector never had that hole — `@wizeworks/silicaui-html`'s `isSafeUrl`
+ * has always run on every `href`/`src` it writes, and had already worked out the
+ * awkward cases (`" javascript:alert(1)"`, `"java
+script:"`, a relative path
+ * containing a colon). It was module-private, so this package could not reach
+ * it and grew its own weaker answer instead.
+ *
+ * It is exported now, and this is the one call site shape: same function, same
+ * verdict, both projectors. An unsafe URL is DROPPED rather than emitted — the
+ * same thing `sanitizeElement` does, and the same reason `renderImage` omits an
+ * empty `src` instead of writing `src=""`. Found by P04 act 9 (issues/076).
+ */
+function safeUrl(value: string | undefined): string | undefined {
+  const v = value?.trim();
+  return v && isSafeUrl(v) ? v : undefined;
+}
+
+/** Strip an unsafe `href` off every anchor the author wrote inside a text
+ *  block's inline HTML. The text stays — deleting a sentence because one link
+ *  in it was bad is this framework's "absence behaves like fine" — it simply
+ *  stops being a link. */
+function stripUnsafeAnchors(html: string): string {
+  return html.replace(/<a\b([^>]*)>/gi, (whole, attrs: string) => {
+    const href = /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+    if (!href) return whole;
+    const value = href[1] ?? href[2] ?? href[3] ?? "";
+    if (isSafeUrl(value.trim())) return whole;
+    return `<a${attrs.replace(href[0], "")}>`;
+  });
 }
 
 function styleAttr(rules: Record<string, string | number | undefined>): string {
@@ -81,14 +120,18 @@ export function withLinkColor(html: string, color: string): string {
 const HAS_ANCHOR = /<a\b/i;
 
 function renderText(node: TextNode, link?: string): string {
-  let html = node.linkColor ? withLinkColor(node.html, node.linkColor) : node.html;
+  // Every author anchor is checked BEFORE anything else reads the markup, so a
+  // `javascript:` href cannot survive by being restyled or wrapped later.
+  const authored = stripUnsafeAnchors(node.html);
+  let html = node.linkColor ? withLinkColor(authored, node.linkColor) : authored;
   // A group link (`LinkNode`) lands as a plain inline anchor around the copy —
   // `color:inherit` and no underline, because this is a card title that happens
   // to be clickable, not a link inside a sentence. An author who wants it to
   // READ as a link sets the text color themselves. Applied AFTER `withLinkColor`
   // so that rewrite only ever touches the author's own anchors, not this one.
-  if (link && !HAS_ANCHOR.test(node.html)) {
-    html = `<a href="${esc(link)}" target="_blank" style="color:inherit;text-decoration:none">${html}</a>`;
+  const groupHref = safeUrl(link);
+  if (groupHref && !HAS_ANCHOR.test(authored)) {
+    html = `<a href="${esc(groupHref)}" target="_blank" style="color:inherit;text-decoration:none">${html}</a>`;
   }
   return `<div${styleAttr({
     "text-align": node.align,
@@ -100,20 +143,68 @@ function renderText(node: TextNode, link?: string): string {
 }
 
 function renderImage(node: ImageNode, link?: string): string {
-  const img = `<img src="${esc(node.src)}" alt="${esc(node.alt)}" width="${node.width}"${styleAttr({
+  // NO `src=""` for an image whose source is empty — the attribute is OMITTED.
+  // An empty `src` is resolved by many clients as a reference to the current
+  // document, so it fetches the message itself and renders the result as a
+  // picture: a spurious request from every subscriber, and a broken image
+  // where the alt text should be. Exactly the hazard `renderLink` already
+  // names for `href` ("never `<a href=""`, which some clients resolve to the
+  // message itself") — two lines below this one, in the same file, for the
+  // same reason. It did not apply here until P04/issues 068.
+  //
+  // Dropping the whole `<img>` instead would be worse: the alt text is content
+  // the author wrote, and a silently vanishing element is this framework's
+  // "absence behaves like fine". With no `src`, a client shows the alt text —
+  // which is precisely what an image with no source should show, and the same
+  // thing every subscriber with images turned off sees anyway.
+  const safeSrc = safeUrl(node.src);
+  const src = safeSrc ? ` src="${esc(safeSrc)}"` : "";
+  // FLUID, not fixed. `width:${node.width}px; max-width:100%` reads like it
+  // shrinks on a phone and does not: a percentage max-width resolves against a
+  // containing block, the containing block here is a table cell, and a table
+  // cell in auto layout is sized BY ITS CONTENT — so the percentage resolves
+  // against the very width the image is setting. The 552px cover kept its 552
+  // pixels on a 360px screen and dragged the whole email out with it.
+  //
+  // Swapped round, it is definite in the direction that matters: 100% of
+  // whatever column it lands in, never larger than the size the author chose.
+  // The `width` ATTRIBUTE stays for Word, which needs a number. Found by P04
+  // act 9 (issues/075).
+  const img = `<img${src} alt="${esc(node.alt)}" width="${node.width}"${styleAttr({
     display: "block",
-    width: `${node.width}px`,
-    "max-width": "100%",
+    width: "100%",
+    "max-width": `${node.width}px`,
+    height: "auto",
     ...(node.align === "center" ? { margin: "0 auto" } : node.align === "right" ? { "margin-left": "auto" } : {}),
   })} />`;
   // The image's own href wins over a group link — explicit beats inherited.
-  const href = node.href || link;
+  const href = safeUrl(node.href) ?? safeUrl(link);
   return href ? `<a href="${esc(href)}" target="_blank">${img}</a>` : img;
 }
 
 function renderButton(node: ButtonNode): string {
   // "Bulletproof" button: a table cell carries the background so Outlook (which
   // ignores border-radius/padding on <a>) still renders a solid, sized target.
+  //
+  // THE PADDING HAS TO BE ON THE CELL TOO, and for years it was not — the
+  // comment above named the constraint and the markup below broke it, putting
+  // every pixel of padding on the one element the comment says Outlook ignores
+  // it on. The cell got the colour and none of the size, so in Outlook's Word
+  // engine the button collapsed to a rectangle of paint hugging the label: a
+  // clickable coloured word, not a button. This file already reaches for MSO
+  // conditionals for columns, for a section's background image (real VML), and
+  // for the document head — the one place it did not was the thing an author
+  // is most afraid of. See P04/issues 067.
+  //
+  // `mso-padding-alt` is Word's own property for exactly this and is ignored by
+  // every other client, so the `<a>` keeps its real padding and the whole
+  // padded area stays clickable everywhere else. Outlook reads the cell's
+  // padding instead, so nothing doubles up.
+  //
+  // Known and accepted: Word ignores `border-radius` outright, so the button is
+  // SQUARE in Outlook. It is a button with the right size, colour and target —
+  // the corners are the part worth losing. Rounding them needs a VML
+  // `<v:roundrect>` carrying a duplicated colour, which is a bigger trade.
   //
   // An OUTLINE button drops the `bgcolor` attribute entirely rather than trying
   // to spell "transparent" in it — `bgcolor` has no transparent value, and a
@@ -130,8 +221,10 @@ function renderButton(node: ButtonNode): string {
       "border-radius": `${node.radius}px`,
       background: outline ? "transparent" : node.bg,
       border,
+      // Outlook-only, and the whole reason this button has a size there.
+      "mso-padding-alt": `${node.paddingY}px ${node.paddingX}px`,
     })}>` +
-    `<a href="${esc(node.href)}" target="_blank"${styleAttr({
+    `<a href="${esc(safeUrl(node.href) ?? "")}" target="_blank"${styleAttr({
       display: "inline-block",
       padding: `${node.paddingY}px ${node.paddingX}px`,
       color: node.color,
@@ -159,7 +252,7 @@ function renderSocial(node: SocialNode): string {
     .map(
       (l) =>
         `<td${styleAttr({ padding: `0 ${node.gap / 2}px` })}>` +
-        `<a href="${esc(l.url)}" target="_blank"${styleAttr({
+        `<a href="${esc(safeUrl(l.url) ?? "")}" target="_blank"${styleAttr({
           display: "inline-block",
           width: `${node.iconSize}px`,
           height: `${node.iconSize}px`,
@@ -188,7 +281,7 @@ function renderHtml(node: HtmlNode): string {
 }
 
 function renderVideo(node: VideoNode): string {
-  const img = `<img src="${esc(node.thumbnail)}" alt="Video thumbnail" width="${node.width}"${styleAttr({
+  const img = `<img src="${esc(safeUrl(node.thumbnail) ?? "")}" alt="Video thumbnail" width="${node.width}"${styleAttr({
     display: "block",
     width: `${node.width}px`,
     "max-width": "100%",
@@ -215,7 +308,7 @@ function renderVideo(node: VideoNode): string {
     : "";
   const justify = node.align === "center" ? "center" : node.align === "right" ? "flex-end" : "flex-start";
   return (
-    `<a href="${esc(node.href)}" target="_blank"${styleAttr({
+    `<a href="${esc(safeUrl(node.href) ?? "")}" target="_blank"${styleAttr({
       display: "flex",
       "justify-content": justify,
       position: "relative",
@@ -320,7 +413,7 @@ function renderSectionBgImage(node: import("./schema").SectionNode, body: string
       background: `${node.bg} url(${node.bgImage}) center/cover no-repeat`,
       padding: "0",
     })}>` +
-    `<!--[if mso]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="mso-width-percent:1000"><v:fill type="tile" src="${esc(node.bgImage!)}" color="${node.bg}" /><v:textbox inset="0,0,0,0"><![endif]-->` +
+    `<!--[if mso]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="mso-width-percent:1000"><v:fill type="tile" src="${esc(safeUrl(node.bgImage) ?? "")}" color="${node.bg}" /><v:textbox inset="0,0,0,0"><![endif]-->` +
     `<div${styleAttr({ padding: `${node.paddingY}px ${node.paddingX}px` })}>${body}</div>` +
     `<!--[if mso]></v:textbox></v:rect><![endif]-->` +
     `</td>`
@@ -386,6 +479,7 @@ function renderSection(node: import("./schema").SectionNode): string {
 
 const MOBILE_CSS = `
 @media only screen and (max-width: 480px) {
+  .sui-body { width: 100% !important; }
   .sui-col { display: block !important; width: 100% !important; }
 }
 `.trim();
@@ -430,6 +524,23 @@ export interface EmailRenderOptions {
    * one a recipient opens can't drift apart.
    */
   frame?: EmailFrame;
+  /**
+   * WHO THIS RENDER IS FOR. Passed straight to `resolveEmailTree` and to the
+   * subject/preheader token pass, so a host's `resolveBinding(ref, scope)` can
+   * answer differently per recipient without building a fresh resolver object
+   * for each one.
+   *
+   * Before this existed, every projection resolved against an implicit `{}`,
+   * and the only way to render "the same email, for a different subscriber" was
+   * to construct another host. That is workable on a send path, which is
+   * looping over recipients anyway — and impossible in the BUILDER, where the
+   * host is mounted once. So an author could write "show this only to the
+   * Clifton lot" and had no way on earth to look at what anybody else received.
+   * Found by P04 act 6, whose whole question is one email and three shops.
+   *
+   * Absent → `{}`, exactly as before. No existing call changes behaviour.
+   */
+  scope?: DataScope;
 }
 
 /** Quote a font family for CSS unless it's already quoted or a bare single
@@ -525,19 +636,20 @@ function normalizeOptions(arg?: EmailResolveHost | EmailRenderOptions): EmailRen
  * deprecated.
  */
 export function toEmailHtml(doc: EmailDocument, options?: EmailResolveHost | EmailRenderOptions): string {
-  const { resolver, head, frame } = normalizeOptions(options);
+  const { resolver, head, frame, scope } = normalizeOptions(options);
+  const at = scope ?? {};
   // The frame composes FIRST, so its sections go through the same resolution
   // pass the body does — a brand bar can bind its wordmark exactly the way a
   // body image would. Composition is pure: `doc` is never mutated, and with no
   // frame this returns `doc` itself.
   const framed = composeEmailDocument(doc, frame);
-  const root = resolver ? resolveEmailTree(framed.root, resolver) : framed.root;
+  const root = resolver ? resolveEmailTree(framed.root, resolver, at) : framed.root;
   // Subject/preheader live on the DOCUMENT, not the node tree `resolveEmailTree`
   // walks — resolved separately here via the same `{{ref}}` merge-token pass
   // (raw, unescaped: `esc()` below is the one escape, same as every other
   // field this projector emits).
-  const subject = resolver ? resolveTokens(doc.subject, resolver, {}, false) : doc.subject;
-  const preheader = resolver ? resolveTokens(doc.preheader, resolver, {}, false) : doc.preheader;
+  const subject = resolver ? resolveTokens(doc.subject, resolver, at, false) : doc.subject;
+  const preheader = resolver ? resolveTokens(doc.preheader, resolver, at, false) : doc.preheader;
   const sections = root.children.map(renderSection).join("\n");
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -548,13 +660,15 @@ ${renderHead(root, subject, head)}
 ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>` : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${styleAttr({ background: root.bg })}>
 <tr><td align="center">
-<table role="presentation" width="${root.width}" cellpadding="0" cellspacing="0" border="0"${styleAttr({
-    width: `${root.width}px`,
-    "max-width": "100%",
+<!--[if mso]><table role="presentation" width="${root.width}" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" class="sui-body" cellpadding="0" cellspacing="0" border="0"${styleAttr({
+    width: "100%",
+    "max-width": `${root.width}px`,
     background: root.contentBg,
   })}>
 ${sections}
 </table>
+<!--[if mso]></td></tr></table><![endif]-->
 </td></tr>
 </table>
 </body>

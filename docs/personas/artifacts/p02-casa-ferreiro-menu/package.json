@@ -1,0 +1,13 @@
+{
+  "name": "casa-ferreiro-menu",
+  "private": true,
+  "description": "Tomas's front-end toolchain: the Tailwind CLI and nothing else. No React, no bundler.",
+  "scripts": {
+    "css": "tailwindcss -i static/src/input.css -o static/css/site.css",
+    "css:watch": "tailwindcss -i static/src/input.css -o static/css/site.css --watch"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@wizeworks/silicaui": "file:../../../../packages/silicaui"
+  }
+}

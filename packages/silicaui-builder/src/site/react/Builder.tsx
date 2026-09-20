@@ -12,8 +12,9 @@
 import * as React from "react";
 import type { Document as SuiDocument, RenderedPage, Site } from "@wizeworks/silicaui-html";
 import { renderSite } from "@wizeworks/silicaui-html";
-import { Button, ToggleGroup, Kbd, EmptyState, ImperativeAlertDialogProvider } from "@wizeworks/silicaui-react";
+import { Button, ToggleGroup, EmptyState, ImperativeAlertDialogProvider } from "@wizeworks/silicaui-react";
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
+import type { ImperativePanelHandle } from "@wizeworks/silicaui-panels";
 import { Editor } from "../engine";
 import type { HistoryDelegate, PageMeta, Peer } from "../engine";
 import type { Op, OpMeta } from "../ops";
@@ -29,6 +30,11 @@ import { ComponentBoard } from "./ComponentBoard";
 import { ThemeLibrary } from "./ThemeLibrary";
 import { Canvas } from "./Canvas";
 import { PagesPanel } from "./PagesPanel";
+import { FindPanel } from "./FindPanel";
+
+/** The left rail's pages. `find` is always available; `insert` only when there
+ *  is a tree to insert into. */
+type LeftTab = "layers" | "insert" | "find";
 import { LayoutsPanel } from "./LayoutsPanel";
 import { ComponentsPanel } from "./ComponentsPanel";
 import { NewComponentButton } from "./ComponentStarterDialog";
@@ -38,7 +44,7 @@ import { Inspector } from "./Inspector";
 import { BreakpointProvider } from "./breakpoint-context";
 import { useThemeWebfonts } from "./google-fonts-loader";
 import { Icon } from "../../shared/react/Icon";
-import { IconItem, PanelHead, PanelTabs } from "../../shared/react/chrome";
+import { IconItem, PanelHead, PanelTabs, useChromeIsNarrow } from "../../shared/react/chrome";
 import type { PanelTabSpec } from "../../shared/react/chrome";
 import { BuilderTooltipProvider, Hint, IconButton } from "../../shared/react/Hint";
 import type { LayerDepth } from "../layer-tree";
@@ -139,6 +145,28 @@ function ChromeErrorFallback({ error, reset }: { error: Error; reset: () => void
 
 const last = (vals: string[], fallback: string): string => vals[vals.length - 1] ?? fallback;
 
+/**
+ * The localStorage key the rail widths are remembered under — derived from the
+ * host's `persistKey`, and ABSENT when the host passed `null`.
+ *
+ * It used to be the constant `"silicaui-builder-site-rails"`, which meant the
+ * builder wrote to a host's `localStorage` under a key the host had never given
+ * it — and kept writing after `persistKey={null}`, the prop whose entire job is
+ * "store nothing". Two sites in one origin also shared one set of rail widths.
+ *
+ * Found by P05 act 1 (issues/080), whose integrator had already been burned by
+ * an "embeddable editor" they could not stop writing under their key, and whose
+ * standing check is literally *"confirm the builder writes nothing to storage
+ * under a key they did not give it"*.
+ *
+ * `undefined` disables persistence in react-resizable-panels, so the rails still
+ * work — they just start at their defaults every mount, which is exactly what
+ * "persist nothing" has to mean.
+ */
+function railsKey(persistKey: string | null): string | undefined {
+  return persistKey ? `${persistKey}:rails` : undefined;
+}
+
 function Chrome({
   onPublish,
   toolbarSlot,
@@ -147,6 +175,7 @@ function Chrome({
   dataToggle,
   initialMode,
   onModeChange,
+  persistKey,
 }: {
   onPublish?: (payload: PublishPayload) => void | Promise<void>;
   toolbarSlot?: React.ReactNode;
@@ -155,9 +184,15 @@ function Chrome({
   dataToggle: boolean;
   initialMode: Mode;
   onModeChange?: (mode: Mode) => void;
+  /** Where the rail widths are allowed to be remembered — see `railsKey`. */
+  persistKey: string | null;
 }) {
   const editor = useEditor();
-  const { canUndo, canRedo } = useHistory();
+  // `undoLabel` names the action the next press takes back ("Remove an element").
+  // Marlene deletes a section, notices two minutes later, and then has to decide
+  // whether pressing this is safe — a toast would be long gone by then, so the
+  // answer has to live on the control itself. See issues/047.
+  const { canUndo, canRedo, undoLabel, redoLabel } = useHistory();
   const { activeId } = usePages();
   const editingSymbol = useEditingSymbol();
   const activeTree = useActiveTree();
@@ -176,7 +211,7 @@ function Chrome({
   const [dataPreview, setDataPreview] = React.useState(true);
   const host = useHost();
   const resolvesData = Boolean(host?.resolveBinding || host?.resolveCollection);
-  const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
+  const [leftTab, setLeftTab] = React.useState<LeftTab>("layers");
   // How much of the tree the Navigator lists. Lives HERE, not in the Navigator:
   // the Navigator is remounted on every page/mode switch, so component-local
   // state would silently reset the author's choice. A viewing preference — it
@@ -189,9 +224,20 @@ function Chrome({
   // closed the component, the rail falls back to Layers rather than showing a
   // dead panel. (Theme mode has no node rails at all.)
   const showTree = mode !== "component" || Boolean(editingSymbol);
+  // Find is always present, unlike Insert. What it looks for is usually on a
+  // surface the author is NOT on — the shared frame, another page, a saved
+  // component — so gating it on the current tree would hide it exactly when it
+  // is wanted. Same tab, same icon and same place as the email builder's.
   const leftTabs: PanelTabSpec[] = showTree
-    ? [{ id: "layers", label: "Layers", icon: "list" }, { id: "insert", label: "Insert", icon: "plus" }]
-    : [{ id: "layers", label: "Layers", icon: "list" }];
+    ? [
+        { id: "layers", label: "Layers", icon: "list" },
+        { id: "insert", label: "Insert", icon: "plus" },
+        { id: "find", label: "Find", icon: "search" },
+      ]
+    : [
+        { id: "layers", label: "Layers", icon: "list" },
+        { id: "find", label: "Find", icon: "search" },
+      ];
   const activeLeftTab = leftTabs.some((t) => t.id === leftTab) ? leftTab : "layers";
 
   // Publish = hand the host the whole site: the structured `Site` (to store +
@@ -289,6 +335,33 @@ function Chrome({
     onModeChange?.(mode);
   }, [mode, onModeChange]);
 
+  // --- narrow chrome (issues/103) -------------------------------------------
+  // Measured off the toolbar, which spans the shell, so the number is the
+  // BUILDER's width rather than the window's — this thing embeds.
+  const barRef = React.useRef<HTMLElement>(null);
+  const narrow = useChromeIsNarrow(barRef);
+  const [openRail, setOpenRail] = React.useState<"left" | "right" | null>(null);
+  const leftPanel = React.useRef<ImperativePanelHandle>(null);
+  const rightPanel = React.useRef<ImperativePanelHandle>(null);
+  // Which rail is actually showing. Wide: both, always, exactly as before.
+  const leftShown = !narrow || openRail === "left";
+  const rightShown = !narrow || openRail === "right";
+
+  React.useEffect(() => {
+    // `collapse()`/`expand()` are no-ops when the panel is already there, so
+    // this is safe to run on every change of either input.
+    if (leftShown) leftPanel.current?.expand();
+    else leftPanel.current?.collapse();
+    if (rightShown) rightPanel.current?.expand();
+    else rightPanel.current?.collapse();
+  }, [leftShown, rightShown]);
+
+  // Leaving narrow behind puts both rails back, so a window that is widened
+  // again is the window you had — not one rail open and one gone.
+  React.useEffect(() => {
+    if (!narrow) setOpenRail(null);
+  }, [narrow]);
+
   return (
     // The device toggle is also the AUTHORING BREAKPOINT — the semantic
     // Inspector controls write the container variant that matches the width on
@@ -296,7 +369,7 @@ function Chrome({
     // never drift apart. See `breakpoint-context`.
     <BreakpointProvider device={device}>
       {/* header */}
-      <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
+      <header ref={barRef} className="@container/toolbar flex flex-wrap items-center gap-2 min-h-12 flex-none px-3 py-1.5 bg-base-100 border-b border-base-300">
         <ToggleGroup
           className="toggle-group-sm toggle-group-primary"
           aria-label="Editor mode"
@@ -305,15 +378,48 @@ function Chrome({
         >
           {/* Widest scope → narrowest: whole-site theme, shared layout, one page,
               one reusable component. */}
-          <IconItem value="theme" icon="theme">Theme</IconItem>
-          <IconItem value="layout" icon="layout">Layout</IconItem>
-          <IconItem value="page" icon="page">Page</IconItem>
-          <IconItem value="component" icon="box">Component</IconItem>
+          <IconItem value="theme" icon="theme" hint="Colours and type for the whole site">Theme</IconItem>
+          <IconItem value="layout" icon="layout" hint="The header and footer every page shares">Layout</IconItem>
+          <IconItem value="page" icon="page" hint="One page's own content">Page</IconItem>
+          <IconItem value="component" icon="box" hint="A piece you build once and reuse">Component</IconItem>
         </ToggleGroup>
+
+        {/* The rails are gone at this width, so here is how they come back. Only
+            rendered when they are collapsed: on a wide window both are already
+            on screen and a button to open them would open nothing. Each is a
+            real toggle — `aria-pressed` says which pane is showing — and opening
+            one closes the other, because 240px of rail and 256px of rail do not
+            both fit next to a page worth reading. */}
+        {narrow && (
+          <>
+            <IconButton
+              // The SAME icon the Layers tab wears inside the rail, so the
+              // button that opens it and the thing it opens are one object.
+              icon="list"
+              label="Layers"
+              hint={openRail === "left" ? "Hide the layers rail" : "Show the layers rail over the page"}
+              size="sm"
+              shape={undefined}
+              aria-pressed={openRail === "left"}
+              className={openRail === "left" ? "btn-active" : undefined}
+              onClick={() => setOpenRail((r) => (r === "left" ? null : "left"))}
+            />
+            <IconButton
+              icon="sliders"
+              label="Inspector"
+              hint={openRail === "right" ? "Hide the inspector" : "Show the inspector over the page"}
+              size="sm"
+              shape={undefined}
+              aria-pressed={openRail === "right"}
+              className={openRail === "right" ? "btn-active" : undefined}
+              onClick={() => setOpenRail((r) => (r === "right" ? null : "right"))}
+            />
+          </>
+        )}
 
         <IconButton
           icon="undo"
-          label="Undo"
+          label={undoLabel ? `Undo — ${undoLabel.toLowerCase()}` : "Undo"}
           shortcut="⌘Z"
           size="sm"
           shape={undefined}
@@ -322,7 +428,7 @@ function Chrome({
         />
         <IconButton
           icon="redo"
-          label="Redo"
+          label={redoLabel ? `Redo — ${redoLabel.toLowerCase()}` : "Redo"}
           shortcut="⇧⌘Z"
           size="sm"
           shape={undefined}
@@ -337,9 +443,9 @@ function Chrome({
             value={[device]}
             onValueChange={(v: string[]) => v.length && setDevice(last(v, device))}
           >
-            <IconItem value="desktop" icon="monitor">Desktop</IconItem>
-            <IconItem value="tablet" icon="tablet">Tablet</IconItem>
-            <IconItem value="mobile" icon="smartphone">Mobile</IconItem>
+            <IconItem value="desktop" icon="monitor" labelAt="generous">Desktop</IconItem>
+            <IconItem value="tablet" icon="tablet" labelAt="generous">Tablet</IconItem>
+            <IconItem value="mobile" icon="smartphone" labelAt="generous">Mobile</IconItem>
           </ToggleGroup>
         )}
 
@@ -390,11 +496,6 @@ function Chrome({
             to do to fake this. */}
         {toolbarStatusSlot}
 
-        <Kbd size="sm">
-          <span className="inline-flex items-center gap-1.5">
-            <Icon name="command" /> /
-          </span>
-        </Kbd>
         <ToggleGroup
           className="toggle-group-sm"
           aria-label="Appearance"
@@ -406,8 +507,8 @@ function Chrome({
             editor.setThemeMode(next);
           }}
         >
-          <IconItem value="light" icon="sun">Light</IconItem>
-          <IconItem value="dark" icon="moon">Dark</IconItem>
+          <IconItem value="light" icon="sun" labelAt="generous">Light</IconItem>
+          <IconItem value="dark" icon="moon" labelAt="generous">Dark</IconItem>
         </ToggleGroup>
         {toolbarSlot}
         {/* Labelled, so the tooltip adds the CONSEQUENCE rather than repeating
@@ -434,22 +535,58 @@ function Chrome({
           document itself. */}
       <ResizablePanelGroup
         direction="horizontal"
-        autoSaveId="silicaui-builder-site-rails"
+        autoSaveId={railsKey(persistKey)}
         className="flex-1 min-h-0"
         style={{ border: "none", borderRadius: 0, backgroundColor: "transparent" }}
       >
         {/* left */}
+          {/* The floor is in PIXELS, not percent, and that is the whole point.
+              `minSize` is a percentage of the group, so the same 12% is a
+              comfortable 230px on a 1920 monitor and a useless 164px on a 1426
+              one — and at 164px this rail stops working: the tab strip gets 51px
+              of the 164px it needs, two 32px scroll arrows eat 52% of the row,
+              "Layers" renders as "Lay", and 8 of 12 tree rows show about four
+              characters. The width persists (`autoSaveId`), so a single drag to
+              the permitted minimum makes every future session open that way.
+              What the rail needs is a pixel quantity, because its contents are
+              pixel quantities, so it is expressed as one. Found by P03 —
+              docs/personas/issues/040.
+
+              288px and not 240px since the rail grew a third page. The same
+              arithmetic, re-run: three tabs measure 236px, the depth toggle
+              beside them 24px, and the strip's own padding 12px — 272px before
+              anything has room to breathe. At 240px the strip paged at EVERY
+              width, which put **Find** behind an arrow: the one tab whose entire
+              purpose is that you can see it without knowing it is there. The
+              email builder had been doing exactly this since its own Find
+              shipped, so the fix is on both. (docs/personas/issues/111) */}
         <ResizablePanel
+          ref={leftPanel}
+          // `collapsible` ONLY while narrow, and `minSize` 0 with it. Both halves
+          // matter. The library derives a separator's `aria-valuemin` from the
+          // neighbour's `minSize` alone — `calculateAriaValues` never reads
+          // `collapsedSize` — so a collapsible panel declares a floor it can go
+          // straight through: `Home` parked this rail at 0 while the separator
+          // still announced a minimum of 12. Turning `collapsible` on for every
+          // width would have made that true on the desktop layout too, where
+          // nothing needed it. Narrow-only keeps the wide layout byte-identical
+          // to what it was, and `minSize={0}` alongside it makes the declared
+          // minimum TRUE rather than merely consistent — at this width the rail
+          // really can be nothing. The 240px floor is held by `min-w-60` while
+          // the rail is shown, which is the pixel quantity issues/040 asked for
+          // and the thing that was doing the work all along.
+          collapsible={narrow}
+          collapsedSize={0}
           defaultSize={18}
-          minSize={12}
+          minSize={narrow ? 0 : 12}
           maxSize={32}
-          className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-r border-base-300"
+          className={`flex flex-col min-h-0 ${leftShown ? "min-w-72" : "min-w-0"} overflow-hidden bg-base-100 border-r border-base-300`}
         >
           {mode === "theme" ? (
             <>
               <PanelHead theme>
                 <Icon name="theme" /> Theme editor
-                <span className="ml-auto font-medium text-base-content/45">whole site</span>
+                <span className="ml-auto font-medium text-base-content">whole site</span>
               </PanelHead>
               <div className="flex-1 min-h-0 overflow-auto">
                 <ThemeEditor />
@@ -465,7 +602,7 @@ function Chrome({
             <PanelTabs
               tabs={leftTabs}
               value={activeLeftTab}
-              onValueChange={(id) => setLeftTab(id as "layers" | "insert")}
+              onValueChange={(id) => setLeftTab(id as LeftTab)}
               ariaLabel="Left panel"
               testIdPrefix="left-tab"
               actions={activeLeftTab === "layers" && showTree
@@ -488,6 +625,8 @@ function Chrome({
                     </div>
                   )}
                 </>
+              ) : activeLeftTab === "find" ? (
+                <FindPanel />
               ) : (
                 <div className="flex-1 min-h-0 overflow-auto py-1.5 text-sm">
                   <Palette />
@@ -528,11 +667,29 @@ function Chrome({
         <ResizeHandle />
 
         {/* right */}
+        {/* Same pixel floor as the left rail — the Inspector's own tab strip and
+            control rows have the same fixed appetite. */}
         <ResizablePanel
+          ref={rightPanel}
+          // `collapsible` ONLY while narrow, and `minSize` 0 with it. Both halves
+          // matter. The library derives a separator's `aria-valuemin` from the
+          // neighbour's `minSize` alone — `calculateAriaValues` never reads
+          // `collapsedSize` — so a collapsible panel declares a floor it can go
+          // straight through: `Home` parked this rail at 0 while the separator
+          // still announced a minimum of 12. Turning `collapsible` on for every
+          // width would have made that true on the desktop layout too, where
+          // nothing needed it. Narrow-only keeps the wide layout byte-identical
+          // to what it was, and `minSize={0}` alongside it makes the declared
+          // minimum TRUE rather than merely consistent — at this width the rail
+          // really can be nothing. The 240px floor is held by `min-w-60` while
+          // the rail is shown, which is the pixel quantity issues/040 asked for
+          // and the thing that was doing the work all along.
+          collapsible={narrow}
+          collapsedSize={0}
           defaultSize={20}
-          minSize={16}
+          minSize={narrow ? 0 : 16}
           maxSize={34}
-          className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-l border-base-300"
+          className={`flex flex-col min-h-0 ${rightShown ? "min-w-64" : "min-w-0"} overflow-hidden bg-base-100 border-l border-base-300`}
         >
           {mode === "theme" ? (
             <>
@@ -576,7 +733,7 @@ function Chrome({
           href="https://silicaui.com"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 font-semibold tracking-tight text-base-content/55 hover:text-base-content"
+          className="inline-flex items-center gap-1.5 py-1 -my-1 font-semibold tracking-tight text-base-content/70 hover:text-base-content"
         >
           <span className="size-3 rounded-sm bg-linear-to-br from-primary to-secondary" />
           silicaui
@@ -653,6 +810,18 @@ export interface BuilderProps {
    * under this key, and restored on the next load — so work survives a reload,
    * closed tab, or power cut even with no host backend. Pass `null` to disable
    * (e.g. a host that is fully server-authoritative). Independent of `onChange`.
+   *
+   * **GIVE EVERY SITE ITS OWN KEY.** The default is one constant, and the store
+   * is keyed on this string and NOTHING else — not the document, which carries
+   * no identity the builder could check. So a draft saved while editing one site
+   * is restored over whatever `document` the host passes next. On one site that
+   * is the whole point. Across two, the second author opens their editor holding
+   * the first author's site, under a banner that calls it "your last session".
+   *
+   * A host serving more than one site, or more than one person from one browser
+   * profile (an agency, a shared machine), must include the site's own id:
+   * `persistKey={`acme-cms:site:${siteId}`}`. Found by P03's isolation check
+   * (issues/061).
    */
   persistKey?: string | null;
   /**
@@ -779,6 +948,15 @@ const DEFAULT_PERSIST_KEY = "@wizeworks/silicaui-builder";
  * by design (a prop that re-seeded the editor would blow away in-flight edits on
  * every parent render). These are explicit, host-timed calls.
  */
+/** Where the author was, as opposed to what the document says — restored after a
+ *  crash so a recovered session opens on the page she was editing rather than on
+ *  page one. Deliberately NOT part of `Site`: it is session state, and putting it
+ *  in the document would push it out through `onChange` to every host. */
+interface BuilderView {
+  activePageId: string;
+  selectedId?: string;
+}
+
 export interface BuilderHandle {
   /**
    * Render another author's edits in place, without a reload. Never lands on
@@ -808,6 +986,23 @@ export interface BuilderHandle {
    * to restore the local stack (correct for a single author).
    */
   setHistoryDelegate(delegate: HistoryDelegate | undefined): void;
+  /**
+   * The current document, on demand — a defensive clone, symmetric to what
+   * `document` accepts.
+   *
+   * `onChange` covers persistence and is the right hook for it, but it only
+   * fires on CHANGE: a host that wants the document at a moment of its own
+   * choosing (a Save button, a preview, a "send for review" action, a test)
+   * otherwise has to mirror every `onChange` into its own state purely to have
+   * something to read. builder-contract.md §10 has listed this as part of the
+   * minimal buildable surface all along — *"`BuilderHandle` with `extract()`
+   * symmetric to load"* — and it was the one item on that list the handle did
+   * not have. Found by P05 act 1 (issues/079).
+   *
+   * `undefined` before the editor has booted (the first paint of a restore),
+   * which is the same window in which every other method here is a no-op.
+   */
+  extract(): Site | undefined;
 }
 
 /** The full builder. Mount it anywhere; it fills its host container. */
@@ -828,6 +1023,21 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
   onModeChange,
 }: BuilderProps, handleRef) {
   const store = React.useMemo(() => (persistKey ? new DraftStore<Site>(persistKey) : null), [persistKey]);
+  // Which page she was on, kept in its OWN store rather than inside the draft.
+  //
+  // The draft is the DOCUMENT; the active page is a view concern, and mixing the
+  // two would put session state into `Site` and out through `onChange` to every
+  // host. A sibling key keeps the document clean and still answers the question
+  // that matters after a crash: put her back where she was.
+  //
+  // Found by P03 (docs/personas/issues/049). Marlene reloaded with her term-dates
+  // table on screen and landed on an empty Home. Her work was all there — one page
+  // away — but the first thing she saw was a blank canvas, which is exactly the
+  // thing she said she was afraid of.
+  const viewStore = React.useMemo(
+    () => (persistKey ? new DraftStore<BuilderView>(`${persistKey}:view`) : null),
+    [persistKey],
+  );
   const docRef = React.useRef(document);
   // Seeded once, same lifecycle as `docRef` — a policy change mid-session takes
   // effect on the next "start fresh" / boot, not live (matches BuilderProps.host's doc).
@@ -853,6 +1063,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
       replaceState: (site, seq) => editorRef.current?.replaceState(site, seq),
       ackSeq: (seq) => editorRef.current?.ackSeq(seq),
       setHistoryDelegate: (delegate) => editorRef.current?.setHistoryDelegate(delegate),
+      extract: () => editorRef.current?.extractSite(),
     }),
     [],
   );
@@ -871,9 +1082,20 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
     let cancelled = false;
     void (async () => {
       const snap = store ? await store.load() : undefined;
+      const view = viewStore ? await viewStore.load() : undefined;
       if (cancelled) return;
+      const next = new Editor(snap?.data ?? docRef.current, { validateClass: hostRef.current?.validateClass, viewportVariants: hostRef.current?.viewportVariants });
+      // Only when that page still exists — a draft can outlive the page it was
+      // taken on, and `setActivePage` on a missing id would be a silent no-op
+      // that leaves her somewhere she did not choose either.
+      const wanted = view?.data?.activePageId;
+      if (wanted && next.pagesView.pages.some((pg) => pg.id === wanted)) next.setActivePage(wanted);
+      // AFTER the page, never before: `select` refuses an id that is not in the
+      // tree it is currently pointed at, and returns `false` rather than throwing,
+      // so a node that has since been deleted simply leaves nothing selected.
+      if (view?.data?.selectedId) next.select(view.data.selectedId);
       setCurrent({
-        editor: new Editor(snap?.data ?? docRef.current, { validateClass: hostRef.current?.validateClass, viewportVariants: hostRef.current?.viewportVariants }),
+        editor: next,
         recoveredAt: snap?.savedAt ?? null,
         gen: 0,
       });
@@ -881,7 +1103,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
     return () => {
       cancelled = true;
     };
-  }, [store]);
+  }, [store, viewStore]);
 
   // Autosave (local durable store) + relay stored-state edits to the host. Selection
   // and active page-or-tree switches are view concerns that don't alter the
@@ -895,22 +1117,48 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
     // it's derived from what actually changed rather than from a list someone
     // has to remember to update, and it holds the engine to the rule that no
     // mutation is silent.
+    // Once the page is going away there is no time left to wait out a debounce,
+    // so every save from that moment on is written through immediately. This is
+    // what makes the ORDER of the hide listeners stop mattering: the canvas
+    // commits the text it is holding on the same event (`useCommitOnHide`), and
+    // whether that lands before or after this handler, the save it produces is
+    // durable either way (issues/058).
+    const hiding = { now: false };
     const unsub = editor.subscribe((e) => {
+      // A page switch carries no ops — it changes nothing stored — but it IS the
+      // thing to remember for next time, so it is recorded before the early exit.
+      viewStore?.save({ activePageId: editor.activePage, selectedId: editor.selection });
+      if (hiding.now) viewStore?.flush();
       if (!e.ops.length) return;
       const site = editor.extractSite();
       store?.save(site);
+      if (hiding.now) store?.flush();
       onChange?.(site, e.ops, { baseSeq: editor.baseSeq });
     });
-    const flush = () => store?.flush();
-    window.addEventListener("visibilitychange", flush);
+    const flush = () => {
+      hiding.now = true;
+      store?.flush();
+      viewStore?.flush();
+    };
+    // Coming BACK from a hidden tab returns to debounced writes — otherwise one
+    // tab switch would make every keystroke for the rest of the session a
+    // synchronous localStorage write.
+    const onVisibility = () => {
+      // `window.document`, because `document` in this scope is the builder's
+      // own document prop, not the DOM one.
+      if (window.document.visibilityState === "hidden") flush();
+      else hiding.now = false;
+    };
+    window.document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", flush);
     return () => {
       unsub();
-      window.removeEventListener("visibilitychange", flush);
+      window.document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", flush);
       store?.flush();
+      viewStore?.flush();
     };
-  }, [editor, store, onChange]);
+  }, [editor, store, viewStore, onChange]);
 
   // Notify the host of the ACTIVE page's identity — mount + every switch/rename —
   // so it can key its own page-scoped UI (e.g. a `toolbarSlot` settings drawer)
@@ -991,6 +1239,7 @@ export const Builder = React.forwardRef<BuilderHandle, BuilderProps>(function Bu
                   dataToggle={dataToggle}
                   initialMode={initialMode}
                   onModeChange={onModeChange}
+                  persistKey={persistKey}
                 />
               </ErrorBoundary>
             </div>

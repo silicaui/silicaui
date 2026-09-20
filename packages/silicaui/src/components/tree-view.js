@@ -1,4 +1,5 @@
 import { inkOfRole } from "../lib/ink.js";
+import { hitArea } from "../lib/tap-target.js";
 /**
  * TreeView — a hierarchical, keyboard-navigable tree (page trees, file/section
  * hierarchies, nav builders).
@@ -23,7 +24,7 @@ export function treeView(prefix = "") {
       listStyle: "none",
       margin: "0",
       padding: "0",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
     [sel("-group")]: {
@@ -103,6 +104,10 @@ export function treeView(prefix = "") {
       transition: "transform 0.15s ease, color 0.15s ease",
       "&:hover": { color: "var(--color-base-content)" },
       "& svg": { width: "0.8rem", height: "0.8rem", flexShrink: "0" },
+    
+      // 17.6px square against WCAG 2.2 SC 2.5.8's 24px minimum — the chevron keeps
+      // its size, the target grows around it. See lib/tap-target.js.
+      ...hitArea(17.6, 17.6),
     },
     [`${sel("-toggle")}[data-expanded]`]: { transform: "rotate(90deg)" },
     [sel("-toggle-spacer")]: {
@@ -137,6 +142,17 @@ export function treeView(prefix = "") {
       paddingBlock: "0.05rem",
       paddingInline: "0.25rem",
       outline: "0",
+    },
+
+    // The system's own focus ring, on controls that were falling back to the
+    // BROWSER's. The browser's ring is visible -- Chromium adapts it -- but it is
+    // 1px where this system's is 2px, it carries no offset, it ignores the theme,
+    // and its shape is the browser's choice, not this system's. Focus should not change
+    // appearance depending on which control a person is standing on.
+    // Found by a sweep of all 116 component pages (P07, docs/personas/issues/092).
+    [`${sel("-toggle")}:focus-visible`]: {
+      outline: "var(--focus-width, 2px) solid var(--color-primary)",
+      outlineOffset: "var(--focus-offset, 2px)",
     },
   };
 }

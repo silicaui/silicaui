@@ -106,7 +106,19 @@ test("nothing selected shows the same empty state as the site builder; selecting
   // Fresh load: nothing is selected — a real EmptyState, not a settings form.
   await expect(page.getByText("No selection", { exact: true })).toBeVisible();
   await expect(page.getByText("Select an element on the canvas to edit it.")).toBeVisible();
-  await expect(page.getByText("Subject", { exact: true })).toHaveCount(0);
+  // Scoped to the INSPECTOR, which is what this test is about. It used to ask
+  // the whole page, and that stopped being the same question when the subject
+  // bar was added above the canvas (issues/112): the word "Subject" is now
+  // deliberately on screen from the first moment, which was the entire point of
+  // that change. What must still be true — and is what this line was really
+  // guarding — is that the RAIL shows no document settings until you ask for
+  // them.
+  const inspector = page.getByRole("tabpanel").last();
+  await expect(inspector.getByText("Subject", { exact: true })).toHaveCount(0);
+
+  // And the bar itself is there, saying so, which is the other half of the same
+  // fact: nothing on screen used to mention that an email had a subject at all.
+  await expect(page.getByTestId("subject-bar")).toBeVisible();
 
   // Selecting "Email" (the document root) in the Navigator routes through the
   // SAME Design/Settings tabs as any other node. Click the row's own `.tree-node`
@@ -116,15 +128,17 @@ test("nothing selected shows the same empty state as the site builder; selecting
   await page.locator(".tree-node").first().click();
   await expect(page.getByText("Surface", { exact: true })).toBeVisible();
   await expect(page.getByText("Content background", { exact: true })).toBeVisible();
-  await expect(page.getByText("Subject", { exact: true })).toHaveCount(0); // that's on Settings
+  await expect(inspector.getByText("Subject", { exact: true })).toHaveCount(0); // that's on Settings
 
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
-  await expect(page.getByText("Subject", { exact: true })).toBeVisible();
+  await expect(inspector.getByText("Subject", { exact: true })).toBeVisible();
   await expect(page.getByText("Canvas width (px)", { exact: true })).toBeVisible();
   await expect(page.getByText("Font family", { exact: true })).toBeVisible();
 
   // The root can't be moved/duplicated/deleted/saved-as-block.
-  await expect(page.getByLabel("Duplicate")).toBeDisabled();
+  // `exact` since P04/issues 072 added a "Duplicate template" button to the
+  // rail: this one is the NODE toolbar's, labelled exactly "Duplicate".
+  await expect(page.getByLabel("Duplicate", { exact: true })).toBeDisabled();
   // exact: true — "Delete" is a substring of the Templates panel's "Delete template".
   await expect(page.getByLabel("Delete", { exact: true })).toBeDisabled();
   await expect(page.getByLabel("Save as block")).toHaveCount(0);

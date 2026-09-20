@@ -66,14 +66,14 @@ export function selectionList(prefix = "") {
       gap: "0.05rem",
     },
     [sel("-item-label")]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "500",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
     [sel("-item-description")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       color: muted(60),
       overflow: "hidden",
       textOverflow: "ellipsis",

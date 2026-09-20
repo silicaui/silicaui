@@ -124,10 +124,10 @@ function ItemRow({ item, groupLabel }: { item: PaletteItem; groupLabel?: string 
         }}
         onClick={() => editor.insertRelative(makeInsertNode(item))}
       >
-        <Icon name={item.icon} className="shrink-0 text-base-content/55" />
+        <Icon name={item.icon} className="shrink-0 text-base-content/70" />
         <span className="min-w-0 flex-auto truncate text-left">{item.label}</span>
         {groupLabel && (
-          <span className="min-w-0 shrink-[99] truncate text-xs uppercase tracking-wide text-base-content/35">
+          <span className="min-w-0 shrink-[99] truncate text-xs uppercase tracking-wide text-base-content">
             {groupLabel}
           </span>
         )}
@@ -188,7 +188,7 @@ function ComponentsSection() {
   if (symbols.length === 0) return null;
   return (
     <section className="flex flex-col gap-0.5">
-      <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/40">Components</h3>
+      <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content">Components</h3>
       {symbols.map((s) => (
         <SymbolRow key={s.id} id={s.id} name={s.name} />
       ))}
@@ -202,8 +202,8 @@ function TargetHint() {
   const hostDisplay = useHostDisplay();
   const where = selected ? nodeName(selected, hostDisplay) : "the page";
   return (
-    <p className="px-2.5 pb-1 text-xs text-base-content/45">
-      Inserts into <span className="font-medium text-base-content/70">{where}</span>. Drag onto the canvas to place it.
+    <p className="px-2.5 pb-1 text-xs text-base-content">
+      Inserts into <span className="font-medium text-base-content">{where}</span>. Drag onto the canvas to place it.
     </p>
   );
 }
@@ -234,7 +234,7 @@ export function Palette() {
       <div className="relative px-1">
         <Icon
           name="search"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/45"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/70"
         />
         <Input
           type="search"
@@ -259,7 +259,7 @@ export function Palette() {
 
       {results ? (
         results.length === 0 ? (
-          <p className="px-2.5 py-6 text-center text-xs text-base-content/40">
+          <p className="px-2.5 py-6 text-center text-xs text-base-content">
             No components match “{q}”.
           </p>
         ) : (
@@ -275,7 +275,7 @@ export function Palette() {
           <ComponentsSection />
           {GROUPS.map((group) => (
             <section key={group.key} className="flex flex-col gap-0.5">
-              <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/40">
+              <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content">
                 {group.label}
               </h3>
               {group.items.map((item) => (

@@ -52,14 +52,14 @@ export function colorPicker(prefix = "") {
       fontVariantNumeric: "tabular-nums",
     },
     [sel("-value-oklch")]: {
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       fontWeight: "600",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
     [sel("-value-hex")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       textTransform: "uppercase",
       letterSpacing: "0.02em",
       color: "var(--color-base-content)",
@@ -78,12 +78,12 @@ export function colorPicker(prefix = "") {
       gap: "0.5rem",
     },
     [sel("-slider-label")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontWeight: "700",
       color: "var(--color-base-content)",
     },
     [sel("-slider-value")]: {
-      fontSize: "0.72rem",
+      fontSize: "1rem",
       textAlign: "right",
       fontVariantNumeric: "tabular-nums",
       color: "var(--color-base-content)",
@@ -122,7 +122,7 @@ export function colorPicker(prefix = "") {
       gap: "0.5rem",
     },
     [sel("-hex-label")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontWeight: "700",
       color: "var(--color-base-content)",
     },
@@ -136,7 +136,7 @@ export function colorPicker(prefix = "") {
       backgroundColor: "var(--color-base-100)",
       color: "inherit",
       font: "inherit",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       textTransform: "uppercase",
       "&:focus": {
         outline: "0",
@@ -178,7 +178,7 @@ export function colorPicker(prefix = "") {
       boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--color-base-content) 15%, transparent)",
     },
     [sel("-swatch-trigger-label")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontVariantNumeric: "tabular-nums",
       textTransform: "uppercase",
       color: "var(--color-base-content)",

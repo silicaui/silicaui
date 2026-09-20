@@ -1,21 +1,37 @@
 import { defineConfig } from "tsup";
 
-import { distDir, prependUseClient } from "../../scripts/tsup-use-client.mjs";
+import { distDir, finishPerModuleBuild } from "../../scripts/tsup-use-client.mjs";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/server.ts"],
+  // ONE OUTPUT FILE PER SOURCE FILE, not one bundle.
+  //
+  // A single pre-bundled `dist/index.js` cannot be tree-shaken by a consumer's
+  // bundler: it sees one enormous module and keeps whatever it cannot prove
+  // dead. Measured on a real app (docs/personas/issues/086) importing exactly
+  // one `Button`:
+  //
+  //     from SOURCE          +2.0 kB
+  //     from the dist bundle +301.6 kB
+  //
+  // The component is two kilobytes. Publishing it inside one file made it three
+  // hundred. Mirroring `src` into `dist` hands the consumer the real module
+  // graph, which is the thing their bundler is good at.
+  entry: ["src/**/*.ts", "src/**/*.tsx"],
+  bundle: false,
   format: ["esm"],
   dts: true,
   clean: true,
   sourcemap: true,
-  treeshake: true,
-  // Keep peers and Base UI out of the bundle. The regex catches every
-  // `@base-ui/react/<part>` subpath import, not just the bare name.
+  // Peers and Base UI were already external; with `bundle: false` nothing is
+  // inlined at all, so the list is kept only as documentation of intent.
   external: ["react", "react-dom", /^@base-ui\//],
-  // Every component in the main entry is a client component (state, context, or
-  // Base UI under the hood). `src/server.ts` is deliberately NOT stamped — it
-  // exists precisely so a Server Component can import from Silica.
+  // With one file per module there are three things to put right afterwards:
+  // relative imports need a `.js` so Node's own ESM loader can resolve them,
+  // that has to be PROVED rather than assumed, and `'use client'` belongs on
+  // every client module instead of only the entry — but never on `server.js` or
+  // the pure helpers it reaches, which exist precisely so a Server Component can
+  // import `cx` and the class builders.
   async onSuccess() {
-    prependUseClient(distDir(import.meta.url));
+    finishPerModuleBuild(distDir(import.meta.url), { serverEntry: "server.js" });
   },
 });

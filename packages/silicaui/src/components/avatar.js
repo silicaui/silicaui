@@ -34,7 +34,7 @@ export function avatar(colors, prefix = "") {
       borderRadius: "9999px",
       backgroundColor: "var(--avatar-bg, var(--color-base-300))",
       color: "var(--avatar-fg, var(--color-base-content))",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "600",
       lineHeight: "1",
       userSelect: "none",
@@ -105,10 +105,10 @@ export function avatar(colors, prefix = "") {
     },
 
     // ---- Sizes (box + initials type) ---------------------------------------
-    [sel("-xs")]: { width: "1.5rem", height: "1.5rem", fontSize: "0.625rem" },
-    [sel("-sm")]: { width: "2rem", height: "2rem", fontSize: "0.75rem" },
-    [sel("-md")]: { width: "2.5rem", height: "2.5rem", fontSize: "0.875rem" },
-    [sel("-lg")]: { width: "3rem", height: "3rem", fontSize: "1rem" },
+    [sel("-xs")]: { width: "1.5rem", height: "1.5rem", fontSize: "0.75rem" },
+    [sel("-sm")]: { width: "2rem", height: "2rem", fontSize: "0.875rem" },
+    [sel("-md")]: { width: "2.5rem", height: "2.5rem", fontSize: "1rem" },
+    [sel("-lg")]: { width: "3rem", height: "3rem", fontSize: "1.125rem" },
     [sel("-xl")]: { width: "4rem", height: "4rem", fontSize: "1.25rem" },
   };
 

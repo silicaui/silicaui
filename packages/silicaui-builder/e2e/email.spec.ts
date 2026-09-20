@@ -143,8 +143,8 @@ test("the projected HTML is valid table-based markup carrying the current subjec
   // not the `treeitem` <li> (whose bounding box spans its expanded children).
   await page.locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
-  await page.locator(ROW, { hasText: "Subject" }).locator("input").fill("Weekend sale");
-  await page.locator(ROW, { hasText: "Subject" }).locator("input").blur();
+  await page.locator(ROW, { hasText: "Subject" }).locator("textarea").fill("Weekend sale");
+  await page.locator(ROW, { hasText: "Subject" }).locator("textarea").blur();
 
   const html = await page.waitForFunction(
     () => (window as unknown as { __exported?: string }).__exported?.includes("Weekend sale") &&

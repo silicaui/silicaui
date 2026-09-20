@@ -36,7 +36,7 @@ export function menubar(prefix = "") {
       gap: "0.375rem",
       paddingInline: "0.625rem",
       height: "calc(var(--size-field, 0.25rem) * 7)",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       fontWeight: "500",
       color: "var(--color-base-content)",
       backgroundColor: "transparent",

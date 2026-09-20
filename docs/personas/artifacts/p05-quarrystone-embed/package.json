@@ -1,0 +1,29 @@
+{
+  "name": "quarrystone",
+  "private": true,
+  "type": "module",
+  "description": "Quarrystone — a B2B tool for quarry operators, embedding the silicaui builder on one route. The host half of the BuilderHost contract, built by an integrator who has never seen the harness.",
+  "scripts": {
+    "dev": "vite --port 5192",
+    "build": "vite build",
+    "preview": "vite preview --port 5193"
+  },
+  "dependencies": {
+    "@wizeworks/silicaui": "file:../../../../packages/silicaui",
+    "@wizeworks/silicaui-builder": "file:../../../../packages/silicaui-builder",
+    "@wizeworks/silicaui-html": "file:../../../../packages/silicaui-html",
+    "@wizeworks/silicaui-panels": "file:../../../../packages/silicaui-panels",
+    "@wizeworks/silicaui-react": "file:../../../../packages/silicaui-react",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.14"
+  }
+}

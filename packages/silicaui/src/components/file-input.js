@@ -23,7 +23,7 @@ export function fileInput(prefix = "") {
       borderColor: "var(--color-base-300)",
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       cursor: "pointer",
       overflow: "hidden",
 
@@ -36,7 +36,7 @@ export function fileInput(prefix = "") {
         backgroundColor: "var(--color-base-200)",
         color: "var(--color-base-content)",
         fontWeight: "600",
-        fontSize: "0.875rem",
+        fontSize: "1rem",
         cursor: "pointer",
         transition: "background-color 0.15s",
       },
@@ -54,10 +54,10 @@ export function fileInput(prefix = "") {
     },
 
     // ---- Sizes -------------------------------------------------------------
-    [sel("-xs")]: { height: "calc(var(--size-field, 0.25rem) * 6)", fontSize: "0.6875rem" },
-    [sel("-sm")]: { height: "calc(var(--size-field, 0.25rem) * 8)", fontSize: "0.8125rem" },
-    [sel("-md")]: { height: "calc(var(--size-field, 0.25rem) * 10)", fontSize: "0.875rem" },
-    [sel("-lg")]: { height: "calc(var(--size-field, 0.25rem) * 12)", fontSize: "1rem" },
-    [sel("-xl")]: { height: "calc(var(--size-field, 0.25rem) * 14)", fontSize: "1.125rem" },
+    [sel("-xs")]: { height: "calc(var(--size-field, 0.25rem) * 6)", fontSize: "0.75rem" },
+    [sel("-sm")]: { height: "calc(var(--size-field, 0.25rem) * 8)", fontSize: "0.875rem" },
+    [sel("-md")]: { height: "calc(var(--size-field, 0.25rem) * 10)", fontSize: "1rem" },
+    [sel("-lg")]: { height: "calc(var(--size-field, 0.25rem) * 12)", fontSize: "1.125rem" },
+    [sel("-xl")]: { height: "calc(var(--size-field, 0.25rem) * 14)", fontSize: "1.25rem" },
   };
 }

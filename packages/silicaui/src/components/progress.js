@@ -92,7 +92,7 @@ export function progress(colors, prefix = "") {
       alignItems: "baseline",
       justifyContent: "space-between",
       gap: "0.5rem",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
     },
     [sel("-label")]: {
       color: "var(--color-base-content)",

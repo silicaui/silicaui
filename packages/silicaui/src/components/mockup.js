@@ -129,7 +129,7 @@ export function mockup(prefix = "") {
       flex: "1 1 0%",
       minHeight: "1.75rem",
       paddingInline: "0.875rem",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       // A URL is meant to be read — real ink, not a faded one.
       color: "var(--color-base-content)",
       backgroundColor: "var(--color-base-100)",
@@ -159,7 +159,7 @@ export function mockup(prefix = "") {
       color: "var(--color-neutral-content)",
       fontFamily:
         'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.6",
 
       "& pre": {

@@ -43,7 +43,7 @@ function BoardCard({ title, aside, children }: { title: string; aside?: string; 
     <div className={CARD}>
       <div className={CARD_H}>
         <span>{title}</span>
-        {aside && <span className="ml-auto font-medium text-xs text-base-content/45">{aside}</span>}
+        {aside && <span className="ml-auto font-medium text-xs text-base-content">{aside}</span>}
       </div>
       {children}
     </div>
@@ -58,7 +58,7 @@ export function ComponentBoard() {
   return (
     <div className="sui-brd flex-1 min-h-0 overflow-auto p-6 bg-base-200 text-base-content @container" data-theme={theme.name} style={themeStyle(theme)}>
       {customCss && <style dangerouslySetInnerHTML={{ __html: customCss }} />}
-      <div className="mb-4 flex items-baseline gap-2 flex-wrap text-sm text-base-content/55">
+      <div className="mb-4 flex items-baseline gap-2 flex-wrap text-sm text-base-content">
         <b className="text-md text-base-content">Component board</b>
         <span>— every token change previews here, across the whole library at once. This is how you judge a theme.</span>
       </div>
@@ -171,13 +171,13 @@ export function ComponentBoard() {
               <TabsTab value="activity">Activity</TabsTab>
               <TabsTab value="settings">Settings</TabsTab>
             </TabsList>
-            <TabsPanel value="overview" className="pt-3 text-sm text-base-content/80">
+            <TabsPanel value="overview" className="pt-3 text-sm text-base-content">
               Panels inherit the theme's surface, border, and radius tokens.
             </TabsPanel>
-            <TabsPanel value="activity" className="pt-3 text-sm text-base-content/80">
+            <TabsPanel value="activity" className="pt-3 text-sm text-base-content">
               12 events in the last hour.
             </TabsPanel>
-            <TabsPanel value="settings" className="pt-3 text-sm text-base-content/80">
+            <TabsPanel value="settings" className="pt-3 text-sm text-base-content">
               Preferences, notifications, and access.
             </TabsPanel>
           </Tabs>
@@ -213,7 +213,7 @@ export function ComponentBoard() {
             <CardBody className="p-4">
               <div className="flex items-center gap-2">
                 <Badge color="accent">New</Badge>
-                <span className="text-sm text-base-content/50">Audio</span>
+                <span className="text-sm text-base-content">Audio</span>
               </div>
               <CardTitle className="text-sm">Wireless Studio Headphones</CardTitle>
               <CardActions className="mt-1 items-center justify-between">

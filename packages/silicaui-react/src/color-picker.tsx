@@ -172,6 +172,7 @@ export const ColorPicker = React.forwardRef<HTMLElement, ColorPickerProps>(
 
     const hex = oklchToHex(l, c, h);
     const hexValue = hexDraft ?? hex;
+    const hexLabelId = React.useId();
 
     const commitHex = () => {
       if (hexDraft !== null) {
@@ -259,9 +260,17 @@ export const ColorPicker = React.forwardRef<HTMLElement, ColorPickerProps>(
 
         {showHex && (
           <div className={cx(sc("color-picker-hex"))}>
-            <span className={cx(sc("color-picker-hex-label"))}>HEX</span>
+            {/* The three sliders each carry a `label`; this field had none, and
+                `rest` is spread on the swatch trigger, so a consumer could not
+                supply one either — a screen reader reached it as an unnamed text
+                box holding "#00bcc8". The "HEX" caption is already on screen, so
+                associate THAT rather than inventing a second name: it keeps the
+                accessible name identical to the visible one, which is what voice
+                control matches against. Found by P03 (issues/046). */}
+            <span id={hexLabelId} className={cx(sc("color-picker-hex-label"))}>HEX</span>
             <input
               type="text"
+              aria-labelledby={hexLabelId}
               className={cx(sc("color-picker-hex-input"))}
               value={hexValue}
               disabled={disabled}

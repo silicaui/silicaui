@@ -25,14 +25,14 @@ function toTreeNode(node: EmailNode): TreeNode {
     // A locked node's name isn't the author's to change; everything else can be
     // named in place (double-click / F2).
     renamable: !node.locked,
-    icon: <Icon name={nodeIcon(node)} className="text-base-content/55" />,
+    icon: <Icon name={nodeIcon(node)} className="text-base-content/70" />,
     label: (
       <span className="inline-flex items-center gap-1.5 truncate">
         <span className="truncate">{nodeName(node)}</span>
         {/* A locked node carries a trailing glyph — a padlock for an author
             lock, a shield for a host lock the author can't clear. Same
             vocabulary as the site Navigator (host-nodes spec §B.3). */}
-        {node.locked && <Icon name={node.locked === "host" ? "shield" : "lock"} className="text-base-content/55" />}
+        {node.locked && <Icon name={node.locked === "host" ? "shield" : "lock"} className="text-base-content/70" />}
       </span>
     ),
     children: kids.length ? kids.map(toTreeNode) : undefined,

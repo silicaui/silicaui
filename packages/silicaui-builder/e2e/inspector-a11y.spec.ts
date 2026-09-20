@@ -113,3 +113,67 @@ test("every Inspector control has a name, and no label wraps a control set", asy
   expect(out.hijacked, `a <label> wrapping a control SET — the first control inherits the row's whole text:\n  ${out.hijacked.join("\n  ")}`).toEqual([]);
   expect(out.unnamed, `controls with no accessible name of any kind:\n  ${out.unnamed.join("\n  ")}`).toEqual([]);
 });
+
+/**
+ * P05 act 4 / issues 082 — a row of chips is ONE tab stop.
+ *
+ * Every chip used to be its own. One Size control cost ten presses, each Padding
+ * row thirteen, a colour row twelve — and measured from a keyboard with a node
+ * selected and the Design tab open, the host's own toolbar button was **142 tab
+ * presses away**. A keyboard user could reach the app's Publish/Send action only
+ * by walking the entire right rail first.
+ */
+test("a row of Design chips is one tab stop, with the arrows moving inside it", async ({ page }) => {
+  await page.goto("/?host=demo");
+  await page.waitForFunction(() => (window as unknown as { __ready?: boolean }).__ready === true);
+  await page.waitForSelector(".sui-canvas");
+
+  await page.locator(".sui-canvas [data-sui-id]").first().click();
+  await page.getByRole("tab", { name: "Design", exact: true }).click();
+  await page.waitForTimeout(400);
+
+  // Count the tab stops the whole Design tab costs, by walking it.
+  const stops = await page.evaluate(() => {
+    const rail = document.querySelector('[data-testid="breakpoint-bar"]')?.parentElement;
+    if (!rail) return -1;
+    return [...rail.querySelectorAll<HTMLElement>("button, input, select, textarea, [tabindex]")].filter(
+      (el) => el.getAttribute("tabindex") !== "-1" && !(el as HTMLButtonElement).disabled,
+    ).length;
+  });
+  // It was 141 before this fix. The exact number moves as controls are added;
+  // what must not come back is one-stop-per-chip, and 60 is far below that.
+  expect(stops, `the Design tab costs ${stops} tab stops`).toBeLessThan(60);
+
+  // A padding row: one chip in the tab order, the rest reachable by arrow.
+  const row = page.getByTestId("row-padding-x");
+  const chips = row.locator("button");
+  const count = await chips.count();
+  expect(count).toBeGreaterThan(5);
+  const inOrder = await row.evaluate((el) =>
+    [...el.querySelectorAll("button")].filter((b) => b.tabIndex === 0).length,
+  );
+  expect(inOrder, "exactly one chip is in the tab order").toBe(1);
+
+  // Arrow keys move within it, and the chip they land on is really focused.
+  await chips.first().focus();
+  const firstName = await page.evaluate(() => document.activeElement?.textContent?.trim());
+  await page.keyboard.press("ArrowRight");
+  const secondName = await page.evaluate(() => document.activeElement?.textContent?.trim());
+  expect(secondName).not.toBe(firstName);
+  await page.keyboard.press("ArrowLeft");
+  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe(firstName);
+
+  // End jumps to the last chip — thirteen padding chips are a long arrow away.
+  await page.keyboard.press("End");
+  const lastName = await page.evaluate(() => document.activeElement?.textContent?.trim());
+  expect(lastName).not.toBe(firstName);
+
+  // And a chip still WORKS when pressed, so this is navigation and not a
+  // fix that made the controls unreachable.
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  const pressed = await row.evaluate((el) =>
+    [...el.querySelectorAll("button")].some((b) => b.getAttribute("aria-pressed") === "true" && b.className.includes("btn-primary")),
+  );
+  expect(pressed, "the chip the keyboard landed on took effect").toBe(true);
+});

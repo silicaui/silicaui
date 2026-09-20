@@ -198,6 +198,46 @@ console.log("one action = one undo step");
   check("no second undo step remains", !ed.canUndo);
 }
 
+// ── duplicating a page (P04 act 7 / issues 072) ───────────────────────
+// The sibling of the email builder's missing template copy: the switcher could
+// add and delete, so a page resembling one that already existed had to be
+// rebuilt block by block. One page per class, per location, per clinician — all
+// the same page with different words in it.
+console.log("duplicating a page");
+{
+  const ed = freshEditor();
+  const home = ed.pagesView.activeId;
+  ed.renamePage(home, "Term dates");
+  ed.setText(sectionId(ed), "Autumn term starts 2 September");
+  const sourceNodeId = sectionId(ed);
+
+  const copyId = ed.duplicatePage(home)!;
+  check("duplicatePage adds a page and switches to it", ed.pagesView.pages.length === 2 && ed.pagesView.activeId === copyId);
+  const copy = ed.extractSite().pages.find((p) => p.id === copyId)!;
+  check("the copy is named from the original", copy.name === "Term dates copy");
+  check("the copy gets its OWN address — two pages cannot share a route", copy.slug !== ed.extractSite().pages[0]!.slug);
+  check("the copy's address follows its new name", copy.slug === "/term-dates-copy");
+  check("the copy's nodes have FRESH ids", sectionId(ed) !== sourceNodeId);
+
+  // The one that matters: editing the copy must not reach into the original.
+  ed.setText(sectionId(ed), "Spring term starts 6 January");
+  ed.setActivePage(home);
+  check("editing the copy leaves the original alone", JSON.stringify(ed.extractSite().pages[0]!.root).includes("Autumn term starts 2 September"));
+
+  const copy2 = ed.duplicatePage(home)!;
+  check("a second copy is numbered, not named twice", ed.extractSite().pages.find((p) => p.id === copy2)!.name === "Term dates copy 2");
+
+  // CONTROL: a copy of nothing is nothing.
+  const n = ed.pagesView.pages.length;
+  check("duplicating an id that isn't there does nothing at all", ed.duplicatePage("no-such-page") === undefined && ed.pagesView.pages.length === n);
+
+  const beforeUndo = JSON.stringify(ed.extractSite());
+  ed.undo();
+  check("undo removes the copy in ONE step", ed.pagesView.pages.length === n - 1);
+  ed.redo();
+  check("redo puts it back", JSON.stringify(ed.extractSite()) === beforeUndo);
+}
+
 // ── 7. theme + library edits still skip history ──────────────────────────────
 console.log("theme/library edits stay out of history");
 {

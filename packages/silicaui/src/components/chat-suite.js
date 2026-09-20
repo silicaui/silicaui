@@ -66,7 +66,7 @@ export function chatSuite(prefix = "") {
       alignItems: "center",
       gap: "0.75rem",
       margin: "0.5rem 0",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       color: muted(60),
       "&::before, &::after": {
         content: '""',
@@ -80,7 +80,7 @@ export function chatSuite(prefix = "") {
     // skip their own header — reuses `.chat-footer`'s type treatment but
     // works outside a `.chat` grid too). -------------------------------------
     [sel("chat-message-metadata")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       color: muted(60),
     },
 
@@ -92,16 +92,16 @@ export function chatSuite(prefix = "") {
       borderRadius: "var(--radius-box, 0.75rem)",
       border: "var(--border, 1px) solid var(--color-base-300)",
       backgroundColor: "var(--color-base-200)",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
     },
     [`${sel("chat-tool-calls")} ${sel("collapsible-trigger")}`]: {
       fontWeight: "500",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       color: muted(80),
     },
     [`${sel("chat-tool-calls")} ${sel("collapsible-content")}`]: {
       fontFamily: "var(--font-mono, monospace)",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
     },

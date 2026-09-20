@@ -98,7 +98,7 @@ export function selectMenu(prefix = "") {
       gap: "0.5rem",
       padding: "0.4rem 0.6rem",
       paddingInlineStart: "1.75rem", // room for the leading check indicator
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.4",
       borderRadius: "var(--radius-field, 0.25rem)",
       color: "inherit",
@@ -123,7 +123,7 @@ export function selectMenu(prefix = "") {
 
     [sel("-group-label")]: {
       padding: "0.375rem 0.6rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
     },

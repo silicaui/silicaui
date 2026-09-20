@@ -32,6 +32,7 @@ import {
   ToggleGroupItem,
 } from "@wizeworks/silicaui-react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
+import { useInspectorFocus } from "./inspector-focus";
 import { useEmailHost } from "./host-context";
 import type { EmailInspectorPanelCtx, EmailInspectorTabDef } from "./host";
 import { Icon } from "../../shared/react/Icon";
@@ -43,7 +44,7 @@ import { ancestorPath, nodeIcon, nodeName } from "../node-display";
 import { useSavedBlocks } from "./saved-blocks";
 import { applyCollectionLimit, truncationMessage } from "@wizeworks/silicaui-html";
 import type { SourceTruncation } from "@wizeworks/silicaui-html";
-import { emailScopeAt, flattenEmailSources } from "../resolve";
+import { emailScopeAt, flattenEmailSources, scanTokens, tokenFieldOf } from "../resolve";
 import { filterTokenOptions, matchTokenQuery } from "./token-query";
 import type { TokenMatch } from "./token-query";
 import type {
@@ -93,7 +94,7 @@ import type {
 function Row({ label, children, group }: { label: string; children: React.ReactNode; group?: boolean }) {
   const id = React.useId();
   const text = (
-    <span id={group ? id : undefined} className="text-xs font-medium text-base-content/55">
+    <span id={group ? id : undefined} className="text-xs font-medium text-base-content">
       {label}
     </span>
   );
@@ -141,7 +142,7 @@ function ChipRow<T extends string | number>({
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="py-1 border-b border-base-200">
-      <div className="px-3.5 pt-1 pb-0.5 text-xs font-semibold uppercase tracking-wider text-base-content/45">{label}</div>
+      <div className="px-3.5 pt-1 pb-0.5 text-xs font-semibold uppercase tracking-wider text-base-content">{label}</div>
       {children}
     </div>
   );
@@ -149,7 +150,7 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 
 /** Shown in a tab with no applicable fields (e.g. Settings for a Divider). */
 function EmptyTab({ text }: { text: string }) {
-  return <div className="px-3.5 py-6 text-center text-xs text-base-content/40">{text}</div>;
+  return <div className="px-3.5 py-6 text-center text-xs text-base-content">{text}</div>;
 }
 
 /** Padding only, no label — for a single-field Group where the Group's own
@@ -180,13 +181,24 @@ function TokenTextField({
   defaultValue,
   sources,
   onCommit,
+  wrap,
+  countFrom,
 }: {
   label: string;
   defaultValue: string;
   sources: readonly DataSource[] | undefined;
   onCommit: (v: string) => void;
+  /** Render as a growing textarea instead of one line. For the subject and the
+   *  preview text: the rail is ~240px, a real subject line is ~500px of text, so
+   *  on one line an author can read under half of the single most important
+   *  string in the whole email and has to scroll a one-line box to see the rest
+   *  (issues/065). A `Label` on a button is short and stays on its line. */
+  wrap?: boolean;
+  /** Show a running character count, and say when it passes this many — the
+   *  point where inboxes start cutting. Not a limit; nothing is refused. */
+  countFrom?: number;
 }) {
-  const ref = React.useRef<HTMLInputElement | null>(null);
+  const ref = React.useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const [text, setText] = React.useState(defaultValue);
   const [match, setMatch] = React.useState<TokenMatch | undefined>(undefined);
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -216,18 +228,33 @@ function TokenTextField({
     });
   };
 
+  const Field = (wrap ? Textarea : Input) as typeof Input;
   return (
     <Row label={label}>
       <div className="relative">
-        <Input
+        <Field
           ref={ref}
           size="sm"
           className="w-full"
+          {...(wrap
+            ? {
+                rows: 2,
+                // A subject line is one line by definition — Enter must never put
+                // a newline in it. It commits, the way it does on every other
+                // field in this rail.
+                spellCheck: true,
+              }
+            : {})}
           value={text}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value)}
           onKeyUp={sync}
           onClick={sync}
           onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (wrap && e.key === "Enter" && !(match && options.length)) {
+              e.preventDefault();
+              onCommit(text);
+              return;
+            }
             if (!match || options.length === 0) return;
             if (e.key === "ArrowDown") {
               e.preventDefault();
@@ -266,6 +293,19 @@ function TokenTextField({
           </div>
         )}
       </div>
+      {countFrom !== undefined && (
+        // A count, not a limit. Inboxes cut a subject line at roughly this
+        // length — most of them on a phone, which is where most people read it
+        // — and nothing else on screen tells him that. Saying it after the fact
+        // would be a warning; saying it while he types is information.
+        <span
+          className={`text-xs ${text.length > countFrom ? "text-warning" : "text-base-content"}`}
+          data-testid={`token-field-count:${label}`}
+        >
+          {text.length} characters
+          {text.length > countFrom ? ` — most inboxes show about the first ${countFrom}` : ""}
+        </span>
+      )}
     </Row>
   );
 }
@@ -468,7 +508,7 @@ function SwatchGroup({
             type="button"
             aria-label="Reset to default"
             onClick={onAuto}
-            className="size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40"
+            className="size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/70"
           >
             <Icon name="close" className="text-[10px]" />
           </button>
@@ -551,7 +591,7 @@ function RadiusSwatchGroup({
             type="button"
             aria-label="Reset to default"
             onClick={onAuto}
-            className="grid size-[30px] place-items-center border border-base-300 bg-base-200 text-base-content/40"
+            className="grid size-[30px] place-items-center border border-base-300 bg-base-200 text-base-content/70"
           >
             <Icon name="close" className="text-[10px]" />
           </button>
@@ -1386,8 +1426,13 @@ function BodySettingsFields({ node, update }: { node: EmailBody; update: (patch:
   return (
     <>
       <Group label="Content">
-        <TokenTextField label="Subject" defaultValue={doc.subject} sources={sources} onCommit={(v) => editor.setSubject(v)} />
-        <TokenTextField label="Preview text" defaultValue={doc.preheader} sources={sources} onCommit={(v) => editor.setPreheader(v)} />
+        <TokenTextField label="Subject" defaultValue={doc.subject} sources={sources} wrap countFrom={60} onCommit={(v) => editor.setSubject(v)} />
+        <TokenTextField label="Preview text" defaultValue={doc.preheader} sources={sources} wrap countFrom={90} onCommit={(v) => editor.setPreheader(v)} />
+        {/* The subject is where an unresolved token does the most damage: it is
+            visible in the inbox list whether or not the email is ever opened.
+            `resolveTokens` runs over both of these at projection time (see
+            `projector.ts`), so both belong in the check. */}
+        <EmailTokenSection texts={[doc.subject, doc.preheader]} />
       </Group>
       <Group label="Layout">
         <NumberField label="Canvas width (px)" defaultValue={node.width} min={320} max={800} onCommit={(width) => update({ width })} autoValue={600} />
@@ -1443,10 +1488,10 @@ function Toolbar({ selectedId, node }: { selectedId: string; node: EmailNode }) 
   };
   return (
     <div className="flex flex-col gap-1.5 border-b border-base-200 px-3.5 py-2">
-      <div className="flex items-center gap-1 overflow-x-auto text-xs text-base-content/55">
+      <div className="flex items-center gap-1 overflow-x-auto text-xs text-base-content">
         {path.map((n, i) => (
           <React.Fragment key={n.id}>
-            {i > 0 && <span className="text-base-content/30">/</span>}
+            {i > 0 && <span className="text-base-content/70">/</span>}
             {/* Names truncate at 90px, so the tooltip is often the ONLY place the
                 full one is readable — and it says what clicking does, which a
                 bare name doesn't. */}
@@ -1619,6 +1664,80 @@ function settingsFieldsFor(node: EmailNode, update: (patch: Record<string, unkno
   }
 }
 
+/**
+ * WHAT EACH MERGE TOKEN IN THIS BLOCK WILL ACTUALLY SEND.
+ *
+ * An inline `{{ref}}` is the headline feature of an email builder — it is the
+ * whole reason a marketing lead is here — and until P04/issues 066 the builder
+ * said NOTHING about one, ever. Not on the canvas (which renders the literal by
+ * design, correctly), not in the Inspector, not on export. Two failures went
+ * out silently:
+ *
+ *   unknown ref  → the literal `{{firstName}}` is delivered to a real person.
+ *                  The resolver has always known this: it fires an
+ *                  `unknown-ref` diagnostic and nothing anywhere drew it.
+ *                  Classic "fetched but never rendered".
+ *   known, empty → the sentence closes over nothing: "Hello ,". Legitimate
+ *                  data, so there is no diagnostic and there should not be —
+ *                  but an author who cannot SEE it cannot write around it.
+ *
+ * This row is the smallest honest fix: the host is already in this component's
+ * hand, `EmailDataPreview` right below already resolves a whole-field bind live
+ * against it, and the tokens come from the resolver's OWN scanner
+ * (`scanTokens`) so this can never report a different set than the thing that
+ * sends them.
+ *
+ * No `resolveBinding` → this says so rather than showing a clean panel. An
+ * unchecked token is unknown, not fine.
+ */
+function EmailTokenSection({ texts }: { texts: readonly string[] }) {
+  const host = useEmailHost();
+  const joined = texts.join("\u0000");
+  const tokens = React.useMemo(() => {
+    const seen = new Set<string>();
+    // De-duplicated by literal source: the same token twice in one block is one
+    // thing to tell him about, not two.
+    return texts.flatMap((t) => scanTokens(t)).filter((t) => (seen.has(t.raw) ? false : (seen.add(t.raw), true)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `joined` IS the content of `texts`
+  }, [joined]);
+  if (tokens.length === 0) return null;
+
+  return (
+    <Group label="Merge tokens">
+      {!host?.resolveBinding ? (
+        <p className="text-xs text-base-content" data-testid="token-check-unavailable">
+          Nothing here can resolve a merge token, so what these send cannot be checked from the builder.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2" data-testid="token-check">
+          {tokens.map((t) => {
+            const resolved = t.isPath ? host.resolveBinding?.(t.inner, {}) : host.resolveExpression?.(t.inner, {});
+            const value = resolved ? (resolved.visible === false ? "" : String(resolved.value ?? "")) : undefined;
+            const state = value === undefined ? "unknown" : value === "" ? "empty" : "value";
+            return (
+              <li key={t.raw} className="flex flex-col gap-0.5" data-testid={`token-check:${t.inner}`}>
+                <code className="kbd kbd-xs self-start">{t.raw}</code>
+                {state === "unknown" && (
+                  <span className="text-xs text-error">
+                    Nothing resolves this. It is delivered as the literal text <code className="kbd kbd-xs">{t.raw}</code>.
+                  </span>
+                )}
+                {state === "empty" && (
+                  <span className="text-xs text-warning">
+                    Resolves, but to nothing here — the sentence closes over an empty space. Anyone this is empty for
+                    reads the line without it.
+                  </span>
+                )}
+                {state === "value" && <span className="truncate text-xs text-base-content">sends as “{value}”</span>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Group>
+  );
+}
+
 // ── data binding (Q1/Q2/Q19 ported from the site Inspector's DataSection/
 // DataPreview — same kind vocab, same "Reference" picker-or-raw-input split,
 // same live-preview row) ────────────────────────────────────────────────────
@@ -1787,6 +1906,24 @@ function EmailDataSection({ id, node }: { id: string; node: EmailNode }) {
           </ToggleGroup>
         </Row>
       )}
+      {/* Say what the two conditions can and cannot do, because on their own
+          they read as the whole story and they are not. A rule here is
+          present-or-absent; it is NOT equality, deliberately — silica never
+          parses a reference's value, the same reason its merge tokens are a
+          bare path and nothing more. "Only the Clifton lot" is a reference the
+          PLATFORM works out and offers, and until P04/issues 071 nothing
+          anywhere told an author that, so the panel read as "segmenting is not
+          possible here." `LinkSettingsFields` right below already explains
+          itself this way; this row did not. */}
+      {kind === "visible" && (
+        <Pad>
+          <p className="text-xs text-base-content">
+            Shows or hides this block depending on whether the reference has anything in it. To show something to one
+            group only — one shop, one city, people who bought before — pick a reference your platform provides for that
+            group. This rule cannot compare a value to text you type.
+          </p>
+        </Pad>
+      )}
       {kind && kind !== "action" && ref && (
         <EmailDataPreview id={id} kind={kind} ref_={ref} omitWhenEmpty={omitWhenEmpty} limit={limit} negate={negate} />
       )}
@@ -1839,7 +1976,7 @@ function EmailDataPreview({
   if (nestedUnderCollection) {
     return (
       <Row label="Preview">
-        <p className="text-xs text-base-content/45">No preview — this is nested inside a repeat, one per item.</p>
+        <p className="text-xs text-base-content">No preview — this is nested inside a repeat, one per item.</p>
       </Row>
     );
   }
@@ -1849,9 +1986,9 @@ function EmailDataPreview({
     if (!resolved) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
-        <p className="truncate text-xs text-base-content/70">
+        <p className="truncate text-xs text-base-content">
           {resolved.visible === false ? (
-            <em className="text-base-content/45">hidden (visible: false)</em>
+            <em className="text-base-content">hidden (visible: false)</em>
           ) : (
             String(resolved.value ?? "")
           )}
@@ -1988,6 +2125,11 @@ const BUILT_IN_EMAIL_TABS: readonly EmailInspectorTabDef[] = [
       <>
         {settingsFieldsFor(node, ctx.update) ?? <EmptyTab text="No settings for this element." />}
         <LockSection id={node.id} node={node} />
+        {/* Before the binding section on purpose: a token is something he has
+            already typed into his copy, where a bind is something he goes
+            looking for. `tokenFieldOf` — not a local kind check — so this and
+            the resolver can never disagree about which field carries tokens. */}
+        <EmailTokenSection texts={[tokenFieldOf(node)?.text ?? ""]} />
         <EmailDataSection id={node.id} node={node} />
         <EmailHostPanels id={node.id} node={node} />
       </>
@@ -2008,6 +2150,17 @@ export function EmailInspector() {
   // Persists across selection changes (the Inspector stays mounted), so moving
   // between nodes keeps you where you were — same as the site Inspector.
   const [tabId, setTabId] = React.useState("design");
+  // A control elsewhere can ask this rail for a particular tab — the subject bar
+  // does, because the subject lives on Settings and landing on Design would be
+  // the right rail and the wrong page of it. Consumed once, in an effect rather
+  // than during render: a request arrives from another component's click, and
+  // setting state during render is not ours to do.
+  const focus = useInspectorFocus();
+  React.useEffect(() => {
+    if (!focus?.wanted) return;
+    setTabId(focus.wanted);
+    focus.clear();
+  }, [focus]);
 
   const node = selectedId && selected ? selected : undefined;
 

@@ -17,7 +17,7 @@ export function divider(prefix = "") {
       alignItems: "center",
       gap: "1rem",
       marginBlock: "1rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       whiteSpace: "nowrap",
       color: "var(--color-base-content)",
 

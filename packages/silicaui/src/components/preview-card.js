@@ -27,7 +27,7 @@ export function previewCard(prefix = "") {
       borderColor: "var(--color-base-300)",
       boxShadow: "0 10px 30px -10px rgb(0 0 0 / 0.22)",
       outline: "none",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       transformOrigin: "var(--transform-origin)",
       transitionProperty: "opacity, transform",

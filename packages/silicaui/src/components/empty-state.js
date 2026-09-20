@@ -43,7 +43,7 @@ export function emptyState(prefix = "") {
 
     [sel("-description")]: {
       maxWidth: "34ch",
-      fontSize: "0.9rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       color: "var(--color-base-content)",
     },

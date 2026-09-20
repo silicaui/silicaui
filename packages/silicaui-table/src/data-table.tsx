@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-table";
 import type {
   ColumnDef,
+  RowData,
   SortingState,
   RowSelectionState,
   PaginationState,
@@ -18,12 +19,55 @@ import type { SilicaColor, SilicaSize } from "@wizeworks/silicaui-react";
 /** A TanStack column definition, re-exported so consumers type columns without a direct import. */
 export type DataTableColumn<TData, TValue = unknown> = ColumnDef<TData, TValue>;
 
+/**
+ * How a column's cells and its header line up.
+ *
+ * Set it through TanStack's own per-column `meta`, which is the designed
+ * extension point:
+ *
+ * ```ts
+ * { accessorKey: "teu", header: "TEU", meta: { align: "right" } }
+ * ```
+ *
+ * It moves the HEADER as well as the cells, which is the whole point: a numeric
+ * column whose figures are right-aligned under a left-aligned label reads as two
+ * columns. A consumer cannot do this themselves - they supply a cell renderer,
+ * and never touch the `<th>`, the `<td>` or the sort button inside them.
+ */
+export type DataTableAlign = "left" | "center" | "right";
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    align?: DataTableAlign;
+  }
+}
+
+function alignOf<TData>(column: { columnDef: { meta?: { align?: DataTableAlign } } }): DataTableAlign | undefined {
+  const a = column.columnDef.meta?.align;
+  return a === "right" || a === "center" ? a : undefined;
+}
+
 export interface DataTableProps<TData> {
   /** Row data. */
   data: TData[];
   /** Column definitions (`accessorKey` / `header` / `cell`, TanStack shape). */
   columns: DataTableColumn<TData>[];
-  /** Column sorting (click header to cycle asc → desc → none). Default `true`. */
+  /**
+   * Column sorting. Default `true`.
+   *
+   * Clicking a header cycles through both directions and back to unsorted, and
+   * **which direction comes first depends on the column's type**: a numeric
+   * column starts DESCENDING and a text column starts ASCENDING. That is not an
+   * accident of the engine, it is what a person means by the click — pressing
+   * "Delay" on a fleet list means *show me the worst*, and pressing "Vessel"
+   * means *start at A*.
+   *
+   * The header carries `aria-sort`, so the current direction is announced and is
+   * the honest thing to assert against. (This comment used to say the cycle was
+   * always asc first, which the component has never done — found by P07,
+   * docs/personas/issues/088.)
+   */
   sortable?: boolean;
   /** Row-selection checkboxes (adds a leading column). Default `false`. */
   selectable?: boolean;
@@ -52,6 +96,18 @@ export interface DataTableProps<TData> {
   onRowClick?: (row: TData) => void;
   /** Fired with the selected originals whenever selection changes. */
   onSelectionChange?: (rows: TData[]) => void;
+  /**
+   * What makes a row THAT row, across a data change.
+   *
+   * Selection is remembered by this key. Leave it out and rows with an `id`
+   * field are keyed by it; rows without one fall back to their position in the
+   * array, which is all a table can do when nothing identifies a row.
+   *
+   * Position is not identity on a screen that refreshes itself. A fleet feed
+   * that drops a berthed vessel shifts every row after it, and a selection held
+   * by position then points at a different ship without saying so.
+   */
+  getRowId?: (row: TData, index: number) => string;
   className?: string;
 }
 
@@ -91,6 +147,7 @@ export function DataTable<TData>({
   loadingRows = 5,
   onRowClick,
   onSelectionChange,
+  getRowId,
   className,
 }: DataTableProps<TData>) {
   const sc = useSilicaClass();
@@ -142,9 +199,26 @@ export function DataTable<TData>({
     return [selectionColumn, ...columns];
   }, [selectable, columns, sc]);
 
+  // Rows with an `id` are identified by it unless the caller says otherwise.
+  // Checked against the WHOLE dataset rather than the first row, because a
+  // half-identified dataset would key some rows by id and some by position,
+  // which is worse than either.
+  const rowId = React.useMemo(() => {
+    if (getRowId) return getRowId;
+    const allIdentified =
+      data.length > 0 &&
+      data.every((row) => {
+        const id = (row as { id?: unknown }).id;
+        return typeof id === "string" || typeof id === "number";
+      });
+    if (!allIdentified) return undefined;
+    return (row: TData) => String((row as { id: string | number }).id);
+  }, [data, getRowId]);
+
   const table = useReactTable({
     data,
     columns: tableColumns,
+    ...(rowId ? { getRowId: rowId } : {}),
     state: {
       ...(sortable ? { sorting } : {}),
       ...(selectable ? { rowSelection } : {}),
@@ -168,8 +242,13 @@ export function DataTable<TData>({
     selectionChangeRef.current?.(
       table.getSelectedRowModel().rows.map((r) => r.original),
     );
+    // `data` is in here deliberately. Without it the caller keeps whatever rows
+    // it was handed the last time the SELECTION changed -- so after a refresh it
+    // is holding objects that are no longer in the table, and it has not been
+    // told. The selection key can survive a data change; the row behind it
+    // cannot be assumed to.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowSelection, selectable]);
+  }, [rowSelection, selectable, data]);
 
   const rows = table.getRowModel().rows;
   const leafColumnCount = table.getVisibleLeafColumns().length;
@@ -188,6 +267,11 @@ export function DataTable<TData>({
         stickyHeader && sc("data-table-sticky"),
         className,
       )}
+      // Skeleton rows are a SIGHTED signal. Without `aria-busy` a screen-reader
+      // user hears the row count change and nothing else — the table quietly
+      // swaps real vessels for placeholders and says so to nobody. Found by P07
+      // act 3 (docs/personas/issues/088).
+      aria-busy={loading || undefined}
     >
       <div className={cx(sc("data-table-scroll"))}>
         <table
@@ -207,6 +291,7 @@ export function DataTable<TData>({
                   return (
                     <th
                       key={header.id}
+                      data-align={alignOf(header.column)}
                       style={
                         header.getSize() ? { width: header.getSize() } : undefined
                       }
@@ -272,7 +357,7 @@ export function DataTable<TData>({
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>
+                    <td key={cell.id} data-align={alignOf(cell.column)}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

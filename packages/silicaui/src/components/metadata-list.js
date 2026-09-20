@@ -20,7 +20,7 @@ export function metadataList(prefix = "") {
       gridTemplateColumns: "max-content 1fr",
       columnGap: "1rem",
       margin: "0",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
     },
 
     [sel("-label")]: {
@@ -49,7 +49,7 @@ export function metadataList(prefix = "") {
     },
     [`${sel()}[data-layout="stack"] ${sel("-label")}`]: {
       paddingBlockEnd: "0.1rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontWeight: "600",
       borderBottom: "0",
     },

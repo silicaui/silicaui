@@ -53,7 +53,7 @@ export function button(colors, prefix = "") {
       alignContent: "center",
       height: "var(--btn-size)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "600",
       lineHeight: "1",
       // Vertical centering is block-level `align-content: center` (set above).
@@ -224,27 +224,27 @@ export function button(colors, prefix = "") {
     [sel("-xs")]: {
       "--btn-size": "calc(var(--size-field, 0.25rem) * 6)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 2)",
-      fontSize: "0.6875rem",
+      fontSize: "0.75rem",
     },
     [sel("-sm")]: {
       "--btn-size": "calc(var(--size-field, 0.25rem) * 8)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 3)",
-      fontSize: "0.75rem",
+      fontSize: "0.875rem",
     },
     [sel("-md")]: {
       "--btn-size": "calc(var(--size-field, 0.25rem) * 10)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
     },
     [sel("-lg")]: {
       "--btn-size": "calc(var(--size-field, 0.25rem) * 12)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 5)",
-      fontSize: "1rem",
+      fontSize: "1.125rem",
     },
     [sel("-xl")]: {
       "--btn-size": "calc(var(--size-field, 0.25rem) * 14)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 6)",
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
     },
 
     // ---- Shapes & layout ---------------------------------------------------

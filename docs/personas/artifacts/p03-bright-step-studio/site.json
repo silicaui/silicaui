@@ -1,0 +1,2110 @@
+{
+  "version": "1.0.0",
+  "theme": {
+    "name": "lightsilica",
+    "tokens": {
+      "--color-base-100": "oklch(98% 0.003 250)",
+      "--color-base-200": "oklch(95% 0.004 250)",
+      "--color-base-300": "oklch(90% 0.006 250)",
+      "--color-base-content": "oklch(21% 0.012 255)",
+      "--color-primary": "oklch(42% 0.055 252)",
+      "--color-primary-content": "oklch(98% 0.004 250)",
+      "--color-secondary": "oklch(55% 0.035 255)",
+      "--color-secondary-content": "oklch(98% 0.004 250)",
+      "--color-accent": "oklch(64% 0.13 211)",
+      "--color-accent-content": "oklch(15% 0.02 255)",
+      "--color-neutral": "oklch(26% 0.014 255)",
+      "--color-neutral-content": "oklch(95% 0.004 250)",
+      "--color-info": "oklch(68% 0.1 232)",
+      "--color-success": "oklch(70% 0.12 150)",
+      "--color-warning": "oklch(80% 0.11 85)",
+      "--color-error": "oklch(58% 0.17 25)"
+    },
+    "dark": {
+      "--color-base-100": "oklch(16% 0.01 255)",
+      "--color-base-200": "oklch(13.5% 0.01 255)",
+      "--color-base-300": "oklch(11% 0.01 255)",
+      "--color-base-content": "oklch(93% 0.006 250)",
+      "--color-primary": "oklch(72% 0.06 252)",
+      "--color-secondary": "oklch(78% 0.035 255)",
+      "--color-accent": "oklch(72% 0.13 211)"
+    },
+    "mode": "light"
+  },
+  "pages": [
+    {
+      "id": "74ffc255-1ae2-4bbe-ad18-b77d8720d9d2",
+      "name": "Home",
+      "slug": "/",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "d1fc6937-e8ed-452b-bf43-718df0013d9c",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "@container bg-base-100",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "div",
+                "class": "mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 px-6 py-16 @3xl:grid-cols-2 @3xl:py-24",
+                "children": [
+                  {
+                    "kind": "element",
+                    "tag": "div",
+                    "class": "flex flex-col items-start gap-5",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "h1",
+                        "class": "display-2",
+                        "children": [
+                          "Bright Step Studio"
+                        ],
+                        "slot": {
+                          "name": "headline",
+                          "type": "text",
+                          "label": "Headline",
+                          "required": true
+                        },
+                        "id": "ee2fe7d2-9779-41a9-8610-8d72035f6e73",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "p",
+                        "class": "lead max-w-lg",
+                        "children": [
+                          "Bright Step has been on Kirkstall Road since 2004, and a good number of the parents waiting in the corridor on a Saturday morning were once the children in the Monday four o'clock class themselves."
+                        ],
+                        "slot": {
+                          "name": "subhead",
+                          "type": "text",
+                          "label": "Subheadline"
+                        },
+                        "id": "944664f6-3516-4b64-ab9b-8623f970d2ea",
+                        "ord": "a1"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "div",
+                        "class": "flex flex-col gap-3 @sm:flex-row",
+                        "children": [
+                          {
+                            "kind": "component",
+                            "component": "Button",
+                            "class": "btn btn-primary btn-lg",
+                            "props": {
+                              "label": "See the timetable",
+                              "href": "#"
+                            },
+                            "slot": {
+                              "name": "cta",
+                              "type": "link",
+                              "label": "Primary action"
+                            },
+                            "id": "b2d56485-d36c-4533-8970-f76c73f77ade",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "component",
+                            "component": "Button",
+                            "class": "btn btn-outline btn-lg",
+                            "props": {
+                              "label": "Call +44 113 246 8802",
+                              "href": "#"
+                            },
+                            "slot": {
+                              "name": "secondary",
+                              "type": "link",
+                              "label": "Secondary action"
+                            },
+                            "id": "6df7cbbd-0040-4b67-9558-876581ddf3ee",
+                            "ord": "a1"
+                          }
+                        ],
+                        "id": "ccba96f6-af33-46ca-a07f-52133ec5e2e5",
+                        "ord": "a2"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "div",
+                        "class": "mt-2 flex items-center gap-3",
+                        "children": [
+                          {
+                            "kind": "component",
+                            "component": "AvatarGroup",
+                            "class": "avatar-group",
+                            "children": [
+                              {
+                                "kind": "component",
+                                "component": "Avatar",
+                                "class": "avatar size-9",
+                                "props": {
+                                  "alt": ""
+                                },
+                                "id": "1414a05a-e77e-4868-b255-577768880234",
+                                "ord": "a0"
+                              },
+                              {
+                                "kind": "component",
+                                "component": "Avatar",
+                                "class": "avatar size-9",
+                                "props": {
+                                  "alt": ""
+                                },
+                                "id": "f7c6b24f-da89-468a-8972-f43ac26588fd",
+                                "ord": "a1"
+                              },
+                              {
+                                "kind": "component",
+                                "component": "Avatar",
+                                "class": "avatar size-9",
+                                "props": {
+                                  "alt": ""
+                                },
+                                "id": "4c933323-2943-426f-a97d-573e5338f7f6",
+                                "ord": "a2"
+                              }
+                            ],
+                            "id": "cf1c31c4-c152-46aa-90cd-6319f060db80",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "p",
+                            "class": "text-sm text-base-content",
+                            "children": [
+                              "140 students, 11 classes a week, on Kirkstall Road since 2004"
+                            ],
+                            "slot": {
+                              "name": "trust",
+                              "type": "text",
+                              "label": "Proof line"
+                            },
+                            "id": "cf55d584-c042-40e4-a8fc-048aa4bc5460",
+                            "ord": "a1"
+                          }
+                        ],
+                        "id": "a8c24424-49c5-49a7-9d10-9adf5de937ca",
+                        "ord": "a3"
+                      }
+                    ],
+                    "id": "df43fee5-07f3-4fc2-8b8e-dbcf28296fb9",
+                    "ord": "a0"
+                  },
+                  {
+                    "kind": "component",
+                    "component": "Image",
+                    "class": "w-full rounded-box",
+                    "props": {
+                      "alt": "Product preview",
+                      "ratio": "wide"
+                    },
+                    "slot": {
+                      "name": "image",
+                      "type": "image",
+                      "label": "Hero image"
+                    },
+                    "id": "b4c85233-691a-4fae-afad-aa7a5be25741",
+                    "ord": "a1"
+                  }
+                ],
+                "id": "f20ecfc2-2239-4ba9-9271-1a4766e8b08e",
+                "ord": "a0"
+              }
+            ],
+            "id": "3b91f0b8-1b33-4f69-9021-ad1ed9a75595",
+            "ord": "a0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "81b63d30-399e-4a53-b76d-9128a300d58d",
+      "name": "Classes & timetable",
+      "slug": "/classes-timetable",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "060a5ee2-f1e2-4d51-8b3a-6a621a434e54",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "px-6 py-16 flex flex-col items-center gap-3 text-center",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "h1",
+                "class": "text-3xl font-bold",
+                "children": [
+                  "Classes & timetable"
+                ],
+                "id": "213e063c-bf6d-4b55-a1b5-08ef72bd9c71",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "p",
+                "class": "text-base-content",
+                "children": [
+                  "Eleven classes a week, ballet and tap, from four years old to grown-ups who have never danced before."
+                ],
+                "id": "caff7f77-6926-4acf-b694-84d6566cdda9",
+                "ord": "a1"
+              }
+            ],
+            "id": "1776d46c-aa40-4506-8315-3cb782e6fe3d",
+            "ord": "a0"
+          },
+          {
+            "kind": "component",
+            "component": "Table",
+            "class": "table table-lg",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "thead",
+                "children": [
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "th",
+                        "children": [
+                          "Class"
+                        ],
+                        "id": "cd735d35-cec4-4baf-a8b7-8b75facb0d78",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "th",
+                        "children": [
+                          "Day"
+                        ],
+                        "id": "cbf2b7a4-54b8-4a8b-af74-fac81f6e14ce",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "th",
+                        "children": [
+                          "Time"
+                        ],
+                        "id": "c7dfea12-376a-489e-82b9-3ea42d2c3b5f",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "th",
+                        "children": [
+                          "Ages"
+                        ],
+                        "id": "5fd58237-0406-4572-a351-ed327270f165",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "d78af58d-7a3b-497b-a2be-f744ffa70192",
+                    "ord": "a0"
+                  }
+                ],
+                "id": "cb377f9c-94d2-465a-8e9a-3ffc2284d3c0",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "tbody",
+                "children": [
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Pre-Primary Ballet"
+                        ],
+                        "id": "d7053384-1227-46ff-9a73-4439789da6be",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Monday"
+                        ],
+                        "id": "8c3d2a34-1be6-4a8e-ac70-7ab9c8439888",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "16:00–16:45"
+                        ],
+                        "id": "8cfd8768-c787-454f-ab2e-94c2e9e006a3",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "4–6"
+                        ],
+                        "id": "7dee8309-1f03-4d74-8c4a-6cf80a9b0bdd",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "8539dfe0-11c1-45cd-8521-c1cf643a0cea",
+                    "ord": "a0"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 1 Ballet"
+                        ],
+                        "id": "fcff640c-ea81-4206-b526-e262b63b96e6",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Monday"
+                        ],
+                        "id": "35ff9ab4-acff-4c46-b54e-9940eff6a762",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "16:45–17:30"
+                        ],
+                        "id": "6c81430d-3168-4c52-9fb8-668dd8b0dc1c",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "6–8"
+                        ],
+                        "id": "ca72f3ad-302a-4e6a-a1d9-7bd73b03aa4b",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "d846fbfa-1365-42c3-9dd4-2e134c7da430",
+                    "ord": "a1"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 3 Tap"
+                        ],
+                        "id": "1754e9af-7789-409a-a6a4-afd69b547c3b",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Monday"
+                        ],
+                        "id": "3c1df697-b5fd-4938-a93e-d281fad76182",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "17:00–18:00"
+                        ],
+                        "id": "32230097-5f15-4f15-8afc-cc3e7e112510",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "8–11"
+                        ],
+                        "id": "006fc1e4-f91b-4471-a749-e3f7ad1c90c2",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "8312303b-255a-4ff9-8c8b-7c3c786a1d7b",
+                    "ord": "a2"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 2 Ballet"
+                        ],
+                        "id": "cc81e1ec-4aa0-4d0a-8a14-51d6e059907a",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Tuesday"
+                        ],
+                        "id": "d3125ed7-d4a4-4e76-9231-3bc8251bb60e",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "16:00–17:00"
+                        ],
+                        "id": "f32c7383-9cda-43ff-9c78-8bd833b8c551",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "7–9"
+                        ],
+                        "id": "a8d619f8-203c-4848-b06d-05a363862dfe",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "79e3b5e7-c023-4423-87fe-7d3ab888b6c7",
+                    "ord": "a3"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 5 Tap"
+                        ],
+                        "id": "c5ab08b0-383a-4900-a2da-99b9835a8055",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Tuesday"
+                        ],
+                        "id": "3d47a639-9cb1-4a42-ae01-9511c99bb08e",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "17:15–18:15"
+                        ],
+                        "id": "496fe9dc-93e7-4959-b540-21dd6c68679d",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "11–13"
+                        ],
+                        "id": "50c67188-bd6d-4726-9cdf-5771caacc3b5",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "da768e95-3a3d-4a15-b4ff-8805786af453",
+                    "ord": "a4"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Pre-Primary Ballet"
+                        ],
+                        "id": "aa8420da-c0db-4828-bba9-4ad2b275851d",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Wednesday"
+                        ],
+                        "id": "91e465fa-31bc-453e-ac88-74f60525c3df",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "16:00–16:45"
+                        ],
+                        "id": "646550f1-d3f6-4ebe-ab8e-8c3e3905fc46",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "4–6"
+                        ],
+                        "id": "ba2507bf-4930-4a6b-9b25-7cebda993ee2",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "05cb1c85-5ae4-4170-80fa-146d70c9e49e",
+                    "ord": "a5"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 4 Ballet"
+                        ],
+                        "id": "7611310d-1922-434e-9a21-5c93a111e860",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Wednesday"
+                        ],
+                        "id": "dfd57cd2-9234-4619-8ad0-7dde5732a7f6",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "17:00–18:15"
+                        ],
+                        "id": "c4ab4c4e-f9cf-439f-a1d4-f43a427099ed",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "9–12"
+                        ],
+                        "id": "0f2a41ee-817e-4efb-b327-417caa793b06",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "99eb618d-48f6-4003-8ae6-8daa43e1f059",
+                    "ord": "a6"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Adult Beginners' Ballet (absolutely no experience required)"
+                        ],
+                        "id": "9f99a27c-fa6b-496c-abdc-31b6c64a4136",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Thursday"
+                        ],
+                        "id": "4200c22a-e573-4242-9ec3-ea5516be6f8a",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "19:30–20:30"
+                        ],
+                        "id": "7e78de1d-62df-42d2-9682-e173883fbe20",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "18+"
+                        ],
+                        "id": "51816d28-6171-4144-825f-9ad6e430e4c3",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "0b72ca8b-f6ce-4925-9ae3-448d785516eb",
+                    "ord": "a7"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 1 Tap"
+                        ],
+                        "id": "9879d3b1-9352-492b-be01-dea37de9d81d",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Friday"
+                        ],
+                        "id": "337de5b5-af4e-4676-9bd2-29279b3cfb58",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "16:00–16:45"
+                        ],
+                        "id": "d06a6a75-c3a2-4ba5-bcad-4ceff560d801",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "6–8"
+                        ],
+                        "id": "480f7f0a-58c6-40f9-b94b-cf0938c87cc1",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "201ab101-5c58-4c39-b991-9d1cc55ced48",
+                    "ord": "a8"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Grade 6 Ballet & Repertoire Intensive"
+                        ],
+                        "id": "2369387c-d2c1-4bb6-ac46-e98bc549d78d",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Saturday"
+                        ],
+                        "id": "f38c4bc4-17c2-4a3d-99ef-f04a739e7e9d",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "09:00–11:00"
+                        ],
+                        "id": "f4e4f0ce-54b4-4a23-9d9a-b3a22355a8aa",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "13–16"
+                        ],
+                        "id": "9f680851-1301-4b6e-9642-ec885cf3f6f3",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "c6ce5f48-77fd-409c-afcc-8af030b09030",
+                    "ord": "a9"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "tr",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Musical Theatre"
+                        ],
+                        "id": "14f43a84-50d0-4e70-9489-dd56ae937b94",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "Saturday"
+                        ],
+                        "id": "b0d059bc-3821-4a4c-a411-b32968346c60",
+                        "ord": "a0G"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "11:15–12:15"
+                        ],
+                        "id": "375428dc-4e7b-4953-a58f-0d304a076b0b",
+                        "ord": "a0V"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "td",
+                        "children": [
+                          "10–14"
+                        ],
+                        "id": "154d377d-0768-4eb0-90b8-7eff50f92866",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "ba802378-7f18-45b0-a119-e15431b98a1b",
+                    "ord": "aA"
+                  }
+                ],
+                "id": "38b5c301-7e96-4e4e-b2d7-d8b6e765a392",
+                "ord": "a1"
+              }
+            ],
+            "id": "598718f1-9658-47ff-9284-0e1e48537a88",
+            "ord": "a1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "d581bdf2-c4b8-4d74-b293-310e7460b07d",
+      "name": "Fees",
+      "slug": "/fees",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "03649e1f-66fb-4878-a12d-35de5e0bf627",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "px-6 py-16 flex flex-col items-center gap-3 text-center",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "h1",
+                "class": "text-3xl font-bold",
+                "children": [
+                  "Fees"
+                ],
+                "id": "530a9262-ae96-4588-9538-6da4722aca52",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "p",
+                "class": "text-base-content",
+                "children": [
+                  "Ballet and tap are £7.50 a class, paid by the term. The adult beginners' class on Thursday is £9.00, paid weekly, and the first one is free."
+                ],
+                "id": "ddc60898-d9d5-4dc5-abd0-7e5cf11bca30",
+                "ord": "a1"
+              }
+            ],
+            "id": "3f308095-8eaf-46e2-9e1b-e2661f41995f",
+            "ord": "a0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ae2bfcf1-7a9d-4232-984b-638ed590c34e",
+      "name": "Our teachers",
+      "slug": "/our-teachers",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "fb25567c-ffcf-4ad5-a7c5-97f6fae3f1ca",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "px-6 py-16 flex flex-col items-center gap-3 text-center",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "h1",
+                "class": "text-3xl font-bold",
+                "children": [
+                  "Our teachers"
+                ],
+                "id": "b54857ea-40e4-4dd8-8607-7c35102d031a",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "p",
+                "class": "text-base-content",
+                "children": [
+                  "Marlene Okonkwo-Bright has run Bright Step since 2004. Ama Boateng teaches tap on Mondays and Tuesdays. Rosa Iannucci takes the Saturday ballet intensive."
+                ],
+                "id": "68760e11-b347-4687-8904-bb4649c36cf9",
+                "ord": "a1"
+              }
+            ],
+            "id": "3e1082ce-918b-45d8-a8ac-bafd7ef0853c",
+            "ord": "a0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "441d3d89-99ef-459d-b43c-b18b087507a0",
+      "name": "Term dates 2026/27",
+      "slug": "/term-dates-2026-27",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "f29169c2-36e0-46ee-b138-b8c7bb6cb8d9",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "px-6 py-16 flex flex-col items-center gap-3 text-center",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "h1",
+                "class": "text-3xl font-bold",
+                "children": [
+                  "Term dates 2026/27"
+                ],
+                "id": "400b3c0a-7d0e-4f32-bf4a-538bcb67ab04",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "p",
+                "class": "text-base-content",
+                "children": [
+                  "Autumn term runs Monday 7 September 2026 to Friday 18 December 2026. Half term is Monday 26 October to Friday 30 October 2026. Spring term runs Tuesday 5 January 2027 to Thursday 1 April 2027."
+                ],
+                "id": "2af32d6b-a109-49dd-bcca-b44b1584fe55",
+                "ord": "a1"
+              }
+            ],
+            "id": "772e1dae-6a6e-47a7-9abe-da6711444df1",
+            "ord": "a0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "486f85c1-c269-4634-a4fc-7bf8162475e1",
+      "name": "Marlene's story",
+      "slug": "/marlenes-story",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "3aa1d570-bce7-48fb-92ec-eb1712f1cde9",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "px-6 py-16 flex flex-col items-center gap-3 text-center",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "h1",
+                "class": "text-3xl font-bold",
+                "children": [
+                  "Marlene's story"
+                ],
+                "id": "fd4368a2-62c1-49b6-812f-6c966b6e19bf",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "p",
+                "class": "text-base-content",
+                "children": [
+                  "I took over the room above the launderette in 2004 with eleven students and a tape player. We are 140 now, and the tape player is still in the cupboard."
+                ],
+                "id": "44f8abc1-4cad-4448-8043-4613ab97b6f3",
+                "ord": "a1"
+              }
+            ],
+            "id": "972c03ea-9753-4921-848d-48851caedb04",
+            "ord": "a0"
+          }
+        ]
+      }
+    },
+    {
+      "id": "9d6850bc-2313-4782-8a32-a6022dacfc5d",
+      "name": "Find us",
+      "slug": "/find-us",
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex flex-col",
+        "label": "Page",
+        "id": "b070a355-3063-41f8-9c20-2ee8320f77d7",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "section",
+            "class": "px-6 py-16 flex flex-col items-center gap-3 text-center",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "h1",
+                "class": "text-3xl font-bold",
+                "children": [
+                  "Find us"
+                ],
+                "id": "a8536ef2-81af-4195-b4ca-870f8ba51ff9",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "p",
+                "class": "text-base-content",
+                "children": [
+                  "Unit 4, Kirkstall Road, Leeds LS3 1HS. Call +44 113 246 8802 or email hello@brightstepstudio.co.uk."
+                ],
+                "id": "f5b270f3-8e98-449e-a62f-d72bba2f602c",
+                "ord": "a1"
+              }
+            ],
+            "id": "5354a00a-1c0c-465b-91c9-36efcfbaceb7",
+            "ord": "a0"
+          },
+          {
+            "kind": "element",
+            "tag": "a",
+            "class": "link link-primary",
+            "attrs": {
+              "href": "tel:+441132468802"
+            },
+            "children": [
+              "Call +44 113 246 8802"
+            ],
+            "id": "e5b74017-4b0d-4c22-bd7c-f6234dc5ba3e",
+            "ord": "a1"
+          }
+        ]
+      }
+    }
+  ],
+  "frame": {
+    "root": {
+      "kind": "element",
+      "tag": "div",
+      "class": "flex min-h-screen flex-col bg-base-100 text-base-content",
+      "children": [
+        {
+          "kind": "element",
+          "tag": "header",
+          "class": "@container bg-base-100 border-b border-base-200",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "mx-auto flex w-full max-w-6xl items-center gap-8 px-6 py-4",
+              "children": [
+                {
+                  "kind": "component",
+                  "component": "Wordmark",
+                  "class": "wordmark shrink-0",
+                  "props": {
+                    "text": "Bright Step Studio",
+                    "href": "#"
+                  },
+                  "slot": {
+                    "name": "brand",
+                    "type": "text",
+                    "label": "Brand"
+                  },
+                  "id": "02461e7c-7292-40f2-b3a3-8593becda497",
+                  "ord": "a0"
+                },
+                {
+                  "kind": "element",
+                  "tag": "nav",
+                  "class": "hidden items-center gap-6 @md:flex",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "a",
+                      "class": "text-sm font-medium text-base-content hover:text-primary",
+                      "attrs": {
+                        "href": "/classes-timetable"
+                      },
+                      "children": [
+                        "Classes & timetable"
+                      ],
+                      "slot": {
+                        "name": "link1",
+                        "type": "link",
+                        "label": "Product"
+                      },
+                      "id": "2bb29e5b-d9d4-4fe2-b7e7-0b89bf4b9a55",
+                      "ord": "a0"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "a",
+                      "class": "text-sm font-medium text-base-content hover:text-primary",
+                      "attrs": {
+                        "href": "/fees"
+                      },
+                      "children": [
+                        "Fees"
+                      ],
+                      "slot": {
+                        "name": "link2",
+                        "type": "link",
+                        "label": "Pricing"
+                      },
+                      "id": "f474e517-9790-47a2-af01-e6168905e53b",
+                      "ord": "a1"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "a",
+                      "class": "text-sm font-medium text-base-content hover:text-primary",
+                      "attrs": {
+                        "href": "/term-dates-2026-27"
+                      },
+                      "children": [
+                        "Term dates"
+                      ],
+                      "slot": {
+                        "name": "link3",
+                        "type": "link",
+                        "label": "Docs"
+                      },
+                      "id": "49775a74-6c93-41fe-bb40-40020a108d56",
+                      "ord": "a2"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "a",
+                      "class": "text-sm font-medium text-base-content hover:text-primary",
+                      "attrs": {
+                        "href": "/find-us"
+                      },
+                      "children": [
+                        "Find us"
+                      ],
+                      "slot": {
+                        "name": "link4",
+                        "type": "link",
+                        "label": "Company"
+                      },
+                      "id": "de285d05-c271-4088-af25-f5feeee114a6",
+                      "ord": "a3"
+                    }
+                  ],
+                  "id": "680bb4e0-bc27-4d01-944d-b46e0a2d33b6",
+                  "ord": "a1"
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "ml-auto flex items-center gap-3",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "a",
+                      "class": "hidden text-sm font-medium text-base-content hover:text-primary @sm:inline",
+                      "attrs": {
+                        "href": "#"
+                      },
+                      "children": [
+                        "Sign in"
+                      ],
+                      "slot": {
+                        "name": "secondary",
+                        "type": "link",
+                        "label": "Secondary link"
+                      },
+                      "id": "f3dd6c21-d8ce-42cb-92a9-c9ecda88776c",
+                      "ord": "a0"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "button",
+                      "class": "btn btn-ghost btn-square btn-sm",
+                      "attrs": {
+                        "type": "button"
+                      },
+                      "children": [
+                        {
+                          "kind": "component",
+                          "component": "Icon",
+                          "props": {
+                            "name": "theme"
+                          },
+                          "id": "c51b6660-30a6-4839-922d-12e5a549f1b7",
+                          "ord": "a0"
+                        }
+                      ],
+                      "behavior": {
+                        "type": "theme-toggle"
+                      },
+                      "id": "82403538-dc9e-4b73-a69b-8f6056a4b5df",
+                      "ord": "a1"
+                    },
+                    {
+                      "kind": "component",
+                      "component": "Button",
+                      "class": "btn btn-primary btn-sm hidden @md:inline-block",
+                      "props": {
+                        "label": "Get started",
+                        "href": "#"
+                      },
+                      "slot": {
+                        "name": "cta",
+                        "type": "link",
+                        "label": "Primary action"
+                      },
+                      "id": "3f002b19-bb61-407f-b8a3-f72cbccd2f1b",
+                      "ord": "a2"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "button",
+                      "class": "btn btn-ghost btn-square btn-sm @md:hidden",
+                      "attrs": {
+                        "type": "button",
+                        "aria-label": "Toggle navigation menu"
+                      },
+                      "children": [
+                        {
+                          "kind": "component",
+                          "component": "Icon",
+                          "props": {
+                            "name": "menu"
+                          },
+                          "id": "763e89e5-7bb8-4347-8c8f-ebed04d33d9a",
+                          "ord": "a0"
+                        }
+                      ],
+                      "part": "trigger",
+                      "id": "3d1ae0ee-b8a2-4970-bb61-322ea07bc054",
+                      "ord": "a3"
+                    }
+                  ],
+                  "id": "79d0fd4c-c911-47c2-9ce1-e77de971a93e",
+                  "ord": "a2"
+                }
+              ],
+              "id": "a7764e11-8e28-48fe-bc73-d8a77b04d11d",
+              "ord": "a0"
+            },
+            {
+              "kind": "element",
+              "tag": "nav",
+              "class": "flex flex-col gap-1 border-t border-base-200 px-6 py-3 @md:hidden",
+              "attrs": {
+                "hidden": true
+              },
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Product"
+                  ],
+                  "slot": {
+                    "name": "link1",
+                    "type": "link",
+                    "label": "Product"
+                  },
+                  "id": "a0447547-fa43-452e-be0a-8a2b77d08452",
+                  "ord": "a0"
+                },
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Pricing"
+                  ],
+                  "slot": {
+                    "name": "link2",
+                    "type": "link",
+                    "label": "Pricing"
+                  },
+                  "id": "8007e055-b95a-4653-9f25-f214ffa909fb",
+                  "ord": "a1"
+                },
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Docs"
+                  ],
+                  "slot": {
+                    "name": "link3",
+                    "type": "link",
+                    "label": "Docs"
+                  },
+                  "id": "6d1e94ea-4a86-4d81-be06-3d515bbd815e",
+                  "ord": "a2"
+                },
+                {
+                  "kind": "element",
+                  "tag": "a",
+                  "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                  "attrs": {
+                    "href": "#"
+                  },
+                  "children": [
+                    "Company"
+                  ],
+                  "slot": {
+                    "name": "link4",
+                    "type": "link",
+                    "label": "Company"
+                  },
+                  "id": "e4d746e1-9ba8-4751-822d-dd483587e599",
+                  "ord": "a3"
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-ghost btn-sm mt-2 w-full",
+                  "props": {
+                    "label": "Sign in",
+                    "href": "#"
+                  },
+                  "slot": {
+                    "name": "secondary",
+                    "type": "link",
+                    "label": "Secondary link"
+                  },
+                  "id": "474f4553-b07d-4397-bab0-507701388807",
+                  "ord": "a4"
+                },
+                {
+                  "kind": "component",
+                  "component": "Button",
+                  "class": "btn btn-primary btn-sm mt-1 w-full",
+                  "props": {
+                    "label": "Get started",
+                    "href": "#"
+                  },
+                  "slot": {
+                    "name": "cta",
+                    "type": "link",
+                    "label": "Primary action"
+                  },
+                  "id": "db4fd8a3-cbb8-4731-892a-7bbc040fdbab",
+                  "ord": "a5"
+                }
+              ],
+              "part": "panel",
+              "id": "8248b355-3037-4268-abd2-b790446f5f5a",
+              "ord": "a1"
+            }
+          ],
+          "behavior": {
+            "type": "disclosure"
+          },
+          "id": "616042b3-c487-4d52-a28f-943176e1572a",
+          "ord": "a0"
+        },
+        {
+          "kind": "element",
+          "tag": "main",
+          "class": "flex-1",
+          "children": [
+            {
+              "kind": "outlet"
+            }
+          ],
+          "id": "8ff51bfd-fbae-4950-95ee-e12ec57651cc",
+          "ord": "a1"
+        },
+        {
+          "kind": "element",
+          "tag": "footer",
+          "class": "@container bg-base-100 border-t border-base-200",
+          "children": [
+            {
+              "kind": "element",
+              "tag": "div",
+              "class": "mx-auto w-full max-w-6xl px-6 py-14",
+              "children": [
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "grid grid-cols-1 gap-10 @md:grid-cols-2 @3xl:grid-cols-5",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-4 @3xl:col-span-2",
+                      "children": [
+                        {
+                          "kind": "component",
+                          "component": "Wordmark",
+                          "class": "wordmark self-start",
+                          "props": {
+                            "text": "Bright Step Studio",
+                            "href": "#"
+                          },
+                          "slot": {
+                            "name": "brand",
+                            "type": "text",
+                            "label": "Brand"
+                          },
+                          "id": "d3a0aea9-d59d-42a7-aaf5-33903432a3a4",
+                          "ord": "a0"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "max-w-xs text-sm text-base-content",
+                          "children": [
+                            "A neighbourhood dance studio on Kirkstall Road, Leeds."
+                          ],
+                          "slot": {
+                            "name": "blurb",
+                            "type": "text",
+                            "label": "Blurb"
+                          },
+                          "id": "0f4cbb3a-33c8-46cb-8296-8426bbfc8305",
+                          "ord": "a1"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "ul",
+                          "class": "mt-2 flex items-center gap-5",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm font-medium text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "X"
+                                  ],
+                                  "slot": {
+                                    "name": "social1",
+                                    "type": "link",
+                                    "label": "X"
+                                  },
+                                  "id": "49ee4ad6-c3cb-4e73-a107-f8784912aece",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "a7734312-4065-47e4-a5ab-9e0e0088e08f",
+                              "ord": "a0"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm font-medium text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "GitHub"
+                                  ],
+                                  "slot": {
+                                    "name": "social2",
+                                    "type": "link",
+                                    "label": "GitHub"
+                                  },
+                                  "id": "de02ae92-2f07-4794-b246-78e82eac7d14",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "d8aac709-ee28-4768-92f0-63d125eed751",
+                              "ord": "a1"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm font-medium text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "LinkedIn"
+                                  ],
+                                  "slot": {
+                                    "name": "social3",
+                                    "type": "link",
+                                    "label": "LinkedIn"
+                                  },
+                                  "id": "c3a3a025-cdd5-476e-96eb-2caf93682124",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "735fc0dc-1986-4caf-bef0-746a94369f69",
+                              "ord": "a2"
+                            }
+                          ],
+                          "id": "46b3a64e-fbcd-427e-910b-d8e6f4341c3d",
+                          "ord": "a2"
+                        }
+                      ],
+                      "id": "34ec99d1-a358-4d3f-83f2-5e846c0e7120",
+                      "ord": "a0"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-3",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm font-semibold text-base-content",
+                          "children": [
+                            "Product"
+                          ],
+                          "slot": {
+                            "name": "col1",
+                            "type": "text",
+                            "label": "Column title"
+                          },
+                          "id": "17d2ef4d-7843-4a08-9f56-7977393db4a7",
+                          "ord": "a0"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "ul",
+                          "class": "flex flex-col gap-2",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Features"
+                                  ],
+                                  "slot": {
+                                    "name": "link1",
+                                    "type": "link",
+                                    "label": "Features"
+                                  },
+                                  "id": "99b44eed-c995-4c6c-9fc4-b9d4a8bca7fa",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "c6fc74b1-eeb7-4777-8f64-97b8c60d44da",
+                              "ord": "a0"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Pricing"
+                                  ],
+                                  "slot": {
+                                    "name": "link2",
+                                    "type": "link",
+                                    "label": "Pricing"
+                                  },
+                                  "id": "2e320240-e0c5-4438-b817-3c136631f2a3",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "97d76f26-2f59-407c-b51c-84d5958afe91",
+                              "ord": "a1"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Integrations"
+                                  ],
+                                  "slot": {
+                                    "name": "link3",
+                                    "type": "link",
+                                    "label": "Integrations"
+                                  },
+                                  "id": "f97d759e-6300-49f9-80df-4f449b16adcf",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "9f5fa474-9902-496b-b387-c96debdfdffc",
+                              "ord": "a2"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Changelog"
+                                  ],
+                                  "slot": {
+                                    "name": "link4",
+                                    "type": "link",
+                                    "label": "Changelog"
+                                  },
+                                  "id": "304a7fcb-791e-4455-a2d4-b8666e95760a",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "c107f128-ce0e-4645-800a-5f199cba2fd5",
+                              "ord": "a3"
+                            }
+                          ],
+                          "id": "69f37831-9ab2-4870-a3e4-75a7b00e7622",
+                          "ord": "a1"
+                        }
+                      ],
+                      "id": "ea9d541a-5489-40a1-b8ae-85e5abef4d8a",
+                      "ord": "a1"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-3",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm font-semibold text-base-content",
+                          "children": [
+                            "Company"
+                          ],
+                          "slot": {
+                            "name": "col2",
+                            "type": "text",
+                            "label": "Column title"
+                          },
+                          "id": "e5c26390-bf9c-4fed-84bb-ae6fffc6cec1",
+                          "ord": "a0"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "ul",
+                          "class": "flex flex-col gap-2",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "About"
+                                  ],
+                                  "slot": {
+                                    "name": "link5",
+                                    "type": "link",
+                                    "label": "About"
+                                  },
+                                  "id": "eb8b80ee-30b5-4f80-be25-0e85bc5cb6f9",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "54a72b63-30db-4a77-9d2f-d88bfb5200d9",
+                              "ord": "a0"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Careers"
+                                  ],
+                                  "slot": {
+                                    "name": "link6",
+                                    "type": "link",
+                                    "label": "Careers"
+                                  },
+                                  "id": "497e1ac5-db0d-4250-b66d-109aa872b312",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "78368991-6d25-4cb1-81f0-71df7c813850",
+                              "ord": "a1"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Blog"
+                                  ],
+                                  "slot": {
+                                    "name": "link7",
+                                    "type": "link",
+                                    "label": "Blog"
+                                  },
+                                  "id": "15faac42-db82-4100-8e36-4a782135ecfb",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "2caaf848-0fde-4c12-b238-de84245404d8",
+                              "ord": "a2"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Contact"
+                                  ],
+                                  "slot": {
+                                    "name": "link8",
+                                    "type": "link",
+                                    "label": "Contact"
+                                  },
+                                  "id": "f5b0ecef-9a41-45f3-90aa-e3043b5de34b",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "f4cea5e4-e816-4549-95de-d4571733b530",
+                              "ord": "a3"
+                            }
+                          ],
+                          "id": "9cb7e33d-dbd2-4fcc-a99e-37877b395185",
+                          "ord": "a1"
+                        }
+                      ],
+                      "id": "86a33009-ccd3-49fb-9545-0cfa0435fdba",
+                      "ord": "a2"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "div",
+                      "class": "flex flex-col gap-3",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "p",
+                          "class": "text-sm font-semibold text-base-content",
+                          "children": [
+                            "Resources"
+                          ],
+                          "slot": {
+                            "name": "col3",
+                            "type": "text",
+                            "label": "Column title"
+                          },
+                          "id": "7473b192-270c-4d00-8f69-836ba180f03d",
+                          "ord": "a0"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "ul",
+                          "class": "flex flex-col gap-2",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Documentation"
+                                  ],
+                                  "slot": {
+                                    "name": "link9",
+                                    "type": "link",
+                                    "label": "Documentation"
+                                  },
+                                  "id": "df43aaa0-1bc0-4943-8001-1448e71baf58",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "bf97c94b-37b3-4a38-b679-1a5386a3c884",
+                              "ord": "a0"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Help center"
+                                  ],
+                                  "slot": {
+                                    "name": "link10",
+                                    "type": "link",
+                                    "label": "Help center"
+                                  },
+                                  "id": "13be58dd-3549-4cd6-b7f8-1bec9438128e",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "bfe2e17f-5fff-4b5e-b191-2f14366b2bb7",
+                              "ord": "a1"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Status"
+                                  ],
+                                  "slot": {
+                                    "name": "link11",
+                                    "type": "link",
+                                    "label": "Status"
+                                  },
+                                  "id": "36136057-9a4c-4b15-bc76-dab720fd0e24",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "bd88c321-31b7-4c92-84bd-48137e30bde3",
+                              "ord": "a2"
+                            },
+                            {
+                              "kind": "element",
+                              "tag": "li",
+                              "children": [
+                                {
+                                  "kind": "element",
+                                  "tag": "a",
+                                  "class": "text-sm text-base-content hover:text-primary",
+                                  "attrs": {
+                                    "href": "#"
+                                  },
+                                  "children": [
+                                    "Community"
+                                  ],
+                                  "slot": {
+                                    "name": "link12",
+                                    "type": "link",
+                                    "label": "Community"
+                                  },
+                                  "id": "531609dd-f3c6-440c-bc9b-dde14109fd66",
+                                  "ord": "a0"
+                                }
+                              ],
+                              "id": "5b547244-f73d-4e52-ad78-48d652abda53",
+                              "ord": "a3"
+                            }
+                          ],
+                          "id": "043b013b-a922-47bd-9904-66e88827f95b",
+                          "ord": "a1"
+                        }
+                      ],
+                      "id": "d7cd0051-4125-41a2-be52-eec2da580db8",
+                      "ord": "a3"
+                    }
+                  ],
+                  "id": "09d34fdc-9ac5-44f0-bc3c-16d0a7d54fd3",
+                  "ord": "a0"
+                },
+                {
+                  "kind": "element",
+                  "tag": "div",
+                  "class": "mt-12 flex flex-col gap-4 border-t border-base-200 pt-6 @2xl:flex-row @2xl:items-center @2xl:justify-between",
+                  "children": [
+                    {
+                      "kind": "element",
+                      "tag": "p",
+                      "class": "text-sm text-base-content",
+                      "children": [
+                        "© 2026 Bright Step Studio"
+                      ],
+                      "slot": {
+                        "name": "copyright",
+                        "type": "text",
+                        "label": "Copyright"
+                      },
+                      "id": "7e1c1377-93ff-435c-a5dc-419fb52c81f0",
+                      "ord": "a0"
+                    },
+                    {
+                      "kind": "element",
+                      "tag": "ul",
+                      "class": "flex flex-wrap items-center gap-x-6 gap-y-2",
+                      "children": [
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content hover:text-primary",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Privacy"
+                              ],
+                              "slot": {
+                                "name": "link13",
+                                "type": "link",
+                                "label": "Privacy"
+                              },
+                              "id": "6cf49060-ad17-40fa-8364-64bb2eabd523",
+                              "ord": "a0"
+                            }
+                          ],
+                          "id": "74f0d0c2-c03a-457c-a875-362e70587a05",
+                          "ord": "a0"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content hover:text-primary",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Terms"
+                              ],
+                              "slot": {
+                                "name": "link14",
+                                "type": "link",
+                                "label": "Terms"
+                              },
+                              "id": "dc9a2142-aa7e-4d97-be82-ae59ebc89c2c",
+                              "ord": "a0"
+                            }
+                          ],
+                          "id": "bc2f02d7-ca08-4cc0-8d3a-8291cb68c944",
+                          "ord": "a1"
+                        },
+                        {
+                          "kind": "element",
+                          "tag": "li",
+                          "children": [
+                            {
+                              "kind": "element",
+                              "tag": "a",
+                              "class": "text-sm text-base-content hover:text-primary",
+                              "attrs": {
+                                "href": "#"
+                              },
+                              "children": [
+                                "Security"
+                              ],
+                              "slot": {
+                                "name": "link15",
+                                "type": "link",
+                                "label": "Security"
+                              },
+                              "id": "8f78161a-021e-441a-aa73-64a72f045bf5",
+                              "ord": "a0"
+                            }
+                          ],
+                          "id": "2e37cd15-5e72-4455-b960-44582ecac069",
+                          "ord": "a2"
+                        }
+                      ],
+                      "id": "e42bc89f-ff2d-4763-9221-960edc43fddb",
+                      "ord": "a1"
+                    }
+                  ],
+                  "id": "4a293d5e-f4d5-4606-9952-e595ba382278",
+                  "ord": "a1"
+                }
+              ],
+              "id": "eaa7368a-4133-4726-8a21-e807cae1c9b5",
+              "ord": "a0"
+            }
+          ],
+          "id": "c48739b7-51c9-42c6-9377-3d38eb434762",
+          "ord": "a2"
+        }
+      ],
+      "id": "7973b84b-96bc-4094-8ad7-a0d5f0437b6f"
+    },
+    "editable": true
+  },
+  "symbols": {},
+  "savedThemes": [
+    {
+      "name": "lightsilica",
+      "tokens": {
+        "--color-base-100": "oklch(98% 0.003 250)",
+        "--color-base-200": "oklch(95% 0.004 250)",
+        "--color-base-300": "oklch(90% 0.006 250)",
+        "--color-base-content": "oklch(21% 0.012 255)",
+        "--color-primary": "oklch(42% 0.055 252)",
+        "--color-primary-content": "oklch(98% 0.004 250)",
+        "--color-secondary": "oklch(55% 0.035 255)",
+        "--color-secondary-content": "oklch(98% 0.004 250)",
+        "--color-accent": "oklch(64% 0.13 211)",
+        "--color-accent-content": "oklch(15% 0.02 255)",
+        "--color-neutral": "oklch(26% 0.014 255)",
+        "--color-neutral-content": "oklch(95% 0.004 250)",
+        "--color-info": "oklch(68% 0.1 232)",
+        "--color-success": "oklch(70% 0.12 150)",
+        "--color-warning": "oklch(80% 0.11 85)",
+        "--color-error": "oklch(58% 0.17 25)"
+      },
+      "dark": {
+        "--color-base-100": "oklch(16% 0.01 255)",
+        "--color-base-200": "oklch(13.5% 0.01 255)",
+        "--color-base-300": "oklch(11% 0.01 255)",
+        "--color-base-content": "oklch(93% 0.006 250)",
+        "--color-primary": "oklch(72% 0.06 252)",
+        "--color-secondary": "oklch(78% 0.035 255)",
+        "--color-accent": "oklch(72% 0.13 211)"
+      },
+      "mode": "light"
+    }
+  ]
+}

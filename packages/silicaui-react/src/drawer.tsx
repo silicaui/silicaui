@@ -46,7 +46,16 @@ export interface DrawerContentProps
   backdropClassName?: string;
 }
 
-/** Portals + backdrop + the edge-pinned sliding panel in one. */
+/**
+ * Portals + backdrop + the edge-pinned sliding panel in one.
+ *
+ * THEME ISLANDS. This surface portals to `document.body`, so its nearest
+ * `[data-theme]` is the one on `<html>`, not the island it was opened from — a
+ * dialog opened inside a dark panel comes up in the page's theme, silently, and
+ * nothing errors. Wrap the region in
+ * `<PortalContainerProvider container={islandEl}>`, or pass
+ * `popupProps={{ "data-theme": "…" }}` on the components that take one.
+ */
 export function DrawerContent({
   side = "left",
   className,

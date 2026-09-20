@@ -20,7 +20,7 @@ export function pagination(colors, prefix = "") {
     minWidth: "var(--pagination-size, 2.25rem)",
     height: "var(--pagination-size, 2.25rem)",
     paddingInline: "0.5rem",
-    fontSize: "0.875rem",
+    fontSize: "1rem",
   };
 
   const base = {
@@ -73,7 +73,7 @@ export function pagination(colors, prefix = "") {
     [sel("-sm")]: { "--pagination-size": "1.875rem" },
     [sel("-md")]: { "--pagination-size": "2.25rem" },
     [sel("-lg")]: { "--pagination-size": "2.75rem" },
-    [sel("-xl")]: { "--pagination-size": "3.25rem", fontSize: "1.125rem" },
+    [sel("-xl")]: { "--pagination-size": "3.25rem", fontSize: "1.25rem" },
   };
 
   Object.assign(base, colorVariantRules("pagination", colors, prefix));

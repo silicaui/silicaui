@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Home",
+    "slug": "/",
+    "file": "index.fragment.html",
+    "bytes": 6743
+  },
+  {
+    "name": "Classes & timetable",
+    "slug": "/classes-timetable",
+    "file": "classes-timetable.fragment.html",
+    "bytes": 6985
+  },
+  {
+    "name": "Fees",
+    "slug": "/fees",
+    "file": "fees.fragment.html",
+    "bytes": 5913
+  },
+  {
+    "name": "Our teachers",
+    "slug": "/our-teachers",
+    "file": "our-teachers.fragment.html",
+    "bytes": 5931
+  },
+  {
+    "name": "Term dates 2026/27",
+    "slug": "/term-dates-2026-27",
+    "file": "term-dates-2026-27.fragment.html",
+    "bytes": 5975
+  },
+  {
+    "name": "Marlene's story",
+    "slug": "/marlenes-story",
+    "file": "marlenes-story.fragment.html",
+    "bytes": 5936
+  },
+  {
+    "name": "Find us",
+    "slug": "/find-us",
+    "file": "find-us.fragment.html",
+    "bytes": 5950
+  }
+]

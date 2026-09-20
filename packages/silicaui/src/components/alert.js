@@ -27,7 +27,7 @@ export function alert(colors, prefix = "") {
       width: "100%",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 3)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       borderRadius: "var(--radius-box, 0.5rem)",
       borderWidth: "var(--border, 1px)",
@@ -180,22 +180,22 @@ export function alert(colors, prefix = "") {
       gap: "0.625rem",
       paddingInline: "calc(var(--size-field, 0.25rem) * 3.5)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 2.5)",
-      fontSize: "0.8125rem",
+      fontSize: "0.875rem",
     },
     [sel("-md")]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
     },
     [sel("-lg")]: {
       gap: "0.875rem",
       paddingInline: "calc(var(--size-field, 0.25rem) * 5)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 4)",
-      fontSize: "1rem",
+      fontSize: "1.125rem",
     },
     [sel("-xl")]: {
       gap: "1rem",
       paddingInline: "calc(var(--size-field, 0.25rem) * 6)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 5)",
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
     },
   };
 

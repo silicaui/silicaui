@@ -73,7 +73,7 @@ const FADED = /(?:^|[\s{,])opacity:\s*"(0\.\d+)"/;
  * against the same selector string the color pass tracks.
  */
 const OPACITY_NOT_TEXT =
-  /icon|glyph|arrow|chevron|caret|divider|separator|-sep|handle|thumb|track|dot|bullet|swatch|overlay|backdrop|scrim|grain|shine|glow|ring|indicator|close|dismiss|remove|clear|resize|grip|drag/i;
+  /icon|glyph|arrow|chevron|caret|divider|separator|-sep\b|handle|thumb|track|dot|bullet|swatch|overlay|backdrop|scrim|grain|shine|glow|ring|indicator|close|dismiss|remove|clear|resize|grip|drag/i;
 
 /**
  * Reviewed one by one and confirmed not-for-reading. `module|selector` — the
@@ -86,8 +86,87 @@ const OPACITY_OK = new Set([
   "pagination|-ellipsis", // the "..." gap marker, userSelect: none — structural punctuation
 ]);
 
+/**
+ * Selectors the pattern matched AND that were then read one by one, grouped by
+ * the reason each is allowed. Every group is a case RULE #3 names in its own
+ * words; not one of them is here because "it looked like a glyph".
+ *
+ * This list started EMPTY on purpose. The probe printed all 37 and each was read
+ * before it went in, which is the only way a list like this means anything. A
+ * new fade that happens to match the pattern now fails the build with its
+ * selector named, and has to be looked at or given real ink.
+ */
+const PATTERN_REVIEWED = new Set([
+  // DISABLED controls. RULE #3 names them itself: "disabled controls" is one of
+  // the three things faded text is FOR. Words inside are meant to read as
+  // unavailable.
+  "calendar|&:disabled",
+  "calendar|&[data-disabled]",
+  "card|&:disabled, &[data-disabled]",
+  "card|&:has(:disabled",
+  "color-picker|${}[data-disabled]",
+  "color-picker|&[data-disabled]",
+  "command-palette|&[data-disabled]",
+  "dropdown|&[data-disabled]",
+  "dropzone|${}[data-disabled]",
+  "input-group|&:disabled",
+  "label|&:has(> input:disabled",
+  "lightbox|&:disabled",
+  "multi-select|${}[data-disabled]",
+  "rich-text-editor|${}[data-disabled]",
+  "rich-text-editor|&:disabled",
+  "segment-field|${}[data-disabled]",
+  "select-menu|&[data-disabled]",
+  "selection-list|${-item}[aria-disabled=true]",
+  "sidebar|${-item}[data-disabled=true]",
+  "tag-input|${}[data-disabled]",
+  "tree-view|${-node}[data-disabled]",
+  "wizard|${-step}[data-disabled]",
+
+  // PLACEHOLDER text, in a field or a segment with no value yet. A prompt for
+  // what to type rather than content to read, and the convention every field
+  // in the system follows.
+  "calendar|.date-field[data-placeholder] .date-field-value",
+  "input|&::placeholder",
+  "multi-select|&::placeholder",
+  "pin-input|&::placeholder",
+  "segment-field|&[data-placeholder]",
+  "select-menu|-placeholder",
+  "tag-input|&::placeholder",
+  "textarea|&::placeholder",
+
+  // Days OUTSIDE the month on a calendar — the same date drawn twice, and the
+  // faded one is exactly the "de-emphasized duplicate" RULE #3 names.
+  "calendar|&[data-outside]",
+
+  // The row being DRAGGED, and the row it is over. A transient state under the
+  // pointer, not a reading surface.
+  "tree-view|${-node}[data-dragging]",
+
+  // GLYPHS with no words inside them: a close cross, a sort caret, a chevron,
+  // the typing dots.
+  "alert|-close",
+  "chat-suite|chat-typing-dot",
+  "collapsible|-trigger-icon",
+  "data-table|${-sort-icon} [data-part]",
+  "toast|-close",
+]);
+
 const failures = [];
-let allowed = 0;
+
+/**
+ * Every exemption, named, and by which rule let it through.
+ *
+ * It used to be `let allowed = 0`, and the count was printed and nothing else.
+ * Forty-six exemptions under one number is not a record of anything: a new fade
+ * whose selector happens to contain "indicator" or "close" joined them silently
+ * and the run stayed green. The probe's own comment already promised better —
+ * "every partial value is reported and each one is either fixed or written into
+ * OPACITY_OK with a reason" — and the code did not do it, because a broad
+ * pattern was consulted first. This is that promise implemented.
+ */
+const allowedBy = { explicit: [], pattern: [], context: [] };
+const allow = (rule, what) => allowedBy[rule].push(what);
 
 for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) {
   const name = file.replace(/\.js$/, "");
@@ -112,12 +191,10 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
     const fade = line.match(FADED);
     if (fade) {
       const where = selector ?? "(base)";
-      if (
-        ALLOW_SELECTOR.test(where) ||
-        OPACITY_NOT_TEXT.test(where) ||
-        OPACITY_OK.has(`${name}|${where}`)
-      ) {
-        allowed++;
+      if (OPACITY_OK.has(`${name}|${where}`)) {
+        allow("explicit", `${name}|${where}`);
+      } else if (ALLOW_SELECTOR.test(where) || OPACITY_NOT_TEXT.test(where)) {
+        allow("pattern", `${name}|${where}`);
       } else {
         failures.push(
           `${file}:${i + 1} \`${where}\` fades a whole subtree to ${Math.round(+fade[1] * 100)}% ` +
@@ -131,12 +208,16 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
     if (!m) return;
 
     const context = lines.slice(Math.max(0, i - 4), i + 1).join("\n");
-    if (
-      ALLOW_SELECTOR.test(selector ?? "") ||
-      ALLOW_EXPLICIT.has(`${name}|${selector ?? "(base)"}`) ||
-      ALLOW_LINE_CONTEXT.some((re) => re.test(context))
-    ) {
-      allowed++;
+    if (ALLOW_EXPLICIT.has(`${name}|${selector ?? "(base)"}`)) {
+      allow("explicit", `${name}|${selector ?? "(base)"}`);
+      return;
+    }
+    if (ALLOW_LINE_CONTEXT.some((re) => re.test(context))) {
+      allow("context", `${name}|${selector ?? "(base)"}`);
+      return;
+    }
+    if (ALLOW_SELECTOR.test(selector ?? "")) {
+      allow("pattern", `${name}|${selector ?? "(base)"}`);
       return;
     }
     failures.push(
@@ -147,8 +228,23 @@ for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) 
   });
 }
 
+// A pattern match is a GUESS that a selector carries no words. Each one has to
+// have been looked at, or the regex is a hole with a count in front of it.
+const pattern = [...new Set(allowedBy.pattern)].sort();
+const unreviewed = pattern.filter((k) => !PATTERN_REVIEWED.has(k));
+for (const k of unreviewed) {
+  failures.push(
+    `${k} is faded and was excused only because its SELECTOR looks like a glyph. ` +
+      `Open it: if any words are inside, give them real ink. If there are none, ` +
+      `add it to PATTERN_REVIEWED in this script.`,
+  );
+}
+
 for (const f of failures) console.log(`  ✗ ${f}`);
-console.log(`  ${allowed} legitimately-faded instance(s) allowed`);
+const total = allowedBy.explicit.length + allowedBy.pattern.length + allowedBy.context.length;
+console.log(`  ${total} faded instance(s) allowed — ` +
+  `${allowedBy.explicit.length} named individually, ${allowedBy.context.length} by line context, ` +
+  `${pattern.length} distinct selector(s) matched by pattern and reviewed`);
 console.log(
   failures.length
     ? `\n❌ ${failures.length} readable-text instance(s) use faded ink (RULE #3)\n`

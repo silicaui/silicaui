@@ -38,6 +38,7 @@ import * as React from "react";
 import { useEmailDocument, useEmailEditor, useEmailSelectedNode, useEmailSelection } from "./editor-context";
 import { useEmailHost } from "./host-context";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
+import { useCommitOnHide } from "../../shared/react/use-commit-on-hide";
 import { Icon } from "../../shared/react/Icon";
 import { IconButton } from "../../shared/react/Hint";
 import type { IconName } from "../../shared/icons";
@@ -53,7 +54,8 @@ import type { EmailEditor } from "../engine";
 import { FONT_WEIGHT_CSS, bodyFontStack, fontFaceCss, withLinkColor } from "../projector";
 import { frameLabel } from "../frame";
 import type { EmailFrame } from "../frame";
-import { emailScopeAt, flattenEmailSources } from "../resolve";
+import { emailScopeAt, flattenEmailSources, scanTokens, tokenFieldOf } from "../resolve";
+import { isSafeUrl } from "@wizeworks/silicaui-html";
 import { filterTokenOptions, matchTokenQuery } from "./token-query";
 import type { TokenMatch } from "./token-query";
 import type {
@@ -150,6 +152,19 @@ interface RenderCtx {
   dnd: DndCtx;
   /** The container currently showing a dashed drop-inside ring. */
   insideId: string | undefined;
+  /**
+   * Nodes holding a merge token that NOTHING resolves — the text that goes out
+   * to a real person as the literal characters `{{…}}`.
+   *
+   * The site canvas has marked an unresolvable reference since the data-honesty
+   * batch; this one did not, and P04 act 8 is where that cost showed. The
+   * newsletter starter's own footer ships
+   * `<a href="{{unsubscribeUrl}}">Unsubscribe</a>`, no host in this repo
+   * declares that reference, and the whole Dispatch was written, reviewed and
+   * composed without one word of warning — leaving 4,100 subscribers an
+   * unsubscribe link pointing at the literal string. See issues/074.
+   */
+  unresolvedIds?: ReadonlySet<string>;
 }
 
 /** Which edge of the hovered node a pointer targets, read on the axis its
@@ -169,6 +184,10 @@ function decorations(id: string, ctx: RenderCtx): string {
   if (id === ctx.dnd.draggingId) s += " opacity-40";
   if (id === ctx.insideId) return s + " outline outline-2 outline-dashed outline-accent -outline-offset-2";
   if (id === ctx.hoveredId && id !== ctx.selectedId) s += " outline outline-1 outline-primary/40 -outline-offset-1";
+  // Same dashes, same warning colour, same offset as the site canvas. Two
+  // builders drawing "this will go out wrong" differently is how one of them
+  // ends up not drawing it at all.
+  if (ctx.unresolvedIds?.has(id)) s += " outline outline-2 outline-dashed outline-warning -outline-offset-2";
   return s;
 }
 
@@ -181,6 +200,9 @@ function interactionProps(info: NodeInfo, ctx: RenderCtx, editable = false) {
   const draggable = info.parentId !== undefined; // the root can't be moved
   return {
     "data-sui-id": id,
+    // A stable hook for the unresolved state — the same attribute name the site
+    // canvas stamps, so chrome styling and e2e read one word across both.
+    ...(ctx.unresolvedIds?.has(id) ? { "data-sui-unresolved": "" } : {}),
     draggable,
     onClick: (e: React.MouseEvent) => {
       e.preventDefault();
@@ -269,6 +291,9 @@ const EditableHtml = React.memo(function EditableHtml({
     done.current = true;
     onCommit(ref.current?.innerHTML ?? "");
   };
+  // A closing tab never blurs the field, so without this the sentence being
+  // typed right now is the one thing the crash-recovery store cannot save.
+  useCommitOnHide(commit);
   const cancel = () => {
     if (done.current) return;
     done.current = true;
@@ -398,7 +423,7 @@ const EditableHtml = React.memo(function EditableHtml({
 
 function EmptyHint() {
   return (
-    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content/40">
+    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content">
       Empty — insert something from the palette
     </span>
   );
@@ -417,7 +442,22 @@ function TextFormatToolbar() {
   const cmd = (name: string, value?: string) => document.execCommand(name, false, value);
   const link = () => {
     const url = window.prompt("Link URL");
-    if (url) cmd("createLink", url);
+    if (!url) return;
+    // `createLink` builds a REAL anchor out of whatever it is handed, so
+    // `javascript:…` typed here became a live anchor in the document and rode
+    // all the way to the projector. The projector drops it now (issues/076),
+    // but silently — so say it here, where he can still fix it, rather than
+    // letting him believe he made a link that quietly is not one.
+    if (!isSafeUrl(url.trim())) {
+      window.alert(
+        `"${url}" is not a web address this can link to.
+
+` +
+          "Links in an email can be a web address (https://…), an email address (mailto:…) or a phone number (tel:…).",
+      );
+      return;
+    }
+    cmd("createLink", url.trim());
   };
   const item = (icon: IconName, label: string, onClick: () => void, shortcut?: string) => (
     // `bottom`: this bar floats ABOVE the text being edited, so a top-side
@@ -597,7 +637,7 @@ function RenderHtml({ node, info, ctx }: { node: HtmlNode; info: NodeInfo; ctx: 
       className={`rounded-field border border-dashed border-base-300 p-2${decorations(node.id, ctx)}`}
       {...interactionProps(info, ctx)}
     >
-      <span className="mb-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-base-content/40">
+      <span className="mb-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-base-content">
         Custom HTML
       </span>
       <div dangerouslySetInnerHTML={{ __html: node.html }} />
@@ -1040,6 +1080,31 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
       ? { targetId: dropHint.targetId, edge: dropHint.edge, axis: dropHint.axis }
       : undefined;
 
+  // Which blocks hold a token nothing resolves. The canvas deliberately shows
+  // merge tokens LITERALLY (that is how an author sees his own), so this cannot
+  // be read off a resolved tree the way the site canvas reads it — it asks the
+  // resolver the same question the Inspector's token check asks, block by
+  // block, using the resolver's OWN scanner so a second regex cannot drift from
+  // it. No host means no opinion: nothing is marked rather than everything.
+  const unresolvedIds = React.useMemo(() => {
+    const out = new Set<string>();
+    if (!host?.resolveBinding) return out;
+    const visit = (node: EmailNode): void => {
+      const field = tokenFieldOf(node);
+      if (field) {
+        for (const t of scanTokens(field.text)) {
+          if (t.isPath && host.resolveBinding!(t.inner, {}) === undefined) {
+            out.add(node.id);
+            break;
+          }
+        }
+      }
+      for (const child of (node as { children?: readonly EmailNode[] }).children ?? []) visit(child);
+    };
+    visit(doc.root as EmailNode);
+    return out;
+  }, [doc, host]);
+
   const ctx: RenderCtx = {
     selectedId,
     hoveredId,
@@ -1059,6 +1124,7 @@ export function EmailCanvas({ device = "desktop", frame }: { device?: string; fr
     mobile,
     dnd,
     insideId,
+    unresolvedIds,
   };
 
   return (

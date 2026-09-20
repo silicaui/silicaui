@@ -44,7 +44,7 @@ export function timeline(prefix = "") {
       justifySelf: "end",
       textAlign: "end",
       paddingBlock: "0.5rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
 

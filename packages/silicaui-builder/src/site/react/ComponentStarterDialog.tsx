@@ -58,13 +58,13 @@ export function NewComponentButton({ trigger }: { trigger: React.ReactElement })
       >
         <div className="flex-none px-5 pt-5 pb-3 border-b border-base-200">
           <DialogTitle className="text-base font-semibold">New component</DialogTitle>
-          <DialogDescription className="text-sm text-base-content/60">
+          <DialogDescription className="text-sm text-base-content">
             Start blank, or from a ready-made section you can then customize.
           </DialogDescription>
           <div className="relative mt-3">
             <Icon
               name="search"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/45"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-content/70"
             />
             <Input
               // A picker dialog: focus belongs in the search field on open.
@@ -81,11 +81,11 @@ export function NewComponentButton({ trigger }: { trigger: React.ReactElement })
 
         <div className="flex-1 min-h-0 overflow-auto p-5">
           {visible.length === 0 ? (
-            <p className="py-8 text-center text-sm text-base-content/45">No starters match “{q}”.</p>
+            <p className="py-8 text-center text-sm text-base-content">No starters match “{q}”.</p>
           ) : (
             visible.map((g) => (
               <div key={g.key} className="mb-5 last:mb-0">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-base-content/45">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-base-content">
                   {g.label}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -119,7 +119,7 @@ function StarterCard({ item, onPick }: { item: PaletteItem; onPick: () => void }
       </span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">{item.label}</span>
-        {item.hint && <span className="block truncate text-xs text-base-content/50">{item.hint}</span>}
+        {item.hint && <span className="block truncate text-xs text-base-content">{item.hint}</span>}
       </span>
     </button>
     </Hint>

@@ -1,7 +1,7 @@
 import { colorVariantRules } from "../color-variants.js";
 
 /**
- * The Steps component — a horizontal progress tracker.
+ * The Steps component — a progress tracker, horizontal or vertical.
  *
  * A `.steps` list lays each `.step` out as an equal-width column: a numbered
  * node on top, a label under it. Two pseudo-elements do the work — `::before`
@@ -40,7 +40,7 @@ export function steps(colors, prefix = "") {
       flex: "1 1 0%",
       minWidth: "4rem",
       textAlign: "center",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
 
@@ -54,7 +54,7 @@ export function steps(colors, prefix = "") {
       width: "2rem",
       height: "2rem",
       borderRadius: "9999px",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       fontWeight: "600",
       backgroundColor: "var(--step-bg, var(--color-base-300))",
       color: "var(--step-fg, var(--color-base-content))",
@@ -78,6 +78,40 @@ export function steps(colors, prefix = "") {
     },
     [`${step()}:first-child::after`]: {
       display: "none",
+    },
+
+    // ---- Vertical ------------------------------------------------------------
+    //
+    // `.steps` was horizontal-only until a shop admin being migrated off daisyUI
+    // needed an order's progress down the side of a card, which is what a narrow
+    // column wants and what `steps-vertical` does everywhere else
+    // (docs/personas/issues/100).
+    //
+    // The same three pieces, turned ninety degrees: the list stacks, each step
+    // becomes a row with its node on the left and its label beside it, and the
+    // connector runs UP from this node to the previous one instead of back along
+    // the row. `Stats` already spells this `vertical`, so this does too.
+    [`${stepsSel}-vertical`]: {
+      flexDirection: "column",
+      overflowX: "visible",
+      alignItems: "stretch",
+    },
+    [`${stepsSel}-vertical > ${step()}`]: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: "0.75rem",
+      textAlign: "start",
+      minHeight: "3rem",
+      minWidth: "0",
+      flex: "0 0 auto",
+    },
+    [`${stepsSel}-vertical > ${step()}::after`]: {
+      top: "auto",
+      left: "calc(1rem - 0.125rem)",
+      bottom: "50%",
+      width: "0.25rem",
+      height: "100%",
     },
   };
 

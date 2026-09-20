@@ -25,7 +25,7 @@ const BLANK: PaletteItem = {
     el("div", "flex flex-col gap-3 p-6", {
       children: [
         el("h3", "text-lg font-semibold text-base-content", { text: "New component" }),
-        el("p", "text-base-content/70", { text: "Add elements from the Insert panel." }),
+        el("p", "text-base-content", { text: "Add elements from the Insert panel." }),
       ],
     }),
 };

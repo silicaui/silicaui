@@ -25,7 +25,7 @@ export function input(colors, prefix = "") {
       width: "100%",
       height: "var(--input-size)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 3)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1",
       color: "var(--color-base-content)",
       backgroundColor: "var(--color-base-100)",
@@ -66,26 +66,26 @@ export function input(colors, prefix = "") {
     [sel("-xs")]: {
       "--input-size": "calc(var(--size-field, 0.25rem) * 6)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 2)",
-      fontSize: "0.6875rem",
+      fontSize: "0.75rem",
     },
     [sel("-sm")]: {
       "--input-size": "calc(var(--size-field, 0.25rem) * 8)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 2.5)",
-      fontSize: "0.75rem",
+      fontSize: "0.875rem",
     },
     [sel("-md")]: {
       "--input-size": "calc(var(--size-field, 0.25rem) * 10)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
     },
     [sel("-lg")]: {
       "--input-size": "calc(var(--size-field, 0.25rem) * 12)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4)",
-      fontSize: "1rem",
+      fontSize: "1.125rem",
     },
     [sel("-xl")]: {
       "--input-size": "calc(var(--size-field, 0.25rem) * 14)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4.5)",
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
     },
 
     // ---- Affix reservations -------------------------------------------------

@@ -27,7 +27,7 @@ function dots(theme: Theme): string[] {
   return [pick("primary"), pick("secondary"), pick("accent"), pick("base-200")];
 }
 
-const SUBHEAD = "flex items-center gap-1.5 px-3.5 pt-3.5 pb-1.5 text-xs font-bold uppercase tracking-wider text-base-content/45";
+const SUBHEAD = "flex items-center gap-1.5 px-3.5 pt-3.5 pb-1.5 text-xs font-bold uppercase tracking-wider text-base-content";
 
 /** A theme row — dot swatches + name + trailing slot (check / delete). */
 function ThemeRow({
@@ -114,7 +114,7 @@ export function ThemeLibrary() {
                     type="button"
                     onClick={() => editor.deleteSavedTheme(t.name)}
                     aria-label={`Delete ${t.name}`}
-                    className="inline-flex rounded p-1 text-base-content/40 opacity-0 hover:bg-base-300 hover:text-error group-hover:opacity-100"
+                    className="inline-flex rounded p-1 text-base-content/70 opacity-0 hover:bg-base-300 hover:text-error group-hover:opacity-100"
                   >
                     <Icon name="close" />
                   </button>
@@ -152,14 +152,14 @@ export function ThemeLibrary() {
         <button
           type="button"
           onClick={exportCss}
-          className="mx-3.5 flex h-9 w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200 text-sm font-semibold text-base-content/80 hover:border-primary hover:text-primary"
+          className="mx-3.5 flex h-9 w-[calc(100%-1.75rem)] items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200 text-sm font-semibold text-base-content hover:border-primary hover:text-primary"
         >
           <Icon name={copied ? "check" : "download"} /> {copied ? "Copied to clipboard" : "Export theme as CSS"}
         </button>
       </Hint>
-      <div className="mx-3.5 mt-2 text-xs leading-relaxed text-base-content/45">
-        OKLCH <code className="font-mono text-base-content/60">--color-*</code> custom properties on{" "}
-        <code className="font-mono text-base-content/60">[data-theme]</code>. Sparx emits them directly.
+      <div className="mx-3.5 mt-2 text-xs leading-relaxed text-base-content">
+        OKLCH <code className="font-mono text-base-content">--color-*</code> custom properties on{" "}
+        <code className="font-mono text-base-content">[data-theme]</code>. Sparx emits them directly.
       </div>
     </div>
   );

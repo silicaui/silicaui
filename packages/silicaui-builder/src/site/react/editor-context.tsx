@@ -226,22 +226,42 @@ function findNode(root: Node, id: string): Node | undefined {
   return undefined;
 }
 
-/** Undo/redo availability, re-read on every commit (for toolbar button state). */
-export function useHistory(): { canUndo: boolean; canRedo: boolean } {
+/** Undo/redo availability AND what each one would do, re-read on every commit.
+ *  The labels are what the toolbar says instead of a bare "Undo" — see
+ *  `Editor.undoLabel` and docs/personas/issues/047. */
+export interface HistoryState {
+  canUndo: boolean;
+  canRedo: boolean;
+  undoLabel?: string;
+  redoLabel?: string;
+}
+
+export function useHistory(): HistoryState {
   const editor = useEditor();
   return React.useSyncExternalStore(
     React.useCallback((onChange) => editor.subscribe(onChange), [editor]),
-    // Two booleans → a fresh object each read would break referential equality;
-    // cache and only swap when a flag actually changes.
+    // A fresh object each read would break referential equality; cache and only
+    // swap when one of the four values actually changes.
     useStableHistory(editor),
   );
 }
 
-function useStableHistory(editor: Editor): () => { canUndo: boolean; canRedo: boolean } {
-  const ref = React.useRef<{ canUndo: boolean; canRedo: boolean }>({ canUndo: false, canRedo: false });
+function useStableHistory(editor: Editor): () => HistoryState {
+  const ref = React.useRef<HistoryState>({ canUndo: false, canRedo: false });
   return React.useCallback(() => {
-    const next = { canUndo: editor.canUndo, canRedo: editor.canRedo };
-    if (next.canUndo !== ref.current.canUndo || next.canRedo !== ref.current.canRedo) {
+    const next: HistoryState = {
+      canUndo: editor.canUndo,
+      canRedo: editor.canRedo,
+      undoLabel: editor.undoLabel,
+      redoLabel: editor.redoLabel,
+    };
+    const c = ref.current;
+    if (
+      next.canUndo !== c.canUndo ||
+      next.canRedo !== c.canRedo ||
+      next.undoLabel !== c.undoLabel ||
+      next.redoLabel !== c.redoLabel
+    ) {
       ref.current = next;
     }
     return ref.current;

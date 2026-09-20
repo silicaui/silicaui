@@ -315,8 +315,35 @@ check(
   themeList.themes.every((t) => !("light" in t) && !("dark" in t)),
 );
 
+// A preset is a TOKEN BAG. `applyAs: data-theme="marble"` is only half an
+// instruction, and the missing half is silent: the Tailwind plugin emits
+// `light` and `dark` only, so an undeclared name matches the bare
+// `[data-theme]` rule and resolves every token to the default. A Django
+// developer followed `applyAs` plus "do not paste these values into CSS" and
+// got the default palette with nothing anywhere to say why. Both tools must
+// carry the other half, and the phrase `@wizeworks/silicaui/theme` is the
+// actionable part — a note that names the problem without naming the fix is
+// how this went unnoticed. See docs/personas/issues/030.
+const saysHowItIsEmitted = (note) =>
+  typeof note === "string" &&
+  /only\s+`?\[data-theme="light"\]/.test(note) &&
+  note.includes('@plugin "@wizeworks/silicaui/theme"') &&
+  /silent/i.test(note);
+check("list_themes says who EMITS a preset, not just how to apply it", saysHowItIsEmitted(themeList.emittedBy));
+
 const midnight = JSON.parse(text(await client.callTool({ name: "get_theme", arguments: { name: "midnight" } })));
 check("get_theme returns the literal attribute to write", midnight.applyAs === 'data-theme="midnight"');
+check("get_theme says who EMITS a preset", saysHowItIsEmitted(midnight.emittedBy));
+// The old wording was "do not paste these values into CSS", which forbids the
+// one move that makes a preset work on the CSS path. It has to separate
+// hardcoding a token onto a component (wrong) from declaring it once under a
+// theme name (the sanctioned mechanism).
+check(
+  "get_theme's tokensNote does not forbid declaring the theme in CSS",
+  typeof midnight.tokensNote === "string" &&
+    midnight.tokensNote.includes('@plugin "@wizeworks/silicaui/theme"') &&
+    !/do not paste these values into CSS/.test(midnight.tokensNote),
+);
 // RESOLVED, not authored: `defineTheme` stores dark as a delta bag and derives
 // `-content` inks at resolve time. Publishing the authored bag would hand a
 // consumer a dark map with no inks in it and no way to know they were missing.

@@ -20,7 +20,7 @@ export function footer(prefix = "") {
       placeItems: "start",
       rowGap: "2.5rem",
       columnGap: "1rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.375",
       color: "var(--color-base-content)",
 
@@ -44,7 +44,7 @@ export function footer(prefix = "") {
     // Small, muted, upper-cased column heading.
     [sel("-title")]: {
       marginBottom: "0.25rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontWeight: "700",
       letterSpacing: "0.05em",
       textTransform: "uppercase",

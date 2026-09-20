@@ -41,7 +41,7 @@ export function slider(colors, prefix = "") {
     [sel("-value")]: {
       flexShrink: "0",
       minWidth: "2.5ch",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontVariantNumeric: "tabular-nums",
       color: "var(--color-base-content)",
     },

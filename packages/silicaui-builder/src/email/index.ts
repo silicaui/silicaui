@@ -13,6 +13,8 @@ export type { EmailHeadExtras, EmailRenderOptions } from "./projector";
 // host's send path composes with the SAME function the builder previews with.
 export { composeEmailDocument, isEmptyFrame, frameLabel } from "./frame";
 export type { EmailFrame } from "./frame";
+export { findInProject, replaceOutsideTags, countOutsideTags } from "./find";
+export type { EmailTextMatch } from "./find";
 export { resolveEmailTree, emailScopeAt, EMAIL_BINDABLE_FIELDS } from "./resolve";
 export type { EmailResolveHost } from "./resolve";
 export { emptyEmailDocument, isContentKind } from "./schema";
@@ -50,4 +52,6 @@ export type {
   VideoNode,
 } from "./schema";
 export { EMAIL_PALETTE, emailPaletteItemByKey } from "./palette";
+export { EMAIL_STARTER_GROUPS, emailStarterGroups, emailStarterByKey } from "./starters";
+export type { EmailStarter, EmailStarterGroup, EmailStarterContribution } from "./starters";
 export type { EmailPaletteItem } from "./palette";

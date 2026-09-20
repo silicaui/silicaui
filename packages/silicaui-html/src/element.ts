@@ -31,7 +31,34 @@ export interface RawElementMeta {
  *  hostile author can do with it is disable their own content. Marquee needs
  *  it — its duplicated copies are the same links twice over, and `aria-hidden`
  *  alone hides them from a screen reader while leaving them tabbable. */
-export const GLOBAL_ATTRS: readonly string[] = ["id", "title", "role", "tabindex", "hidden", "inert"];
+/*  `dir`, `lang` and `translate` are here for the same reason `aria-*` and
+ *  `data-*` are allowed by prefix: they are INERT METADATA. None carries a URL,
+ *  none is executed, and the worst a hostile author does with them is misrender
+ *  their own text.
+ *
+ *  They were missing, and the cost was not cosmetic. A guide published in Arabic
+ *  and French — with both scripts inside ONE heading — had no way to express
+ *  direction at all: `dir="auto"` was dropped, `lang="ar"` was dropped, and
+ *  `<bdi>`/`<bdo>` downgraded to `<div>`. That leaves the Unicode bidi algorithm
+ *  to guess from the paragraph direction, which puts the neutral characters —
+ *  the slash, the em-dash, the punctuation at a script boundary — on the wrong
+ *  side. The text is all there and reads wrong, which is the expensive kind of
+ *  broken. See docs/personas/issues/035.
+ *
+ *  `translate` comes along because it is the same category and the same one-line
+ *  fix: a proper noun that machine translation must leave alone (`Chellah`,
+ *  `شالة`) has no other way to say so. */
+export const GLOBAL_ATTRS: readonly string[] = [
+  "id",
+  "title",
+  "role",
+  "tabindex",
+  "hidden",
+  "inert",
+  "dir",
+  "lang",
+  "translate",
+];
 
 /** Presentation attributes safe on any SVG shape/group — inert styling that
  *  never carries a script or a script-executing URL, so a pasted logo keeps its
@@ -109,6 +136,14 @@ export const RAW_ELEMENTS: ReadonlyMap<string, RawElementMeta> = new Map(
     br: { group: "text" },
     hr: { group: "text" },
     wbr: { group: "text" },
+    // The two bidirectional-text elements. `bdi` isolates a run whose direction
+    // is unknown — a name pulled from a database, which is exactly the case
+    // here — and `bdo` overrides direction outright. Both are pure text-layout
+    // elements: no URL, no script surface, nothing to execute. Without them a
+    // mixed Arabic/French line has no correct markup at all, only a paragraph
+    // direction that is wrong for half its content. See issues/035.
+    bdi: { group: "text" },
+    bdo: { group: "text" },
 
     // list
     ul: { group: "list" },
@@ -219,6 +254,10 @@ const URL_ATTRS: ReadonlySet<string> = new Set(["href", "src", "srcset", "cite",
  *  inherit-from-another-node refs are fragment-only, stricter than `isSafeUrl`. */
 const INTERNAL_REF_TAGS: ReadonlySet<string> = new Set(["use", "pattern", "linearGradient", "radialGradient"]);
 const SAFE_SCHEME = /^(?:https?:|mailto:|tel:)/i;
+/** Does this url carry a scheme at all? `[a-zA-Z][a-zA-Z0-9+.-]*:` before any
+ *  path/query/fragment separator, per RFC 3986 — so `javascript:` matches and
+ *  `photos/a:b.jpg` does not. */
+const SCHEME_PREFIX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 /** A schemeless (relative/anchor/query) URL is always safe — it can't leave the origin.
  *
  *  An EMPTY value is rejected, so the attribute is dropped rather than emitted
@@ -230,10 +269,49 @@ const SAFE_SCHEME = /^(?:https?:|mailto:|tel:)/i;
  *  Image has no `src` (so an unset image stays visible and selectable while
  *  authoring), and its comment already claimed production markup omits it —
  *  which the empty-string carve-out quietly made untrue. */
-function isSafeUrl(value: string): boolean {
+/**
+ * EXPORTED so there is exactly one answer to "is this a URL we will emit".
+ *
+ * It was module-private, and the consequence was found by P04 act 9's boundary
+ * check: the EMAIL projector, in a different package, wrote `href="${esc(url)}"`
+ * with only entity escaping and happily emitted `javascript:` — while this
+ * function, three files away, had already worked out the whitespace-obfuscated
+ * cases. See docs/personas/issues/076.
+ */
+export function isSafeUrl(value: string): boolean {
   if (value === "") return false;
-  if (value.startsWith("/") || value.startsWith("#") || value.startsWith("?") || value.startsWith(".")) return true;
-  return SAFE_SCHEME.test(value);
+
+  // Test against a copy with ASCII whitespace and C0/DEL control characters
+  // removed. The URL parser strips tab/LF/CR from anywhere in a URL and trims
+  // C0-plus-space at the ends, so `"java\nscript:alert(1)"` and
+  // `" javascript:alert(1)"` are `javascript:` URLs to a browser even though
+  // neither looks like one to a naive `startsWith`. The ORIGINAL value is what
+  // gets emitted; this copy exists only to decide.
+  //
+  // The old check happened to be safe here by accident — it dropped anything it
+  // did not recognise — but the relative-path fix below accepts far more, so
+  // the stripping has to be explicit rather than incidental.
+  // eslint-disable-next-line no-control-regex -- stripping C0/DEL is the point of this line
+  const probe = value.replace(/[\u0000-\u0020\u007F]/g, "");
+  if (probe === "") return false;
+
+  if (probe.startsWith("/") || probe.startsWith("#") || probe.startsWith("?")) return true;
+
+  // A SCHEMELESS url is relative, and a relative url cannot leave the origin —
+  // which is exactly what the comment above this function has always claimed.
+  // The old implementation did not keep that promise: it allow-listed `/`, `#`,
+  // `?` and `.` and dropped everything else, so `./photos/a.jpg` survived while
+  // `photos/a.jpg` — the same url, and the form every static-site generator
+  // emits — was silently deleted along with `chellah.html` and `entree/x/`.
+  // The attribute vanished, so the page rendered an `<img>` with no `src` and
+  // an `<a>` that looked like a link and went nowhere. See issues/034.
+  //
+  // A scheme is `[a-zA-Z][a-zA-Z0-9+.-]*:` appearing before any `/`, `?` or
+  // `#`, which is why `photos/a:b.jpg` is correctly read as relative while
+  // `javascript:alert(1)` is not.
+  if (!SCHEME_PREFIX.test(probe)) return true;
+
+  return SAFE_SCHEME.test(probe);
 }
 
 export interface SanitizedElement {

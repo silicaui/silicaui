@@ -59,7 +59,7 @@ export function ComponentsPanel() {
       </div>
 
       {symbols.length === 0 ? (
-        <p className="px-3.5 py-3 text-xs text-base-content/45">
+        <p className="px-3.5 py-3 text-xs text-base-content">
           No components yet. Create one, or select an element on a page and “Save as component”.
         </p>
       ) : (

@@ -15,7 +15,7 @@ export function breadcrumb(prefix = "") {
 
   return {
     [sel()]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
 
       "& ol, & ul": {

@@ -11,12 +11,46 @@ import * as React from "react";
 import { Select, SelectItem, Input } from "@wizeworks/silicaui-react";
 import { useEmailEditor, useEmailTemplates } from "./editor-context";
 import { IconButton } from "../../shared/react/Hint";
+import { NewEmailButton } from "./EmailStarterDialog";
 
 export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
   const { templates, activeId } = useEmailTemplates();
   const editor = useEmailEditor();
   const [renaming, setRenaming] = React.useState(false);
   const [draft, setDraft] = React.useState("");
+  // The name field REPLACES the switcher, so committing or cancelling unmounts
+  // the focused element and the browser drops focus on `document.body` — a
+  // keyboard user starts again from the top of the page, a screen reader loses
+  // its place. Same defect and same fix as the site builder's Pages panel
+  // (issues/059).
+  // The button's accessible NAME, not the element. React unmounts these buttons
+  // while the field is open and mounts fresh ones after, so a held element
+  // reference is always stale — it points at a node that is no longer in the
+  // document, and the fallback fires every time.
+  const cameFrom = React.useRef<string | null>(null);
+  const wantFocus = React.useRef(false);
+  const panel = React.useRef<HTMLDivElement | null>(null);
+  const switcher = React.useRef<HTMLDivElement | null>(null);
+  const openNameField = () => {
+    cameFrom.current = (window.document.activeElement as HTMLElement | null)?.getAttribute("aria-label") ?? null;
+    setRenaming(true);
+  };
+  const closeNameField = (restore: boolean) => {
+    wantFocus.current = restore;
+    setRenaming(false);
+  };
+  // AFTER the re-render: the buttons beside the field are unmounted while it is
+  // open, so at the moment Enter is pressed there is nothing left to focus.
+  React.useLayoutEffect(() => {
+    if (renaming || !wantFocus.current) return;
+    wantFocus.current = false;
+    const name = cameFrom.current;
+    cameFrom.current = null;
+    const back = name ? panel.current?.querySelector<HTMLElement>(`[aria-label="${name}"]`) : null;
+    // Back to the button she pressed; the switcher if that button is gone,
+    // since it is the one control that is always there.
+    (back ?? switcher.current?.querySelector<HTMLElement>("button"))?.focus();
+  }, [renaming]);
 
   const active = templates.find((t) => t.id === activeId) ?? templates[0];
   const labels = React.useMemo(() => Object.fromEntries(templates.map((t) => [t.id, t.name])), [templates]);
@@ -24,15 +58,29 @@ export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
   const startRename = () => {
     if (!active) return;
     setDraft(active.name);
-    setRenaming(true);
+    openNameField();
   };
-  const commitRename = () => {
+  // `restore` is false on blur: focus has already gone somewhere the person
+  // chose, and yanking it back would be worse than dropping it.
+  const commitRename = (restore: boolean) => {
     if (active) editor.renameTemplate(active.id, draft);
-    setRenaming(false);
+    closeNameField(restore);
+  };
+
+  // Adding a template ALSO opens the name field — same reasoning, and the same
+  // defect, as the site builder's Pages panel: focus used to stay on the button,
+  // so one click plus one Enter silently made two. `renameTemplate` ignores an
+  // empty value, so Enter or a click away keeps the generated "Email 4".
+  // See issues/044.
+  // The starter picker creates the template; this only opens the name field on
+  // whatever it just made. Kept separate so the two concerns do not tangle.
+  const nameAfterAdd = () => {
+    setDraft("");
+    openNameField();
   };
 
   return (
-    <div className="flex-none border-b border-base-200 p-2">
+    <div ref={panel} className="flex-none border-b border-base-200 p-2">
       <div className="flex items-center gap-1">
         {renaming ? (
           <Input
@@ -41,16 +89,27 @@ export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
             aria-label="Template name"
             value={draft}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
-            onBlur={commitRename}
+            onBlur={() => commitRename(false)}
             onKeyDown={(e: React.KeyboardEvent) => {
-              if (e.key === "Enter") commitRename();
-              else if (e.key === "Escape") setRenaming(false);
+              // `preventDefault` matters here. Focus goes back to the button
+              // she pressed, and that happens while this very keypress is still
+              // being processed — so without this, Enter lands on "Add page"
+              // and makes ANOTHER page. That is issues/044 coming back through
+              // the fix for issues/059.
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitRename(true);
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                closeNameField(true);
+              }
             }}
           />
         ) : (
+          <div ref={switcher} className="flex-1 min-w-0">
           <Select
             size="sm"
-            className="flex-1 min-w-0"
+            className="w-full min-w-0"
             value={activeId}
             items={labels}
             onValueChange={(v) => editor.setActiveTemplate(v as string)}
@@ -63,12 +122,36 @@ export function TemplatesPanel({ studioTheme }: { studioTheme: string }) {
               </SelectItem>
             ))}
           </Select>
+          </div>
         )}
 
         {!renaming && (
           <>
             <IconButton icon="pencil" label="Rename template" size="sm" side="bottom" onClick={startRename} />
-            <IconButton icon="plus" label="Add template" size="sm" side="bottom" onClick={() => editor.addTemplate()} />
+            {/* The same email again, for another shop / region / list — the
+                normal way a second send comes into being. Without it the only
+                route was a starter plus retyping every word (issues/072).
+                Naming follows the copy, exactly as it follows an add. */}
+            <IconButton
+              icon="copy"
+              label="Duplicate template"
+              size="sm"
+              side="bottom"
+              onClick={() => {
+                if (!active) return;
+                editor.duplicateTemplate(active.id);
+                nameAfterAdd();
+              }}
+            />
+            {/* Add opens the starter picker rather than minting a blank email —
+                picking a layout is what "new email" means to somebody who sends
+                one every week (issues/063). Naming still follows the pick, so
+                the add-then-name flow issues/044 established is unchanged. */}
+            <NewEmailButton
+              studioTheme={studioTheme}
+              onPicked={() => nameAfterAdd()}
+              trigger={<IconButton icon="plus" label="Add template" size="sm" side="bottom" />}
+            />
             <IconButton
               icon="trash"
               label="Delete template"

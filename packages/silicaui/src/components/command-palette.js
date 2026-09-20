@@ -103,7 +103,7 @@ export function commandPalette(prefix = "") {
     },
     [sel("-group-label")]: {
       padding: "0.5rem 0.6rem 0.25rem",
-      fontSize: "0.7rem",
+      fontSize: "1rem",
       fontWeight: "700",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
@@ -146,23 +146,25 @@ export function commandPalette(prefix = "") {
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontSize: "0.9rem",
+      fontSize: "1rem",
     },
     [sel("-item-desc")]: {
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontSize: "0.78rem",
+      fontSize: "1rem",
       color: muted(60),
     },
     [`${sel("-item")}[data-active] ${sel("-item-desc")}`]: {
-      color: "color-mix(in oklab, var(--color-primary) 70%, transparent)",
+      // The de-emphasis is kept — this is the second line of an ACTIVE row — but
+      // it is now a fade of the INK rather than of the raw fill. See lib/ink.js.
+      color: `color-mix(in oklab, ${inkOfRole("primary")} 70%, transparent)`,
     },
     [sel("-item-shortcut")]: {
       flexShrink: "0",
       display: "inline-flex",
       gap: "0.2rem",
-      fontSize: "0.72rem",
+      fontSize: "1rem",
       color: muted(55),
     },
 
@@ -170,7 +172,7 @@ export function commandPalette(prefix = "") {
     [sel("-empty")]: {
       padding: "2.5rem 1rem",
       textAlign: "center",
-      fontSize: "0.9rem",
+      fontSize: "1rem",
       color: muted(55),
     },
   };

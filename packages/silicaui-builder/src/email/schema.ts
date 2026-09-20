@@ -494,6 +494,23 @@ export interface EmailColorDefaults {
   error: string;
 }
 
+/**
+ * The padding every new button starts with — ONE definition, because it was
+ * written out three times (two palette entries and the starters' own factory)
+ * and three copies of a number is how two of them end up stale.
+ *
+ * `y: 14` is not a taste choice. A 16px label sits in an ≈18px line box, so
+ * 8px top and bottom made a stock button **34px tall** — under the 44px minimum
+ * a thumb reliably hits (WCAG 2.5.5, and Apple's own 44pt guidance). Half of all
+ * email is opened on a phone, and the button is the one thing in an email a
+ * person is actually asked to press. 14 + 18 + 14 = 46. Found by P04 act 9
+ * (issues/075).
+ *
+ * The projector mirrors this into `mso-padding-alt`, so Word gets the same
+ * target.
+ */
+export const EMAIL_BUTTON_PADDING = { x: 16, y: 14 } as const;
+
 export const DEFAULT_EMAIL_COLORS: EmailColorDefaults = {
   primary: "#111827",
   primaryContent: "#ffffff",

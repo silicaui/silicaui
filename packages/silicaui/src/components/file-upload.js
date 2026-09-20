@@ -70,14 +70,14 @@ export function fileUpload(prefix = "") {
       flex: "1 1 auto",
     },
     [sel("-item-name")]: {
-      fontSize: "0.85rem",
+      fontSize: "1rem",
       fontWeight: "500",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     },
     [sel("-item-size")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       color: muted(60),
     },
 
@@ -108,7 +108,7 @@ export function fileUpload(prefix = "") {
       display: "flex",
       flexDirection: "column",
       gap: "0.2rem",
-      fontSize: "0.78rem",
+      fontSize: "1rem",
       color: inkOfRole("error"),
     },
   };

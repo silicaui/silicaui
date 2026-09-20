@@ -144,16 +144,43 @@ test("a narrow palette drops a search row's category before its name", async ({ 
     ]);
   };
 
-  // Tight: the category is the only one that gave anything up.
-  const [name180, badge180] = await squeezeTo(180);
-  expect(name180).toBeCloseTo(fullName, 0);
-  expect(badge180).toBeLessThan(fullBadge * 0.9);
+  // These widths used to be the constants 180 and 110, and the assertion used
+  // to be "at 180 the name gives up NOTHING". Both were calibrated against a
+  // 14px palette. The type ladder was re-based so `md` is 16px (issues/110), the
+  // row is now exactly full at its natural width, and any squeeze at all takes
+  // from something — so the old assertion failed on a rule the component still
+  // keeps.
+  //
+  // The rule it actually keeps, and the one a person cares about, is
+  // type-independent: **the name reaches a floor and stops giving, while the
+  // category goes on collapsing all the way to nothing.** That is what makes a
+  // tight row still name what it is.
+  // All three are "the name, plus some of the category" — never a bare pixel
+  // count. `tight` is not fullName alone: a row is more than its two text runs
+  // (an icon, two gaps, the button's padding), so squeezing to exactly the
+  // name's width squeezes the name too, and the first go at this asserted a
+  // floor at a width narrower than the floor.
+  const wide = Math.round(fullName + fullBadge * 1.2);
+  const mid = Math.round(fullName + fullBadge * 0.8);
+  const tight = Math.round(fullName + fullBadge * 0.4);
 
-  // Tighter than both can fit: the category collapses to nothing FIRST, and the
-  // name is still naming something rather than truncated away.
-  const [name110, badge110] = await squeezeTo(110);
-  expect(badge110).toBeLessThan(fullBadge * 0.1);
-  expect(name110).toBeGreaterThan(30);
+  const [nameWide, badgeWide] = await squeezeTo(wide);
+  const [nameMid, badgeMid] = await squeezeTo(mid);
+  const [nameTight, badgeTight] = await squeezeTo(tight);
+
+  // The category gives up a great deal across that range…
+  expect(badgeTight).toBeLessThan(badgeWide * 0.5);
+  // …and by the end it is nearly gone.
+  expect(badgeTight).toBeLessThan(fullBadge * 0.25);
+
+  // …while the name hits its floor and stays there. Between mid and tight the
+  // category keeps shrinking and the name does not move at all.
+  expect(badgeTight).toBeLessThan(badgeMid);
+  expect(nameTight).toBeCloseTo(nameMid, 0);
+
+  // And it is still naming something rather than truncated away.
+  expect(nameTight).toBeGreaterThan(30);
+  expect(nameWide).toBeGreaterThanOrEqual(nameMid);
 });
 
 test("a pinned host component inserts host-locked and non-deletable", async ({ page }) => {

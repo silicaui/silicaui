@@ -12,7 +12,7 @@
  * `useHostDisplay()` (host-context) is the React binding.
  */
 import type { Node } from "@wizeworks/silicaui-html";
-import { getComponent } from "@wizeworks/silicaui-html";
+import { getComponent, humanizeKey } from "@wizeworks/silicaui-html";
 import { isIconName, typeIcon } from "../shared/icons";
 import type { IconName } from "../shared/icons";
 
@@ -155,10 +155,14 @@ const TAG_LABEL: Record<string, string> = {
   li: "List item",
   dt: "List item",
   dd: "List item",
+  // A table's three parts each used to read "Table", so the tree showed three
+  // identical rows nested inside one another and there was no way to tell the
+  // header from the body — on a page whose whole job is an eleven-row
+  // timetable. Distinct plain words, no tag names (docs/personas/issues/042).
   table: "Table",
-  thead: "Table",
-  tbody: "Table",
-  tfoot: "Table",
+  thead: "Header",
+  tbody: "Body",
+  tfoot: "Footer",
   tr: "Row",
   th: "Cell",
   td: "Cell",
@@ -178,28 +182,13 @@ const TAG_LABEL: Record<string, string> = {
 };
 
 /**
- * Turn a registry key into prose — `ProductGrid` → "Product grid",
- * `feature-media` → "Feature media". Runs of capitals stay together so an
- * acronym survives (`HTMLBlock` → "HTML block").
- *
- * The dot is a separator for the same reason the dash is: host allowlist keys
- * are conventionally namespaced (`site.map`), and treating the dot as prose
- * yields "Site.map" — visibly a key, in a rail that is meant to hold none.
+ * Re-exported from `@wizeworks/silicaui-html`, which is where the registry that
+ * needs it lives. This module owned a private copy while `elementDef` defaulted
+ * a component's `label` to its raw key — so the one function that could have
+ * fixed 33 rail rows sat one package away from the line that broke them
+ * (docs/personas/issues/041). One copy now, read by both.
  */
-function humanize(key: string): string {
-  const words = key
-    .replace(/[-_.]+/g, " ")
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-    .trim()
-    .split(/\s+/);
-  return words
-    .map((word, i) => {
-      if (word === word.toUpperCase()) return word; // an acronym keeps its case
-      return i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word.toLowerCase();
-    })
-    .join(" ");
-}
+const humanize = humanizeKey;
 
 /**
  * The node's TYPE, in the words a business user would use — "Group", "Link",
@@ -228,16 +217,31 @@ export function nodeName(node: Node, hostDisplay?: HostDisplayLookup): string {
 }
 
 /**
- * The accessible name an element declares for itself. An icon-only control
- * holds no text, so without this a header's theme toggle and its menu toggle
- * are two rows both reading "Button" — and the markup already answers which is
- * which. Not a guess: `aria-label` IS this element's name, to a screen reader
- * and now to the author too.
+ * The accessible name a node declares for itself. An icon-only control holds no
+ * text, so without this a header's theme toggle and its menu toggle are two rows
+ * both reading "Button" — and the markup already answers which is which. Not a
+ * guess: `aria-label` IS this element's name, to a screen reader and now to the
+ * author too.
+ *
+ * `alt` is exactly the same thing for an image, and this read only `aria-label`.
+ * Every image in a tree therefore came out as one row saying "Image", however
+ * many there were and however carefully each one's alt text had been written —
+ * so picking the lead cover out of five meant counting, which is the one thing
+ * a content-first rail exists to stop. The email Navigator fixed this in P04
+ * (issues/069) and quoted the rule from THIS file while doing it; the site side
+ * was the neighbour left behind.
+ *
+ * A component's `alt` prop counts for the same reason an element's attribute
+ * does — an `Image` macro and an `<img>` are the same thing to the person
+ * scanning the rail.
  */
 function declaredName(node: Node): string | undefined {
-  if (node.kind !== "element") return undefined;
-  const label = node.attrs?.["aria-label"];
-  return typeof label === "string" && label.trim() ? label.trim() : undefined;
+  if (node.kind === "outlet" || node.kind === "host") return undefined;
+  const from = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  if (node.kind === "element") {
+    return from(node.attrs?.["aria-label"]) ?? from(node.attrs?.alt);
+  }
+  return from(node.props?.["aria-label"]) ?? from(node.props?.alt);
 }
 
 /**

@@ -10,7 +10,23 @@
  */
 import { deniedToken } from "./lint";
 
-export type ClassValidator = (cls: string) => { ok: true } | { ok: false; reason: string };
+/**
+ * `node` is the node the class string is about, when there is one.
+ *
+ * It is optional, and every shipped validator ignores it — the floor and the
+ * viewport rule are properties of the string alone. It exists because a host
+ * policy is not always: the host-nodes spec says a host that wants a read-only
+ * region "withholds inspector controls", and until this argument existed there
+ * was no way to do that. `validateClass` saw a class and not a tree, so a host
+ * protecting ONE block — a compliance certificate it is legally answerable for —
+ * could only ban `hidden` everywhere or nowhere. Found by P05 act 2
+ * (docs/personas/issues/081).
+ *
+ * Deliberately `unknown`: this type lives below the node schema and must not
+ * depend on it. A host narrows it themselves, which is one cast in their own
+ * code against a shape they already know.
+ */
+export type ClassValidator = (cls: string, node?: unknown) => { ok: true } | { ok: false; reason: string };
 
 /** The floor alone. Every class-mutation call site runs this first. */
 export const validateClassString: ClassValidator = (cls) => {
@@ -97,9 +113,9 @@ export function buildClassValidator(config: {
  *  function, or one built by `buildClassValidator`) — the floor always runs
  *  first, and the host function can only add rejections, never remove them. */
 export function composeValidators(host?: ClassValidator): ClassValidator {
-  return (cls) => {
+  return (cls, node) => {
     const floor = validateClassString(cls);
     if (!floor.ok) return floor;
-    return host ? host(cls) : { ok: true };
+    return host ? host(cls, node) : { ok: true };
   };
 }

@@ -67,14 +67,22 @@ export function scrollArea(prefix = "") {
     // the cross axis.
     [sel("-thumb")]: {
       borderRadius: "9999px",
+      // The thumb is a CONTROL you drag, so the bar is WCAG 1.4.11 Non-text
+      // Contrast: 3:1 against the surface behind it. At 25% it cleared that in
+      // NONE of the 120 theme/mode/surface combinations the system ships —
+      // worst 1.60:1, which is a scrollbar you cannot see even once it has faded
+      // in. 55% is the measured floor (53%) plus margin, and reads 3.22:1 at its
+      // worst. Hover goes to 70% — 4.77:1 — so the state change stays obvious
+      // now that the resting state is visible at all.
+      // (docs/personas/issues/108)
       backgroundColor:
-        "color-mix(in oklab, var(--color-base-content) 25%, transparent)",
+        "color-mix(in oklab, var(--color-base-content) 55%, transparent)",
       transitionProperty: "background-color",
       transitionDuration: "var(--duration, 150ms)",
       transitionTimingFunction: "var(--ease, cubic-bezier(0.4, 0, 0.2, 1))",
       "&:hover": {
         backgroundColor:
-          "color-mix(in oklab, var(--color-base-content) 40%, transparent)",
+          "color-mix(in oklab, var(--color-base-content) 70%, transparent)",
       },
     },
     [`${sel("-scrollbar")}[data-orientation="vertical"] ${sel("-thumb")}`]: {

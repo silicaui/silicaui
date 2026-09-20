@@ -1,0 +1,67 @@
+# A ementa da Casa Ferreiro.
+# A Sofia edita este ficheiro. Mais nada. — T.F.
+
+- curso: Entradas
+  pratos:
+    - nome: Caldo verde com chouriço de Trás-os-Montes
+      preco: "4.80"
+    - nome: Pataniscas de bacalhau com arroz de feijão
+      preco: "7.40"
+    - nome: Peixinhos da horta com maionese de alho
+      preco: "6.25"
+    - nome: Queijo da Serra da Estrela amanteigado, com broa de milho
+      preco: "9.50"
+
+- curso: Peixe
+  pratos:
+    - nome: Bacalhau à Brás
+      preco: "13.50"
+    - nome: Polvo à lagareiro com batata a murro
+      preco: "18.25"
+      descricao: >-
+        Polvo cozido lentamente em azeite de Trás-os-Montes com alho, batata a
+        murro e grelos do dia; servido para dois, e vale a pena esperar os vinte
+        minutos.
+    - nome: Arroz de tamboril com gambas
+      preco: "17.80"
+    - nome: Sardinhas assadas com pimentos (de junho a setembro)
+      preco: "11.20"
+
+- curso: Carne
+  pratos:
+    - nome: Arroz de pato à moda da avó, com enchidos fumados e laranja do Algarve
+      preco: "16.00"
+    - nome: Francesinha (só ao sábado)
+      preco: "12.90"
+    - nome: Cabrito assado no forno a lenha, com batata e grelos
+      preco: "19.50"
+    - nome: Bife à Casa Ferreiro com ovo a cavalo
+      preco: "15.75"
+
+- curso: Sobremesas
+  pratos:
+    - nome: Pastel de nata
+      preco: "1.35"
+    - nome: Leite-creme queimado
+      preco: "4.20"
+    - nome: Toucinho-do-céu de Murça
+      preco: "4.95"
+    - nome: Arroz doce com canela
+      preco: "3.60"
+
+# --- A Sofia acrescentou estes dois na quinta-feira. ---
+# O primeiro veio colado do Word: aspa curva (U+2019) e travessao (U+2014).
+# O segundo ficou sem preco porque ela ainda nao decidiu.
+- curso: Fora da ementa
+  pratos:
+    - nome: Bacalhau “do Zé” — só à sexta, e só enquanto durar
+      preco: "14.60"
+    - nome: Cataplana de peixe do dia, para dois
+      descricao: A Sofia ainda não fechou o preço com o fornecedor.
+    - nome: Sopa da pedra
+      preco: "6.90"
+      # Verificacao de fronteira: isto sai do YAML, nao de um formulario.
+      # O template TEM de escapar. Se abrir uma caixa de alerta, e um defeito.
+      descricao: >-
+        Com feijao, chourico e hortela. <script>alert(1)</script>
+        <img src=x onerror="document.title=1">

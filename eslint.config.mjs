@@ -66,6 +66,11 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/*.d.ts",
       "packages/silicaui-mcp/src/data/**",
+      // Persona artifacts are a CUSTOMER's codebase, not ours: hand-written by the
+      // persona in their own stack (a Django app with a vendored jQuery, a pre-migration
+      // daisyUI page kept deliberately un-migrated), and none of it is ours to style.
+      // Linting it made `pnpm lint` fail for anyone who had actually run one of them.
+      "docs/personas/artifacts/**",
     ],
   },
 

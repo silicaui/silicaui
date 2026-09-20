@@ -527,6 +527,27 @@ export function createServer(): McpServer {
     }),
   );
 
+  /**
+   * A preset is a TOKEN BAG, not a stylesheet. Nothing here emits it, and the
+   * Tailwind plugin emits only `light` and `dark`, so `data-theme="marble"` on a
+   * page built with the CSS plugin alone matches the bare `[data-theme]` rule,
+   * resolves every token to the default, and renders a page that looks fine.
+   *
+   * Both theme tools used to say `applyAs: data-theme="marble"` and then, in
+   * `get_theme`, "do not paste these values into CSS" — which together guarantee
+   * that outcome for anyone not on React or the node tree. A Django developer
+   * followed exactly those two sentences and got the default palette with no
+   * warning anywhere. See docs/personas/issues/030.
+   *
+   * One constant, read by BOTH tools, because the previous split is how the two
+   * halves of the instruction drifted apart in the first place.
+   */
+  const EMITTED_BY_NOTE =
+    'A preset is a token bag; something has to EMIT it. The Tailwind plugin `@wizeworks/silicaui` emits only `[data-theme="light"]` and `[data-theme="dark"]` — no preset name. ' +
+    'Putting `data-theme="marble"` on a page that never emitted marble is silent: it matches the bare `[data-theme]` rule, every token resolves to the default, and the page renders with no error. ' +
+    'On the CSS path, emit it yourself from the token map this tool returns: `@plugin "@wizeworks/silicaui/theme" { name: marble; color-scheme: light; --color-primary: …; }`, loaded after the main plugin. ' +
+    "On the React and node-tree paths the host emits it for you (two `themeTokenCss` calls, one per mode).";
+
   server.registerTool(
     "list_themes",
     {
@@ -555,6 +576,7 @@ export function createServer(): McpServer {
                   ? { contrastWarnings: p.contrastWarnings }
                   : {}),
               })),
+              emittedBy: EMITTED_BY_NOTE,
               tokensNote: "get_theme(name) returns each preset's full resolved token map for both modes.",
             },
             null,
@@ -610,9 +632,12 @@ export function createServer(): McpServer {
                 modeNote:
                   "`mode` is which mode this theme's authored token bag expresses — not a limitation. Both maps below render. Which one a page shows is the host's dark strategy, not this field: the built-in themes switch on the `data-theme` value itself (`light`/`dark`), while a named preset is emitted as two `themeTokenCss` calls — one per mode — under whichever selectors that strategy uses.",
                 apply: themes.mechanism.apply,
+                emittedBy: EMITTED_BY_NOTE,
                 ...body,
                 tokensNote:
-                  "RESOLVED, not authored: the dark map is the base tokens with this theme's dark deltas merged over them and `-content` inks re-derived. Apply the theme with the attribute — do not paste these values into CSS, or the result stops tracking the theme.",
+                  "RESOLVED, not authored: the dark map is the base tokens with this theme's dark deltas merged over them and `-content` inks re-derived. " +
+                  "Do not paste these values onto a COMPONENT or into a rule of your own — a token hardcoded on an element stops tracking whatever theme it ends up inside, which is the thing to avoid. " +
+                  'Declaring them once under a theme name is the opposite and is sanctioned: `@plugin "@wizeworks/silicaui/theme" { name: … }` on the CSS path, `themeTokenCss` on the others. See `emittedBy` above.',
               },
               null,
               2,

@@ -21,7 +21,7 @@ export function table(prefix = "") {
       width: "100%",
       borderCollapse: "collapse",
       textAlign: "left",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       color: "var(--color-base-content)",
 
@@ -69,19 +69,19 @@ export function table(prefix = "") {
       "& th, & td": { paddingInline: "0.5rem", paddingBlock: "0.375rem" },
     },
     [sel("-sm")]: {
-      fontSize: "0.8125rem",
+      fontSize: "0.875rem",
       "& th, & td": { paddingInline: "0.75rem", paddingBlock: "0.5rem" },
     },
     [sel("-md")]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       "& th, & td": { paddingInline: "1rem", paddingBlock: "0.75rem" },
     },
     [sel("-lg")]: {
-      fontSize: "1rem",
+      fontSize: "1.125rem",
       "& th, & td": { paddingInline: "1.25rem", paddingBlock: "1rem" },
     },
     [sel("-xl")]: {
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
       "& th, & td": { paddingInline: "1.5rem", paddingBlock: "1.25rem" },
     },
   };

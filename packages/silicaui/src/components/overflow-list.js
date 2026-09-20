@@ -45,7 +45,7 @@ export function overflowList(prefix = "") {
       border: "var(--border, 1px) solid var(--color-base-300)",
       backgroundColor: "var(--color-base-200)",
       color: "var(--color-base-content)",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontWeight: "600",
       cursor: "pointer",
       "&:hover": { backgroundColor: "var(--color-base-300)" },

@@ -24,16 +24,38 @@ pnpm add -D @wizeworks/silicaui tailwindcss
 import { SortableList } from "@wizeworks/silicaui-dnd";
 
 <SortableList
-  items={items}
-  getItemId={(item) => item.id}
-  onReorder={setItems}
-  renderItem={(item, ctx) => (
-    <div className={ctx.isDragging ? "opacity-50" : ""}>
-      <span {...ctx.handleProps}>⠿</span> {item.label}
-    </div>
+  items={vessels}
+  getItemId={(v) => v.id}
+  getItemLabel={(v) => v.name}
+  onReorder={setVessels}
+  handle
+  renderItem={(v, ctx) => (
+    <>
+      <span {...ctx.handleProps} aria-label={`Reorder ${v.name}`}>
+        <GripIcon />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{v.name}</span>
+      <Badge color={toneFor(v)}>{statusOf(v)}</Badge>
+    </>
   )}
 />
 ```
+
+**The list and its rows come styled.** The `<ul>` gets `sortable-list` and every
+row gets `sortable-item` — a flex row with a border, a surface, padding, a radius
+and a lifted look while it is dragged. So `renderItem` returns what goes INSIDE
+the row, not a second bordered box. (A single returned element is stretched to
+fill the row, so a wrapper is fine when you want one.) Add to the row with
+`itemClassName`.
+
+`ctx.handleProps` already carries the handle’s class — grab and grabbing cursors,
+a hover ink and a focus ring. Spreading it and then setting `className` replaces
+that, so merge instead: `className={cx(ctx.handleProps.className, "ml-1")}`.
+
+**Name your items.** `getItemLabel` is what a person who is not using a mouse
+hears: *“Picked up MV Hakuhō Maru, position 3 of 9.”* Without it the
+announcements fall back to the ids `getItemId` returns, which are keys, not
+names.
 
 ## `<SortableList>` props
 
@@ -41,8 +63,12 @@ import { SortableList } from "@wizeworks/silicaui-dnd";
 | --- | --- |
 | `items` | `T[]` — the ordered items |
 | `getItemId` | `(item: T) => string \| number` — stable id, used for drag identity + React key |
+| `getItemLabel` | `(item: T) => string` — what to call an item in the live announcements. Falls back to the id |
 | `onReorder` | `(items: T[]) => void` — called with the reordered array after a drag or keyboard move |
-| `renderItem` | `(item: T, ctx: SortableItemContext) => ReactNode` — `ctx.isDragging` + `ctx.handleProps` (spread onto your drag handle, or the whole row if no separate handle) |
+| `renderItem` | `(item: T, ctx: SortableItemContext) => ReactNode` — the row’s CONTENTS. `ctx.isDragging` + `ctx.handleProps` (spread onto your drag handle, or already on the row if no separate handle) |
+| `handle` | `boolean` — drag only from the element you wire with `ctx.handleProps`. Default `false` (the whole row drags) |
+| `className` | `string` — added to the `<ul>` |
+| `itemClassName` | `string` — added to every row `<li>`, alongside the row’s own class |
 
 Also re-exports dnd-kit's core and sortable primitives — `DndContext`,
 `DragOverlay`, sensors (`PointerSensor`, `KeyboardSensor`, …),

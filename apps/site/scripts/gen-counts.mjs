@@ -105,8 +105,15 @@ ${packageNames.map((n) => `  ${JSON.stringify(n)},`).join("\n")}
 
 const current = existsSync(OUT) ? readFileSync(OUT, "utf8") : "";
 
+// Compare with line endings normalized. `core.autocrlf=true` rewrites this file to
+// CRLF on checkout while the generator writes LF, so a byte-exact `!==` reports a
+// perfectly current file as stale — on every Windows clone, with a message naming
+// numbers that are correct. `gen-canvas-safelist.mjs` already normalizes; this is the
+// same guard, and .gitattributes records the same hazard for the golden fixture.
+const eol = (t) => t.replace(/\r\n/g, "\n");
+
 if (process.argv.includes("--check")) {
-  if (current !== body) {
+  if (eol(current) !== eol(body)) {
     console.error(
       "gen-counts: apps/site/src/lib/counts.ts is stale.\n" +
         `  components ${components} · behaviors ${behaviors} · packages ${packages}\n` +

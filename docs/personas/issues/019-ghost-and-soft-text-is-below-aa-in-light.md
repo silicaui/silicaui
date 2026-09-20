@@ -211,8 +211,11 @@ returned (15.75 on the neutral ghost headers) confirmed issue **018** and could 
 exercised issue 019's new variable at all. They were real readings of the wrong build.
 
 Found in act 8, when a Dialog fix was made, the app rebuilt cold, and the screen came back
-unchanged. `sync-silica.mjs` now copies the workspace build in and prints whether the ink
-split actually landed, so the step cannot be silent again.
+unchanged. `sync-silica.mjs` was written to copy the workspace build in and print whether
+the ink split actually landed, so the step could not be silent again. **That script is now
+deleted:** `0.56.0` shipped on 2026-09-18 and the artifact installs it from the registry, so
+the stale-copy hazard is gone rather than guarded. The built CSS of that install carries
+`--btn-ink` with the `color-mix` form — re-read after the re-pin, not assumed.
 
 **Re-proved properly after that**, in the hardest configuration — **no `data-theme`, dark
 from the OS**: the stylesheet the page serves contains `--btn-ink`, the sortable headers

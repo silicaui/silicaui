@@ -1,0 +1,81 @@
+/* Casa Ferreiro — a folha de estilo inteira.
+ *
+ * Construída com o Tailwind CLI e mais nada:
+ *     npm run css
+ *
+ * Sem bundler, sem React, sem node_modules dentro do Django. */
+
+@import "tailwindcss";
+
+/* O CLI tem de saber onde estão as classes. Os templates são de Django, não de JS. */
+@source "../../templates";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+/* ---------------------------------------------------------------------------
+ * Os temas.
+ *
+ * O plugin só emite `light` e `dark`. Um nome que eu não declare aqui não dá
+ * erro nenhum — a página fica com as cores por omissão e parece bem, que é
+ * pior do que um erro. Aprendi isto da maneira difícil: pus
+ * `data-theme="marble"` no <html> e passei meia hora a olhar para a página
+ * certa com o tema errado.
+ *
+ * Os valores vieram do `get_theme` do servidor MCP. Escrevo-os UMA vez, com um
+ * nome, e nunca num componente — é essa a diferença entre declarar um tema e
+ * pintar um elemento à mão.
+ * ------------------------------------------------------------------------- */
+
+/* marble — o tema de dia. Branco frio, ardósia, um latão antigo. Serifa. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: marble;
+  color-scheme: light;
+  default: true;
+  --color-base-100: oklch(99% 0.002 260);
+  --color-base-200: oklch(97% 0.003 260);
+  --color-base-300: oklch(92% 0.005 260);
+  --color-base-content: oklch(20% 0.01 260);
+  --color-primary: oklch(34% 0.04 265);
+  --color-secondary: oklch(48% 0.05 250);
+  --color-accent: oklch(50% 0.08 75);
+  --color-neutral: oklch(24% 0.008 260);
+  --color-info: oklch(52% 0.13 232);
+  --color-success: oklch(48% 0.13 150);
+  --color-warning: oklch(76% 0.14 80);
+  --color-error: oklch(52% 0.19 25);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.125rem;
+  --depth: 0;
+  --font-sans: "Inter", sans-serif;
+  --font-head: "Cormorant Garamond", serif;
+}
+
+/* carbon — o tema de noite, e é este que interessa: 19:40, à porta, na rua.
+ * `prefersdark` liga-o ao sistema operativo. Sem script, sem piscar. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: carbon;
+  color-scheme: dark;
+  prefersdark: true;
+  --color-base-100: oklch(13% 0 0);
+  --color-base-200: oklch(10% 0 0);
+  --color-base-300: oklch(7% 0 0);
+  --color-base-content: oklch(95% 0 0);
+  --color-primary: oklch(93% 0 0);
+  --color-secondary: oklch(62% 0 0);
+  --color-accent: oklch(74% 0.18 40);
+  --color-neutral: oklch(28% 0 0);
+  --color-info: oklch(76% 0.11 232);
+  --color-success: oklch(76% 0.13 150);
+  --color-warning: oklch(82% 0.15 65);
+  --color-error: oklch(70% 0.17 25);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.125rem;
+  --border: 2px;
+  --depth: 0;
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-head: "Archivo", sans-serif;
+}

@@ -41,7 +41,7 @@ export function list(prefix = "") {
     [sel("-title")]: {
       paddingBlock: "0.625rem",
       paddingInline: "1rem",
-      fontSize: "0.6875rem",
+      fontSize: "1rem",
       fontWeight: "700",
       letterSpacing: "0.05em",
       textTransform: "uppercase",

@@ -1,0 +1,1151 @@
+{
+  "site": {
+    "version": "1",
+    "theme": {
+      "name": "quarrystone",
+      "tokens": {}
+    },
+    "pages": [
+      {
+        "id": "page-hoganas",
+        "name": "Höganäs Kross & Grus AB — Ängelholmsvägen anläggning",
+        "slug": "/hoganas-angelholmsvagen",
+        "root": {
+          "id": "root",
+          "kind": "element",
+          "tag": "div",
+          "className": "flex flex-col gap-6 p-8",
+          "children": [
+            {
+              "id": "hero",
+              "kind": "element",
+              "tag": "h1",
+              "className": "text-3xl font-bold text-base-content",
+              "children": [
+                "Höganäs Kross & Grus AB — Ängelholmsvägen anläggning"
+              ],
+              "ord": "a0"
+            },
+            {
+              "id": "block-products",
+              "kind": "element",
+              "tag": "ul",
+              "className": "flex flex-col gap-2",
+              "children": [
+                {
+                  "id": "product-makadam",
+                  "kind": "element",
+                  "tag": "li",
+                  "className": "flex justify-between gap-4 text-base text-base-content",
+                  "children": [
+                    "Makadam 8-16 mm · 189 kr/ton"
+                  ],
+                  "ord": "a0"
+                },
+                {
+                  "id": "product-stenmjol",
+                  "kind": "element",
+                  "tag": "li",
+                  "className": "flex justify-between gap-4 text-base text-base-content",
+                  "children": [
+                    "Stenmjöl 0–4 mm · 142 kr/ton"
+                  ],
+                  "ord": "a1"
+                },
+                {
+                  "id": "product-bergkross",
+                  "kind": "element",
+                  "tag": "li",
+                  "className": "flex justify-between gap-4 text-base text-base-content",
+                  "children": [
+                    "Bergkross 0–32 mm · 118 kr/ton"
+                  ],
+                  "ord": "a2"
+                },
+                {
+                  "id": "product-singel",
+                  "kind": "element",
+                  "tag": "li",
+                  "className": "flex justify-between gap-4 text-base text-base-content",
+                  "children": [
+                    "Singel 16–32 mm · 205 kr/ton"
+                  ],
+                  "ord": "a3"
+                }
+              ],
+              "ord": "a1"
+            },
+            {
+              "id": "block-compliance",
+              "kind": "host",
+              "component": "quarrystone.compliance-cert",
+              "props": {
+                "plantId": "plant-hoganas-angelholmsvagen"
+              },
+              "locked": "host",
+              "ord": "a2"
+            },
+            {
+              "id": "block-stats",
+              "kind": "host",
+              "component": "quarrystone.plant-stats",
+              "props": {
+                "plantId": "plant-hoganas-angelholmsvagen"
+              },
+              "locked": "host",
+              "ord": "a3"
+            },
+            {
+              "id": "block-enquiry",
+              "kind": "host",
+              "component": "quarrystone.price-enquiry-form",
+              "props": {
+                "plantId": "plant-hoganas-angelholmsvagen"
+              },
+              "ord": "a4"
+            }
+          ]
+        }
+      }
+    ],
+    "frame": {
+      "root": {
+        "kind": "element",
+        "tag": "div",
+        "class": "flex min-h-screen flex-col bg-base-100 text-base-content",
+        "children": [
+          {
+            "kind": "element",
+            "tag": "header",
+            "class": "@container bg-base-100 border-b border-base-200",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "div",
+                "class": "mx-auto flex w-full max-w-6xl items-center gap-8 px-6 py-4",
+                "children": [
+                  {
+                    "kind": "component",
+                    "component": "Wordmark",
+                    "class": "wordmark shrink-0",
+                    "props": {
+                      "text": "SilicaUI",
+                      "href": "#"
+                    },
+                    "slot": {
+                      "name": "brand",
+                      "type": "text",
+                      "label": "Brand"
+                    },
+                    "id": "sui-frame-3",
+                    "ord": "a0"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "nav",
+                    "class": "hidden items-center gap-6 @md:flex",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "a",
+                        "class": "text-sm font-medium text-base-content hover:text-primary",
+                        "attrs": {
+                          "href": "#"
+                        },
+                        "children": [
+                          "Product"
+                        ],
+                        "slot": {
+                          "name": "link1",
+                          "type": "link",
+                          "label": "Product"
+                        },
+                        "id": "sui-frame-5",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "a",
+                        "class": "text-sm font-medium text-base-content hover:text-primary",
+                        "attrs": {
+                          "href": "#"
+                        },
+                        "children": [
+                          "Pricing"
+                        ],
+                        "slot": {
+                          "name": "link2",
+                          "type": "link",
+                          "label": "Pricing"
+                        },
+                        "id": "sui-frame-6",
+                        "ord": "a1"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "a",
+                        "class": "text-sm font-medium text-base-content hover:text-primary",
+                        "attrs": {
+                          "href": "#"
+                        },
+                        "children": [
+                          "Docs"
+                        ],
+                        "slot": {
+                          "name": "link3",
+                          "type": "link",
+                          "label": "Docs"
+                        },
+                        "id": "sui-frame-7",
+                        "ord": "a2"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "a",
+                        "class": "text-sm font-medium text-base-content hover:text-primary",
+                        "attrs": {
+                          "href": "#"
+                        },
+                        "children": [
+                          "Company"
+                        ],
+                        "slot": {
+                          "name": "link4",
+                          "type": "link",
+                          "label": "Company"
+                        },
+                        "id": "sui-frame-8",
+                        "ord": "a3"
+                      }
+                    ],
+                    "id": "sui-frame-4",
+                    "ord": "a1"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "div",
+                    "class": "ml-auto flex items-center gap-3",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "a",
+                        "class": "hidden text-sm font-medium text-base-content hover:text-primary @sm:inline",
+                        "attrs": {
+                          "href": "#"
+                        },
+                        "children": [
+                          "Sign in"
+                        ],
+                        "slot": {
+                          "name": "secondary",
+                          "type": "link",
+                          "label": "Secondary link"
+                        },
+                        "id": "sui-frame-10",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "button",
+                        "class": "btn btn-ghost btn-square btn-sm",
+                        "attrs": {
+                          "type": "button"
+                        },
+                        "children": [
+                          {
+                            "kind": "component",
+                            "component": "Icon",
+                            "props": {
+                              "name": "theme"
+                            },
+                            "id": "sui-frame-12",
+                            "ord": "a0"
+                          }
+                        ],
+                        "behavior": {
+                          "type": "theme-toggle"
+                        },
+                        "id": "sui-frame-11",
+                        "ord": "a1"
+                      },
+                      {
+                        "kind": "component",
+                        "component": "Button",
+                        "class": "btn btn-primary btn-sm hidden @md:inline-block",
+                        "props": {
+                          "label": "Get started",
+                          "href": "#"
+                        },
+                        "slot": {
+                          "name": "cta",
+                          "type": "link",
+                          "label": "Primary action"
+                        },
+                        "id": "sui-frame-13",
+                        "ord": "a2"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "button",
+                        "class": "btn btn-ghost btn-square btn-sm @md:hidden",
+                        "attrs": {
+                          "type": "button",
+                          "aria-label": "Toggle navigation menu"
+                        },
+                        "children": [
+                          {
+                            "kind": "component",
+                            "component": "Icon",
+                            "props": {
+                              "name": "menu"
+                            },
+                            "id": "sui-frame-15",
+                            "ord": "a0"
+                          }
+                        ],
+                        "part": "trigger",
+                        "id": "sui-frame-14",
+                        "ord": "a3"
+                      }
+                    ],
+                    "id": "sui-frame-9",
+                    "ord": "a2"
+                  }
+                ],
+                "id": "sui-frame-2",
+                "ord": "a0"
+              },
+              {
+                "kind": "element",
+                "tag": "nav",
+                "class": "flex flex-col gap-1 border-t border-base-200 px-6 py-3 @md:hidden",
+                "attrs": {
+                  "hidden": true
+                },
+                "children": [
+                  {
+                    "kind": "element",
+                    "tag": "a",
+                    "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                    "attrs": {
+                      "href": "#"
+                    },
+                    "children": [
+                      "Product"
+                    ],
+                    "slot": {
+                      "name": "link1",
+                      "type": "link",
+                      "label": "Product"
+                    },
+                    "id": "sui-frame-17",
+                    "ord": "a0"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "a",
+                    "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                    "attrs": {
+                      "href": "#"
+                    },
+                    "children": [
+                      "Pricing"
+                    ],
+                    "slot": {
+                      "name": "link2",
+                      "type": "link",
+                      "label": "Pricing"
+                    },
+                    "id": "sui-frame-18",
+                    "ord": "a1"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "a",
+                    "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                    "attrs": {
+                      "href": "#"
+                    },
+                    "children": [
+                      "Docs"
+                    ],
+                    "slot": {
+                      "name": "link3",
+                      "type": "link",
+                      "label": "Docs"
+                    },
+                    "id": "sui-frame-19",
+                    "ord": "a2"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "a",
+                    "class": "block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200",
+                    "attrs": {
+                      "href": "#"
+                    },
+                    "children": [
+                      "Company"
+                    ],
+                    "slot": {
+                      "name": "link4",
+                      "type": "link",
+                      "label": "Company"
+                    },
+                    "id": "sui-frame-20",
+                    "ord": "a3"
+                  },
+                  {
+                    "kind": "component",
+                    "component": "Button",
+                    "class": "btn btn-ghost btn-sm mt-2 w-full",
+                    "props": {
+                      "label": "Sign in",
+                      "href": "#"
+                    },
+                    "slot": {
+                      "name": "secondary",
+                      "type": "link",
+                      "label": "Secondary link"
+                    },
+                    "id": "sui-frame-21",
+                    "ord": "a4"
+                  },
+                  {
+                    "kind": "component",
+                    "component": "Button",
+                    "class": "btn btn-primary btn-sm mt-1 w-full",
+                    "props": {
+                      "label": "Get started",
+                      "href": "#"
+                    },
+                    "slot": {
+                      "name": "cta",
+                      "type": "link",
+                      "label": "Primary action"
+                    },
+                    "id": "sui-frame-22",
+                    "ord": "a5"
+                  }
+                ],
+                "part": "panel",
+                "id": "sui-frame-16",
+                "ord": "a1"
+              }
+            ],
+            "behavior": {
+              "type": "disclosure"
+            },
+            "id": "sui-frame-1",
+            "ord": "a0"
+          },
+          {
+            "kind": "element",
+            "tag": "main",
+            "class": "flex-1",
+            "children": [
+              {
+                "kind": "outlet"
+              }
+            ],
+            "id": "sui-frame-23",
+            "ord": "a1"
+          },
+          {
+            "kind": "element",
+            "tag": "footer",
+            "class": "@container bg-base-100 border-t border-base-200",
+            "children": [
+              {
+                "kind": "element",
+                "tag": "div",
+                "class": "mx-auto w-full max-w-6xl px-6 py-14",
+                "children": [
+                  {
+                    "kind": "element",
+                    "tag": "div",
+                    "class": "grid grid-cols-1 gap-10 @md:grid-cols-2 @3xl:grid-cols-5",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "div",
+                        "class": "flex flex-col gap-4 @3xl:col-span-2",
+                        "children": [
+                          {
+                            "kind": "component",
+                            "component": "Wordmark",
+                            "class": "wordmark self-start",
+                            "props": {
+                              "text": "SilicaUI",
+                              "href": "#"
+                            },
+                            "slot": {
+                              "name": "brand",
+                              "type": "text",
+                              "label": "Brand"
+                            },
+                            "id": "sui-frame-28",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "p",
+                            "class": "max-w-xs text-sm text-base-content",
+                            "children": [
+                              "The fastest way to launch and grow your online store."
+                            ],
+                            "slot": {
+                              "name": "blurb",
+                              "type": "text",
+                              "label": "Blurb"
+                            },
+                            "id": "sui-frame-29",
+                            "ord": "a1"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "ul",
+                            "class": "mt-2 flex items-center gap-5",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm font-medium text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "X"
+                                    ],
+                                    "slot": {
+                                      "name": "social1",
+                                      "type": "link",
+                                      "label": "X"
+                                    },
+                                    "id": "sui-frame-32",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-31",
+                                "ord": "a0"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm font-medium text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "GitHub"
+                                    ],
+                                    "slot": {
+                                      "name": "social2",
+                                      "type": "link",
+                                      "label": "GitHub"
+                                    },
+                                    "id": "sui-frame-34",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-33",
+                                "ord": "a1"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm font-medium text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "LinkedIn"
+                                    ],
+                                    "slot": {
+                                      "name": "social3",
+                                      "type": "link",
+                                      "label": "LinkedIn"
+                                    },
+                                    "id": "sui-frame-36",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-35",
+                                "ord": "a2"
+                              }
+                            ],
+                            "id": "sui-frame-30",
+                            "ord": "a2"
+                          }
+                        ],
+                        "id": "sui-frame-27",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "div",
+                        "class": "flex flex-col gap-3",
+                        "children": [
+                          {
+                            "kind": "element",
+                            "tag": "p",
+                            "class": "text-sm font-semibold text-base-content",
+                            "children": [
+                              "Product"
+                            ],
+                            "slot": {
+                              "name": "col1",
+                              "type": "text",
+                              "label": "Column title"
+                            },
+                            "id": "sui-frame-38",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "ul",
+                            "class": "flex flex-col gap-2",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Features"
+                                    ],
+                                    "slot": {
+                                      "name": "link1",
+                                      "type": "link",
+                                      "label": "Features"
+                                    },
+                                    "id": "sui-frame-41",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-40",
+                                "ord": "a0"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Pricing"
+                                    ],
+                                    "slot": {
+                                      "name": "link2",
+                                      "type": "link",
+                                      "label": "Pricing"
+                                    },
+                                    "id": "sui-frame-43",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-42",
+                                "ord": "a1"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Integrations"
+                                    ],
+                                    "slot": {
+                                      "name": "link3",
+                                      "type": "link",
+                                      "label": "Integrations"
+                                    },
+                                    "id": "sui-frame-45",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-44",
+                                "ord": "a2"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Changelog"
+                                    ],
+                                    "slot": {
+                                      "name": "link4",
+                                      "type": "link",
+                                      "label": "Changelog"
+                                    },
+                                    "id": "sui-frame-47",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-46",
+                                "ord": "a3"
+                              }
+                            ],
+                            "id": "sui-frame-39",
+                            "ord": "a1"
+                          }
+                        ],
+                        "id": "sui-frame-37",
+                        "ord": "a1"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "div",
+                        "class": "flex flex-col gap-3",
+                        "children": [
+                          {
+                            "kind": "element",
+                            "tag": "p",
+                            "class": "text-sm font-semibold text-base-content",
+                            "children": [
+                              "Company"
+                            ],
+                            "slot": {
+                              "name": "col2",
+                              "type": "text",
+                              "label": "Column title"
+                            },
+                            "id": "sui-frame-49",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "ul",
+                            "class": "flex flex-col gap-2",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "About"
+                                    ],
+                                    "slot": {
+                                      "name": "link5",
+                                      "type": "link",
+                                      "label": "About"
+                                    },
+                                    "id": "sui-frame-52",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-51",
+                                "ord": "a0"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Careers"
+                                    ],
+                                    "slot": {
+                                      "name": "link6",
+                                      "type": "link",
+                                      "label": "Careers"
+                                    },
+                                    "id": "sui-frame-54",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-53",
+                                "ord": "a1"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Blog"
+                                    ],
+                                    "slot": {
+                                      "name": "link7",
+                                      "type": "link",
+                                      "label": "Blog"
+                                    },
+                                    "id": "sui-frame-56",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-55",
+                                "ord": "a2"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Contact"
+                                    ],
+                                    "slot": {
+                                      "name": "link8",
+                                      "type": "link",
+                                      "label": "Contact"
+                                    },
+                                    "id": "sui-frame-58",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-57",
+                                "ord": "a3"
+                              }
+                            ],
+                            "id": "sui-frame-50",
+                            "ord": "a1"
+                          }
+                        ],
+                        "id": "sui-frame-48",
+                        "ord": "a2"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "div",
+                        "class": "flex flex-col gap-3",
+                        "children": [
+                          {
+                            "kind": "element",
+                            "tag": "p",
+                            "class": "text-sm font-semibold text-base-content",
+                            "children": [
+                              "Resources"
+                            ],
+                            "slot": {
+                              "name": "col3",
+                              "type": "text",
+                              "label": "Column title"
+                            },
+                            "id": "sui-frame-60",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "ul",
+                            "class": "flex flex-col gap-2",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Documentation"
+                                    ],
+                                    "slot": {
+                                      "name": "link9",
+                                      "type": "link",
+                                      "label": "Documentation"
+                                    },
+                                    "id": "sui-frame-63",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-62",
+                                "ord": "a0"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Help center"
+                                    ],
+                                    "slot": {
+                                      "name": "link10",
+                                      "type": "link",
+                                      "label": "Help center"
+                                    },
+                                    "id": "sui-frame-65",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-64",
+                                "ord": "a1"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Status"
+                                    ],
+                                    "slot": {
+                                      "name": "link11",
+                                      "type": "link",
+                                      "label": "Status"
+                                    },
+                                    "id": "sui-frame-67",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-66",
+                                "ord": "a2"
+                              },
+                              {
+                                "kind": "element",
+                                "tag": "li",
+                                "children": [
+                                  {
+                                    "kind": "element",
+                                    "tag": "a",
+                                    "class": "text-sm text-base-content hover:text-primary",
+                                    "attrs": {
+                                      "href": "#"
+                                    },
+                                    "children": [
+                                      "Community"
+                                    ],
+                                    "slot": {
+                                      "name": "link12",
+                                      "type": "link",
+                                      "label": "Community"
+                                    },
+                                    "id": "sui-frame-69",
+                                    "ord": "a0"
+                                  }
+                                ],
+                                "id": "sui-frame-68",
+                                "ord": "a3"
+                              }
+                            ],
+                            "id": "sui-frame-61",
+                            "ord": "a1"
+                          }
+                        ],
+                        "id": "sui-frame-59",
+                        "ord": "a3"
+                      }
+                    ],
+                    "id": "sui-frame-26",
+                    "ord": "a0"
+                  },
+                  {
+                    "kind": "element",
+                    "tag": "div",
+                    "class": "mt-12 flex flex-col gap-4 border-t border-base-200 pt-6 @2xl:flex-row @2xl:items-center @2xl:justify-between",
+                    "children": [
+                      {
+                        "kind": "element",
+                        "tag": "p",
+                        "class": "text-sm text-base-content",
+                        "children": [
+                          "© 2026 SilicaUI, Inc. All rights reserved."
+                        ],
+                        "slot": {
+                          "name": "copyright",
+                          "type": "text",
+                          "label": "Copyright"
+                        },
+                        "id": "sui-frame-71",
+                        "ord": "a0"
+                      },
+                      {
+                        "kind": "element",
+                        "tag": "ul",
+                        "class": "flex flex-wrap items-center gap-x-6 gap-y-2",
+                        "children": [
+                          {
+                            "kind": "element",
+                            "tag": "li",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "a",
+                                "class": "text-sm text-base-content hover:text-primary",
+                                "attrs": {
+                                  "href": "#"
+                                },
+                                "children": [
+                                  "Privacy"
+                                ],
+                                "slot": {
+                                  "name": "link13",
+                                  "type": "link",
+                                  "label": "Privacy"
+                                },
+                                "id": "sui-frame-74",
+                                "ord": "a0"
+                              }
+                            ],
+                            "id": "sui-frame-73",
+                            "ord": "a0"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "li",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "a",
+                                "class": "text-sm text-base-content hover:text-primary",
+                                "attrs": {
+                                  "href": "#"
+                                },
+                                "children": [
+                                  "Terms"
+                                ],
+                                "slot": {
+                                  "name": "link14",
+                                  "type": "link",
+                                  "label": "Terms"
+                                },
+                                "id": "sui-frame-76",
+                                "ord": "a0"
+                              }
+                            ],
+                            "id": "sui-frame-75",
+                            "ord": "a1"
+                          },
+                          {
+                            "kind": "element",
+                            "tag": "li",
+                            "children": [
+                              {
+                                "kind": "element",
+                                "tag": "a",
+                                "class": "text-sm text-base-content hover:text-primary",
+                                "attrs": {
+                                  "href": "#"
+                                },
+                                "children": [
+                                  "Security"
+                                ],
+                                "slot": {
+                                  "name": "link15",
+                                  "type": "link",
+                                  "label": "Security"
+                                },
+                                "id": "sui-frame-78",
+                                "ord": "a0"
+                              }
+                            ],
+                            "id": "sui-frame-77",
+                            "ord": "a2"
+                          }
+                        ],
+                        "id": "sui-frame-72",
+                        "ord": "a1"
+                      }
+                    ],
+                    "id": "sui-frame-70",
+                    "ord": "a1"
+                  }
+                ],
+                "id": "sui-frame-25",
+                "ord": "a0"
+              }
+            ],
+            "id": "sui-frame-24",
+            "ord": "a2"
+          }
+        ],
+        "id": "sui-frame-0"
+      },
+      "editable": true
+    },
+    "symbols": {},
+    "savedThemes": [
+      {
+        "name": "quarrystone",
+        "tokens": {}
+      }
+    ]
+  },
+  "pages": [
+    {
+      "id": "page-hoganas",
+      "name": "Höganäs Kross & Grus AB — Ängelholmsvägen anläggning",
+      "slug": "/hoganas-angelholmsvagen",
+      "html": "<div class=\"flex min-h-screen flex-col bg-base-100 text-base-content\"><header class=\"@container bg-base-100 border-b border-base-200\" data-sui-behavior=\"disclosure\"><div class=\"mx-auto flex w-full max-w-6xl items-center gap-8 px-6 py-4\"><a class=\"wordmark shrink-0\" href=\"#\">SilicaUI</a><nav class=\"hidden items-center gap-6 @md:flex\"><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">Product</a><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">Pricing</a><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">Docs</a><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">Company</a></nav><div class=\"ml-auto flex items-center gap-3\"><a class=\"hidden text-sm font-medium text-base-content hover:text-primary @sm:inline\" href=\"#\">Sign in</a><button class=\"btn btn-ghost btn-square btn-sm\" type=\"button\" data-sui-behavior=\"theme-toggle\"><span aria-hidden=\"true\" data-icon=\"theme\"><svg viewBox=\"0 0 24 24\" width=\"1em\" height=\"1em\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z\" /> <circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\" /> <circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\" /></svg></span></button><a class=\"btn btn-primary btn-sm hidden @md:inline-block\" href=\"#\">Get started</a><button class=\"btn btn-ghost btn-square btn-sm @md:hidden\" type=\"button\" aria-label=\"Toggle navigation menu\" data-sui-part=\"trigger\"><span aria-hidden=\"true\" data-icon=\"menu\"><svg viewBox=\"0 0 24 24\" width=\"1em\" height=\"1em\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 5h16\" /> <path d=\"M4 12h16\" /> <path d=\"M4 19h16\" /></svg></span></button></div></div><nav class=\"flex flex-col gap-1 border-t border-base-200 px-6 py-3 @md:hidden\" hidden data-sui-part=\"panel\"><a class=\"block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200\" href=\"#\">Product</a><a class=\"block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200\" href=\"#\">Pricing</a><a class=\"block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200\" href=\"#\">Docs</a><a class=\"block rounded-btn px-3 py-2 text-sm font-medium text-base-content hover:bg-base-200\" href=\"#\">Company</a><a class=\"btn btn-ghost btn-sm mt-2 w-full\" href=\"#\">Sign in</a><a class=\"btn btn-primary btn-sm mt-1 w-full\" href=\"#\">Get started</a></nav></header><main class=\"flex-1\"><div><h1>Höganäs Kross &amp; Grus AB — Ängelholmsvägen anläggning</h1><ul><li>Makadam 8-16 mm · 189 kr/ton</li><li>Stenmjöl 0–4 mm · 142 kr/ton</li><li>Bergkross 0–32 mm · 118 kr/ton</li><li>Singel 16–32 mm · 205 kr/ton</li></ul><div data-sui-host=\"quarrystone.compliance-cert\" data-sui-host-props=\"{&quot;plantId&quot;:&quot;plant-hoganas-angelholmsvagen&quot;}\"></div><div data-sui-host=\"quarrystone.plant-stats\" data-sui-host-props=\"{&quot;plantId&quot;:&quot;plant-hoganas-angelholmsvagen&quot;}\"></div><div data-sui-host=\"quarrystone.price-enquiry-form\" data-sui-host-props=\"{&quot;plantId&quot;:&quot;plant-hoganas-angelholmsvagen&quot;}\"></div></div></main><footer class=\"@container bg-base-100 border-t border-base-200\"><div class=\"mx-auto w-full max-w-6xl px-6 py-14\"><div class=\"grid grid-cols-1 gap-10 @md:grid-cols-2 @3xl:grid-cols-5\"><div class=\"flex flex-col gap-4 @3xl:col-span-2\"><a class=\"wordmark self-start\" href=\"#\">SilicaUI</a><p class=\"max-w-xs text-sm text-base-content\">The fastest way to launch and grow your online store.</p><ul class=\"mt-2 flex items-center gap-5\"><li><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">X</a></li><li><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">GitHub</a></li><li><a class=\"text-sm font-medium text-base-content hover:text-primary\" href=\"#\">LinkedIn</a></li></ul></div><div class=\"flex flex-col gap-3\"><p class=\"text-sm font-semibold text-base-content\">Product</p><ul class=\"flex flex-col gap-2\"><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Features</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Pricing</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Integrations</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Changelog</a></li></ul></div><div class=\"flex flex-col gap-3\"><p class=\"text-sm font-semibold text-base-content\">Company</p><ul class=\"flex flex-col gap-2\"><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">About</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Careers</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Blog</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Contact</a></li></ul></div><div class=\"flex flex-col gap-3\"><p class=\"text-sm font-semibold text-base-content\">Resources</p><ul class=\"flex flex-col gap-2\"><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Documentation</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Help center</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Status</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Community</a></li></ul></div></div><div class=\"mt-12 flex flex-col gap-4 border-t border-base-200 pt-6 @2xl:flex-row @2xl:items-center @2xl:justify-between\"><p class=\"text-sm text-base-content\">© 2026 SilicaUI, Inc. All rights reserved.</p><ul class=\"flex flex-wrap items-center gap-x-6 gap-y-2\"><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Privacy</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Terms</a></li><li><a class=\"text-sm text-base-content hover:text-primary\" href=\"#\">Security</a></li></ul></div></div></footer></div>"
+    }
+  ]
+}

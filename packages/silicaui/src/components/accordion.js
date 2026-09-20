@@ -77,7 +77,7 @@ export function accordion(prefix = "") {
     [sel("-content")]: {
       paddingInline: "1.125rem",
       paddingBottom: "1rem",
-      fontSize: "0.9375rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
   };

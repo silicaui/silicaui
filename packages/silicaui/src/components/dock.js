@@ -52,8 +52,19 @@ export function dock(colors, prefix = "") {
     },
 
     [sel("-label")]: {
-      fontSize: "0.6875rem",
+      fontSize: "1rem",
       fontWeight: "500",
+    },
+
+    // The system's own focus ring, on controls that were falling back to the
+    // BROWSER's. The browser's ring is visible -- Chromium adapts it -- but it is
+    // 1px where this system's is 2px, it carries no offset, it ignores the theme,
+    // and its shape is the browser's choice, not this system's. Focus should not change
+    // appearance depending on which control a person is standing on.
+    // Found by a sweep of all 116 component pages (P07, docs/personas/issues/092).
+    [`${sel("-item")}:focus-visible`]: {
+      outline: "var(--focus-width, 2px) solid var(--color-primary)",
+      outlineOffset: "-2px",
     },
   };
 

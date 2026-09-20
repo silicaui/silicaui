@@ -15,7 +15,7 @@ import * as React from "react";
 import type { ComponentNode, DataBinding, DataSource, ElementNode, HostNode, Node, SourceTruncation, Theme } from "@wizeworks/silicaui-html";
 import { applyCollectionLimit, rolesOf, colorValue, SURFACE_TOKENS, scopeAt, flattenSources, truncationMessage, walk } from "@wizeworks/silicaui-html";
 import { Input, Textarea, Toggle, NativeSelect, EmptyState } from "@wizeworks/silicaui-react";
-import { useClaim, useEditor, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
+import { useClaim, useEditor, usePages, useSelectedNode, useSelectionSet, useTheme } from "./editor-context";
 import { peerColor } from "../peers";
 import { setClassTokenMany } from "../commands";
 import { useHost, useHostDisplay } from "./host-context";
@@ -237,7 +237,7 @@ const COMPONENT_PROPS: Record<string, readonly PropField[]> = {
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="px-3.5 py-3 border-b border-base-200">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-base-content/45">{label}</div>
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-base-content">{label}</div>
       {children}
     </div>
   );
@@ -308,7 +308,85 @@ function Row({
   );
 }
 
-/** A wrapping row of small btn chips; `Auto` clears the group. */
+/**
+ * ONE tab stop for a row of chips or swatches, with the arrow keys moving inside
+ * it — the same roving-tabindex shape the tab strips already use, and for the
+ * same reason.
+ *
+ * Every chip used to be its own tab stop. One Size control cost ten presses,
+ * each Padding row thirteen, and a colour row twelve. Measured from a keyboard
+ * with a node selected and the Design tab open, the host's own toolbar button
+ * was **142 tab presses away**; from the app header it is seven. A keyboard user
+ * could reach it only by walking the entire right rail first. Found by P05
+ * act 4 (issues/082).
+ *
+ * It works on the DOM rather than through props on purpose: six components
+ * render these rows (chips, colour swatches, corner swatches, display, animate
+ * trigger, focal grid) and they are not one component. Threading `tabIndex`
+ * through all six would mean six chances to miss one; wrapping them means the
+ * next row anybody adds gets it for free.
+ *
+ * The chips keep their own roles and names, and the row keeps `Row`'s
+ * `role="group"` + `aria-labelledby`, so nothing a screen reader relied on
+ * changes. What changes is that Tab treats the set as the single control it is.
+ */
+function RovingRow({ className, children, ...rest }: React.ComponentProps<"div">) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const chips = (): HTMLButtonElement[] => [...(ref.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+  // After every render: exactly one chip in the tab order, and it is the ACTIVE
+  // one, so entering the group lands on the value that is set rather than always
+  // on "Auto". "Active" is read off the same signals the chips already paint
+  // with — no third source of truth to drift.
+  React.useLayoutEffect(() => {
+    const all = chips();
+    if (all.length === 0) return;
+    const activeIndex = Math.max(
+      0,
+      all.findIndex((c) => c.getAttribute("aria-pressed") === "true" || /\bbtn-primary\b|\bring-primary\b/.test(c.className)),
+    );
+    all.forEach((c, i) => {
+      c.tabIndex = i === activeIndex ? 0 : -1;
+    });
+  });
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const all = chips();
+    if (all.length === 0) return;
+    const from = all.indexOf(document.activeElement as HTMLButtonElement);
+    const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    if (step) {
+      e.preventDefault();
+      const base = from < 0 ? 0 : from;
+      all[(((base + step) % all.length) + all.length) % all.length]?.focus();
+      return;
+    }
+    // Thirteen padding chips are a long arrow from either end.
+    if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      (e.key === "Home" ? all[0] : all[all.length - 1])?.focus();
+    }
+  };
+  return (
+    <div ref={ref} className={className} onKeyDown={onKeyDown} {...rest}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A wrapping row of small btn chips; `Auto` clears the group.
+ *
+ * ONE tab stop, arrow keys inside — the same roving-tabindex shape the tab
+ * strips use, and for the same reason. Every chip used to be its own tab stop,
+ * so a single Size control cost ten presses and Padding cost thirteen. Measured
+ * from a keyboard with a node selected and the Design tab open, the toolbar was
+ * **142 tab presses away**; from the app header it is seven. A keyboard user
+ * could reach the host's own Send-for-review button only by walking the entire
+ * right rail first. Found by P05 act 4 (issues/082).
+ *
+ * The chips keep their button roles and the row keeps `Row`'s `role="group"` +
+ * `aria-labelledby`, so nothing a screen reader already relied on changes; what
+ * changes is that Tab treats the set as one control, which is what it is.
+ */
 function ChipGroup({
   options,
   active,
@@ -319,12 +397,17 @@ function ChipGroup({
   onPick: (cls: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1">
+    <RovingRow className="flex flex-wrap gap-1">
       {/* "Auto" is the one chip whose label doesn't say what it does — it means
           "no class in this group", not a value. The rest carry their own visible
           labels and need no popup repeating them. */}
       <Hint label="Clear this group — inherit whatever the layout gives it">
-        <button type="button" className={`btn btn-xs ${active === "" ? "btn-primary" : "btn-ghost"}`} onClick={() => onPick("")}>
+        <button
+          type="button"
+          aria-pressed={active === ""}
+          className={`btn btn-xs ${active === "" ? "btn-primary" : "btn-ghost"}`}
+          onClick={() => onPick("")}
+        >
           Auto
         </button>
       </Hint>
@@ -332,13 +415,14 @@ function ChipGroup({
         <button
           key={o.cls}
           type="button"
+          aria-pressed={active === o.cls}
           className={`btn btn-xs ${active === o.cls ? "btn-primary" : "btn-ghost"}`}
           onClick={() => onPick(o.cls)}
         >
           {o.label}
         </button>
       ))}
-    </div>
+    </RovingRow>
   );
 }
 
@@ -417,7 +501,7 @@ function isImageNode(node: Node): boolean {
  */
 function FocalGrid({ active, onPick }: { active: string; onPick: (cls: string) => void }) {
   return (
-    <div className="grid w-fit grid-cols-3 gap-1" data-testid="focal-grid">
+    <RovingRow className="grid w-fit grid-cols-3 gap-1" data-testid="focal-grid">
       {OBJECT_POSITION.map((o) => (
         <Hint key={o.cls} label={o.label} side="bottom">
           <button
@@ -432,7 +516,7 @@ function FocalGrid({ active, onPick }: { active: string; onPick: (cls: string) =
           </button>
         </Hint>
       ))}
-    </div>
+    </RovingRow>
   );
 }
 
@@ -448,7 +532,7 @@ function SwatchGroup({
   onPick: (cls: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <RovingRow className="flex flex-wrap gap-1.5">
       {/* A swatch is an EMPTY element — the background colour is its only
           content, so `aria-label` is its entire accessible name and the tooltip
           is the only way a sighted user learns which role they're picking. Both
@@ -458,7 +542,7 @@ function SwatchGroup({
           type="button"
           aria-label="Auto"
           onClick={() => onPick("")}
-          className={`size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/40 ${
+          className={`size-6 rounded-field border border-base-300 bg-base-100 grid place-items-center text-base-content/70 ${
             active === "" ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : ""
           }`}
         >
@@ -478,7 +562,7 @@ function SwatchGroup({
           />
         </Hint>
       ))}
-    </div>
+    </RovingRow>
   );
 }
 
@@ -500,13 +584,13 @@ function RadiusSwatchGroup({
   onPick: (cls: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <RovingRow className="flex flex-wrap gap-1.5">
       <Hint label="Auto — no radius class, inherit the default" side="bottom">
         <button
           type="button"
           aria-label="Auto"
           onClick={() => onPick("")}
-          className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/40 ${
+          className={`grid size-[30px] place-items-center border bg-base-200 text-base-content/70 ${
             active === "" ? "border-primary ring-1 ring-inset ring-primary" : "border-base-300"
           }`}
         >
@@ -526,7 +610,7 @@ function RadiusSwatchGroup({
           />
         </Hint>
       ))}
-    </div>
+    </RovingRow>
   );
 }
 
@@ -696,8 +780,16 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   // to only the primary would make a multi-select look like it did nothing to
   // the other five nodes the author had highlighted.
   const targets = selection.length > 1 ? selection : [id];
+  // What the class policy said the last time a control here was pressed. A host
+  // may refuse a class on one NODE — a compliance block it is legally answerable
+  // for — and without this, every control on that node was a live-looking button
+  // that did nothing at all. Cleared on every accepted edit and on every change
+  // of selection. See issues/081.
+  const [refusal, setRefusal] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => setRefusal(undefined), [id]);
   const setToken = (group: readonly string[], value: string) => {
-    setClassTokenMany(editor, targets, group, value, prefix);
+    const result = setClassTokenMany(editor, targets, group, value, prefix);
+    setRefusal(result.ok ? undefined : result.reason);
   };
   /** Several groups in ONE action — a display switch that also clears the
    *  classes the new display can't honor, or a padding shorthand expanding onto
@@ -792,6 +884,16 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
   return (
     <>
       <BreakpointBar />
+      {refusal && (
+        <div
+          className="flex items-start gap-2 border-b border-base-300 bg-base-200 px-3 py-2"
+          role="status"
+          data-testid="class-refused"
+        >
+          <Icon name="lock" className="mt-0.5 shrink-0" />
+          <span className="text-xs text-base-content">{refusal}</span>
+        </div>
+      )}
       {selection.length > 1 && (
         <div className="flex items-center gap-2 border-b border-base-300 bg-base-200 px-3 py-2" data-testid="multi-select-note">
           <span className="text-xs font-medium text-base-content">{selection.length} selected</span>
@@ -860,7 +962,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
 
       <Group label="Layout">
         <Row label="Display" group>
-          <div className="flex flex-wrap gap-1" data-testid="display-group">
+          <RovingRow className="flex flex-wrap gap-1" data-testid="display-group">
             <button
               type="button"
               data-testid="display-auto"
@@ -880,7 +982,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
                 {o.label}
               </button>
             ))}
-          </div>
+          </RovingRow>
         </Row>
 
         {display === "flex" && (
@@ -931,7 +1033,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
 
       <Group label="Animate">
         <Row label="Trigger" group>
-          <div className="flex flex-wrap gap-1">
+          <RovingRow className="flex flex-wrap gap-1">
             <button
               type="button"
               data-testid="animate-trigger-none"
@@ -966,7 +1068,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
                 </Hint>
               );
             })}
-          </div>
+          </RovingRow>
         </Row>
 
         {animateTrigger !== "" && (
@@ -996,7 +1098,7 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
         )}
 
         {animateTrigger === "scroll" && (
-          <div className="text-xs text-base-content/55">
+          <div className="text-xs text-base-content">
             Plays in Preview &amp; the published site — the canvas shows its final state while editing.
           </div>
         )}
@@ -1011,6 +1113,19 @@ function DesignTab({ id, node }: { id: string; node: Node }) {
 function NodeFooter({ id, node }: { id: string; node: Node }) {
   const editor = useEditor();
   const hostDisplay = useHostDisplay();
+  // A locked node refuses `remove` in the engine — and this footer offered a
+  // live-looking Delete anyway, which did nothing at all when pressed. An
+  // author cannot tell "refused" from "broken", and the host-lock case is
+  // exactly the one where they most need to know WHY. The email builder already
+  // says the equivalent sentence on its own disabled Duplicate; this is that,
+  // for the site. Found by P05 act 2 (issues/081).
+  const lock = node.kind === "outlet" ? undefined : node.locked;
+  const lockReason =
+    lock === "host"
+      ? "This block belongs to the app that hosts this builder, so it can't be deleted here"
+      : lock === "author"
+        ? "This element is locked — unlock it in the Layers list first"
+        : undefined;
   return (
     // These carry visible labels, so each tooltip states the CONSEQUENCE the
     // label leaves out — what a person actually wants to know before pressing a
@@ -1031,10 +1146,19 @@ function NodeFooter({ id, node }: { id: string; node: Node }) {
             Duplicate
           </button>
         </Hint>
-        <Hint label="Remove this element and everything inside it">
-          <button type="button" className="btn btn-sm btn-ghost flex-1 text-error" onClick={() => editor.remove(id)}>
-            Delete
-          </button>
+        <Hint label={lockReason ?? "Remove this element and everything inside it"}>
+          {/* A span so the tooltip still fires while the button is disabled —
+              "why is this greyed out" is precisely when a person hovers it. */}
+          <span className="flex flex-1">
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost flex-1 text-error"
+              disabled={Boolean(lock)}
+              onClick={() => editor.remove(id)}
+            >
+              Delete
+            </button>
+          </span>
         </Hint>
       </div>
     </div>
@@ -1064,6 +1188,7 @@ function CommitInput({
   type = "text",
   mono = false,
   testId,
+  list,
 }: {
   value: string;
   reseed: string;
@@ -1071,6 +1196,9 @@ function CommitInput({
   placeholder?: string;
   type?: "text" | "number";
   mono?: boolean;
+  /** Id of a `<datalist>` to suggest from. The field stays free text — a link can
+   *  point anywhere — the list only saves someone from having to KNOW a value. */
+  list?: string;
   /** A stable hook for e2e / host tooling, so a field isn't located by the
    *  label text beside it (which is copy, and changes). */
   testId?: string;
@@ -1086,6 +1214,7 @@ function CommitInput({
       size="sm"
       type={type}
       data-testid={testId}
+      list={list}
       value={draft}
       placeholder={placeholder}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
@@ -1205,7 +1334,7 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
         </div>
       </Row>
       <Row label="Visibility" group>
-        <label className="flex items-center gap-2 text-xs text-base-content/60">
+        <label className="flex items-center gap-2 text-xs text-base-content">
           <Toggle size="sm" checked={hidden} onChange={(e: React.ChangeEvent<HTMLInputElement>) => toggleHidden(e.target.checked)} />
           <Icon name={hidden ? "eyeOff" : "eye"} /> {hidden ? "Hidden" : "Visible"}
         </label>
@@ -1213,14 +1342,14 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
       <Row label="Lock" group>
         {locked === "host" ? (
           <span
-            className="flex items-center gap-2 text-xs text-base-content/60"
+            className="flex items-center gap-2 text-xs text-base-content"
             title="Locked by the host — only the host can unlock this region"
             data-testid="settings-lock-host"
           >
             <Icon name="shield" /> Locked by host
           </span>
         ) : (
-          <label className="flex items-center gap-2 text-xs text-base-content/60">
+          <label className="flex items-center gap-2 text-xs text-base-content">
             <Toggle
               size="sm"
               data-testid="settings-lock"
@@ -1239,6 +1368,8 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
  *  from a host action (a Data binding of kind "action"). */
 function LinkSection({ id, node }: { id: string; node: ElementNode }) {
   const editor = useEditor();
+  const { pages } = usePages();
+  const listId = React.useId();
   const attrs = node.attrs ?? {};
   const href = attrs.href != null ? String(attrs.href) : "";
   const rel = attrs.rel != null ? String(attrs.rel) : "";
@@ -1258,7 +1389,27 @@ function LinkSection({ id, node }: { id: string; node: ElementNode }) {
   return (
     <Group label="Link">
       <Row label="URL">
-        <CommitInput value={href} reseed={id} placeholder="https:// or /page or #anchor" onCommit={(v) => editor.setAttr(id, "href", v || undefined)} />
+        {/* Her OWN pages, offered by address with the page's name beside it.
+            The field stays free text, because a link may point anywhere — this
+            only removes the need to already KNOW the address.
+
+            Found by P03 (docs/personas/issues/051). Marlene had seven pages and a
+            nav full of `href="#"`, and nothing on any screen told her what her
+            pages were called underneath. A guessed address produces a link that
+            looks exactly like a working one and goes nowhere, which is the defect
+            issue 034 was filed for, arrived at from the other direction. */}
+        <CommitInput
+          value={href}
+          reseed={id}
+          list={listId}
+          placeholder="Pick a page, or type https:// or #anchor"
+          onCommit={(v) => editor.setAttr(id, "href", v || undefined)}
+        />
+        <datalist id={listId}>
+          {pages.map((p) => (
+            <option key={p.id} value={p.slug} label={p.name} />
+          ))}
+        </datalist>
       </Row>
       <Row label="Open in new tab">
         <Toggle size="sm" checked={newTab} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTab(e.target.checked)} />
@@ -1505,7 +1656,7 @@ function DataPreview({
   if (nestedUnderRepeat) {
     return (
       <Row label="Preview">
-        <p className="text-xs text-base-content/45">No preview — this is nested inside a repeat, one per item.</p>
+        <p className="text-xs text-base-content">No preview — this is nested inside a repeat, one per item.</p>
       </Row>
     );
   }
@@ -1515,9 +1666,9 @@ function DataPreview({
     if (!resolved) return <UnknownRef ref_={ref_} />;
     return (
       <Row label="Preview">
-        <p className="truncate text-xs text-base-content/70" data-testid="data-preview">
+        <p className="truncate text-xs text-base-content" data-testid="data-preview">
           {resolved.visible === false ? (
-            <em className="text-base-content/45">hidden (visible: false)</em>
+            <em className="text-base-content">hidden (visible: false)</em>
           ) : (
             String(resolved.value ?? "")
           )}
@@ -1532,13 +1683,13 @@ function DataPreview({
     const raw = resolved.visible === false ? "" : String(resolved.value ?? "");
     return (
       <Row label="Preview">
-        <p className="truncate text-xs text-base-content/70" title="Trusted HTML — the host must sanitize this value at its data boundary">
+        <p className="truncate text-xs text-base-content" title="Trusted HTML — the host must sanitize this value at its data boundary">
           {resolved.visible === false ? (
-            <em className="text-base-content/45">hidden (visible: false)</em>
+            <em className="text-base-content">hidden (visible: false)</em>
           ) : raw ? (
             `${raw.length} chars of trusted HTML`
           ) : (
-            <em className="text-base-content/45">empty</em>
+            <em className="text-base-content">empty</em>
           )}
         </p>
       </Row>
@@ -1575,7 +1726,7 @@ function DataPreview({
     const capped = items.length < all.length;
     return (
       <Row label="Preview">
-        <p className="text-xs text-base-content/70" data-testid="data-collection-preview">
+        <p className="text-xs text-base-content" data-testid="data-collection-preview">
           {items.length === 0
             ? omitWhenEmpty
               ? "0 items — the node is omitted entirely"
@@ -1663,7 +1814,7 @@ function CustomDataSection({ id, node }: { id: string; node: ElementNode }) {
   return (
     <Group label="Custom data">
       {pairs.length === 0 && (
-        <p className="mb-2 text-xs text-base-content/45">Add <code className="font-mono">data-*</code> attributes for host scripts.</p>
+        <p className="mb-2 text-xs text-base-content">Add <code className="font-mono">data-*</code> attributes for host scripts.</p>
       )}
       {pairs.map((p) => (
         <CustomDataRow key={p.key} id={id} attrs={attrs} existingKey={p.key} value={p.value} />
@@ -1771,8 +1922,8 @@ function InstancePanel({ id, symbolId, node }: { id: string; symbolId: string; n
     // header twice and nested a scroller inside a scroller.
     <div data-testid="instance-panel">
       <Group label="Component instance">
-        <p className="mb-2 text-xs text-base-content/55">
-          A linked copy of <span className="font-medium text-base-content/80">{name}</span>. Edit the component to
+        <p className="mb-2 text-xs text-base-content">
+          A linked copy of <span className="font-medium text-base-content">{name}</span>. Edit the component to
           change every instance.
         </p>
         <Row label="Name">
@@ -1893,7 +2044,7 @@ function IdentityHeader({ node }: { node: Node }) {
       </span>
       <div className="min-w-0">
         <div className="font-semibold truncate">{nodeName(node, hostDisplay)}</div>
-        <div className="text-xs text-base-content/45 truncate">{kindLabelOf(node)}</div>
+        <div className="text-xs text-base-content truncate">{kindLabelOf(node)}</div>
       </div>
     </div>
   );
@@ -1930,7 +2081,7 @@ function OverridesGroup({ instanceId, node, symbolId }: { instanceId: string; no
   if (targets.length === 0) return null;
   return (
     <Group label="Overrides">
-      <p className="mb-2 text-xs text-base-content/45">Customize this instance without detaching.</p>
+      <p className="mb-2 text-xs text-base-content">Customize this instance without detaching.</p>
       {targets.map((t) => (
         <OverrideRow
           key={t.masterId}
@@ -2054,7 +2205,7 @@ function HostSection({ id, node }: { id: string; node: HostNode }) {
   return (
     <Group label={`Host · ${def?.label ?? node.component}`}>
       {fields.length === 0 ? (
-        <p className="text-xs text-base-content/45" data-testid="host-no-props">
+        <p className="text-xs text-base-content" data-testid="host-no-props">
           No editable props declared for “{node.component}”.
         </p>
       ) : (
@@ -2569,7 +2720,7 @@ function ClassField({ id, cls }: { id: string; cls: string }) {
       {error ? (
         <p className="mt-1 text-xs text-error">{error}</p>
       ) : (
-        <p className="mt-1 text-xs text-base-content/40">The one styling surface. Chips above edit this same set.</p>
+        <p className="mt-1 text-xs text-base-content">The one styling surface. Chips above edit this same set.</p>
       )}
       {unbacked.length > 0 && (
         <p className="mt-1 text-xs text-warning" data-testid="unbacked-classes">

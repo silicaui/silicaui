@@ -25,6 +25,8 @@ import type {
   SectionNode,
 } from "./schema";
 import { DEFAULT_EMAIL_COLORS, emptyEmailDocument, isContentKind } from "./schema";
+import { findInProject, replacementFor } from "./find";
+import type { EmailTextMatch } from "./find";
 
 export type ChangeKind = "structure" | "props" | "selection" | "meta" | "replace" | "template" | "active";
 
@@ -57,6 +59,56 @@ function kindForOp(op: Op): ChangeKind {
   if (op.kind === "node.insert" || op.kind === "node.remove" || op.kind === "node.move") return "structure";
   if (op.kind === "columns.rebalance") return "structure";
   return "props";
+}
+
+/**
+ * What an action DID, in one short phrase, for the Undo control to say out loud.
+ *
+ * Built from op KINDS only, never from the builder's display vocabulary — the
+ * engine has no React and no display layer, and must not grow one. That caps how
+ * specific this can be ("Remove an element", not "Remove the footer"), which is
+ * still the difference between a button that says nothing and one that says what
+ * it is about to take back. The site builder's `describeOps` is the same idea
+ * against the site op vocabulary. See docs/personas/issues/047.
+ */
+const EMAIL_OP_PHRASE: Record<string, string> = {
+  "node.insert": "Add an element",
+  "node.remove": "Remove an element",
+  "node.move": "Move an element",
+  "node.update": "Edit an element",
+  "node.setBinding": "Change data binding",
+  "node.setLocked": "Lock or unlock",
+  "columns.rebalance": "Rebalance columns",
+  "template.create": "Add an email",
+  "template.delete": "Delete an email",
+  "template.rename": "Rename an email",
+  "template.reorder": "Reorder emails",
+  "template.setMeta": "Change email settings",
+  "colors.set": "Change the colours",
+  "project.replace": "Replace the project",
+};
+
+/** Rank for choosing which op in a batch names the whole action. Lower wins. */
+const EMAIL_PHRASE_ORDER: readonly string[] = [
+  "template.delete", "template.create", "template.rename", "template.reorder",
+  "template.setMeta", "colors.set",
+  "node.remove", "node.insert", "node.move", "columns.rebalance",
+  "node.update", "node.setBinding", "node.setLocked", "project.replace",
+];
+
+export function describeEmailOps(ops: readonly Op[]): string {
+  if (!ops.length) return "";
+  let best: string | undefined;
+  let bestRank = Number.POSITIVE_INFINITY;
+  for (const op of ops) {
+    let rank = EMAIL_PHRASE_ORDER.indexOf(op.kind);
+    if (rank < 0) rank = EMAIL_PHRASE_ORDER.length;
+    if (rank < bestRank) {
+      bestRank = rank;
+      best = op.kind;
+    }
+  }
+  return (best && EMAIL_OP_PHRASE[best]) || "";
 }
 
 /** The most structural kind in a batch — the value `ChangeEvent.kind` reports. */
@@ -349,6 +401,15 @@ function stampIds(node: EmailNode, makeId: () => string): EmailNode {
   return copy;
 }
 
+/** "Dispatch — Clifton" → "Dispatch — Clifton copy", then "copy 2", "copy 3".
+ *  Numbered only from the second one, because "copy 1" reads as a mistake. */
+function copyName(name: string, existing: readonly EmailTemplate[]): string {
+  const taken = new Set(existing.map((t) => t.name));
+  const base = `${name} copy`;
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i += 1) if (!taken.has(`${base} ${i}`)) return `${base} ${i}`;
+}
+
 export class EmailEditor {
   // The whole project — one or more templates. The builder edits ONE template
   // at a time (`activeTemplateId`); `doc` resolves to just that template's
@@ -366,6 +427,11 @@ export class EmailEditor {
   // a node edit on any template, and template add/remove/rename, all undo together.
   private past: EmailProject[] = [];
   private future: EmailProject[] = [];
+  // What each snapshot's action WAS, so the Undo control can say what it takes
+  // back rather than only "Undo". The site builder's twin of this is the same
+  // shape against a different op vocabulary. See docs/personas/issues/047.
+  private pastLabels: string[] = [];
+  private futureLabels: string[] = [];
   private static readonly HISTORY_LIMIT = 100;
   private colors: EmailColorDefaults;
   // ── open-action (transaction) state ────────────────────────────────────────
@@ -519,6 +585,12 @@ export class EmailEditor {
       if (this.txDepth === 0) {
         const batch = this.txKinds;
         const ops = this.txOps;
+        // Name the snapshot this action moved off, now that its ops exist — and
+        // only when this action took one, so an action that skips history cannot
+        // relabel somebody else's entry.
+        if (this.txHistory && this.pastLabels.length) {
+          this.pastLabels[this.pastLabels.length - 1] = describeEmailOps(ops);
+        }
         this.txKinds = [];
         this.txOps = [];
         this.txHistory = false;
@@ -652,12 +724,16 @@ export class EmailEditor {
 
   /** Add a fresh, empty template (auto-named "Email N") and switch to it.
    *  Undoable. Returns the new template's id. */
-  addTemplate(name?: string): string {
+  addTemplate(name?: string, document?: EmailDocument): string {
     const label = name?.trim() || `Email ${this.project.templates.length + 1}`;
+    // A starter hands the whole document in — the choices that make a
+    // newsletter a newsletter (body width, the background behind the content,
+    // the subject line) live on the document, not inside it. Omitted still
+    // means an empty one, so every existing caller is unchanged (issues/063).
     const template: EmailTemplate = {
       id: defaultMakeId(),
       name: label,
-      document: emptyEmailDocument(defaultMakeId, this.colors),
+      document: document ?? emptyEmailDocument(defaultMakeId, this.colors),
     };
     return this.transact(["template"], true, () => {
       this.project.templates.push(template);
@@ -667,6 +743,34 @@ export class EmailEditor {
       this.record({ target: { scope: "project" }, kind: "template.create", template });
       return template.id;
     });
+  }
+
+  /**
+   * Copy a whole template — the same email again, under a new name.
+   *
+   * The switcher could add a template and delete one, so the only way to make a
+   * second version of an email that already exists was to build it a second
+   * time from a starter and retype every word of it. That is the normal case,
+   * not an edge one: one send per shop, per region, per language, per list.
+   * Found by P04 act 7 (issues/072).
+   *
+   * Fresh node ids throughout — the copy is new content, not a second reference
+   * to the same blocks, so editing one must never touch the other.
+   *
+   * Locks are KEPT, unlike `duplicate()` on a node. The reasoning there is that
+   * copying one pinned block mints a second undeletable one the author never
+   * asked for; here the copy IS the same email for another audience, and a
+   * footer the host pinned into the original belongs in it just as much.
+   * Undoable. Returns the new template's id.
+   */
+  duplicateTemplate(id: string): string | undefined {
+    const source = this.project.templates.find((t) => t.id === id);
+    if (!source) return undefined;
+    const document: EmailDocument = {
+      ...structuredClone(source.document),
+      root: stampIds(source.document.root, defaultMakeId) as EmailBody,
+    };
+    return this.addTemplate(copyName(source.name, this.project.templates), document);
   }
 
   /** Remove a template. Refuses to remove the last one (a project needs ≥1
@@ -699,11 +803,77 @@ export class EmailEditor {
     });
   }
 
+  // ── find / replace across the whole project ────────────────────────
+  /**
+   * Every place a piece of text appears, in EVERY template — not just the one
+   * open. See `find.ts` for what is searched and why. Read-only: no history, no
+   * change event, safe to call on every keystroke.
+   */
+  findText(find: string): readonly EmailTextMatch[] {
+    return findInProject(this.project, find);
+  }
+
+  /**
+   * Fix it everywhere, in ONE undo step.
+   *
+   * Crosses templates, which no other method here does — so it writes to each
+   * document directly and stamps each op with that template's own target,
+   * rather than going through `update`/`setSubject`, which only ever address the
+   * OPEN one. A peer therefore sees the change as N ordinary edits across N
+   * templates, which is exactly what it is.
+   *
+   * Returns the number of FIELDS changed — places, not occurrences. A place is
+   * the unit an author thinks in and the unit he would otherwise have had to
+   * remember.
+   */
+  replaceText(find: string, replacement: string): number {
+    if (!find || find === replacement) return 0;
+    if (this.findText(find).length === 0) return 0;
+    return this.transact(["meta", "props"], true, () => {
+      let places = 0;
+      for (const t of this.project.templates) {
+        const target: OpTarget = { scope: "template", id: t.id };
+        const meta: { subject?: string; preheader?: string } = {};
+        if (t.document.subject.includes(find)) {
+          t.document.subject = t.document.subject.split(find).join(replacement);
+          meta.subject = t.document.subject;
+          places += 1;
+        }
+        if (t.document.preheader.includes(find)) {
+          t.document.preheader = t.document.preheader.split(find).join(replacement);
+          meta.preheader = t.document.preheader;
+          places += 1;
+        }
+        if (meta.subject !== undefined || meta.preheader !== undefined) {
+          this.record({ target, kind: "template.setMeta", ...meta });
+        }
+        const visit = (node: EmailNode): void => {
+          const patch = replacementFor(node, find, replacement);
+          if (patch) {
+            Object.assign(node, patch);
+            places += Object.keys(patch).length;
+            this.record({ target, kind: "node.update", nodeId: node.id, patch });
+          }
+          for (const child of childrenOf(node) ?? []) visit(child);
+        };
+        visit(t.document.root);
+      }
+      return places;
+    });
+  }
+
   // ── history-aware commit ───────────────────────────────────────────────────
   private pushHistory(): void {
     this.past.push(structuredClone(this.project));
-    if (this.past.length > EmailEditor.HISTORY_LIMIT) this.past.shift();
+    // Placeholder: the action has not run, so its ops do not exist yet. The
+    // outermost `transact` fills it in from what was actually recorded.
+    this.pastLabels.push("");
+    if (this.past.length > EmailEditor.HISTORY_LIMIT) {
+      this.past.shift();
+      this.pastLabels.shift();
+    }
     this.future = [];
+    this.futureLabels = [];
   }
 
   private commit(kind: ChangeKind, mutate: () => void): void {
@@ -1284,6 +1454,8 @@ export class EmailEditor {
     if (!this.historyDelegate) {
       this.past = [];
       this.future = [];
+      this.pastLabels = [];
+      this.futureLabels = [];
     }
     this.remote++;
     try {
@@ -1325,6 +1497,8 @@ export class EmailEditor {
         for (const t of this.project.templates) assignOrds(t.document.root);
         this.past = [];
         this.future = [];
+        this.pastLabels = [];
+        this.futureLabels = [];
         this.seq = seq;
         this.clampActiveTemplate();
         this.clampSelection();
@@ -1361,10 +1535,26 @@ export class EmailEditor {
     return this.historyDelegate ? this.historyDelegate.canRedo() : this.future.length > 0;
   }
 
+  /** What the next undo would take back, e.g. `"Remove an element"` — `undefined`
+   *  when there is nothing to undo, or when a host owns the history. */
+  get undoLabel(): string | undefined {
+    if (this.historyDelegate) return undefined;
+    return this.pastLabels[this.pastLabels.length - 1] || undefined;
+  }
+  /** What the next redo would put back. Same contract as `undoLabel`. */
+  get redoLabel(): string | undefined {
+    if (this.historyDelegate) return undefined;
+    return this.futureLabels[this.futureLabels.length - 1] || undefined;
+  }
+
   undo(): void {
     if (this.historyDelegate) return this.historyDelegate.undo();
     const prev = this.past.pop();
     if (!prev) return;
+    // The label travels with the snapshot: what undo takes back is what redo
+    // would put back.
+    const label = this.pastLabels.pop() ?? "";
+    this.futureLabels.push(label);
     // `history: false` — undo is not itself an undoable edit; it moves the
     // existing snapshot between the two stacks by hand.
     this.transact(["replace"], false, () => {
@@ -1381,8 +1571,12 @@ export class EmailEditor {
     if (this.historyDelegate) return this.historyDelegate.redo();
     const next = this.future.pop();
     if (!next) return;
+    const label = this.futureLabels.pop() ?? "";
     this.transact(["replace"], false, () => {
       this.past.push(structuredClone(this.project));
+      // Pushed by hand, not through `pushHistory` — which would clear the very
+      // redo stack this is stepping through. The label goes back with it.
+      this.pastLabels.push(label);
       this.project = next;
       this.clampActiveTemplate();
       this.clampSelection();

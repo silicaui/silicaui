@@ -37,11 +37,20 @@ export function makePage(
   return { id: makeId(), name, slug, root };
 }
 
-/** Normalize a label into a route slug: "Pricing Plans" → "/pricing-plans". */
+/**
+ * Normalize a label into a route slug: "Pricing Plans" → "/pricing-plans".
+ *
+ * An apostrophe is DROPPED rather than treated as a separator, so
+ * "Marlene's story" is `/marlenes-story` and not `/marlene-s-story` — the second
+ * reads as three words, one of which is the letter s. Both the typewriter `'` and
+ * the typographic `’` count, because a page named in a word processor carries the
+ * curly one and nobody can see the difference. Found by P03 (issues/050).
+ */
 export function slugify(name: string): string {
   const s = name
     .trim()
     .toLowerCase()
+    .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return "/" + s;

@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+/* Kaihō's own two themes. Dark is the DEFAULT, not the afterthought: the
+   operations room runs this on a wall screen all night, and the light theme is
+   for the duty officer's phone in daylight. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: midnight;
+  default: true;
+  prefersdark: true;
+  --color-base-100: oklch(18% 0.018 255);
+  --color-base-200: oklch(22% 0.020 255);
+  --color-base-300: oklch(30% 0.022 255);
+  --color-base-content: oklch(95% 0.008 250);
+  --color-primary: oklch(70% 0.14 245);
+  --color-primary-content: oklch(16% 0.02 255);
+  --color-success: oklch(72% 0.16 155);
+  --color-success-content: oklch(16% 0.02 155);
+  --color-warning: oklch(80% 0.15 78);
+  --color-warning-content: oklch(18% 0.02 78);
+  /* 55%, not 66%. A near-white ink on a 66% red measures 3.22:1 -- under AA, on
+     the one badge on this dashboard that has to be readable: "112h late". This
+     pair is DECLARED, so nothing derived it; the plugin now says so out loud. */
+  --color-error: oklch(55% 0.20 25);
+  --color-error-content: oklch(98% 0.01 25);
+  --radius-field: 0.25rem;
+  --radius-box: 0.375rem;
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: cobalt;
+  --color-base-100: oklch(99% 0.002 250);
+  --color-base-200: oklch(96% 0.005 250);
+  --color-base-300: oklch(89% 0.010 250);
+  --color-base-content: oklch(22% 0.020 255);
+  --color-primary: oklch(48% 0.16 255);
+  --color-primary-content: oklch(99% 0.003 255);
+  --color-success: oklch(50% 0.14 155);
+  --color-success-content: oklch(99% 0.01 155);
+  /* Dark ink on amber, as in midnight. A near-white ink here measured 3.60:1:
+     amber is the classic colour that cannot carry white text. */
+  --color-warning: oklch(62% 0.14 78);
+  --color-warning-content: oklch(18% 0.02 78);
+  --color-error: oklch(52% 0.20 25);
+  --color-error-content: oklch(99% 0.01 25);
+  --radius-field: 0.25rem;
+  --radius-box: 0.375rem;
+}
+
+/* The classes silicaui's own components carry live inside the installed package,
+   and node_modules is not scanned by default. Learned from P05 (issues/079). */
+@source "../node_modules/@wizeworks/silicaui-react/dist/**/*.js";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

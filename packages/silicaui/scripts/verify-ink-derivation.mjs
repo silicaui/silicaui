@@ -46,15 +46,76 @@ const componentsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src",
  */
 const RAW_ROLE_AS_TEXT = /^\s*color:\s*"var\(--color-(?!base-)([a-z0-9-]+?)(?<!-content)\)"/;
 
+/**
+ * THE HOLE THIS REGEX HAD, and why the file now resolves indirection.
+ *
+ * It only ever matched a LITERAL `color: "var(--color-primary)"`. Components do
+ * not write that — they write the accent idiom:
+ *
+ *   const accent = "var(--tag-accent, var(--color-primary))";
+ *   …
+ *   color: accent,
+ *
+ * which is the same raw fill painted as text, one name away from the pattern.
+ * `tag-input` and `multi-select` both did it and both measured 2.78:1 on a
+ * terracotta chip in light — under WCAG AA — for as long as this probe has been
+ * green. `power-search`, the third copy of the identical rule, used `inkOfRole`
+ * and measured 6.42, so the system had the right answer in a sibling and the
+ * guard could not tell them apart. Found by P06, by measuring a chip.
+ *
+ * So: resolve one level of `const NAME = "…"` before testing, and look for a
+ * role token ANYWHERE in the resolved value rather than only at its start. The
+ * two exemptions above still hold, and a value that already goes through
+ * `ink()` / `inkOfRole()` / `--*-ink` is the fix itself, so it is skipped.
+ */
+const ROLE_ANYWHERE = /--color-(?!base-)([a-z0-9-]+?)(?<!-content)(?=[,)\s])/;
+const ALREADY_INK = /\bink\(|\binkOfRole\(|--[a-z-]+-ink\b/;
+
+/** `const x = "…"` and `const x = `…`` pairs declared in one module. */
+function localConstants(src) {
+  const out = {};
+  for (const m of src.matchAll(/const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:"([^"]*)"|`([^`]*)`)\s*;/g)) {
+    out[m[1]] = m[2] ?? m[3];
+  }
+  return out;
+}
+
 const failures = [];
 let files = 0;
 
 for (const file of readdirSync(componentsDir).filter((f) => f.endsWith(".js"))) {
-  const lines = readFileSync(join(componentsDir, file), "utf8").split("\n");
+  const src = readFileSync(join(componentsDir, file), "utf8");
+  const lines = src.split("\n");
+  const consts = localConstants(src);
   files++;
   lines.forEach((line, i) => {
-    const m = line.match(RAW_ROLE_AS_TEXT);
-    if (!m) return;
+    let m = line.match(RAW_ROLE_AS_TEXT);
+    if (!m) {
+      const decl = line.match(/^\s*color:\s*(.+?),\s*$/);
+      if (!decl) return;
+      let value = decl[1].trim();
+      if (ALREADY_INK.test(value)) return;
+      // Substitute ONLY into an expression, never into a string literal.
+      // A first version substituted anywhere and rewrote the INSIDE of CSS
+      // custom property names — `accent` matched within
+      // `var(--filter-accent-content, …)` and turned a correct `-content` ink
+      // into a false accusation. Four of its ten hits were that mistake.
+      const isLiteral = value.startsWith('"') || value.startsWith("`");
+      if (!isLiteral) {
+        // Substitute WHOLE identifiers only, by tokenising. Two earlier
+        // versions got this wrong in opposite directions and both produced
+        // false accusations: a plain `split/join` rewrote the inside of CSS
+        // custom property names, and a hand-built boundary regex still turned
+        // `accentContent` into `var(--wz-accent, …)Content`. A tokeniser cannot
+        // partially match, which is the whole problem.
+        value = value.replace(/[A-Za-z_$][\w$]*/g, (token) =>
+          Object.prototype.hasOwnProperty.call(consts, token) ? consts[token] : token,
+        );
+      }
+      if (ALREADY_INK.test(value)) return;
+      m = value.match(ROLE_ANYWHERE);
+      if (!m) return;
+    }
     failures.push(
       `${file}:${i + 1} \`color: var(--color-${m[1]})\` paints the FILL form as text.\n` +
         `    A palette tunes a role to sit BEHIND text, not to be it — in light,\n` +
