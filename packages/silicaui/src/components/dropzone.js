@@ -79,11 +79,11 @@ export function dropzone(prefix = "") {
     },
 
     [sel("-title")]: {
-      fontSize: "0.9rem",
+      fontSize: "1rem",
       fontWeight: "600",
     },
     [sel("-hint")]: {
-      fontSize: "0.78rem",
+      fontSize: "1rem",
       color: muted(60),
     },
 
@@ -98,6 +98,20 @@ export function dropzone(prefix = "") {
       clip: "rect(0, 0, 0, 0)",
       whiteSpace: "nowrap",
       border: "0",
+    },
+
+    // The system's own focus ring, on controls that were falling back to the
+    // BROWSER's. The browser's ring is visible -- Chromium adapts it -- but it is
+    // 1px where this system's is 2px, it carries no offset, it ignores the theme,
+    // and its shape is the browser's choice, not this system's. Focus should not change
+    // appearance depending on which control a person is standing on.
+    // Found by a sweep of all 116 component pages (P07, docs/personas/issues/092).
+    // The zone rings (below), so the input must not ring too -- otherwise a
+    // keyboard user gets two rings, one of them the browser's.
+    [`${sel("-input")}:focus-visible`]: { outline: "none" },
+    [`${sel()}:has(${sel("-input")}:focus-visible)`]: {
+      outline: "var(--focus-width, 2px) solid var(--color-primary)",
+      outlineOffset: "var(--focus-offset, 2px)",
     },
   };
 }

@@ -470,10 +470,18 @@ const withSource = api.filter((a) => a.react?.source).length;
 const withHtml = api.filter((a) => a.html).length;
 const withNone = api.filter((a) => !a.css && !a.react && !a.html).map((a) => a.id);
 
+// Compare with line endings normalized. `core.autocrlf=true` rewrites this file to
+// CRLF on checkout while the generator writes LF, so a byte-exact `!==` reports a
+// perfectly current file as stale — on every Windows clone, with a message naming
+// numbers that are correct. `gen-canvas-safelist.mjs` already normalizes; this is the
+// same guard, and .gitattributes records the same hazard for the golden fixture.
+const eol = (t) => t.replace(/\r\n/g, "\n");
+
 if (process.argv.includes("--check")) {
-  if (current !== body || currentApi !== apiBody) {
+  const catalogStale = eol(current) !== eol(body);
+  if (catalogStale || eol(currentApi) !== eol(apiBody)) {
     console.error(
-      `gen-catalog: ${current !== body ? "catalog.ts" : "catalog-api.ts"} is stale.\n` +
+      `gen-catalog: ${catalogStale ? "catalog.ts" : "catalog-api.ts"} is stale.\n` +
         "Run: node apps/site/scripts/gen-catalog.mjs",
     );
     process.exit(1);

@@ -70,7 +70,7 @@ export function ThemeWall() {
               const next = Array.isArray(v) ? v[0] : v;
               if (typeof next === "string" && next) setTheme(next);
             }}
-            className="w-fit"
+            className="w-fit max-w-full overflow-x-auto"
             aria-label="Theme for these components"
           >
             {THEMES.map((t) => (

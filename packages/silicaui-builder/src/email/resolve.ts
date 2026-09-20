@@ -144,6 +144,57 @@ const TOKEN_RE = /\{\{([^{}]*)\}\}/g;
  */
 const TOKEN_PATH_RE = /^[a-zA-Z0-9_.]+$/;
 
+/** One `{{…}}` run found in an authored string. */
+export interface ScannedToken {
+  /** The literal source, braces included — what SENDS if nothing resolves it. */
+  raw: string;
+  /** The contents, trimmed. `""` for the `{{}}` punctuation case. */
+  inner: string;
+  /** True → silica's own grammar owns it (`resolveBinding`). False → it is an
+   *  expression and belongs to the host (`resolveExpression`). */
+  isPath: boolean;
+  /** Offset of the run within the source string. */
+  start: number;
+}
+
+/**
+ * Find every merge token in an authored string, using THE SAME scanner and the
+ * SAME grammar the resolver itself uses — exported so an authoring UI can tell
+ * a person what their tokens will do without writing a second regex that drifts
+ * from this one and then lies to them.
+ *
+ * This exists because of P04/issues 066: an unresolvable inline token sends the
+ * literal `{{firstName}}` to a real subscriber, the resolver has always KNOWN
+ * that (it fires an `unknown-ref` diagnostic), and nothing in the builder ever
+ * drew it. A second regex in the Inspector would have reintroduced exactly the
+ * class of bug the split between `TOKEN_RE` and `TOKEN_PATH_RE` exists to
+ * prevent: finding a different set of tokens than the thing that sends them.
+ */
+export function scanTokens(text: string): ScannedToken[] {
+  const out: ScannedToken[] = [];
+  if (!text.includes("{{")) return out;
+  // A fresh regex per call — `TOKEN_RE` is /g and carries `lastIndex`.
+  const re = new RegExp(TOKEN_RE.source, "g");
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const inner = (m[1] ?? "").trim();
+    // `{{}}` is punctuation an author typed, not a token — the resolver skips
+    // it and reports nothing, so neither does this.
+    if (inner === "") continue;
+    out.push({ raw: m[0], inner, isPath: TOKEN_PATH_RE.test(inner), start: m.index });
+  }
+  return out;
+}
+
+/** The prose field a given node kind carries merge tokens in, if any — the one
+ *  `applyTokens` below substitutes into. Exported alongside `scanTokens` so a
+ *  caller asking "what tokens does this node carry" doesn't have to duplicate
+ *  the kind check and then quietly disagree with the resolver about it. */
+export function tokenFieldOf(node: EmailNode): { field: "html" | "label"; text: string } | undefined {
+  if (node.kind === "text") return { field: "html", text: node.html };
+  if (node.kind === "button") return { field: "label", text: node.label };
+  return undefined;
+}
+
 /**
  * Substitute every `{{ref}}` merge token inside `text` via the host's
  * `resolveBinding` — the INLINE counterpart to a whole-field `value` bind
@@ -167,7 +218,7 @@ const TOKEN_PATH_RE = /^[a-zA-Z0-9_.]+$/;
  * at render time (button label, subject, preheader) pass the raw resolved
  * value through so it isn't double-escaped.
  */
-export function resolveTokens(text: string, host: EmailResolveHost, scope: DataScope, escapeHtml: boolean): string {
+export function resolveTokens(text: string, host: EmailResolveHost, scope: DataScope, escapeHtml: boolean, nodeId?: string): string {
   if (!text.includes("{{")) return text;
   if (!host.resolveBinding && !host.resolveExpression) return text;
   return text.replace(TOKEN_RE, (match, raw: string) => {
@@ -179,7 +230,13 @@ export function resolveTokens(text: string, host: EmailResolveHost, scope: DataS
     const isPath = TOKEN_PATH_RE.test(inner);
     const resolved = isPath ? host.resolveBinding?.(inner, scope) : host.resolveExpression?.(inner, scope);
     if (!resolved) {
-      host.onDiagnostic?.({ code: isPath ? "unknown-ref" : "unknown-expression", ref: inner, kind: "value" });
+      // `nodeId` when the caller knows it. EVERY other diagnostic in this file
+      // carries one, and a host consuming diagnostics typically keys on it
+      // (the site Canvas drops any diagnostic without one outright) — so an
+      // inline token that omitted it was structurally invisible to the very
+      // consumers the diagnostic exists for. The document's own subject and
+      // preheader genuinely have no node, and pass none.
+      host.onDiagnostic?.({ code: isPath ? "unknown-ref" : "unknown-expression", ref: inner, nodeId, kind: "value" });
       // The literal source, byte-for-byte. Note this can now contain HTML-special
       // characters (an expression may quote anything), where the old
       // path-only pattern could not — but returning `match` is STRING IDENTITY:
@@ -199,8 +256,8 @@ export function resolveTokens(text: string, host: EmailResolveHost, scope: DataS
  *  token while its href is a separate `action` bind, and vice versa). No-op
  *  for kinds with no prose field (everything but text/button). */
 function applyTokens(node: EmailNode, host: EmailResolveHost, scope: DataScope): EmailNode {
-  if (node.kind === "text") return { ...node, html: resolveTokens(node.html, host, scope, true) };
-  if (node.kind === "button") return { ...node, label: resolveTokens(node.label, host, scope, false) };
+  if (node.kind === "text") return { ...node, html: resolveTokens(node.html, host, scope, true, node.id) };
+  if (node.kind === "button") return { ...node, label: resolveTokens(node.label, host, scope, false, node.id) };
   return node;
 }
 

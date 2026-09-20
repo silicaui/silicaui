@@ -37,6 +37,13 @@ export function sortableList(prefix = "") {
       border: "var(--border, 1px) solid var(--color-base-300)",
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",
+      // A row that renders ONE element for its contents gets that element
+      // stretched across the row. Without this, a single wrapper is a flex item
+      // at its natural width and the row is mostly empty - which is exactly what
+      // the documented `renderItem` example produces. Scoped to `:only-child` so
+      // the ordinary case (a handle, a label and a badge side by side) keeps its
+      // own sizing.
+      "& > :only-child": { flex: "1 1 auto", minWidth: "0" },
     },
     [`${sel("-item")}[data-dragging]`]: {
       borderColor: "var(--color-primary)",
@@ -56,7 +63,14 @@ export function sortableList(prefix = "") {
       padding: "0",
       border: "0",
       background: "none",
-      color: muted(45),
+      // 65%, not 45%. A grip is a glyph rather than text, so RULE #3's readable-ink
+      // probe exempts it -- and under that exemption there was no floor at all. It
+      // is still the ONLY thing on the row that says the list can be reordered, so
+      // it is a user-interface component and owes 3:1 (WCAG 1.4.11). Measured on
+      // the real themes: 45% was 4.09:1 on a dark surface and 2.88:1 on a light
+      // one, which fails; 65% is 7.32:1 dark and 5.31:1 light, and still reads as
+      // quieter than the label beside it, which is at 16:1.
+      color: muted(65),
       cursor: "grab",
       touchAction: "none",
       "&:hover": { color: "var(--color-base-content)" },

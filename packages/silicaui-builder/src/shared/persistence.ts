@@ -15,6 +15,14 @@
  *    plus kick the IndexedDB write. So a graceful reload always keeps the very last
  *    edit.
  *  - LOAD reads both and returns whichever is newest (`savedAt`).
+ *
+ * ONE LIMIT, STATED: this store persists the DOCUMENT. Text being typed in place
+ * on the canvas is not in the document until it commits, so the canvases commit
+ * on tab-hide/pagehide (`useCommitOnHide`) and the builders write through
+ * synchronously from that moment. That covers closing the tab, closing the
+ * window, navigating away and switching tabs. It does NOT cover the process
+ * being killed mid-keystroke — a power cut during a sentence loses that
+ * sentence, not `delay` ms of it. See issues/058.
  */
 
 /** A persisted draft: the document plus when it was saved (for newest-wins). */

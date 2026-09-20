@@ -1,0 +1,18 @@
+{
+  "name": "medina-field-guide",
+  "private": true,
+  "type": "module",
+  "description": "Static generator. A node tree in, HTML out. No React anywhere.",
+  "scripts": {
+    "build": "node build.mjs && npm run css",
+    "css": "tailwindcss -i src/input.css -o out/assets/guide.css",
+    "serve": "node serve.mjs",
+    "build:html": "node build.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@wizeworks/silicaui": "^0.56.0",
+    "@wizeworks/silicaui-behaviors": "^0.56.0",
+    "@wizeworks/silicaui-html": "file:../../../../packages/silicaui-html"
+  }
+}

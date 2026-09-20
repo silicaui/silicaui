@@ -32,6 +32,13 @@ export type {
   InspectorPanelTab,
   SelectableNode,
   AssetRef,
+  // The host-NODE seam, beside the inspector one and for the same reason: a host
+  // cannot write a typed `hostComponents()` or `renderHostNode()` without these
+  // names, and every one of them was declared here and never exported. Found by
+  // P05 act 1 (issues/079).
+  HostComponentDef,
+  HostPropDef,
+  HostRenderCtx,
 } from "./host";
 // Other editors. `Peer` is what `<Builder peers>` / `editor.setPeers` take;
 // `peerColor` is exported so a host's own presence UI (a toolbar avatar stack, a

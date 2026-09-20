@@ -79,8 +79,22 @@ export function hydrate(root: ParentNode = document, opts: HydrateOptions = {}):
  *
  * Tailwind invokes the default export, so throwing from here puts a real
  * sentence in the build overlay in its place. Nothing else imports this.
+ *
+ * `__isOptionsFunction` is what makes that true for the line people actually
+ * write. Tailwind resolves `@plugin "x" { … }` like this:
+ *
+ *     if (!options)                       -> call the export as a plugin
+ *     else if ("__isOptionsFunction" in p) -> call p(options)
+ *     else throw `The plugin "x" does not accept options`
+ *
+ * Every doc, every starter and this guard's own suggested fix pass an options
+ * block, so without the marker Tailwind refused the plugin on the third branch
+ * and the sentence below was never reached — the guard only worked for the one
+ * form nobody writes. Measured in the harness's real Vite build; see
+ * docs/personas/issues/105. The marker is a plain property, so no package here
+ * takes a dependency on Tailwind to carry it.
  */
-export default function notATailwindPlugin(): never {
+function notATailwindPlugin(): never {
   throw new Error(
     `@wizeworks/silicaui-behaviors is the browser runtime that hydrates data-sui-* markers, not a Tailwind plugin. ` +
       `Only @wizeworks/silicaui is.\n` +
@@ -92,3 +106,6 @@ export default function notATailwindPlugin(): never {
       `separate packages on purpose.`,
   );
 }
+notATailwindPlugin.__isOptionsFunction = true as const;
+export default notATailwindPlugin;
+

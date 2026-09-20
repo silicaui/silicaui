@@ -143,10 +143,21 @@ export function NoFramework({ generatedHtml }: { generatedHtml: string }) {
         <h2 className="max-w-3xl text-3xl font-semibold tracking-tight text-base-content md:text-4xl">
           The same components, with no framework at all
         </h2>
+        {/*
+          The second sentence names the CSS-plugin path and its package deliberately.
+          Before it was added, this was the only "no framework" section on the page and it
+          described the NODE-TREE path alone, so the front page's own install line
+          (`npm i @wizeworks/silicaui-react`) was the only package a visitor ever saw
+          named — on a page whose title is "The CSS-first Tailwind Component Library".
+          A Django developer had nothing here to recognise. See docs/personas/issues/029.
+        */}
         <p className="mt-4 max-w-2xl text-lg text-base-content">
-          React is one output, not the product. The node tree also projects to plain HTML that a
-          zero-dependency runtime hydrates &mdash; real keyboard handling and focus management on a
-          static page, with no bundler and no framework on the client.
+          React is one output, not the product. Write the classes on your own markup in Rails,
+          Django, PHP or Go &mdash; that is{" "}
+          <code className="mono text-base-content">@wizeworks/silicaui</code>, the Tailwind
+          plugin, on its own. When that markup also needs behaviour, the node tree projects to
+          plain HTML that a zero-dependency runtime hydrates &mdash; real keyboard handling and
+          focus management on a static page, with no bundler and no framework on the client.
         </p>
 
         <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">

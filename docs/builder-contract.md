@@ -151,26 +151,119 @@ function resolveTree(tree: Node, host: ResolveHost, scope?: DataScope): Node;
 
 ## 4. Load & extract
 
-```ts
-function mountBuilder(el: HTMLElement, opts: {
-  document: BuilderDocument;
-  host: BuilderHost;               // the seam (§5)
-}): BuilderHandle;
+```tsx
+import { Builder } from "@wizeworks/silicaui-builder/react";
+import type { BuilderHandle } from "@wizeworks/silicaui-builder/react";
 
+const handle = useRef<BuilderHandle>(null);
+
+<Builder
+  ref={handle}
+  document={site}          // a Document or a whole Site — the seed, read at mount
+  host={yourHost}          // the seam (§5)
+  studioTheme="acme-studio"
+  persistKey="acme:site:42"
+  onChange={(site, ops, meta) => save(site, ops, meta)}
+/>
+```
+
+```ts
 interface BuilderHandle {
-  extract(): BuilderDocument;      // current state — SYMMETRIC with the loaded shape
-  getSelection(): string[];        // selected node ids
-  select(ids: string[] | null): void;
-  undo(): void; redo(): void;
-  setDevice(d: 'desktop' | 'tablet' | 'mobile'): void;
-  setThemeMode(m: 'light' | 'dark'): void;   // preview either mode of the loaded theme
-  destroy(): void;
+  extract(): Site | undefined;                   // the current document, on demand
+  applyRemoteOps(ops: readonly Op[]): { applied: number; dropped: Op[] };
+  replaceState(site: Site, seq: number): void;   // forced resync, discards local history
+  ackSeq(seq: number): void;
+  setHistoryDelegate(d: HistoryDelegate | undefined): void;
 }
 ```
 
-- **Load** = pass a `BuilderDocument`. That's the entire input.
-- **Extract** = `extract()` returns the current `BuilderDocument`, same shape. The host decides when to call it (on `onChange`, on a Save button, on unload).
-- **The engine never persists.** It edits in memory and notifies via the `<Builder>` `onChange(site, ops, meta)` prop (§5.1). Persistence, autosave-vs-explicit-save, versioning, conflict policy — all the host's call.
+- **Load** = the `document` prop. That is the entire input. It is a **seed, not a
+  controlled prop**: it is read at mount and at each "start fresh" reseed, never
+  live. A host that re-renders with a new object every frame does not fight the
+  editor, because the editor is not listening.
+- **Extract** = `extract()` returns the current document, defensively cloned, in
+  the same shape `document` accepts. `undefined` in the one moment before the
+  editor has booted. The host decides when to call it — a Save button, a preview,
+  a "send for review" action, a test.
+- **`onChange` is the persistence hook**, and it fires only on change. `extract()`
+  is for the moments the host chooses, so a host does not have to mirror every
+  `onChange` into its own state purely to have something to read.
+- **The engine never persists.** It edits in memory and notifies through
+  `onChange(site, ops, meta)` (§5.1). Persistence, autosave-vs-explicit-save,
+  versioning, conflict policy — all the host's call. The one exception is local
+  crash recovery, which is opt-out (`persistKey={null}`) and writes nothing
+  anywhere else (§4.1).
+
+> **Historical note.** This section used to describe an imperative
+> `mountBuilder(el, opts)` returning a handle with `select`, `undo`, `redo`,
+> `setDevice`, `setThemeMode` and `destroy`. The builder was rebuilt in React and
+> those became props, context hooks and the toolbar; none of them ever shipped on
+> the handle. The sketch stayed in this document long enough for an integrator to
+> write code against it, so it is named here rather than quietly deleted. See
+> docs/personas/issues/079.
+
+---
+
+## 4.1 Mounting it in your app
+
+Two steps that are not in the API and will stop you dead if you skip them. Both
+were found by an integrator following this document to the letter
+(docs/personas/issues/079).
+
+### Deduplicate React
+
+The packages declare `react` and `react-dom` as **peer** dependencies, which is
+correct — but any LOCAL link (`file:`, `npm link`, a monorepo checkout, a
+workspace) resolves each linked package's own nested `react` instead of yours.
+The builder then mounts to a blank panel with:
+
+> Invalid hook call. […] You might have more than one copy of React in the same app
+
+Vite:
+
+```ts
+export default defineConfig({
+  resolve: { dedupe: ["react", "react-dom"] },
+});
+```
+
+webpack: `resolve.alias` both to your own copy. A plain registry install does not
+hit this; every evaluation done by linking does.
+
+### Point Tailwind at the installed packages
+
+Tailwind v4 generates only the classes it can SEE. The builder's chrome is built
+from literal class strings that live inside the installed package, and
+`node_modules` is not scanned by default — so without this the builder mounts
+fully working and completely unstyled.
+
+```css
+@import "tailwindcss";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+@source "../node_modules/@wizeworks/silicaui-builder/dist/**/*.js";
+@source "../node_modules/@wizeworks/silicaui-html/dist/**/*.js";
+@source "../node_modules/@wizeworks/silicaui-react/dist/**/*.js";
+```
+
+### Give the chrome its own theme
+
+`studioTheme` names a `[data-theme]` island for the builder's own chrome, kept
+separate from your app's theme AND from the document's (§8). Declare it like any
+other theme; if you pass a name you never declared, the chrome falls back to
+whatever `[data-theme]` it inherits, which is your app's — readable, but not
+isolated, and the isolation is the point.
+
+```css
+@plugin "@wizeworks/silicaui/theme" {
+  name: acme-studio;
+  --color-base-100: oklch(97% 0.004 250);
+  /* … */
+}
+```
 
 ---
 
@@ -271,6 +364,11 @@ interface BuilderHost {
 
   // Live canvas preview of a host node — the host renders its real component.
   // Absent (or returns null) → the engine draws a labeled placeholder.
+  //
+  // CANVAS ONLY. This is React; the HTML projection is framework-free and never
+  // calls it, so a host node reaches the PUBLISHED page as an empty
+  // `<div data-sui-host>` mount point that the host fills in its own deploy
+  // step. An unfilled one is a valid empty div on a live page. See §5.2.
   renderHostNode?(node: HostNode, ctx: { preview: boolean }): ReactNode;
 
   // NOTE: change notification is NOT on the host object — it's a `<Builder>`
@@ -569,6 +667,83 @@ a user opens.
 
 ---
 
+## 5.2 Publish — the page a visitor gets
+
+`onChange` is how the host **stores** a document. It is not how the host **ships**
+one. Publishing is a separate `<Builder>` prop, and it is the only place the
+engine hands over production markup:
+
+```ts
+<Builder onPublish={(payload) => deploy(payload)} … />
+
+interface PublishPayload {
+  /** The structured document, to store and re-open. */
+  site: Site;
+  /** Every page composed to production HTML, ready to write to disk. */
+  pages: RenderedPage[];
+}
+
+interface RenderedPage {
+  id: string;
+  name: string;
+  /** Route path — the natural output file/key ("/" → index, "/pricing"). */
+  slug: string;
+  html: string;
+}
+```
+
+The builder's Publish button is **disabled until a host wires this**, and says so
+— there is no default deploy, because where a site goes is not the engine's
+business.
+
+### A host node reaches the published page as an EMPTY MOUNT POINT
+
+This is the part an integrator has to know before they ship, and it is easy to
+miss because the canvas looks finished.
+
+`renderHostNode` is a **canvas** hook. It renders React, and the projection is
+deliberately framework-free, so `toHtml` cannot call it. A `host` node projects
+to a mount point and nothing else:
+
+```html
+<div data-sui-host="acme.compliance-cert"
+     data-sui-host-props="{&quot;plantId&quot;:&quot;plant-hoganas&quot;}"></div>
+```
+
+**Filling it is the host's job**, in whichever of the two places suits the
+product:
+
+| Where | What it means |
+| --- | --- |
+| At **publish** time, in the deploy step | Read `data-sui-host` + `data-sui-host-props`, render your component to static markup (`renderToStaticMarkup`, a template, anything), and write the result inside the div. The page then needs no JavaScript at all. |
+| At **run** time, on the visitor's page | Ship a script that finds every `[data-sui-host]` and mounts the real component into it. Costs a script on every page, and the content is absent until it runs. |
+
+Prefer the first for anything a visitor must be able to read — a price, a legal
+notice, a certificate. **A block that needs JavaScript to appear is a block that
+does not appear** for a reader with scripts blocked, a slow connection, or a
+crawler.
+
+**An unfilled mount point is silent.** It is a well-formed empty `<div>`: the
+page is valid, the server returns 200, and the hole is exactly where the most
+important block on the page was meant to be. Nothing warns you. If your deploy
+step does not handle host nodes, count them: the number of `data-sui-host`
+occurrences in the HTML you were handed is the number of blocks you owe.
+
+### Your markup lands under the visitor's Content-Security-Policy, not the editor's
+
+Whatever `renderHostNode` draws on the canvas runs inside your dev server, where
+a CSP usually isn't. The same markup, rendered into the published page, runs
+under whatever policy that page is served with. A `style="…"` attribute is an
+inline style: under a `style-src` without `'unsafe-inline'` the browser drops
+every one of them, and a block that was a bordered card in the editor is naked
+text on the live page — with a clean 200 and no error a visitor would report.
+
+Build host-node markup from **classes**, the same way the rest of the page is
+built. Then it is covered by the one stylesheet your publish step already emits,
+and it survives any policy the page is served with.
+
+---
+
 ## 6. Engine owns vs. host owns (the focus table)
 
 | Concern | Engine (`@wizeworks/silicaui-builder`) | Host (sparx) |
@@ -636,9 +811,10 @@ function buildClassValidator(config: { blocks: AllowlistRule[] }): BuilderHost['
 ## 10. Definition of done — the minimal buildable surface
 
 - [ ] `BuilderDocument` / `BuilderNode` / `ThemeConfig` / `DocumentFrame` types (§2), one shape shared with @wizeworks/silicaui-blocks (+ `id`).
-- [ ] `mountBuilder(el, { document, host })` → `BuilderHandle` with `extract()` symmetric to load (§4).
+- [x] `<Builder document host onChange …>` with a `BuilderHandle` ref carrying `extract()` symmetric to load (§4). The imperative `mountBuilder(el, opts)` this line used to name was replaced by the React component and never shipped — see §4's historical note.
 - [ ] The three dynamic primitives (`bind` / `repeat` / `action`) as **opaque** markers resolved only through the host (§3).
 - [ ] `BuilderHost` (§5): `catalog` + `validateClass` required (`onChange` is a `<Builder>` prop, §5.1); `resolveBinding` + `resolveCollection` + `inspectorPanels` + `inspectorTabs` + `pickAsset` optional.
+- [x] `onPublish(payload)` handing the host the `Site` **and** every page composed to production HTML (§5.2) — including that a `host` node ships as an empty `data-sui-host` mount point the host fills itself.
 - [ ] Canvas renders preview==production under a `[data-theme]` island with `@scope` isolation (§8); editor chrome on its own token lane.
 - [ ] Direct manipulation: select/multi-select, drag reorder+reparent, add (from catalog)/remove/duplicate/paste, edit class + props + slots.
 - [ ] Layers tree, inspector framework (generic panels + host panels), theme panel, device preview, undo/redo, behavior preview.

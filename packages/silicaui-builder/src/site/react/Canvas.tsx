@@ -44,6 +44,7 @@ import type { DropHint } from "../../shared/react/DropOverlay";
 import { paletteGroups, paletteItemByKey, catalogForHost, makeInsertNode } from "../palette";
 import type { PaletteGroup } from "../palette";
 import { editableText, inlineEditable, nodeName } from "../node-display";
+import { useCommitOnHide } from "../../shared/react/use-commit-on-hide";
 import { SelectionOverlay } from "../../shared/react/SelectionOverlay";
 import { PeerOverlay } from "../../shared/react/PeerOverlay";
 import { claimedNodeIds, nodeById, peerColor, peerSelectionIndex } from "../peers";
@@ -191,6 +192,9 @@ const EditableText = React.memo(function EditableText({
     done.current = true;
     onCommit(ref.current?.textContent ?? "");
   };
+  // A closing tab never blurs the field, so without this the sentence being
+  // typed right now is the one thing the crash-recovery store cannot save.
+  useCommitOnHide(commit);
   const cancel = () => {
     if (done.current) return;
     done.current = true;
@@ -407,7 +411,7 @@ const EMBED_PLACEHOLDER_DECOR = " grid min-h-24 place-items-center bg-base-conte
  *  the copy that used to ship to visitors. */
 function EmbedHint() {
   return (
-    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content/40">
+    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content">
       Add a video, audio, podcast, or map URL
     </span>
   );
@@ -417,7 +421,7 @@ function EmbedHint() {
  *  land on the container, not the hint). */
 function EmptyHint() {
   return (
-    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content/40">
+    <span className="pointer-events-none inline-flex select-none px-2 py-1 text-xs text-base-content">
       Empty — drop something here
     </span>
   );
@@ -442,8 +446,8 @@ function HostPlaceholder({ node }: { node: HostNode }) {
   const count = node.props ? Object.keys(node.props).length : 0;
   return (
     <div className="pointer-events-none flex select-none flex-col items-center gap-1 rounded-field border border-dashed border-base-300 bg-base-content/5 p-4 text-center">
-      <span className="text-sm font-medium text-base-content/70">{node.label ?? node.component}</span>
-      <span className="text-xs text-base-content/40">
+      <span className="text-sm font-medium text-base-content">{node.label ?? node.component}</span>
+      <span className="text-xs text-base-content">
         host component “{node.component}”{count ? ` · ${count} prop${count === 1 ? "" : "s"}` : ""}
       </span>
     </div>
@@ -533,7 +537,7 @@ function CanvasNode({
       if (preview) {
         return (
           <div className="pointer-events-none relative">
-            <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-selector bg-base-content/10 px-2 py-0.5 text-xs text-base-content/50">
+            <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-selector bg-base-content/10 px-2 py-0.5 text-xs text-base-content">
               Page content
             </span>
             {inner}
@@ -545,7 +549,7 @@ function CanvasNode({
       return <div className="pointer-events-auto">{inner}</div>;
     }
     return (
-      <div className="rounded-field border border-dashed border-base-300 p-4 text-center text-sm text-base-content/40">
+      <div className="rounded-field border border-dashed border-base-300 p-4 text-center text-sm text-base-content">
         Layout outlet — page content renders here
       </div>
     );
@@ -605,12 +609,28 @@ function CanvasNode({
       // dropping them here is how the author learns before the click, rather than
       // from a gesture that silently does nothing.
       const claimed = ctx.claimedIds?.has(id) ?? false;
-      const draggable = parentId !== undefined && !claimed; // the root can't be moved
+      // A LOCKED node is the same argument as a claimed one, and the paragraph
+      // above already makes it: the engine refuses `move` on a locked node, so
+      // leaving it draggable means picking it up, watching a drop indicator
+      // follow the cursor, letting go, and having nothing happen with no
+      // explanation. The Navigator already honours the lock in its own chrome
+      // (padlock glyph, rename disabled); the canvas did not, which is a rule
+      // enforced in one renderer and not its sibling.
+      //
+      // Only the DRAG goes. Text and styling stay editable on a locked node —
+      // locking is about structure, not content (host-nodes spec §B.2) — so
+      // `inlineEditable` below is deliberately not gated on this.
+      // Found by P03 (docs/personas/issues/053).
+      const locked = !!node.locked;
+      const draggable = parentId !== undefined && !claimed && !locked; // the root can't be moved
       inter["data-sui-id"] = id;
       // A stable hook for the unresolved state — chrome styling, e2e, and a
       // host's own tooling shouldn't have to pattern-match utility classes.
       if (ctx.unresolvedIds?.has(id)) inter["data-sui-unresolved"] = node.data?.ref ?? "";
       if (claimed) inter["data-sui-claimed"] = "";
+      // Same stable hook as `data-sui-claimed`, for chrome styling, e2e and a
+      // host's own tooling.
+      if (locked) inter["data-sui-locked"] = node.locked ?? "";
       inter.draggable = draggable;
       inter.onClick = (e: React.MouseEvent) => ctx.onSelect(id, e);
       inter.onMouseOver = (e: React.MouseEvent) => ctx.onHover(id, e);

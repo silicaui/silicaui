@@ -23,7 +23,7 @@ export function textarea(colors, prefix = "") {
       minHeight: "calc(var(--size-field, 0.25rem) * 20)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 3)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 2)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       color: "var(--color-base-content)",
       backgroundColor: "var(--color-base-100)",
@@ -59,29 +59,29 @@ export function textarea(colors, prefix = "") {
       minHeight: "calc(var(--size-field, 0.25rem) * 16)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 2)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 1.5)",
-      fontSize: "0.6875rem",
+      fontSize: "0.75rem",
     },
     [sel("-sm")]: {
       minHeight: "calc(var(--size-field, 0.25rem) * 18)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 2.5)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 1.75)",
-      fontSize: "0.75rem",
+      fontSize: "0.875rem",
     },
     [sel("-md")]: {
       minHeight: "calc(var(--size-field, 0.25rem) * 20)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
     },
     [sel("-lg")]: {
       minHeight: "calc(var(--size-field, 0.25rem) * 24)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 2.5)",
-      fontSize: "1rem",
+      fontSize: "1.125rem",
     },
     [sel("-xl")]: {
       minHeight: "calc(var(--size-field, 0.25rem) * 28)",
       paddingInline: "calc(var(--size-field, 0.25rem) * 4.5)",
       paddingBlock: "calc(var(--size-field, 0.25rem) * 3)",
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
     },
   };
 

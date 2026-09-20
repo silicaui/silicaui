@@ -72,7 +72,7 @@ export function drawer(prefix = "") {
       // outside a flex parent. Same reasoning as Dialog
       // (docs/personas/issues/022) — Drawer had the identical shape.
       flexBasis: "100%",
-      fontSize: "0.9375rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
 

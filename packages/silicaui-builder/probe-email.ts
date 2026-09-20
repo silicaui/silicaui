@@ -6,11 +6,13 @@
  */
 import { EmailEditor } from "./src/email/engine";
 import { toEmailHtml } from "./src/email/projector";
-import { EMAIL_PALETTE } from "./src/email/palette";
+import { EMAIL_PALETTE, emailPaletteItemByKey } from "./src/email/palette";
 import { resolveEmailTree } from "./src/email/resolve";
-import { DEFAULT_EMAIL_COLORS } from "./src/email/schema";
+import { DEFAULT_EMAIL_COLORS, EMAIL_BUTTON_PADDING } from "./src/email/schema";
+import { nodeName } from "./src/email/node-display";
+import { emailStarterByKey, EMAIL_STARTER_GROUPS } from "./src/email/starters";
 import type { EmailResolveHost } from "./src/email/resolve";
-import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailColorDefaults, HtmlNode, LinkNode, ResolveDiagnostic, Resolved, SectionNode, TextNode } from "./src/email/schema";
+import type { ButtonNode, ColumnsNode, DataScope, EmailBody, EmailNode, EmailColorDefaults, HtmlNode, LinkNode, ResolveDiagnostic, Resolved, SectionNode, TextNode } from "./src/email/schema";
 
 let failures = 0;
 function check(name: string, cond: boolean): void {
@@ -98,7 +100,10 @@ console.log("projector");
   ed.setPreheader("Glad you're here.");
   const html = toEmailHtml(ed.extract());
   check("no external stylesheet link", !html.includes("<link"));
-  check("no class-based layout (table + inline style only)", !/class="(?!sui-col)/.test(html));
+  // Two classes exist, and only two: `sui-col` and `sui-body`. Both are hooks
+  // for the ONE media query an email is allowed — stacking the columns and
+  // narrowing the body on a phone. Everything else is an inline style.
+  check("no class-based layout (table + inline style only)", !/class="(?!sui-col|sui-body)/.test(html));
   check("subject lands in <title>", html.includes("<title>Welcome!</title>"));
   check("preheader is present but visually hidden", html.includes("Glad you're here.") && html.includes("display:none"));
   check("body renders as a table", html.includes("<table") && html.includes("role=\"presentation\""));
@@ -233,6 +238,167 @@ console.log("fallbackParent");
   check("a content node falls back to the LAST section", ed.fallbackParent(btn) === sectionId);
 }
 
+// ── 6b. Outlook's Word engine: the two places the projection lied to it ──────
+// P04/issues 067 and 068. Both are about markup that renders correctly in every
+// CSS-following client and wrongly in the one Reuben's subscribers actually
+// use, so neither shows up in a browser preview.
+console.log("Outlook / Word engine");
+{
+  const ed = new EmailEditor();
+  const secId = ed.root.children[0]!.id;
+  const btn: ButtonNode = {
+    id: "x", kind: "button", label: "Buy Warlight", href: "https://example.test/w",
+    bg: "#374f6a", color: "#ffffff", radius: 8, align: "left", paddingX: 16, paddingY: 8,
+  };
+  ed.insert(btn, secId);
+  const html = toEmailHtml(ed.extract());
+
+  // 067 — Word drops `padding` and `display:inline-block` on an <a>, which is
+  // where ALL of this button's padding used to live. The cell got the colour
+  // and none of the size, so the button collapsed to a coloured word.
+  // `mso-padding-alt` is Word's own property and is ignored everywhere else.
+  check(
+    "a button carries mso-padding-alt on the CELL, matching the anchor's padding",
+    html.includes('mso-padding-alt:8px 16px') && html.includes('padding:8px 16px'),
+  );
+  check(
+    "the cell's mso padding sits beside the background, not instead of it",
+    /<td[^>]*bgcolor="#374f6a"[^>]*mso-padding-alt:8px 16px/.test(html),
+  );
+
+  // 068 — an image with no source must not emit `src=""`, which many clients
+  // resolve to the current document: a spurious fetch of the message itself.
+  // `renderLink` has always refused the same shape for `href`.
+  const ed2 = new EmailEditor();
+  ed2.insert(
+    { id: "y", kind: "image", src: "", alt: "The cover of Warlight", width: 552, align: "center" } as never,
+    ed2.root.children[0]!.id,
+  );
+  const imgHtml = toEmailHtml(ed2.extract());
+  check("an image with no source emits NO src attribute", !imgHtml.includes('src=""'));
+  check("...and keeps its alt text rather than vanishing", imgHtml.includes('alt="The cover of Warlight"'));
+
+  // Control: a real source is still emitted exactly as authored.
+  const ed3 = new EmailEditor();
+  ed3.insert(
+    { id: "z", kind: "image", src: "https://cdn.test/w.png", alt: "Warlight", width: 552, align: "center" } as never,
+    ed3.root.children[0]!.id,
+  );
+  check("a real source is untouched", toEmailHtml(ed3.extract()).includes('src="https://cdn.test/w.png"'));
+}
+
+// ── 6c. the Navigator's row names, and the picks that were half-clickable ────
+// P04/issues 069 and 070.
+console.log("row names and linked picks");
+{
+  // 069 — content leads. An image's `alt` IS its name; five images in one
+  // newsletter used to give five rows all reading "Image".
+  check(
+    "an image row is named by its alt text",
+    nodeName({ id: "i", kind: "image", src: "", alt: "Warlight — the cover", width: 160, align: "center" } as never) ===
+      "Warlight — the cover",
+  );
+  check(
+    "an image with no alt still falls back to the kind label",
+    nodeName({ id: "i", kind: "image", src: "", alt: "  ", width: 160, align: "center" } as never) === "Image",
+  );
+  check(
+    "a link group is named by where it points, without the scheme",
+    nodeName({ id: "l", kind: "link", href: "https://shop.test/p/warlight", children: [] } as never) ===
+      "shop.test/p/warlight",
+  );
+  check(
+    "a link with no destination yet still falls back to the kind label",
+    nodeName({ id: "l", kind: "link", href: "", children: [] } as never) === "Link",
+  );
+  check(
+    "a long name is truncated to one scannable line",
+    nodeName({ id: "t", kind: "text", html: "x".repeat(80), align: "left", color: "#000", fontSize: 16, fontWeight: "normal", lineHeight: 24 } as never).length === 33,
+  );
+
+  // 070 — the newsletter's three picks are Link groups, so the title and price
+  // are clickable too, not just the cover.
+  const doc = emailStarterByKey("newsletter", EMAIL_STARTER_GROUPS)!.make(() => `n${Math.random().toString(36).slice(2, 8)}`, DEFAULT_EMAIL_COLORS);
+  let links = 0;
+  let imagesInLinks = 0;
+  const walkDoc = (n: EmailNode): void => {
+    if (n.kind === "link") {
+      links += 1;
+      imagesInLinks += (n.children as EmailNode[]).filter((c) => c.kind === "image").length;
+    }
+    for (const c of ("children" in n ? (n.children as EmailNode[]) : [])) walkDoc(c);
+  };
+  walkDoc(doc.root);
+  check("the newsletter starter ships three linked picks", links === 3);
+  check("...each holding its own cover", imagesInLinks === 3);
+  check(
+    "a pick's whole card is clickable once a URL is set (three anchors, no block wrapper)",
+    (() => {
+      const withHref = JSON.parse(JSON.stringify(doc)) as typeof doc;
+      const setHrefs = (n: EmailNode): void => {
+        if (n.kind === "link") (n as { href: string }).href = "https://shop.test/p";
+        for (const c of ("children" in n ? (n.children as EmailNode[]) : [])) setHrefs(c);
+      };
+      setHrefs(withHref.root);
+      const html = toEmailHtml(withHref);
+      const anchors = (html.match(/<a href="https:\/\/shop\.test\/p"/g) ?? []).length;
+      return anchors === 9 && !/<a\b[^>]*>\s*<(div|table|tr|td)\b/.test(html);
+    })(),
+  );
+}
+
+// ── 6d. one email, many recipients — the render scope ────────────────────────
+// P04/issues 071. Before this, every projection resolved against an implicit
+// `{}`, so "the same email for a different subscriber" meant building another
+// host — fine on a send loop, impossible in a builder mounted once.
+console.log("render scope");
+{
+  const ed = new EmailEditor();
+  const secId = ed.root.children[0]!.id;
+  ed.insert(
+    { id: "g", kind: "text", html: "Hello {{customer.firstName}},", align: "left", color: "#000", fontSize: 16, fontWeight: "normal", lineHeight: 24 } as never,
+    secId,
+  );
+  const cliftonOnly = ed.insert(
+    { id: "c", kind: "text", html: "Clifton poetry night", align: "left", color: "#000", fontSize: 16, fontWeight: "normal", lineHeight: 24 } as never,
+    secId,
+  )!;
+  ed.setData(cliftonOnly, { kind: "visible", ref: "customer.atClifton" });
+  const doc = ed.extract();
+
+  // One host, three recipients — the shape a real send path has.
+  const host: EmailResolveHost = {
+    resolveBinding: (ref, scope) => {
+      const who = (scope as { audience?: { firstName?: string; homeShop?: string } }).audience ?? {};
+      if (ref === "customer.firstName") return { value: who.firstName ?? "" };
+      if (ref === "customer.atClifton") return { value: who.homeShop === "Clifton" };
+      return undefined;
+    },
+  };
+  const at = (audience: unknown) => toEmailHtml(doc, { resolver: host, scope: { audience } });
+
+  const reuben = at({ firstName: "Reuben", homeShop: "Clifton" });
+  const priya = at({ firstName: "Priya", homeShop: "Gloucester Road" });
+  const nobody = at({});
+
+  check("the greeting differs per recipient from ONE host", reuben.includes("Hello Reuben,") && priya.includes("Hello Priya,"));
+  check("a visibility rule keeps the Clifton block for the Clifton customer", reuben.includes("Clifton poetry night"));
+  check("...and drops it for everybody else", !priya.includes("Clifton poetry night") && !nobody.includes("Clifton poetry night"));
+
+  // CONTROL: no scope behaves exactly as it always did — an empty scope, not a
+  // crash and not a different answer.
+  const noScope = toEmailHtml(doc, host);
+  check("with no scope at all, it still renders and resolves to empty", noScope.includes("Hello ,") && !noScope.includes("{{"));
+
+  // The subject/preheader go through the same scope, not a second `{}`.
+  const ed2 = new EmailEditor();
+  const doc2 = { ...ed2.extract(), subject: "{{customer.firstName}}, this week at Thornbury" };
+  check(
+    "the subject is resolved against the render scope too",
+    toEmailHtml(doc2, { resolver: host, scope: { audience: { firstName: "Reuben" } } }).includes("<title>Reuben, this week at Thornbury</title>"),
+  );
+}
+
 // ── 7. multi-template project: add/rename/remove/switch + whole-project undo ──
 console.log("multi-template project");
 {
@@ -281,6 +447,249 @@ console.log("multi-template project");
   );
   ed2.redo();
   check("history: redo re-adds it", ed2.templatesView.templates.length === 2);
+}
+
+// ── 7b. duplicating a whole template (P04 act 7 / issues 072) ──────────────
+// One send per shop is the normal case. The switcher could add and delete, so
+// the second version of an email that already existed had to be built again
+// from a starter, by hand, word for word.
+console.log("duplicating a template");
+{
+  const ed = new EmailEditor();
+  const firstId = ed.templatesView.activeId;
+  ed.renameTemplate(firstId, "Dispatch — Clifton");
+  const textId = ed.root.children[0]!.children[0]!.id;
+  ed.update(textId, { html: "Use DISPATCH10 at the till." });
+
+  const copyId = ed.duplicateTemplate(firstId)!;
+  check("duplicateTemplate adds a template and switches to it", ed.templatesView.templates.length === 2 && ed.activeTemplate === copyId);
+  check("the copy is named from the original", ed.templatesView.templates.find((t) => t.id === copyId)?.name === "Dispatch — Clifton copy");
+  check("the copy carries the original's content", (ed.root.children[0]!.children[0] as TextNode).html === "Use DISPATCH10 at the till.");
+  check("the copy's nodes have FRESH ids — not a second reference to the same blocks", ed.root.children[0]!.children[0]!.id !== textId);
+
+  // The one that matters: editing the copy must not reach into the original.
+  ed.update(ed.root.children[0]!.children[0]!.id, { html: "Use THORNBURY10 at the till." });
+  ed.setActiveTemplate(firstId);
+  check("editing the copy leaves the original alone", (ed.root.children[0]!.children[0] as TextNode).html === "Use DISPATCH10 at the till.");
+
+  // A second copy of the same source is "copy 2", not a duplicate name.
+  const copy2 = ed.duplicateTemplate(firstId)!;
+  check("a second copy of the same email is numbered, not named twice", ed.templatesView.templates.find((t) => t.id === copy2)?.name === "Dispatch — Clifton copy 2");
+
+  // The subject and preview text travel too — they live on the document, not in it.
+  const ed2 = new EmailEditor();
+  const src = ed2.templatesView.activeId;
+  ed2.setSubject("Clifton: 10% off with DISPATCH10");
+  ed2.setPreheader("Use DISPATCH10 at the till.");
+  ed2.duplicateTemplate(src);
+  check("the copy carries the subject", ed2.extract().subject === "Clifton: 10% off with DISPATCH10");
+  check("the copy carries the preview text", ed2.extract().preheader === "Use DISPATCH10 at the till.");
+
+  // CONTROL: a copy of nothing is nothing, and the roster is untouched.
+  const n = ed2.templatesView.templates.length;
+  check("duplicating an id that isn't there does nothing at all", ed2.duplicateTemplate("no-such-template") === undefined && ed2.templatesView.templates.length === n);
+
+  // Undoable in one step, like add.
+  ed2.undo();
+  check("undo removes the copy in ONE step", ed2.templatesView.templates.length === n - 1);
+}
+
+// ── 7c. find + replace across every template (P04 act 7 / issues 073) ─────
+// The offer code was wrong in twelve places across three shops' emails, six of
+// them on no screen he was looking at, and the builder offered nothing at all
+// for finding a word.
+console.log("find and replace across the project");
+{
+  const WRONG = "DISPATCH10";
+  const RIGHT = "THORNBURY10";
+  const ed = new EmailEditor();
+  const first = ed.templatesView.activeId;
+  ed.renameTemplate(first, "Dispatch — Clifton");
+  ed.setSubject(`Clifton: 10% off with ${WRONG}`);
+  ed.setPreheader(`Use ${WRONG} at the till.`);
+  const textId = ed.root.children[0]!.children[0]!.id;
+  ed.update(textId, { html: `Show this email at the till, or enter <b>${WRONG}</b> online.` });
+  const btnId = ed.insert(
+    { id: "b", kind: "button", label: `Claim ${WRONG}`, href: `https://thornburybooks.co.uk/offer?code=${WRONG}` } as unknown as EmailNode,
+    ed.root.children[0]!.id,
+  )!;
+
+  check("findText finds all five places in one email", ed.findText(WRONG).length === 5);
+  check("...including the subject", ed.findText(WRONG).some((h) => h.field === "subject"));
+  check("...and the preview text", ed.findText(WRONG).some((h) => h.field === "preheader"));
+  check("...and the web address behind the button — the one on no screen", ed.findText(WRONG).some((h) => h.field === "href"));
+  check("a hit says where it is in words, not ids", ed.findText(WRONG).some((h) => h.where === "Subject"));
+
+  // Duplicated for two more shops: the same five places, three times over.
+  ed.duplicateTemplate(first);
+  ed.duplicateTemplate(first);
+  check("three shops → fifteen places, counted for him", ed.findText(WRONG).length === 15);
+  check("the hits span all three emails", new Set(ed.findText(WRONG).map((h) => h.templateId)).size === 3);
+
+  const places = ed.replaceText(WRONG, RIGHT);
+  check("replaceText reports the number of places it changed", places === 15);
+  check("nothing says the wrong code any more, in any email", ed.findText(WRONG).length === 0);
+  check("every one of them says the right code", ed.findText(RIGHT).length === 15);
+
+  // Across templates, not just the open one — the whole point.
+  for (const t of ed.extractProject().templates) {
+    check(`“${t.name}” subject was fixed too`, t.document.subject.includes(RIGHT) && !t.document.subject.includes(WRONG));
+  }
+
+  // ONE undo step, however many places it touched.
+  ed.undo();
+  check("undo puts all fifteen back in one press", ed.findText(WRONG).length === 15 && ed.findText(RIGHT).length === 0);
+  ed.redo();
+  check("redo fixes all fifteen again", ed.findText(RIGHT).length === 15);
+
+  // The markup guard. A text block stores HTML; a replace that cannot tell a
+  // word from a tag corrupts the email.
+  const ed2 = new EmailEditor();
+  const id2 = ed2.root.children[0]!.children[0]!.id;
+  ed2.update(id2, { html: '<a href="https://a.test/a">an apple</a>' });
+  // Two hits, not one: the stock subject "New email" holds an "a" as well —
+  // which is the subject being genuinely in scope, not noise.
+  check("searching for a letter finds the words AND the subject", ed2.findText("a").length === 2);
+  check(
+    "...and does NOT count the letters inside the tag — four in the markup, two in the words",
+    ed2.findText("a").find((h) => h.field === "html")?.count === 2,
+  );
+  ed2.replaceText("a", "★");
+  const after = (ed2.node(id2) as TextNode).html;
+  check("the tag survived a replace that matched inside it", after.includes('<a href="https://a.test/a">'));
+  check("...and the readable words were changed", after.includes("★n ★pple"));
+
+  // CONTROLS. A search that matches nothing changes nothing; an empty search
+  // matches nothing at all rather than everything.
+  const ed3 = new EmailEditor();
+  check("a term that isn't there finds nothing", ed3.findText("NOTHING_LIKE_THIS").length === 0);
+  check("an empty search finds nothing, not everything", ed3.findText("").length === 0);
+  check("replacing a term that isn't there is a no-op", ed3.replaceText("NOTHING_LIKE_THIS", "x") === 0);
+  check("replacing a term with itself is a no-op", ed3.replaceText("Start", "Start") === 0);
+  const untouched = toEmailHtml(new EmailEditor().extract());
+  ed3.replaceText("NOTHING_LIKE_THIS", "x");
+  check("a no-op replace leaves the email byte-identical", toEmailHtml(ed3.extract()) === untouched);
+
+  // Design fields are NOT searchable — a replace of "18" must never reach a
+  // color or a font size.
+  const ed4 = new EmailEditor();
+  const id4 = ed4.root.children[0]!.children[0]!.id;
+  ed4.update(id4, { html: "18 Cotham Hill", color: "#18181b", fontSize: 18 });
+  check("a number in the words is found", ed4.findText("18").length === 1);
+  ed4.replaceText("18", "20");
+  const n4 = ed4.node(id4) as TextNode;
+  check("the colour was not rewritten", n4.color === "#18181b");
+  check("the font size was not rewritten", n4.fontSize === 18);
+  check("the address was", n4.html === "20 Cotham Hill");
+}
+
+// ── 7d. it has to fit a phone (P04 act 9 / issues 075) ────────────────
+// Half of all email is opened on a phone. Every email this projector produced
+// was 600 pixels wide on a 360 pixel screen — the one mobile rule stacked the
+// columns and never narrowed the body, and `max-width:100%` could not save it
+// because the percentage resolved against a content-sized table cell.
+console.log("fitting a phone");
+{
+  const ed = new EmailEditor();
+  const html = toEmailHtml(ed.extract());
+
+  check("the body table is fluid, not a fixed pixel width", html.includes('style="width:100%;max-width:600px'));
+  check("...and carries the hook the mobile rule needs", html.includes('class="sui-body"'));
+  check("the mobile rule narrows the body, not just the columns", html.includes(".sui-body { width: 100% !important; }"));
+  check("...and still stacks the columns", html.includes(".sui-col { display: block !important; width: 100% !important; }"));
+  // Word ignores max-width, so it gets a real 600px table of its own.
+  check("Outlook still gets a fixed 600px shell", html.includes("<!--[if mso]><table role=\"presentation\" width=\"600\""));
+  check("...and that shell is closed", html.includes("<!--[if mso]></td></tr></table><![endif]-->"));
+
+  // Images were the other half of it: a 552px cover with `max-width:100%` kept
+  // all 552 of them and dragged the table out with it.
+  const ed2 = new EmailEditor();
+  const imgId = ed2.insert({ id: "x", kind: "image", src: "https://cdn.test/a.png", alt: "A cover", width: 552, align: "center" } as unknown as EmailNode, ed2.root.children[0]!.id)!;
+  const withImg = toEmailHtml(ed2.extract());
+  check("an image is fluid up to the size the author chose", withImg.includes("width:100%;max-width:552px;height:auto"));
+  check("...and keeps the width ATTRIBUTE Word needs", withImg.includes('width="552"'));
+  check("...and no longer pins itself to a pixel width", !withImg.includes("width:552px;max-width:100%"));
+  void imgId;
+
+  // A stock button has to be a target a thumb hits. 16px label in an ≈18px
+  // line box, so 8px padding made it 34px tall — under the 44px minimum.
+  check("the one button padding default clears the 44px tap minimum", EMAIL_BUTTON_PADDING.y * 2 + 18 >= 44);
+  const ed3 = new EmailEditor();
+  ed3.insert({ id: "b", kind: "button", label: "Shop now", href: "https://shop.test", bg: "#111827", color: "#ffffff", radius: 8, align: "center", paddingX: EMAIL_BUTTON_PADDING.x, paddingY: EMAIL_BUTTON_PADDING.y } as unknown as EmailNode, ed3.root.children[0]!.id);
+  const btn = toEmailHtml(ed3.extract());
+  check("the projected button carries that padding", btn.includes("padding:14px 16px"));
+  check("...and hands Word the same target through mso-padding-alt", btn.includes("mso-padding-alt:14px 16px"));
+
+  // ONE definition of that padding — it was written out three times.
+  const fromPalette = emailPaletteItemByKey("button")!.make(DEFAULT_EMAIL_COLORS) as { paddingY: number };
+  const fromStarter = emailStarterByKey("newsletter", EMAIL_STARTER_GROUPS)!.make(() => "id", DEFAULT_EMAIL_COLORS);
+  const starterButton = JSON.stringify(fromStarter).match(/"kind":"button"[^}]*"paddingY":(\d+)/);
+  check("the palette's button uses the shared default", fromPalette.paddingY === EMAIL_BUTTON_PADDING.y);
+  check("the starter's button uses the shared default too", starterButton !== null && Number(starterButton[1]) === EMAIL_BUTTON_PADDING.y);
+}
+
+// ── 7e. a URL this projector will not emit (P04 / issues 076) ───────────
+// The email projector escaped every URL and checked none of them. The site
+// projector has always run `isSafeUrl` over every href/src it writes; the guard
+// was module-private, so this package could not reach it and grew a weaker
+// answer instead. It is exported now and this is the one shape.
+console.log("unsafe URLs");
+{
+  const BAD = [
+    "javascript:alert(1)",
+    " javascript:alert(1)",          // leading space — still javascript: to a browser
+    "java\nscript:alert(1)",        // a newline inside the scheme — likewise
+    "JaVaScRiPt:alert(1)",
+    "data:text/html;base64,PHNjcmlwdD4=",
+    "vbscript:msgbox(1)",
+  ];
+  const GOOD = ["https://shop.test/x", "http://shop.test/x", "mailto:hi@shop.test", "tel:+441179460000", "/relative/path", "photos/a:b.jpg"];
+
+  for (const bad of BAD) {
+    const ed = new EmailEditor();
+    ed.insert({ id: "b", kind: "button", label: "Press", href: bad, bg: "#111827", color: "#fff", radius: 8, align: "center", paddingX: 16, paddingY: 14 } as unknown as EmailNode, ed.root.children[0]!.id);
+    const html = toEmailHtml(ed.extract());
+    check(`a button href of ${JSON.stringify(bad)} is dropped`, !/<a[^>]*href="(?!")[^"]*(javascript|data|vbscript)/i.test(html));
+  }
+  for (const good of GOOD) {
+    const ed = new EmailEditor();
+    ed.insert({ id: "b", kind: "button", label: "Press", href: good, bg: "#111827", color: "#fff", radius: 8, align: "center", paddingX: 16, paddingY: 14 } as unknown as EmailNode, ed.root.children[0]!.id);
+    check(`a button href of ${JSON.stringify(good)} still goes out`, toEmailHtml(ed.extract()).includes(`href="${good.replace(/&/g, "&amp;")}"`));
+  }
+
+  // An image's src and an image's own link.
+  const edI = new EmailEditor();
+  edI.insert({ id: "i", kind: "image", src: "javascript:alert(1)", alt: "A cover", width: 300, align: "center", href: "javascript:alert(2)" } as unknown as EmailNode, edI.root.children[0]!.id);
+  const imgHtml = toEmailHtml(edI.extract());
+  check("an unsafe image src is dropped, and the alt text survives", !imgHtml.includes("javascript:") && imgHtml.includes('alt="A cover"'));
+  check("...and the image is not wrapped in an unsafe anchor", !/<a[^>]*javascript:/i.test(imgHtml));
+
+  // An anchor the AUTHOR wrote inside a text block.
+  const edT = new EmailEditor();
+  const tId = edT.root.children[0]!.children[0]!.id;
+  edT.update(tId, { html: 'Read <a href="javascript:alert(1)">the review</a> and <a href="https://shop.test/r">this one</a>.' });
+  const textHtml = toEmailHtml(edT.extract());
+  check("an unsafe anchor inside a text block loses its href", !/javascript:/i.test(textHtml));
+  check("...but keeps its words — the sentence is not deleted", textHtml.includes("the review"));
+  check("...and a safe anchor beside it is untouched", textHtml.includes('href="https://shop.test/r"'));
+
+  // The dangerous one: the author's copy is clean and the HOST's data is not.
+  const hostile: EmailResolveHost = {
+    resolveBinding: (ref) =>
+      ref === "customer.site" ? { value: "javascript:alert(1)" } : ref === "customer.bio" ? { value: '<script>alert(1)<\/script>' } : undefined,
+  };
+  const edH = new EmailEditor();
+  const hId = edH.root.children[0]!.children[0]!.id;
+  edH.update(hId, { html: "About you: {{customer.bio}}" });
+  const btnId = edH.insert({ id: "b", kind: "button", label: "Visit", href: "", bg: "#111827", color: "#fff", radius: 8, align: "center", paddingX: 16, paddingY: 14 } as unknown as EmailNode, edH.root.children[0]!.id)!;
+  edH.setData(btnId, { kind: "value", ref: "customer.site", attr: "href" });
+  const hostHtml = toEmailHtml(edH.extract(), hostile);
+  check("a hostile value delivered through a merge token is escaped, not executed", !/<script[\s>]/i.test(hostHtml) && hostHtml.includes("&lt;script&gt;"));
+  check("a hostile URL delivered through a BIND is dropped too", !/javascript:/i.test(hostHtml));
+
+  // CONTROL: a document with no unsafe url anywhere is byte-identical.
+  const plain = toEmailHtml(new EmailEditor().extract());
+  check("the guard changes nothing about an ordinary email", plain.includes("Start writing your email…") || plain.includes("Start writing your email"));
 }
 
 // ── 8. data binding: resolveEmailTree + toEmailHtml(doc, resolver) ───────────

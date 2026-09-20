@@ -1,0 +1,91 @@
+{% comment %}
+  O formulário de reserva.
+
+  As classes são as do silicaui: .field, .field-label, .input, .field-error.
+  O estado de erro pende de [data-invalid] no controlo — e esse atributo escrevo-o
+  eu no servidor, a partir de form.<campo>.errors. Sem JavaScript nenhum.
+{% endcomment %}
+
+{% if reserva_confirmada %}
+  <div class="alert alert-success" role="status">
+    <div>
+      <h3 class="font-semibold">Reserva registada</h3>
+      <p class="text-md">
+        {{ reserva_confirmada.pessoas }} pessoa{{ reserva_confirmada.pessoas|pluralize:"s" }}
+        em nome de {{ reserva_confirmada.nome }},
+        {{ reserva_confirmada.dia }}, {{ reserva_confirmada.servico_label }}.
+        Telefonamos a confirmar para {{ reserva_confirmada.telefone }}.
+      </p>
+    </div>
+  </div>
+{% endif %}
+
+<form method="post" action="{% url 'reservar' %}#reservar" novalidate class="flex flex-col gap-5">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-error" role="alert">
+      <div>
+        {% for erro in form.non_field_errors %}<p class="text-md">{{ erro }}</p>{% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="field">
+    <label class="field-label" for="{{ form.nome.id_for_label }}">Nome</label>
+    <input class="input" type="text" name="nome" id="{{ form.nome.id_for_label }}"
+           value="{{ form.nome.value|default:'' }}" maxlength="80" autocomplete="name"
+           {% if form.nome.errors %}data-invalid aria-invalid="true"
+           aria-describedby="{{ form.nome.id_for_label }}-erro"{% endif %}>
+    {% for erro in form.nome.errors %}
+      <p class="field-error" id="{{ form.nome.id_for_label }}-erro">{{ erro }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="{{ form.telefone.id_for_label }}">Telefone</label>
+    <input class="input" type="tel" name="telefone" id="{{ form.telefone.id_for_label }}"
+           value="{{ form.telefone.value|default:'' }}" autocomplete="tel"
+           {% if form.telefone.errors %}data-invalid aria-invalid="true"
+           aria-describedby="{{ form.telefone.id_for_label }}-erro"{% endif %}>
+    <p class="field-description">Nove dígitos. Por exemplo 226054417.</p>
+    {% for erro in form.telefone.errors %}
+      <p class="field-error" id="{{ form.telefone.id_for_label }}-erro">{{ erro }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="{{ form.dia.id_for_label }}">Dia</label>
+    <input class="input" type="date" name="dia" id="{{ form.dia.id_for_label }}"
+           value="{{ form.dia.value|default:'' }}"
+           {% if form.dia.errors %}data-invalid aria-invalid="true"
+           aria-describedby="{{ form.dia.id_for_label }}-erro"{% endif %}>
+    {% for erro in form.dia.errors %}
+      <p class="field-error" id="{{ form.dia.id_for_label }}-erro">{{ erro }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="{{ form.servico.id_for_label }}">Serviço</label>
+    <select class="select" name="servico" id="{{ form.servico.id_for_label }}"
+            {% if form.servico.errors %}data-invalid aria-invalid="true"{% endif %}>
+      {% for valor, etiqueta in form.fields.servico.choices %}
+        <option value="{{ valor }}" {% if form.servico.value == valor %}selected{% endif %}>{{ etiqueta }}</option>
+      {% endfor %}
+    </select>
+    {% for erro in form.servico.errors %}<p class="field-error">{{ erro }}</p>{% endfor %}
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="{{ form.pessoas.id_for_label }}">Pessoas</label>
+    <input class="input" type="number" name="pessoas" id="{{ form.pessoas.id_for_label }}"
+           value="{{ form.pessoas.value|default:'' }}" min="1" max="12" inputmode="numeric"
+           {% if form.pessoas.errors %}data-invalid aria-invalid="true"
+           aria-describedby="{{ form.pessoas.id_for_label }}-erro"{% endif %}>
+    {% for erro in form.pessoas.errors %}
+      <p class="field-error" id="{{ form.pessoas.id_for_label }}-erro">{{ erro }}</p>
+    {% endfor %}
+  </div>
+
+  <button class="btn btn-primary" type="submit">Pedir reserva</button>
+</form>

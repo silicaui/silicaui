@@ -117,17 +117,37 @@ console.log("locked node stays editable");
   check("class edit applies under lock", find(ed.extract().root, (n) => idOf(n) === id)?.class === "card p-8 bg-base-200");
 }
 
-// ── 6. duplicate is allowed and the copy is UNLOCKED ─────────────────────────
-console.log("duplicate clears the clone lock");
+// ── 6. duplicate: an AUTHOR lock clears, a HOST lock does not ──────────────
+// The author's own lock is theirs to set and clear, so a copy starts unlocked.
+// The host's is not theirs to drop — and `pinned: true` used to be defeated by
+// Ctrl+D, which left an unlocked copy of a host-owned block on the page with no
+// hook for the host to re-lock it. See P05/issues 081.
+console.log("duplicate: author lock clears, host lock holds");
+{
+  const ed = freshEditor();
+  const id = sectionId(ed);
+  ed.setLocked(id, "author");
+  const copyId = ed.duplicate(id)!;
+  check("duplicate returns a new id", typeof copyId === "string" && copyId !== id);
+  check("the original stays author-locked", lockedOf(ed.node(id)) === "author");
+  check("a copy of an AUTHOR-locked node is unlocked", lockedOf(ed.node(copyId)) === undefined);
+  check("...and removable", (ed.remove(copyId), !find(ed.extract().root, (n) => idOf(n) === copyId)));
+}
 {
   const ed = freshEditor();
   const id = sectionId(ed);
   ed.setLocked(id, "host");
   const copyId = ed.duplicate(id)!;
-  check("duplicate returns a new id", typeof copyId === "string" && copyId !== id);
-  check("original stays locked", lockedOf(ed.node(id)) === "host");
-  check("the copy is unlocked", lockedOf(ed.node(copyId)) === undefined);
-  check("the copy is removable", (ed.remove(copyId), !find(ed.extract().root, (n) => idOf(n) === copyId)));
+  check("the original stays host-locked", lockedOf(ed.node(id)) === "host");
+  check("a copy of a HOST-locked node is STILL host-locked", lockedOf(ed.node(copyId)) === "host");
+  check(
+    "...so Ctrl+D cannot mint an unlocked copy of a pinned block",
+    (ed.remove(copyId), Boolean(find(ed.extract().root, (n) => idOf(n) === copyId))),
+  );
+  // The host is never boxed out of its own lock: setLocked is tier-blind.
+  ed.setLocked(copyId, undefined);
+  check("the host can still clear it", lockedOf(ed.node(copyId)) === undefined);
+  check("...and then it removes", (ed.remove(copyId), !find(ed.extract().root, (n) => idOf(n) === copyId)));
 }
 
 // ── 7. setLocked is undoable ─────────────────────────────────────────────────

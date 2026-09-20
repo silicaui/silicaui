@@ -52,7 +52,7 @@ export function validator(prefix = "") {
     // ---- Hint --------------------------------------------------------------
     [sel("-hint")]: {
       display: "none",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       lineHeight: "1.25",
       marginTop: "0.25rem",
       color: inkOfRole("error"),

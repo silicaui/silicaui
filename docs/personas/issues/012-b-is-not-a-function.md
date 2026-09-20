@@ -123,3 +123,15 @@ type either name.
 ## Rating effect
 
 —
+
+
+---
+
+**Reopened and finished 2026-09-19.** The guard added here was present in the
+built output but **never reached**: Tailwind only invokes a plugin given an
+options block if its export is marked `__isOptionsFunction`, and the options form
+is what every doc, every starter and this guard's own suggested fix write. So the
+message below only appeared for `@plugin "pkg";` with no block. See
+[105](105-the-wrong-plugin-guards-only-fired-on-the-one-line-nobody-writes.md),
+which drove all three packages through a real Vite + Tailwind build and proved the
+published `dist` of each against Tailwind's own resolver.

@@ -106,7 +106,7 @@ export function typography(prefix = "", prefersDark = false) {
   // Body copy: comfortable measure-independent leading; `<small>` as caption.
   rules[on("p")] = { lineHeight: "1.6" };
   rules[on("small")] = {
-    fontSize: "0.875rem",
+    fontSize: "1rem",
     color: "inherit",
   };
   // Bare `<blockquote>` — a pull-quote/testimonial treatment (distinct from
@@ -122,7 +122,7 @@ export function typography(prefix = "", prefersDark = false) {
   rules[on("blockquote > footer, blockquote > cite")] = {
     display: "block",
     marginTop: "0.5rem",
-    fontSize: "0.875rem",
+    fontSize: "1rem",
     fontStyle: "normal",
     color: "inherit",
   };
@@ -162,7 +162,7 @@ export function typography(prefix = "", prefersDark = false) {
     color: "inherit",
   };
   rules[cls("caption")] = {
-    fontSize: "0.875rem",
+    fontSize: "1rem",
     lineHeight: "1.4",
     color: "inherit",
   };
@@ -177,7 +177,7 @@ export function typography(prefix = "", prefersDark = false) {
   rules[cls("blockquote-cite")] = {
     display: "block",
     marginTop: "0.5rem",
-    fontSize: "0.875rem",
+    fontSize: "1rem",
     fontStyle: "normal",
     color: "inherit",
   };

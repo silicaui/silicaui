@@ -30,7 +30,7 @@ export function fieldset(prefix = "") {
       alignItems: "center",
       gap: "0.5rem",
       padding: "0",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "600",
       lineHeight: "1.25",
       color: "var(--color-base-content)",
@@ -43,7 +43,7 @@ export function fieldset(prefix = "") {
       display: "flex",
       alignItems: "center",
       gap: "0.375rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       lineHeight: "1.25",
       color: "var(--color-base-content)",
 

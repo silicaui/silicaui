@@ -40,7 +40,7 @@ export function dropdown(prefix = "") {
       alignItems: "center",
       gap: "0.5rem",
       padding: "0.4rem 0.6rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.4",
       borderRadius: "var(--radius-field, 0.25rem)",
       color: "inherit",
@@ -77,7 +77,7 @@ export function dropdown(prefix = "") {
 
     [sel("-label")]: {
       padding: "0.375rem 0.6rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
     },

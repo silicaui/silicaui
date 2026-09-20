@@ -77,7 +77,7 @@ export function lightbox(prefix = "") {
       marginTop: "1rem",
       maxWidth: "40rem",
       textAlign: "center",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       color: "rgb(255 255 255 / 0.85)",
     },
 
@@ -85,7 +85,7 @@ export function lightbox(prefix = "") {
       position: "absolute",
       top: "1.1rem",
       insetInlineStart: "1.25rem",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       fontVariantNumeric: "tabular-nums",
       color: "rgb(255 255 255 / 0.7)",
     },

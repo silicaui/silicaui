@@ -42,10 +42,10 @@ export function chat(colors, prefix = "") {
     // Who said it and when, and the delivery line under it. Both are read.
     // 12px against the bubble's 16px is the hierarchy; the fade was extra.
     [sel("-header")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
     },
     [sel("-footer")]: {
-      fontSize: "0.75rem",
+      fontSize: "1rem",
     },
 
     [sel("-bubble")]: {

@@ -4,8 +4,8 @@
 **Author:** Brandon Korous
 **Last Updated:** 2026-09-18
 
-**Status:** not started
-**Run:** —
+**Status:** done
+**Run:** started and finished 2026-09-18
 **Customer:** developer
 **Path:** `@wizeworks/silicaui-html` + `@wizeworks/silicaui-behaviors` — node tree → static HTML, **no React anywhere**
 **Role in the roster:** structurally the earliest divergence after the spine
@@ -236,28 +236,243 @@ against pasted junk. Add a `<script>`, an `onclick=`, a `javascript:` href and a
 
 | | Result |
 | --- | --- |
-| Acts completed | |
-| Issues filed | |
-| Issues fixed and confirmed | |
-| Issues blocked, and on what | |
-| Screens scored (in both themes at 360px) | |
-| **Not checked** | |
+| Acts completed | **9 of 9** |
+| Issues filed | **3** — 033, 034, 035 |
+| Issues fixed and confirmed | **3 of 3** |
+| Issues blocked, and on what | none |
+| Screens scored (in both themes at 360px) | **3** — `/docs/`, and the guide's own index and entry pages |
+| **Not checked** | a real old Android device (weights measured exactly, transfer time COMPUTED from them, not observed on hardware); any browser but Chromium; a screen reader actually reading the Arabic; the 24 entries' photographs (SVG placeholders stand in — the carousel is what was under test) |
 
 ### The numbers
 
 | Record | Result |
 | --- | --- |
-| Could she find path three from the docs alone? | |
-| React references anywhere in the generator or the output | |
-| CSP violations in the console under the strict policy | |
-| Interactive things that worked on the published page, of three | |
-| Page weight and time to readable on throttled 3G | |
-| Tags and attributes stripped by the allowlist, of those attempted | |
-| Design-rule breaches found | |
+| Could she find path three from the docs alone? | **Only by leaving the docs.** `/docs/` had **118 links, 117 of them component pages**; no `<header>`; and ⌘K answered "No results found" for `static`, `html`, `no framework` and even `getting started`. **#033** |
+| React references anywhere in the generator or the output | **Zero.** No `react`/`react-dom` anywhere in `node_modules`; both node-tree packages declare **no dependencies at all**; the published HTML contains one `<script type="module" src>` and nothing else |
+| CSP violations in the console under the strict policy | **0**, across the whole journey. `default-src 'none'; script-src 'self'; style-src 'self'` |
+| Interactive things that worked on the published page, of three | **3 of 3** — disclosure (real Enter), tab strip (real arrow keys), carousel (3 items, 2 controls) |
+| Page weight and time to readable on throttled 3G | index **2.5 KB** gzipped, an entry **1.0 KB**, stylesheet **41 KB**, runtime **22 KB** → **64.7 KB** for a first visit ≈ **1.3 s** of transfer at 400 kbit/s |
+| Tags and attributes stripped by the allowlist, of those attempted | **10 of 10** on the first pass — `<script>`, `<iframe>`, `onclick`, `onerror`, `style`, `javascript:`, `data:`, an unclosed `<em>` (escaped as text), and an unknown node kind. **Then 6 MORE that should NOT have been** — `dir`, `lang`, `translate`, `<bdi>`, `<bdo>`, and every plain relative URL. **#034, #035** |
+| Design-rule breaches found | **0.** No hex, no inline style anywhere in 26 pages, no eyebrow. 161 text elements measured at 360px across both themes: **0 below AA** |
 
 ---
 
 ## Run log
 
-Written act by act **as you go**. Quote the exact words on screen — and quote the
-generated markup where the markup is the finding.
+### Act 1 — Find the node-tree story in the docs · **done**
+
+She clicks **Docs**, because that is what it is called. `/docs/` is a heading, one sentence
+and "Browse components". Counted off the page: **118 links, 117 of them component pages**,
+the 118th the wordmark. **Zero** to Getting started. The docs shell has **no `<header>`
+element at all**, so the landing page's "Get started" button does not follow her in.
+
+So she uses ⌘K, which the page invites her to:
+
+```
+static          → No results found.
+html            → No results found.
+no framework    → No results found.
+getting started → No results found.
+```
+
+The palette could not find the page **by its own title**. The one page documenting the
+node-tree path was reachable by going back to the landing page or guessing the URL. **#033**,
+fixed — a "Start here" group read by BOTH the sidebar and the palette, with keywords drawn
+from the terms two personas have now typed and got nothing for.
+
+**Recorded, not filed:** getting-started tells her path three exists and shows six lines of
+`atom()`/`toHtml()`. The node kinds, the binding vocabulary and the `toHtml` allowlist live
+in `get_node_schema` on the MCP and on no page of the site. Enough to start; not enough to
+write a generator.
+
+### Act 2 — First page out · **done**
+
+```
+npm i @wizeworks/silicaui-html @wizeworks/silicaui-behaviors
+```
+
+**25 packages, and not one of them is React.** Both node-tree packages declare
+`"dependencies": {}`. The smallest tree projects exactly as documented:
+
+```
+<h1 class="text-3xl">Bab er-Rouah — باب الرواح</h1>
+<button class="btn btn-primary" type="button">Ouvrir</button>
+<p>Ouvert <strong>mardi</strong> à dimanche.</p>
+```
+
+**Then she read the attributes, which is the point of the act, and found #034.** Every plain
+relative URL was gone:
+
+| written | emitted |
+| --- | --- |
+| `href="entree/chellah/"` | `<a>` |
+| `src="photos/chellah.jpg"` | `<img>` |
+| `href="./entree/chellah/"` | **kept** |
+
+`./photos/a.jpg` survived and `photos/a.jpg` did not — the same URL. The function's own
+comment says *"A schemeless (relative/anchor/query) URL is always safe"*; the code
+allow-listed four prefixes instead. Fixed, with the whitespace hole that widening would have
+opened closed in the same change.
+
+### Act 3 — The mixed-script data · **done**
+
+**#035, and it is the one that would have stopped the project.** The projection could not
+express text direction *at all*: `dir`, `lang` and `translate` were dropped, `<bdi>` and
+`<bdo>` downgraded to `<div>`.
+
+Measured, in a 360px box, on an Arabic-first line:
+
+| | Arabic sits at | Latin sits at |
+| --- | --- | --- |
+| no `dir` | **0 – 57** | 57 – 233 |
+| `dir="auto"` | **303 – 360** | 127 – 303 |
+
+Not a blank — a **reversal**. Every character present, assembled backwards, and invisible to
+anyone who cannot read the script. Fixed; `dir="auto"` now appears 48 times across the
+generated index, and an Arabic-first entry was added to the content because every other title
+happened to begin with Latin and so hid it.
+
+### Act 4 — Absence, told honestly · **done**
+
+`built: null` is six of the 25 entries. It renders as a marked em-dash, never as a value:
+
+```
+<span class="text-base-content" title="Date inconnue" aria-label="Date inconnue" data-unknown="true">—</span>
+```
+
+A screen reader says "date inconnue"; a sighted reader sees a dash that measures **15.15**
+(dune) and **16.69** (obsidian) — legible as a mark, which is what act 4 asks. There is no
+`0`, no empty string and no `1970` anywhere in the output. `14th c.` and `12th c.` are
+carried as the strings they are and never reach a `<time datetime>`; the one real date, the
+exhibition running to `31 December 2026, 23:59`, does.
+
+### Act 5 — Make it interactive without React · **done**
+
+**All three work on the published page.** Driven with real keys, not synthetic events:
+
+| | |
+| --- | --- |
+| disclosure | Enter opens it, "Accès libre" appears, focus stays on the summary |
+| tab strip | Right arrow moves selection 0 → 1, focus follows, one panel visible |
+| carousel | 3 items, hydrated, 2 controls, next advances |
+
+**The runtime does not start itself, and the docs do not say so.** `dist/index.js` exports
+`hydrate` and has no `DOMContentLoaded` listener and no top-level call — so "Load
+`@wizeworks/silicaui-behaviors` on the page" is not sufficient. Under a CSP with no
+`unsafe-inline`, calling it needs a second authored module file. Written into the build's
+README as the step it is.
+
+**Twice I gave a macro a prop it does not take, and twice it rendered an empty element
+without a word.** `atom("Tabs", "tabs", { items: [...] })` produced
+`<div class="tabs"></div>`; `atom("TabsTab", "tabs-tab", { label: t })` produced a
+`<button>` with no text. Both are containers — the content is CHILDREN. An unknown component
+NAME, by contrast, **throws**: *"Unknown @wizeworks/silicaui atom: \"Wormhole\". Register it
+in the atom registry."*
+
+**Recorded, not filed.** The registry holds `expand(node)` functions and no declared prop
+schema, so validating prop names is a change to the macro contract across ~200 components —
+a design decision, not a fix to make mid-run. The asymmetry is worth writing down though: the
+same class of typo fails loudly for a component name and silently for a prop, and `Collapse`
+with wrong props goes further and invents a `<summary>Details</summary>`.
+
+### Act 6 — The CSP · **done**
+
+```
+default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;
+font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none';
+frame-ancestors 'self'
+```
+
+**Zero violations. Zero console messages of any kind**, across index, entry, disclosure,
+tabs and carousel.
+
+- `style=` in the served HTML: **0** across all 26 pages
+- `<script>` in the served HTML: **1 per page**, `type="module" src="…/boot.js"`, never inline
+- the 5 `[style]` attributes visible in the live DOM are written by the scroll-strip behavior
+  through the CSSOM, which `style-src` does not govern — and the console confirms it
+
+**The policy also blocked my own measuring iframe**, because `default-src 'none'` means
+`frame-src 'none'`. That is the policy working. The 360px contrast pass was therefore run
+against the same `out/` served without CSP on a second port, and said so — contrast and
+layout do not depend on the policy, and the policy itself was tested on the real server.
+
+### Act 7 — The thing that goes wrong for her · **done**
+
+Word-pasted junk, straight into a description field. The allowlist held on all of it, in the
+**projection** — not in the browser:
+
+| pasted | emitted |
+| --- | --- |
+| `<script>alert(1)</script>` | `<div>alert(1)</div>` |
+| `<iframe src="https://evil.example">` | `<div></div>` |
+| `onclick="alert(1)"` | dropped |
+| `onerror="alert(1)"` on an `<img>` | dropped, `src` kept |
+| `href="javascript:alert(1)"` | `<a>` with no href |
+| `href="data:text/html,…"` | `<a>` with no href |
+| `style="color:red"` | dropped |
+| an unclosed `<em>` in text | `&lt;em&gt;` — escaped, visible as text |
+| `{ kind: "wormhole" }` | `<div>` |
+
+### Act 8 — The old phone on a slow link · **done**
+
+At an **asserted 360px**, both themes, every translucent ancestor composited:
+
+| | dune | obsidian |
+| --- | --- | --- |
+| index — elements measured | 142 | 142 |
+| index — **below AA** | **0** | **0** |
+| index — worst | 13.79 | 12.93 |
+| entry — measured / below AA | 19 / **0** | 19 / **0** |
+| horizontal scroll | none | none |
+
+Weight, measured as served and gzipped: index **2.5 KB**, an entry **1.0 KB**, stylesheet
+**41 KB**, runtime **22 KB** — **64.7 KB** for a first visit, ≈ **1.3 s** of transfer at
+400 kbit/s, and every page after that is ~1 KB plus cache.
+
+The stylesheet is 63% of that and is the whole plugin surface rather than only what 26 pages
+use. 41 KB gzipped for a complete design system is not out of line, and it is recorded as a
+number rather than filed as a defect.
+
+### Act 9 — The other side · **done**
+
+Cold, under the strict CSP, nothing else running — the measuring server stopped and its port
+asserted free first.
+
+| step | result |
+| --- | --- |
+| index | 25 entries, 10 type tabs, the Arabic-first link present with its relative `href` |
+| filter by type | Right arrow selects "Jardin", by keyboard |
+| open an entry | `باب الحد — Bab el-Had…`, `dir="auto"`, right-aligned |
+| expand the hours | real Enter, "Accès libre" |
+| the photo strip | 3 images, all loaded, next advances |
+| **console messages** | **0** |
+
+### Standing checks · **done**
+
+| Check | Result |
+| --- | --- |
+| Generate twice into the same path | **31 files both times, index byte-identical.** `build.mjs` clears `out/` first |
+| A node kind the projection does not know | `<div>` — keeps its slot, loses nothing |
+| A macro prop it does not take | silent empty element. Recorded above |
+| The content file half-written | **fails loudly**, naming the file and the line; no half-built site is written |
+| Reload with the disclosure open | closes. Native `<details>`, no state, and correct — the alternative is a URL or storage, and neither is free under this CSP |
+| Deep link an entry, cold, under the CSP | works — `/entree/bab-el-had/` renders complete |
+| Dates | `14th c.`/`12th c.` stay strings and never reach a `<time>`; the one real date does |
+| **Machine timezone** | `Europe/Lisbon` in the Django sibling; this build emits `+01:00` explicitly and reads no clock |
+| Contrast at the edges | the `—` for unknowns: **15.15** dune / **16.69** obsidian. The photo caption, the smallest text: above AA in both |
+| Without a mouse | index → tab filter → entry → hours, all on real keys |
+| The boundary | act 7, in the projection |
+
+---
+
+## What this run proves
+
+**Static output with no React anywhere is real.** 25 packages installed, zero of them React,
+both node-tree packages with no dependencies at all; 26 pages of semantic HTML with no inline
+style and one module script; three interactive things working on a published file under a
+policy that forbids inline everything; 161 text elements at 360px with nothing below AA.
+
+**What it could not do was speak Arabic.** The two defects that mattered were both in the
+projection's own floor and both silent: a relative link that vanishes, and a language that
+cannot say which way it reads. Neither throws, both render, and both are invisible unless you
+read the attributes — which is exactly what this persona was built to do.

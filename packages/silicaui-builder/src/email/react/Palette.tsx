@@ -40,7 +40,7 @@ function ItemRow({ item }: { item: EmailPaletteItem }) {
         }}
         onClick={() => editor.insertRelative(item.make(editor.colorDefaults))}
       >
-        <Icon name={item.icon} className="text-base-content/55" />
+        <Icon name={item.icon} className="text-base-content/70" />
         <span className="truncate">{item.label}</span>
       </button>
     </Hint>
@@ -103,7 +103,7 @@ function SavedBlocksSection() {
   if (blocks.length === 0) return null;
   return (
     <section className="flex flex-col gap-0.5">
-      <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/40">Saved</h3>
+      <h3 className="px-2.5 pb-0.5 text-xs font-semibold uppercase tracking-wide text-base-content">Saved</h3>
       {blocks.map((b) => (
         <SavedBlockRow key={b.id} block={b} />
       ))}
@@ -116,8 +116,8 @@ function TargetHint() {
   const selected = useEmailSelectedNode();
   const where = selected ? nodeName(selected) : "the email";
   return (
-    <p className="px-2.5 pb-1 text-xs text-base-content/45">
-      Inserts into <span className="font-medium text-base-content/70">{where}</span>.
+    <p className="px-2.5 pb-1 text-xs text-base-content">
+      Inserts into <span className="font-medium text-base-content">{where}</span>.
     </p>
   );
 }

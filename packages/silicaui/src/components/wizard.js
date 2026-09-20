@@ -83,7 +83,7 @@ export function wizard(colors, prefix = "") {
       width: "2rem",
       height: "2rem",
       borderRadius: "9999px",
-      fontSize: "0.85rem",
+      fontSize: "1rem",
       fontWeight: "700",
       backgroundColor: "var(--color-base-200)",
       color: muted(55),
@@ -105,7 +105,7 @@ export function wizard(colors, prefix = "") {
     },
 
     [sel("-step-label")]: {
-      fontSize: "0.8rem",
+      fontSize: "1rem",
       lineHeight: "1.3",
       color: muted(70),
     },
@@ -115,7 +115,7 @@ export function wizard(colors, prefix = "") {
     },
     [sel("-step-optional")]: {
       display: "block",
-      fontSize: "0.7rem",
+      fontSize: "1rem",
       color: muted(50),
     },
 
@@ -130,6 +130,17 @@ export function wizard(colors, prefix = "") {
       alignItems: "center",
       justifyContent: "space-between",
       gap: "0.75rem",
+    },
+
+    // The system's own focus ring, on controls that were falling back to the
+    // BROWSER's. The browser's ring is visible -- Chromium adapts it -- but it is
+    // 1px where this system's is 2px, it carries no offset, it ignores the theme,
+    // and its shape is the browser's choice, not this system's. Focus should not change
+    // appearance depending on which control a person is standing on.
+    // Found by a sweep of all 116 component pages (P07, docs/personas/issues/092).
+    [`${sel("-step")}:focus-visible`]: {
+      outline: "var(--focus-width, 2px) solid var(--color-primary)",
+      outlineOffset: "-2px",
     },
   };
 

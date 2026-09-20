@@ -326,7 +326,7 @@ export function SizeVocabulary() {
                 const next = Array.isArray(v) ? v[0] : v;
                 if (typeof next === "string" && next) setSize(next as Size);
               }}
-              className="toggle-group-sm w-fit"
+              className="toggle-group-sm w-fit max-w-full overflow-x-auto"
               aria-label="Component size"
             >
               {SIZES.map((s) => (

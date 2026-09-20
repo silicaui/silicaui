@@ -69,6 +69,95 @@ That is the whole setup. See the [component reference](/docs/components/button) 
 the full catalog, each with a live, interactive demo, a props table and the import
 line for every path.
 
+{/*
+  Added after a Django developer put `data-theme="marble"` on his page, got the
+  default palette, and had nothing anywhere to tell him why — not a build warning,
+  not a console message, and no theming page on this site at all. The plugin emits
+  `light` and `dark`; every other name has to be declared. See
+  docs/personas/issues/030.
+*/}
+
+<h2 id="themes">4. Themes</h2>
+
+A **theme** is a bag of token values applied with the `data-theme` attribute. Put it
+on `<html>` for the whole page, or on any wrapper for one section — nesting is the
+intended idiom, and a section needs no CSS of its own.
+
+```html
+<html data-theme="dark">
+  <section data-theme="light">a light island inside a dark page</section>
+</html>
+```
+
+**The plugin emits two names: `light` and `dark`.** There is no `.dark` class and no
+second stylesheet — dark *is* a theme. Any other name is one you declare:
+
+```css
+@plugin "@wizeworks/silicaui/theme" {
+  name: marble;
+  color-scheme: light;
+  --color-base-100: oklch(98% 0.002 250);
+  --color-primary: oklch(45% 0.04 250);
+  /* …any Silica token: --radius-box, --border, --depth, the type faces */
+}
+```
+
+Load it **after** the main plugin so your values win by source order. Partial
+overrides are fine — anything you leave out falls through to the built-in value, and
+any `--color-X` without a matching `--color-X-content` gets a legible ink derived for
+it automatically.
+
+Two things worth knowing before you spend an afternoon on it:
+
+- **An undeclared name fails quietly.** `data-theme="marble"` with no marble declared
+  is not an error — it matches the bare `[data-theme]` rule, every token resolves to
+  the default, and you get a page that looks fine and is not the theme you asked for.
+  If a theme seems to do nothing, check that you declared it.
+- **To follow the OS instead of choosing**, add `prefersdark: true` to a theme block
+  (or to the main plugin block) and it applies under
+  `@media (prefers-color-scheme: dark)` for a page that carries no explicit
+  `data-theme`. No script, no flash.
+
+{/*
+  A designer nested a dark island exactly as this page teaches, opened a dialog
+  from inside it, and got a light panel titled with the dark theme's name. The
+  escape hatches existed and worked; three of eighteen portalled components
+  mentioned them in a prop description, and nothing on this site did. See
+  docs/personas/issues/036.
+*/}
+
+<h3 id="themes-and-popups">A dialog opened inside an island</h3>
+
+Nesting holds for everything rendered **in place**. It does not hold for a popup,
+because a dialog, menu, select, tooltip or toast is portalled to `document.body` to
+escape `overflow` and stacking contexts — so its nearest `[data-theme]` is the one on
+`<html>`, not the island it was opened from. Nothing errors; the panel simply comes up
+in the page's theme.
+
+Two ways to say what you meant, depending on how much you are theming:
+
+```tsx
+// ONE popup — re-state the theme on the popup's own root.
+<Select popupProps={{ "data-theme": "atelier-ink" }} … />
+
+// A WHOLE REGION — point every portalled surface below it at an element inside
+// the island, and they all resolve against it with no per-component props.
+<PortalContainerProvider container={islandEl}>
+  …the island's contents…
+</PortalContainerProvider>
+```
+
+`PortalContainerProvider` is the general answer and covers components that take no
+`popupProps`. The container must not clip (`overflow: hidden`) or establish a
+containing block for fixed positioning (`transform`, `filter`, `contain`,
+`backdrop-filter`), or a centered popup positions against the container instead of the
+viewport — a plain `position: relative` wrapper is safe.
+
+The twenty named presets — their palettes, type faces and shape tokens — are served by
+the [Silica MCP server](https://github.com/silicaui/silicaui): `list_themes` for the
+set, `get_theme("marble")` for one preset's full token map to paste into the block
+above.
+
 <h2 id="without-react">Without React</h2>
 
 React is one output, not the product. The same components exist on two other paths,

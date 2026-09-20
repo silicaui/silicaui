@@ -27,7 +27,7 @@ export function label(prefix = "") {
       display: "inline-flex",
       alignItems: "center",
       gap: "0.375rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.25",
       // Real ink. A field label is text the reader MUST read to use the form,
       // so it doesn't get a faded fill — the smaller size already carries the
@@ -75,7 +75,7 @@ export function label(prefix = "") {
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
-        fontSize: "0.875rem",
+        fontSize: "1rem",
         lineHeight: "1",
         // Real ink, same reason as `.label`: this caption IS the field's name.
         // At rest it sits in an empty field, so full-strength reads as the

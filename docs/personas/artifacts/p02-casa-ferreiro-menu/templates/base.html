@@ -1,0 +1,34 @@
+{% load static %}<!doctype html>
+{# data-theme="marble" — o tema que escolhi na lista dos presets. Ver o log do acto 4. #}
+<html lang="pt-PT" data-theme="marble">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Ementa — Casa Ferreiro · Porto{% endblock %}</title>
+<meta name="description" content="A ementa da Casa Ferreiro, na Rua de São Bento da Vitória, no Porto. Terça a domingo.">
+{% comment %}
+  As letras que os dois temas pedem. marble: Cormorant Garamond + Inter.
+  carbon: Archivo + IBM Plex Sans. Um <link>, nenhum script.
+
+  NOTA para mim: {# … #} é de UMA linha só. Em duas linhas o Django não o trata
+  como comentário e o texto vai parar à página. Já me aconteceu — ver o acto 4.
+{% endcomment %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Cormorant+Garamond:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&family=Inter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="{% static 'css/site.css' %}">
+</head>
+<body class="min-h-screen bg-base-100">
+  <main class="mx-auto w-full max-w-2xl px-4 py-10">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="mx-auto w-full max-w-2xl px-4 pb-12">
+    <div class="divider"></div>
+    <p class="text-md text-base-content">
+      Casa Ferreiro · Rua de São Bento da Vitória 41, 4050-544 Porto ·
+      <a class="link" href="tel:+351226054417">+351 22 605 4417</a>
+    </p>
+  </footer>
+</body>
+</html>

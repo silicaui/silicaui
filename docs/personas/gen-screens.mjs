@@ -90,6 +90,7 @@ const PANES = {
     "Canvas.tsx": ["Site builder › Canvas", "builder?editor=site"],
     "Navigator.tsx": ["Site builder › Layers (Navigator)", "left rail › Layers"],
     "Palette.tsx": ["Site builder › Insert (Palette)", "left rail › Insert"],
+    "FindPanel.tsx": ["Site builder › Find", "left rail › Find"],
     "PagesPanel.tsx": ["Site builder › Pages", "left rail head, page mode"],
     "LayoutsPanel.tsx": ["Site builder › Layouts", "left rail head, layout mode"],
     "ComponentsPanel.tsx": ["Site builder › Components", "left rail head, component mode"],
@@ -105,7 +106,9 @@ const PANES = {
     "Palette.tsx": ["Email builder › Insert", "left rail › Insert"],
     "Inspector.tsx": ["Email builder › Inspector", "right rail"],
     "EmailPreview.tsx": ["Email builder › Preview", "toolbar › Preview"],
+    "EmailStarterDialog.tsx": ["Email builder › New email (dialog)", "left rail head › Add"],
     "TemplatesPanel.tsx": ["Email builder › Templates", "left rail head"],
+    "FindPanel.tsx": ["Email builder › Find", "left rail › Find"],
     "saved-blocks.tsx": ["Email builder › Saved blocks", "left rail › Insert › Saved"],
   },
   "src/shared/react": {
@@ -135,6 +138,8 @@ const NOT_PANES = {
     "index.ts": "barrel",
     "theme-defaults.ts": "data",
     "token-query.ts": "helper",
+    "inspector-focus.tsx": "context",
+    "SubjectBar.tsx": "chrome above the Canvas, scored with it",
     "use-shortcuts.ts": "hook",
   },
   "src/shared/react": {
@@ -146,6 +151,7 @@ const NOT_PANES = {
     "Icon.tsx": "primitive",
     "chrome.tsx": "shared PanelHead / PanelTabs primitives",
     "studio-theme.tsx": "theme island wrapper",
+    "use-commit-on-hide.ts": "hook",
   },
 };
 
@@ -256,11 +262,67 @@ if (!hasBlock) {
   console.error("gen-screens: rating.md has no generated block to write into.");
   process.exit(1);
 }
+/**
+ * CARRY THE SCORES OVER.
+ *
+ * Every row's last four cells — Design, Ease, Gap to 10, Persona — are written BY
+ * HAND as runs happen, and they live inside the generated block. A plain rewrite
+ * therefore erases the entire point of the file. The `--check` path above already
+ * knows this ("Scores and gaps are written BY HAND … so a byte comparison would
+ * fail"); the WRITE path did not, and blanked a completed persona's scoring run
+ * the first time it ran after a new pane was added.
+ *
+ * So the write is a MERGE. A row whose `name :: key` already exists keeps its four
+ * hand cells; a genuinely new row arrives empty; a row whose screen is gone
+ * disappears with it, which is correct — that screen no longer exists.
+ *
+ * Prose inside the block (a note under a section heading) is still NOT preserved —
+ * it cannot be, since the block is rebuilt section by section. Notes belong ABOVE
+ * the BEGIN marker.
+ */
+// No `$` anchor, and split on `\r?\n` — rating.md is CRLF on Windows, and a `$`
+// after `(.*)` never matches when a `\r` sits between the two. The `--check` path
+// above gets this right by accident (it has no `$`); the first version of this
+// merge did not, matched zero rows, and carried nothing over while reporting
+// success. That is exactly the failure this merge exists to prevent, so: the row
+// count is asserted below rather than assumed.
+const ROW = /^\| ([^|]+) \| `([^`]+)` \|(.*)/;
+const hand = new Map();
+for (const line of current.slice(current.indexOf(START), current.indexOf(END)).split(/\r?\n/)) {
+  const m = line.match(ROW);
+  if (!m) continue;
+  // design | ease | gap | persona, then the trailing empty from the closing pipe
+  const cells = m[3].replace(/\r$/, "").split("|");
+  if (cells.length >= 4) hand.set(`${m[1].trim()} :: ${m[2]}`, cells.slice(0, 4).join("|"));
+}
+// A block that yielded no rows means the parse is broken, not that the file is
+// empty — refuse rather than quietly overwrite somebody's run.
+if (hasBlock && current.includes("| Screen | Key |") && hand.size === 0) {
+  console.error(
+    "gen-screens: the existing block has rows but none parsed, so a rewrite would\n" +
+      "throw away every score. Refusing. (Check the row regex against the file's\n" +
+      "line endings.)",
+  );
+  process.exit(1);
+}
+
+const merged = generated
+  .split("\n")
+  .map((line) => {
+    const m = line.match(ROW);
+    if (!m) return line;
+    const kept = hand.get(`${m[1].trim()} :: ${m[2]}`);
+    return kept === undefined ? line : `| ${m[1]} | \`${m[2]}\` |${kept}|`;
+  })
+  .join("\n");
+
+const carried = [...hand.values()].filter((v) => /\d/.test(v)).length;
 const next =
   current.slice(0, current.indexOf(START)) +
-  generated +
+  merged +
   current.slice(current.indexOf(END) + END.length);
 writeFileSync(ratingPath, next);
+if (carried) console.log(`gen-screens: carried ${carried} scored row(s) over`);
 console.log(`gen-screens: wrote ${total} screens into rating.md`);
 console.log(
   `  site core: ${siteCore.length}  docs: ${siteDocs.length}  ` +

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@source "../out/**/*.html";
+
+/* Every colour role the studio's theme declares, so a class like `btn-primary`
+   has real rules behind it. Without this the pages render unstyled with a clean
+   200 and no build error — which is the failure @wizeworks/silicaui warns about
+   at boot. */
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: lightsilica;
+  --color-base-100: oklch(98% 0.003 250);
+  --color-base-200: oklch(95% 0.004 250);
+  --color-base-300: oklch(90% 0.006 250);
+  --color-base-content: oklch(21% 0.012 255);
+  --color-primary: oklch(42% 0.055 252);
+  --color-primary-content: oklch(98% 0.004 250);
+  --color-secondary: oklch(55% 0.035 255);
+  --color-secondary-content: oklch(98% 0.004 250);
+  --color-accent: oklch(64% 0.13 211);
+  --color-accent-content: oklch(15% 0.02 255);
+  --color-neutral: oklch(26% 0.014 255);
+  --color-neutral-content: oklch(95% 0.004 250);
+  --color-info: oklch(68% 0.1 232);
+  --color-success: oklch(70% 0.12 150);
+  --color-warning: oklch(80% 0.11 85);
+  --color-error: oklch(58% 0.17 25);
+}
+@plugin "@wizeworks/silicaui/theme" {
+  name: lightsilica-dark;
+  --color-base-100: oklch(16% 0.01 255);
+  --color-base-200: oklch(13.5% 0.01 255);
+  --color-base-300: oklch(11% 0.01 255);
+  --color-base-content: oklch(93% 0.006 250);
+  --color-primary: oklch(72% 0.06 252);
+  --color-secondary: oklch(78% 0.035 255);
+  --color-accent: oklch(72% 0.13 211);
+}

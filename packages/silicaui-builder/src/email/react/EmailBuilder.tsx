@@ -24,6 +24,7 @@ import {
   EmptyState,
 } from "@wizeworks/silicaui-react";
 import { ResizablePanelGroup, ResizablePanel, ResizeHandle } from "@wizeworks/silicaui-panels";
+import type { ImperativePanelHandle } from "@wizeworks/silicaui-panels";
 import type { Theme } from "@wizeworks/silicaui-html";
 import { EmailEditor } from "../engine";
 import type { HistoryDelegate } from "../engine";
@@ -47,16 +48,22 @@ import { EmailPalette } from "./Palette";
 import { EmailInspector } from "./Inspector";
 import { Navigator } from "./Navigator";
 import { TemplatesPanel } from "./TemplatesPanel";
+import { FindPanel } from "./FindPanel";
+import { SubjectBar } from "./SubjectBar";
+import { InspectorFocusProvider } from "./inspector-focus";
 import { Icon } from "../../shared/react/Icon";
-import { IconItem, PanelTabs } from "../../shared/react/chrome";
+import { IconItem, PanelTabs, useChromeIsNarrow } from "../../shared/react/chrome";
 import type { PanelTabSpec } from "../../shared/react/chrome";
 import { BuilderTooltipProvider, Hint, IconButton } from "../../shared/react/Hint";
 import { StudioThemeProvider } from "../../shared/react/studio-theme";
 
-/** The left rail's two pages. Static — email has no mode that removes one. */
+/** The left rail's three pages. Static — email has no mode that removes one.
+ *  Find is a page rather than a dialog because working a list of twelve places
+ *  means leaving it open while the canvas is used (issues/073). */
 const LEFT_TABS: PanelTabSpec[] = [
   { id: "layers", label: "Layers", icon: "list" },
   { id: "insert", label: "Insert", icon: "plus" },
+  { id: "find", label: "Find", icon: "search" },
 ];
 
 function CanvasErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
@@ -177,7 +184,7 @@ function SendTestButton({
       </Hint>
       <DialogContent data-theme={studioTheme} className="w-[min(420px,94vw)] p-5">
         <DialogTitle className="text-base font-semibold">Send a test email</DialogTitle>
-        <DialogDescription className="text-sm text-base-content/60">
+        <DialogDescription className="text-sm text-base-content">
           Sends the current draft, exactly as it would export, to one address.
         </DialogDescription>
         <div className="mt-4 flex flex-col gap-3">
@@ -211,6 +218,14 @@ function SendTestButton({
   );
 }
 
+/** The localStorage key the rail widths are remembered under. Site parity — see
+ *  the site builder's `railsKey` for the whole reasoning. A constant key meant
+ *  the builder wrote into a host's storage under a name the host never gave it,
+ *  and kept doing it after `persistKey={null}`. Found by P05 (issues/080). */
+function railsKey(persistKey: string | null): string | undefined {
+  return persistKey ? `${persistKey}:rails` : undefined;
+}
+
 function Chrome({
   studioTheme,
   onSendTest,
@@ -218,6 +233,7 @@ function Chrome({
   toolbarStatusSlot,
   statusBarSlot,
   frame,
+  persistKey,
 }: {
   studioTheme: string;
   onSendTest?: (payload: { to: string; html: string; subject: string }) => void | Promise<void>;
@@ -225,19 +241,45 @@ function Chrome({
   toolbarStatusSlot?: React.ReactNode;
   statusBarSlot?: React.ReactNode;
   frame?: EmailFrame;
+  /** Where the rail widths are allowed to be remembered — see `railsKey`. */
+  persistKey: string | null;
 }) {
   const editor = useEmailEditor();
   const doc = useEmailDocument();
-  const { canUndo, canRedo } = useEmailHistory();
+  // `undoLabel` names the action the next press takes back. Site-builder parity;
+  // see issues/047.
+  const { canUndo, canRedo, undoLabel, redoLabel } = useEmailHistory();
   const [device, setDevice] = React.useState("desktop");
   const [mode, setMode] = React.useState<"edit" | "preview">("edit");
-  const [leftTab, setLeftTab] = React.useState<"layers" | "insert">("layers");
+  const [leftTab, setLeftTab] = React.useState<"layers" | "insert" | "find">("layers");
 
   useEmailEditorShortcuts();
 
+  // --- narrow chrome (issues/103) -------------------------------------------
+  // Same shape as the site builder, and in the shared hook for the same reason
+  // `IconItem` is shared: one chrome rule, not two that drift.
+  const barRef = React.useRef<HTMLElement>(null);
+  const narrow = useChromeIsNarrow(barRef);
+  const [openRail, setOpenRail] = React.useState<"left" | "right" | null>(null);
+  const leftPanel = React.useRef<ImperativePanelHandle>(null);
+  const rightPanel = React.useRef<ImperativePanelHandle>(null);
+  const leftShown = !narrow || openRail === "left";
+  const rightShown = !narrow || openRail === "right";
+
+  React.useEffect(() => {
+    if (leftShown) leftPanel.current?.expand();
+    else leftPanel.current?.collapse();
+    if (rightShown) rightPanel.current?.expand();
+    else rightPanel.current?.collapse();
+  }, [leftShown, rightShown]);
+
+  React.useEffect(() => {
+    if (!narrow) setOpenRail(null);
+  }, [narrow]);
+
   return (
     <>
-      <header className="flex items-center gap-2 h-12 flex-none px-3 bg-base-100 border-b border-base-300">
+      <header ref={barRef} className="@container/toolbar flex flex-wrap items-center gap-2 min-h-12 flex-none px-3 py-1.5 bg-base-100 border-b border-base-300">
         {/* Same left-cluster order as the site builder's toolbar: the mode
             switcher leads (and carries `toggle-group-primary`, since it's the
             one control that changes what everything else means), then history,
@@ -248,13 +290,40 @@ function Chrome({
           value={[mode]}
           onValueChange={(v: string[]) => v.length && setMode(v[v.length - 1] as "edit" | "preview")}
         >
-          <IconItem value="edit" icon="pencil">Edit</IconItem>
-          <IconItem value="preview" icon="eye">Preview</IconItem>
+          <IconItem value="edit" icon="pencil" hint="Change the email">Edit</IconItem>
+          <IconItem value="preview" icon="eye" hint="See it the way it will arrive">Preview</IconItem>
         </ToggleGroup>
+
+        {/* The rails are collapsed at this width; these bring one back over the
+            email. Rendered only when they are gone — see Builder.tsx. */}
+        {narrow && (
+          <>
+            <IconButton
+              icon="list"
+              label="Layers"
+              hint={openRail === "left" ? "Hide the layers rail" : "Show the layers rail over the email"}
+              size="sm"
+              shape={undefined}
+              aria-pressed={openRail === "left"}
+              className={openRail === "left" ? "btn-active" : undefined}
+              onClick={() => setOpenRail((r) => (r === "left" ? null : "left"))}
+            />
+            <IconButton
+              icon="sliders"
+              label="Inspector"
+              hint={openRail === "right" ? "Hide the inspector" : "Show the inspector over the email"}
+              size="sm"
+              shape={undefined}
+              aria-pressed={openRail === "right"}
+              className={openRail === "right" ? "btn-active" : undefined}
+              onClick={() => setOpenRail((r) => (r === "right" ? null : "right"))}
+            />
+          </>
+        )}
 
         <IconButton
           icon="undo"
-          label="Undo"
+          label={undoLabel ? `Undo — ${undoLabel.toLowerCase()}` : "Undo"}
           shortcut="⌘Z"
           size="sm"
           shape={undefined}
@@ -263,7 +332,7 @@ function Chrome({
         />
         <IconButton
           icon="redo"
-          label="Redo"
+          label={redoLabel ? `Redo — ${redoLabel.toLowerCase()}` : "Redo"}
           shortcut="⇧⌘Z"
           size="sm"
           shape={undefined}
@@ -277,8 +346,8 @@ function Chrome({
           value={[device]}
           onValueChange={(v: string[]) => v.length && setDevice(v[v.length - 1]!)}
         >
-          <IconItem value="desktop" icon="monitor">Desktop</IconItem>
-          <IconItem value="mobile" icon="smartphone">Mobile</IconItem>
+          <IconItem value="desktop" icon="monitor" labelAt="generous">Desktop</IconItem>
+          <IconItem value="mobile" icon="smartphone" labelAt="generous">Mobile</IconItem>
         </ToggleGroup>
 
         <div className="flex-1" />
@@ -306,15 +375,36 @@ function Chrome({
       {mode === "edit" ? (
         <ResizablePanelGroup
           direction="horizontal"
-          autoSaveId="silicaui-builder-email-rails"
+          autoSaveId={railsKey(persistKey)}
           className="flex-1 min-h-0"
           style={{ border: "none", borderRadius: 0, backgroundColor: "transparent" }}
         >
+          {/* Pixel floor, same as the site builder: `minSize` is a percentage of
+              the group, so the identical 12% is a usable rail on a wide monitor
+              and an unreadable one on a laptop — and the width persists, so one
+              drag to the permitted minimum sticks. See Builder.tsx for the
+              measurements (docs/personas/issues/040). */}
           <ResizablePanel
+            ref={leftPanel}
+            // `collapsible` ONLY while narrow, and `minSize` 0 with it. Both halves
+            // matter. The library derives a separator's `aria-valuemin` from the
+            // neighbour's `minSize` alone — `calculateAriaValues` never reads
+            // `collapsedSize` — so a collapsible panel declares a floor it can go
+            // straight through: `Home` parked this rail at 0 while the separator
+            // still announced a minimum of 12. Turning `collapsible` on for every
+            // width would have made that true on the desktop layout too, where
+            // nothing needed it. Narrow-only keeps the wide layout byte-identical
+            // to what it was, and `minSize={0}` alongside it makes the declared
+            // minimum TRUE rather than merely consistent — at this width the rail
+            // really can be nothing. The 240px floor is held by `min-w-60` while
+            // the rail is shown, which is the pixel quantity issues/040 asked for
+            // and the thing that was doing the work all along.
+            collapsible={narrow}
+            collapsedSize={0}
             defaultSize={16}
-            minSize={12}
+            minSize={narrow ? 0 : 12}
             maxSize={30}
-            className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-r border-base-300"
+            className={`flex flex-col min-h-0 ${leftShown ? "min-w-72" : "min-w-0"} overflow-hidden bg-base-100 border-r border-base-300`}
           >
             {/* Layers / Insert ARE this rail's header — the same first-class
                 underline strip the Inspector uses on the right, same as the site
@@ -324,7 +414,7 @@ function Chrome({
             <PanelTabs
               tabs={LEFT_TABS}
               value={leftTab}
-              onValueChange={(id) => setLeftTab(id as "layers" | "insert")}
+              onValueChange={(id) => setLeftTab(id as "layers" | "insert" | "find")}
               ariaLabel="Left panel"
               testIdPrefix="left-tab"
             >
@@ -335,6 +425,8 @@ function Chrome({
                     <Navigator />
                   </div>
                 </>
+              ) : leftTab === "find" ? (
+                <FindPanel />
               ) : (
                 <div className="flex-1 min-h-0 overflow-auto">
                   <EmailPalette />
@@ -345,6 +437,11 @@ function Chrome({
           <ResizeHandle />
 
           <ResizablePanel defaultSize={64} minSize={30} className="flex flex-col min-w-0 min-h-0 overflow-hidden">
+            {/* Above the canvas, not in the toolbar — see SubjectBar's own note
+                for why it is a read-out rather than a second field. The subject
+                is the first thing most people write, and until this existed
+                nothing on screen mentioned that an email had one. */}
+            <SubjectBar />
             <ErrorBoundary fallback={(error, reset) => <CanvasErrorFallback error={error} reset={reset} />}>
               <EmailCanvas device={device} frame={frame} />
             </ErrorBoundary>
@@ -352,10 +449,26 @@ function Chrome({
           <ResizeHandle />
 
           <ResizablePanel
+            ref={rightPanel}
+            // `collapsible` ONLY while narrow, and `minSize` 0 with it. Both halves
+            // matter. The library derives a separator's `aria-valuemin` from the
+            // neighbour's `minSize` alone — `calculateAriaValues` never reads
+            // `collapsedSize` — so a collapsible panel declares a floor it can go
+            // straight through: `Home` parked this rail at 0 while the separator
+            // still announced a minimum of 12. Turning `collapsible` on for every
+            // width would have made that true on the desktop layout too, where
+            // nothing needed it. Narrow-only keeps the wide layout byte-identical
+            // to what it was, and `minSize={0}` alongside it makes the declared
+            // minimum TRUE rather than merely consistent — at this width the rail
+            // really can be nothing. The 240px floor is held by `min-w-60` while
+            // the rail is shown, which is the pixel quantity issues/040 asked for
+            // and the thing that was doing the work all along.
+            collapsible={narrow}
+            collapsedSize={0}
             defaultSize={20}
-            minSize={14}
+            minSize={narrow ? 0 : 14}
             maxSize={32}
-            className="flex flex-col min-h-0 overflow-hidden bg-base-100 border-l border-base-300"
+            className={`flex flex-col min-h-0 ${rightShown ? "min-w-64" : "min-w-0"} overflow-hidden bg-base-100 border-l border-base-300`}
           >
             {/* No `PanelHead`: the Inspector's tab strip IS this rail's header,
                 same as the site builder. */}
@@ -390,7 +503,7 @@ function Chrome({
           href="https://silicaui.com"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 font-semibold tracking-tight text-base-content/55 hover:text-base-content"
+          className="inline-flex items-center gap-1.5 py-1 -my-1 font-semibold tracking-tight text-base-content/70 hover:text-base-content"
         >
           <span className="size-3 rounded-sm bg-linear-to-br from-primary to-secondary" />
           silicaui
@@ -495,6 +608,14 @@ export interface EmailBuilderProps {
    * closed tab, or power cut even with no host backend. Pass `null` to disable.
    * Independent of `onChange`. Distinct default key from the site builder's, so
    * the two never collide in the same host page.
+   *
+   * **GIVE EVERY PROJECT ITS OWN KEY.** The store is keyed on this string and
+   * NOTHING else — not the project, which carries no identity the builder could
+   * check — so a draft saved while editing one project is restored over whatever
+   * `project` the host passes next. Across two accounts sharing a browser
+   * profile, the second author opens holding the first author's templates, under
+   * a banner calling it "your last session". Same defect and same contract as the
+   * site builder's `persistKey` (issues/061).
    */
   persistKey?: string | null;
   /**
@@ -592,6 +713,12 @@ export interface EmailBuilderHandle {
   /** Hand undo/redo to the host for a collaborative session; `undefined`
    *  restores the local stack. */
   setHistoryDelegate(delegate: HistoryDelegate | undefined): void;
+  /** The current project, on demand — a defensive clone, symmetric to what
+   *  `project` accepts. Site parity: `onChange` only fires on CHANGE, so a host
+   *  that wants the document at a moment of its own choosing otherwise has to
+   *  mirror every change into its own state just to have something to read.
+   *  `undefined` before the editor has booted. See issues/079. */
+  extract(): EmailProject | undefined;
 }
 
 /** The full email builder. Mount it anywhere; it fills its host container. */
@@ -637,6 +764,7 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
       replaceState: (proj, seq) => editorRef.current?.replaceState(proj, seq),
       ackSeq: (seq) => editorRef.current?.ackSeq(seq),
       setHistoryDelegate: (delegate) => editorRef.current?.setHistoryDelegate(delegate),
+      extract: () => editorRef.current?.extractProject(),
     }),
     [],
   );
@@ -679,18 +807,33 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
     // nothing to save or relay. A stronger test than a kind allowlist — derived
     // from what actually changed rather than a list someone must remember to
     // update, and it holds the engine to the rule that no mutation is silent.
+    // Once the page is going away there is no time left to wait out a debounce,
+    // so every save from that moment on is written through immediately — which
+    // is what lets the canvas's `useCommitOnHide` text commit land whether it
+    // runs before or after this handler (issues/058, site side first).
+    const hiding = { now: false };
     const unsub = editor.subscribe((e) => {
       if (!e.ops.length) return;
       const proj = editor.extractProject();
       store?.save(proj);
+      if (hiding.now) store?.flush();
       onChange?.(proj, e.ops, { baseSeq: editor.baseSeq });
     });
-    const flush = () => store?.flush();
-    window.addEventListener("visibilitychange", flush);
+    const flush = () => {
+      hiding.now = true;
+      store?.flush();
+    };
+    const onVisibility = () => {
+      // `window.document`, because `document` in this scope is the builder's
+      // own document prop, not the DOM one.
+      if (window.document.visibilityState === "hidden") flush();
+      else hiding.now = false;
+    };
+    window.document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", flush);
     return () => {
       unsub();
-      window.removeEventListener("visibilitychange", flush);
+      window.document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", flush);
       store?.flush();
     };
@@ -730,6 +873,11 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
             render outside this `[data-theme]` island and have to re-stamp it. */}
         <StudioThemeProvider value={studioTheme}>
           <EmailEditorProvider key={current.gen} editor={editor}>
+            {/* Which Inspector tab is open is a fact about THIS rail in THIS
+                browser, not about the document — so it is a context here rather
+                than a field on the editor. The subject bar uses it to land an
+                author on the tab the subject is actually on. */}
+            <InspectorFocusProvider>
             <BuilderTooltipProvider>
               <div className="flex h-full min-h-0 flex-col bg-base-100 text-base-content text-sm antialiased" data-theme={studioTheme}>
                 <ErrorBoundary fallback={(error, reset) => <ChromeErrorFallback error={error} reset={reset} />}>
@@ -743,10 +891,12 @@ export const EmailBuilder = React.forwardRef<EmailBuilderHandle, EmailBuilderPro
                     toolbarStatusSlot={toolbarStatusSlot}
                     statusBarSlot={statusBarSlot}
                     frame={frame}
+                    persistKey={persistKey}
                   />
                 </ErrorBoundary>
               </div>
             </BuilderTooltipProvider>
+            </InspectorFocusProvider>
           </EmailEditorProvider>
         </StudioThemeProvider>
       </SavedBlocksProvider>

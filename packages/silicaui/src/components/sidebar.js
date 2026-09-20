@@ -99,7 +99,7 @@ export function sidebar(colors, prefix = "") {
     [sel("-group-label")]: {
       paddingInline: "0.625rem",
       paddingBlockEnd: "0.375rem",
-      fontSize: "0.6875rem",
+      fontSize: "1rem",
       fontWeight: "700",
       letterSpacing: "0.05em",
       textTransform: "uppercase",
@@ -122,7 +122,7 @@ export function sidebar(colors, prefix = "") {
       textAlign: "left",
       textDecoration: "none",
       whiteSpace: "nowrap",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "500",
       color: "inherit",
       cursor: "pointer",
@@ -190,6 +190,17 @@ export function sidebar(colors, prefix = "") {
       transition: "background-color 0.15s, color 0.15s",
       "&:hover": { backgroundColor: muted(8), color: "var(--color-base-content)" },
       "& svg": { width: "1.1rem", height: "1.1rem", flexShrink: "0" },
+    },
+
+    // The system's own focus ring, on controls that were falling back to the
+    // BROWSER's. The browser's ring is visible -- Chromium adapts it -- but it is
+    // 1px where this system's is 2px, it carries no offset, it ignores the theme,
+    // and its shape is the browser's choice, not this system's. Focus should not change
+    // appearance depending on which control a person is standing on.
+    // Found by a sweep of all 116 component pages (P07, docs/personas/issues/092).
+    [`${sel("-trigger")}:focus-visible`]: {
+      outline: "var(--focus-width, 2px) solid var(--color-primary)",
+      outlineOffset: "var(--focus-offset, 2px)",
     },
   };
 

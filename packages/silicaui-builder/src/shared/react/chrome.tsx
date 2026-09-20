@@ -10,25 +10,119 @@ import { Icon } from "./Icon";
 import { Hint, IconButton } from "./Hint";
 import type { IconName } from "../icons";
 
-/** Toggle item with a leading icon — a flex row so icon + label align. */
+/**
+ * Is the builder's own box too narrow to be three columns?
+ *
+ * The two rails have PIXEL floors — 240px and 256px — put there on purpose by
+ * docs/personas/issues/040, because a percentage floor made the left rail 164px
+ * on a small monitor and "Layers" rendered as "Lay". Those floors are right.
+ * What was wrong is that three panes stayed three panes at every width, so the
+ * 496px of rail came out of the CANVAS, which has no floor: at 600px the page
+ * being edited was 85px wide and below 480px it was 64px. A 64px canvas is not
+ * an error state or an empty state. It renders as a working screen.
+ * (docs/personas/issues/103)
+ *
+ * Below the threshold the rails collapse to nothing and the canvas takes the
+ * width; a toolbar toggle brings one rail back over it. The rails keep their
+ * pixels when they are shown — they stop taking them from the page.
+ *
+ * A ResizeObserver on the builder's own element, never `window.innerWidth`.
+ * This builder EMBEDS: its width is whatever its host hands it, which is why
+ * the harness frames it in an inset box. The viewport is a different number and
+ * reading it would be wrong in exactly the case that matters.
+ */
+export function useChromeIsNarrow(
+  ref: React.RefObject<HTMLElement | null>,
+  threshold = NARROW_CHROME,
+): boolean {
+  const [narrow, setNarrow] = React.useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setNarrow(el.getBoundingClientRect().width < threshold);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref, threshold]);
+  return narrow;
+}
+
+/**
+ * 900px: 496px of rail floor, plus a canvas wide enough to be worth looking at.
+ * Measured rather than picked — at 900px the canvas is 385px and still readable;
+ * at 768px it is 253px and at 600px it is 85px.
+ */
+export const NARROW_CHROME = 900;
+
+/**
+ * Toggle item with a leading icon — a flex row so icon + label align.
+ *
+ * The word hides when the toolbar's own box is too narrow to hold it, so the row
+ * SHRINKS instead of running off the end. It used to do neither: the header was
+ * one no-wrap flex row, and once the spacer ran out the right-hand cluster
+ * carried on past the edge and was clipped by an ancestor. Publish — the only
+ * route to publishing, there is no command and no shortcut — left the screen at
+ * 1024px, which is a half-width browser window, not a phone. Nine controls were
+ * gone at 360px. Nothing scrolled and nothing said so.
+ * (docs/personas/issues/101)
+ *
+ * A CONTAINER query and not a media query. This builder EMBEDS — its width is
+ * whatever its host hands it, which is why the harness frames it in an inset box
+ * — so the viewport is the wrong thing to measure. Its own header is the right
+ * one.
+ */
 export function IconItem({
   value,
   icon: name,
   className,
+  labelAt = "roomy",
+  hint,
   children,
 }: {
   value: string;
   icon: IconName;
   className?: string;
+  /**
+   * How much room the toolbar needs before this item's WORD is painted.
+   * `roomy` shows it from 896px of toolbar; `generous` waits for 1152px.
+   * Per-group, because the icons are not equally self-explanatory: a sun and a
+   * moon need no caption, and a box meaning "Component" does.
+   */
+  labelAt?: "roomy" | "generous";
+  /**
+   * What choosing this DOES, in plain English. Shown on hover at every width.
+   *
+   * It says the consequence rather than repeating the word, for the same reason
+   * Publish's does: a tooltip that reads back a label you can already see is
+   * noise. It matters most once the word is hidden, which is the moment a
+   * mouse user is left with an icon and nothing else — a palette meaning
+   * "Theme" and a box meaning "Component" are not self-evident the way a sun
+   * and a moon are.
+   */
+  hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  return (
-    <ToggleGroupItem value={value} className={className}>
+  // Written as two whole literal class strings rather than built from pieces:
+  // Tailwind's scanner reads this file as text, and a class it cannot see as a
+  // contiguous string is a class it does not emit.
+  const word = labelAt === "generous" ? "hidden @6xl/toolbar:inline" : "hidden @4xl/toolbar:inline";
+  const item = (
+    // The accessible name is the word, painted or not, so it never changes with
+    // the width — a control that is "Theme" on a wide window and an unnamed icon
+    // on a narrow one is two different controls to anyone not looking at it.
+    <ToggleGroupItem
+      value={value}
+      className={className}
+      aria-label={typeof children === "string" ? children : undefined}
+    >
       <span className="inline-flex items-center justify-center gap-1.5">
-        <Icon name={name} /> {children}
+        <Icon name={name} />
+        <span className={word}>{children}</span>
       </span>
     </ToggleGroupItem>
   );
+  return hint ? <Hint label={hint}>{item}</Hint> : item;
 }
 
 /**

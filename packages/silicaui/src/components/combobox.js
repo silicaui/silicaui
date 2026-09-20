@@ -56,7 +56,7 @@ export function combobox(prefix = "") {
     // Empty state — Base UI renders it only when the list has no matches.
     [sel("-empty")]: {
       padding: "0.5rem 0.6rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
   };

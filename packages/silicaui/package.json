@@ -29,7 +29,7 @@
   "scripts": {
     "build": "echo \"(no build step — ships as source)\"",
     "typecheck": "echo \"(js plugin — no typecheck yet)\"",
-    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale && pnpm verify:color-reach && pnpm verify:type-scale && pnpm verify:readable-ink && pnpm verify:ink-derivation && pnpm verify:token-contrast && pnpm verify:surface-paint",
+    "verify": "pnpm verify:layering && pnpm verify:field-border && pnpm verify:icon-sizing && pnpm verify:size-scale && pnpm verify:variant-scale && pnpm verify:color-reach && pnpm verify:type-scale && pnpm verify:component-type && pnpm verify:readable-ink && pnpm verify:ink-derivation && pnpm verify:token-contrast && pnpm verify:surface-paint && pnpm verify:theme-plugin && pnpm verify:auto-ink",
     "verify:layering": "node scripts/verify-layering.mjs",
     "verify:field-border": "node scripts/verify-field-border.mjs",
     "verify:icon-sizing": "node scripts/verify-icon-sizing.mjs",
@@ -37,10 +37,13 @@
     "verify:variant-scale": "node scripts/verify-variant-scale.mjs",
     "verify:color-reach": "node scripts/verify-color-reach.mjs",
     "verify:type-scale": "node scripts/verify-type-scale.mjs",
+    "verify:component-type": "node scripts/verify-component-type.mjs",
     "verify:readable-ink": "node scripts/verify-readable-ink.mjs",
     "verify:surface-paint": "node scripts/verify-surface-paint.mjs",
     "verify:token-contrast": "node scripts/verify-token-contrast.mjs",
-    "verify:ink-derivation": "node scripts/verify-ink-derivation.mjs"
+    "verify:ink-derivation": "node scripts/verify-ink-derivation.mjs",
+    "verify:theme-plugin": "node scripts/verify-theme-plugin.mjs",
+        "verify:auto-ink": "node scripts/verify-auto-ink.mjs"
   },
   "peerDependencies": {
     "tailwindcss": ">=4.3.0"

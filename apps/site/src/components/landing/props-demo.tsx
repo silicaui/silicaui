@@ -38,7 +38,7 @@ export function PropsDemo() {
               const next = Array.isArray(v) ? v[0] : v;
               if (typeof next === "string" && next) setColor(next as Color);
             }}
-            className="toggle-group-sm w-fit"
+            className="toggle-group-sm w-fit max-w-full overflow-x-auto"
             aria-label="Button color"
           >
             {COLORS.map((c) => (
@@ -57,7 +57,7 @@ export function PropsDemo() {
               const next = Array.isArray(v) ? v[0] : v;
               if (typeof next === "string" && next) setVariant(next as Variant);
             }}
-            className="toggle-group-sm w-fit"
+            className="toggle-group-sm w-fit max-w-full overflow-x-auto"
             aria-label="Button variant"
           >
             {VARIANTS.map((v) => (

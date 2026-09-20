@@ -1,0 +1,17 @@
+{
+  "name": "bright-step-studio",
+  "private": true,
+  "type": "module",
+  "description": "What the site builder published, opened as a visitor. The host half of onPublish, at its smallest.",
+  "scripts": {
+    "build": "node build.mjs && npm run css && npm run behaviors",
+    "css": "tailwindcss -i src/input.css -o out/assets/site.css",
+    "behaviors": "node -e \"import('node:fs').then(fs=>fs.promises.copyFile('node_modules/@wizeworks/silicaui-behaviors/dist/index.js','out/assets/behaviors.js'))\"",
+    "serve": "node serve.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@wizeworks/silicaui": "file:../../../../packages/silicaui",
+    "@wizeworks/silicaui-behaviors": "file:../../../../packages/silicaui-behaviors"
+  }
+}

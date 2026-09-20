@@ -1,0 +1,30 @@
+/* Acte 5, premier temps: AUCUN préfixe, la feuille du client par-dessus.
+   C'est le point de départ de Nia, pas une configuration recommandée. */
+@import "tailwindcss";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error,
+    terracotta, bone, ironwood, verdigris;
+}
+
+@theme {
+  --color-terracotta: oklch(0.62 0.14 38);
+  --color-bone: oklch(0.94 0.012 85);
+  --color-ironwood: oklch(0.31 0.035 48);
+  --color-verdigris: oklch(0.66 0.09 172);
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: atelier-clay;
+  color-scheme: light;
+  --color-base-100: oklch(0.975 0.006 85);
+  --color-base-200: oklch(0.945 0.009 85);
+  --color-base-300: oklch(0.9 0.014 82);
+  --color-base-content: oklch(0.26 0.03 48);
+  --color-terracotta: oklch(0.62 0.14 38);
+  --color-primary: oklch(0.62 0.14 38);
+  --radius-box: 0.125rem;
+  --radius-field: 0.125rem;
+}
+
+@import "./legacy.css";

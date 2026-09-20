@@ -57,7 +57,9 @@ async function target(page: Page) {
 async function subjectField(page: Page) {
   await page.locator(".tree-node").first().click();
   await page.getByRole("tab", { name: "Settings", exact: true }).click();
-  return page.locator(ROW, { hasText: "Subject" }).locator("input");
+  // A textarea, not an input: the subject wraps so a real one can be read back
+  // in a 240px rail (issues/065).
+  return page.locator(ROW, { hasText: "Subject" }).locator("textarea");
 }
 
 /** Make one real edit so `__lastChange` is populated (the harness only records

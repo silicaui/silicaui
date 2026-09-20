@@ -130,7 +130,7 @@ const demoHost: BuilderHost = {
       title: "Host panel",
       render: (node, ctx) => (
         <div data-testid="host-panel">
-          <p className="mb-1 text-xs text-base-content/60">Contributed by the demo host, for {node.kind === "outlet" ? "outlet" : node.kind}.</p>
+          <p className="mb-1 text-xs text-base-content">Contributed by the demo host, for {node.kind === "outlet" ? "outlet" : node.kind}.</p>
           <button
             type="button"
             className="btn btn-xs btn-soft"
@@ -188,8 +188,14 @@ const demoHost: BuilderHost = {
       : []),
     // Rejected: "design" is the builder's own id. The built-in tab must survive.
     { id: "design", label: "Hijack", render: () => <div data-testid="host-tab-hijack">nope</div> },
+    // Filler, and the count is the point: these exist to push the tab strip past
+    // the rail's width so the paging buttons mount (`host-seam.spec.ts`). The
+    // rail gained a 256px pixel floor in issues/040, so six tabs now FIT and two
+    // more are needed to still exercise the overflow this is here to test.
     { id: "demo-filler-1", label: "Reports", render: () => <div className="p-3 text-sm">Reports</div> },
     { id: "demo-filler-2", label: "Translations", render: () => <div className="p-3 text-sm">Translations</div> },
+    { id: "demo-filler-3", label: "Permissions", render: () => <div className="p-3 text-sm">Permissions</div> },
+    { id: "demo-filler-4", label: "Integrations", render: () => <div className="p-3 text-sm">Integrations</div> },
   ],
   pickAsset: async () => ({ url: "https://picsum.photos/seed/host/400/300", alt: "Host-picked asset" }),
   // Host NODES (spec §A) — live host-owned widgets the builder places as
@@ -334,6 +340,14 @@ const demoEmailHost: EmailBuilderHost = {
   }),
   dataSources: () => [
     { key: "customer.firstName", label: "Customer first name", cardinality: "scalar" },
+    // A real subscriber list has attributes the author segments on. These two
+    // are the demo's: which shop is theirs, and a flag for the one branch that
+    // runs its own events. The flag exists because silica's visibility rule is
+    // present/absent, NOT equality — "only for Clifton" is a reference the HOST
+    // computes and declares, which is the contract working as designed and
+    // which nothing in the builder used to say out loud (P04/issues 071).
+    { key: "customer.homeShop", label: "Home shop", cardinality: "scalar" },
+    { key: "customer.atClifton", label: "Is a Clifton customer", cardinality: "scalar" },
     {
       key: "products",
       label: "Products",
@@ -356,7 +370,15 @@ const demoEmailHost: EmailBuilderHost = {
   // Fixed sample data, resolved SYNCHRONOUSLY — a real host would fetch once,
   // up front, into a closure this reads from.
   resolveBinding: (ref, scope) => {
-    if (ref === "customer.firstName") return { value: "Jordan" };
+    // WHO this render is for. `scope.audience` is set by the Preview's
+    // "Showing what this subscriber gets" picker (see `previewAudiences`
+    // below) and by a send path rendering per recipient. With no scope it
+    // answers as it always did, so every existing spec is unaffected.
+    const who = (scope as { audience?: { firstName?: string; homeShop?: string } }).audience;
+    if (ref === "customer.firstName") return { value: who ? who.firstName ?? "" : "Jordan" };
+    if (ref === "customer.homeShop") return { value: who ? who.homeShop ?? "" : "Clifton" };
+    // The segment flag, computed by the host — not an equality test silica ran.
+    if (ref === "customer.atClifton") return { value: (who ? who.homeShop : "Clifton") === "Clifton" };
     const item = scope.item as { title: string; price: string; image: string; url: string } | undefined;
     if (ref === "product.title") return { value: item?.title };
     if (ref === "product.price") return { value: item?.price };
@@ -376,6 +398,19 @@ const demoEmailHost: EmailBuilderHost = {
     if (ref === "empty-collection") return [];
     return undefined;
   },
+  /**
+   * Three sample subscribers, and two of them are the awkward ones on purpose.
+   *
+   * An author writing "the Clifton events, only for the Clifton lot" needs to
+   * see what the OTHER two get, and the third — somebody who never said which
+   * shop is theirs — is the variant that nobody remembers exists until they
+   * reply to ask why the email is half empty.
+   */
+  previewAudiences: () => [
+    { key: "clifton", label: "Reuben — Clifton, has a first name", scope: { audience: { firstName: "Reuben", homeShop: "Clifton" } } },
+    { key: "glos", label: "Someone at Gloucester Road", scope: { audience: { firstName: "Priya", homeShop: "Gloucester Road" } } },
+    { key: "unknown", label: "Someone with no name and no shop on file", scope: { audience: {} } },
+  ],
 };
 
 /**
@@ -553,7 +588,7 @@ function ToolbarSlot() {
     bus.__editor = editor;
   }, [editor]);
   return (
-    <span data-testid="toolbar-slot" className="text-xs text-base-content/50 px-1">
+    <span data-testid="toolbar-slot" className="text-xs text-base-content px-1">
       Demo host UI
     </span>
   );
@@ -646,6 +681,45 @@ const persist = params.has("persist")
   : !navigator.webdriver;
 const persistKey = persist ? "silicaui-designer" : null;
 
+/**
+ * What THIS host remembers between visits, which is the host's own job and not
+ * the builder's. The builder keeps her draft; only the host knows what it did
+ * with it. Kept behind the same `persist` gate as the draft so an e2e spec
+ * starts with a host that has never published.
+ *
+ * A `sig` is a cheap content fingerprint of a document — enough to answer "is
+ * what is on screen what is live", which is the only question the status slot
+ * is trying to answer. It is not a checksum and is not security.
+ */
+const DOC_KEY = "silicaui-harness:doc";
+const PUB_KEY = "silicaui-harness:published";
+interface PublishMark {
+  pages: number;
+  sig: string;
+}
+function signature(site: unknown): string {
+  const s = JSON.stringify(site);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return `${s.length}.${h.toString(36)}`;
+}
+function readMark<T>(key: string): T | null {
+  if (!persist) return null;
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? "null") as T | null;
+  } catch {
+    return null;
+  }
+}
+function writeMark<T>(key: string, value: T): T {
+  try {
+    if (persist) localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* a host with no storage still gets the in-memory answer */
+  }
+  return value;
+}
+
 // `?editor=email` mounts the email builder instead of the site builder — a query
 // switch (not a route) since this is a single-page dev harness, not the product.
 const editorMode = params.get("editor");
@@ -688,7 +762,7 @@ if (editorMode === "email") {
           <>
             <EmailProjection frame={framed ? demoEmailFrame : undefined} />
             {emailHost && (
-              <span data-testid="email-toolbar-slot" className="text-xs text-base-content/50 px-1">
+              <span data-testid="email-toolbar-slot" className="text-xs text-base-content px-1">
                 Demo host UI
               </span>
             )}
@@ -722,6 +796,35 @@ if (editorMode === "email") {
  */
 function SiteHarness() {
   const [peers, setPeers] = React.useState<readonly Peer[]>([]);
+  // What the status slot says, derived from what actually happened.
+  //
+  // It used to be the literal string "All changes saved", always, forever —
+  // a claim over code that checked nothing, and still the claim after a Publish
+  // that the author had no other confirmation of. Found by P03 (issues/054):
+  // Marlene pressed Publish and the screen did not change in any way.
+  //
+  // A host owns this copy, which is exactly why the reference host should model
+  // it rather than hardcode a reassurance.
+  // It is NOT an edit counter. A counter lives in memory, so it resets on reload
+  // and the host forgets it ever published — which told Marlene "Not published
+  // yet" about a site that was live on the internet (P03 act 9, issues/056).
+  // The honest question is not "how many edits", it is "is what is on screen what
+  // is live", so the host compares the DOCUMENT it last received against the one
+  // it last published. Both survive the laptop closing.
+  const [doc, setDoc] = React.useState<string | null>(() => readMark<string>(DOC_KEY));
+  const [mark, setMark] = React.useState<PublishMark | null>(() => readMark<PublishMark>(PUB_KEY));
+  // Deliberately UNNUMBERED. One gesture — add a page, type its name — is two
+  // change events, so "2 unpublished changes" is true about our op log and wrong
+  // about what she did. A count she would tally differently is worse than no
+  // count: the only thing she needs is whether what is on screen is what is live.
+  const status =
+    mark === null
+      ? doc === null
+        ? "Not published yet"
+        : "Unpublished changes"
+      : doc === mark.sig
+        ? `Published — ${mark.pages} ${mark.pages === 1 ? "page" : "pages"} live`
+        : "Edited since you published";
   React.useEffect(() => {
     bus.__setPeers = setPeers;
   }, []);
@@ -739,17 +842,28 @@ function SiteHarness() {
           bus.__changeCount += 1;
           bus.__ops.push(...ops);
           bus.__lastMeta = meta;
+          setDoc(writeMark(DOC_KEY, signature(site)));
         }}
         onActivePageChange={(page) => {
           bus.__activePage = page;
         }}
         onPublish={(payload) => {
           bus.__published = payload;
+          const sig = signature(payload.site);
+          setDoc(writeMark(DOC_KEY, sig));
+          setMark(writeMark(PUB_KEY, { pages: payload.pages.length, sig }));
         }}
         toolbarSlot={<ToolbarSlot />}
         toolbarStatusSlot={
-          <span data-testid="toolbar-status-slot" className="text-xs text-base-content">
-            All changes saved
+          // `aria-live` so the sentence is ANNOUNCED, not just redrawn: a person
+          // who pressed Publish and is not looking at this corner of the screen
+          // has no other way to learn that it worked.
+          <span
+            data-testid="toolbar-status-slot"
+            className="text-xs text-base-content"
+            aria-live="polite"
+          >
+            {status}
           </span>
         }
         statusBarSlot={<StatusBarSlot />}

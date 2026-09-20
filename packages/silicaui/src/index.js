@@ -3,6 +3,7 @@ import { LIGHT, SEMANTIC_COLORS } from "./colors.js";
 import { buildBase } from "./theme.js";
 import { colorUtilities, softUtilities, glassUtilities, textInkUtilities } from "./color-utilities.js";
 import { warnUnregisteredColors } from "./lib/warn-unregistered-colors.js";
+import { findInkProblems, registeredColorValues, warnInkProblems } from "./lib/warn-auto-ink.js";
 import { button } from "./components/button.js";
 import { badge } from "./components/badge.js";
 import { input } from "./components/input.js";
@@ -193,6 +194,20 @@ export default plugin.withOptions(
       // `bg-*` utilities and silently missing `btn-*`/`badge-*` variants. Say
       // so rather than letting it read as "the color is broken".
       warnUnregisteredColors(theme, colors);
+      // A registered color with no `-content` token gets its ink from a CSS
+      // lightness rule, which is right for ~97.7% of the color space and silent
+      // for the rest. `theme("color")` hands this plugin the VALUE, not just the
+      // name, so the wrong ones are measurable here — see `warn-auto-ink.js`.
+      //
+      // This warns and does not substitute, which is the opposite of what
+      // `theme-plugin.js` does, and the asymmetry is the point. A theme block
+      // scopes its color and its ink together under one `[data-theme]`, so
+      // writing the ink there is safe. A color declared in `@theme` is GLOBAL:
+      // emitting `--color-x-content` at `:root` from here would outlive any
+      // theme that later re-declares `--color-x` and paint the old ink on the
+      // new color. Naming the line and letting the author place it is the only
+      // correct move.
+      warnInkProblems(findInkProblems(registeredColorValues(theme, colors)), " registered with the plugin");
       // Read ONCE and passed to everything that scopes to a Silica surface.
       // `prefersdark` adds the unthemed root as a second surface, and anything
       // that only knew about `[data-theme]` silently switched itself off for

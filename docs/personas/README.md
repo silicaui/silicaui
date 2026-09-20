@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Author:** Brandon Korous
-**Last Updated:** 2026-09-18
+**Last Updated:** 2026-09-19
 
 9 customers, 9 people, 9 full runs from "never heard of it" to a working build a
 stranger can use. How to run one is in [CLAUDE.md](CLAUDE.md).
@@ -66,15 +66,15 @@ prove nothing — and each of the nine above has a sentence below that no other 
 
 | # | Persona | Customer | Path / surface | Status |
 | --- | --- | --- | --- | --- |
-| P01 | [Dilnoza Karimova](01-peregrine-ops-console.md) | developer | `silicaui-react` · Next.js App Router | not started |
-| P02 | [Tomás Ferreiro](02-casa-ferreiro-menu.md) | developer | `silicaui` CSS plugin only · Django, no React | not started |
-| P03 | [Marlene Okonkwo-Bright](03-bright-step-studio.md) | business user | site builder · page + layout + theme modes | not started |
-| P04 | [Reuben Halloway](04-thornbury-dispatch.md) | business user | email builder | not started |
-| P05 | [Arvid Lindqvist](05-quarrystone-embed.md) | integrator | `BuilderHost` — host nodes, locking, peers, persistence | not started |
-| P06 | [Nia Adeyemi](06-nias-atelier-brand-kit.md) | designer-developer | token engine — custom N-colors, class prefix, theme islands | not started |
-| P07 | [Hiroshi Tanabe](07-kaiho-freight-dashboard.md) | developer | composite packages — charts, table, editor, dnd, panels | not started |
-| P08 | [Fatima Zahra El Amrani](08-medina-field-guide.md) | developer | `silicaui-html` + `silicaui-behaviors` — static export, no React | not started |
-| P09 | [Gordon Pike](09-pike-tackle-migration.md) | developer | migration off daisyUI · keyboard-only · phone-only · dark-only | not started |
+| P01 | [Dilnoza Karimova](01-peregrine-ops-console.md) | developer | `silicaui-react` · Next.js App Router | **done** — 10 acts, 27 issues, all fixed |
+| P02 | [Tomás Ferreiro](02-casa-ferreiro-menu.md) | developer | `silicaui` CSS plugin only · Django, no React | **done** — 9 acts, 5 issues, all fixed |
+| P03 | [Marlene Okonkwo-Bright](03-bright-step-studio.md) | business user | site builder · page + layout + theme modes | **done** — 9 acts, 23 issues, 22 fixed + 1 partly.<br>360px/phone/dark deferred; screens unscored until it runs |
+| P04 | [Reuben Halloway](04-thornbury-dispatch.md) | business user | email builder | **done** — 9 acts, 16 issues, all fixed.<br>Three mail clients NOT CHECKED (none available); screens unscored |
+| P05 | [Arvid Lindqvist](05-quarrystone-embed.md) | integrator | `BuilderHost` — host nodes, locking, peers, persistence | **done** — 9 acts, 7 issues, all fixed.<br>Screens unscored (P01/P03 own them); published page not checked in dark |
+| P06 | [Nia Adeyemi](06-nias-atelier-brand-kit.md) | designer-developer | token engine — custom N-colors, class prefix, theme islands | **done** — 9 acts, 4 issues, all fixed |
+| P07 | [Hiroshi Tanabe](07-kaiho-freight-dashboard.md) | developer | composite packages — charts, table, editor, dnd, panels | **done** — 10 acts, 13 issues, all fixed.<br>Screens unscored (its surface is packages, not screens); Chromium only |
+| P08 | [Fatima Zahra El Amrani](08-medina-field-guide.md) | developer | `silicaui-html` + `silicaui-behaviors` — static export, no React | **done** — 9 acts, 3 issues, all fixed |
+| P09 | [Gordon Pike](09-pike-tackle-migration.md) | developer | migration off daisyUI · keyboard-only · phone-only · dark-only | **done** — 10 acts, 2 issues, all fixed.<br>Screens unscored (its eight are a consumer's app); no person-hours measured |
 
 ## What each one is the only proof of
 
@@ -120,14 +120,24 @@ should be almost entirely about its own surface. **If P07 is still finding
 getting-started defects, the earlier runs did not fix what they found.** That is a
 signal about the process, not about P07.
 
+**What P07 actually found, against that prediction.** Thirteen issues, and none of
+them were getting-started defects — the prediction held. But nine of the thirteen
+reached OUTSIDE the five packages, which the prediction did not anticipate: a
+packaging defect that made one `Button` cost 301 kB, a focus ring missing from
+**17 core component families**, and a hole in the theme engine that only opens when
+an author declares a `-content` colour by hand. The common thread is that all three
+are invisible to a persona that opens screens — they need somebody who weighs a
+bundle, sweeps 116 pages, or writes their own theme. That is an argument for keeping
+a persona like this one, not for moving it earlier.
+
 ## Screen coverage
 
-The product ships **142 rateable screens** — 5 site pages, 116 component doc pages, the
-playground, and 20 builder panes. Every one is a row in [rating.md](rating.md),
+The product ships **145 rateable screens** — 6 site pages, 116 component doc pages, the
+playground, and 22 builder panes. Every one is a row in [rating.md](rating.md),
 generated from the code by `node docs/personas/gen-screens.mjs` so the denominator is
 real and cannot silently drift.
 
-9 runs will not open all 142. Most of the component doc pages will never be opened by
+9 runs will not open all 145. Most of the component doc pages will never be opened by
 anybody in this roster. **Those rows stay `—`, deliberately.** An unrated screen is
 unrated; it is never assumed fine because a sibling scored well (CLAUDE.md RULE #4).
 When the runs are done, the remaining `—` rows are themselves the answer to "what has

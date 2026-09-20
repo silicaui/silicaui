@@ -70,7 +70,44 @@ function withToken(theme: Theme, key: string, value: string): Theme {
   return next;
 }
 
-const GROUP = "mt-5 mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-base-content/45";
+const GROUP = "mt-5 mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-base-content";
+
+/**
+ * What each colour role is FOR, in the words a shop owner already uses.
+ *
+ * Found by P03 (docs/personas/issues/045). Marlene came to the Theme panel to
+ * "change the accent colour to our purple" — everyday English for *the colour of
+ * my business*. In this system that is `primary`; `accent` is the third brand
+ * role and paints about 2% of a page. She had eight token names and a tooltip
+ * that said "Edit accent", so the panel could not tell her she had the wrong one.
+ *
+ * The token names stay as the visible caption on purpose — they are what the CSS,
+ * the docs and `themeToCss` all call them, and renaming a public role is not a
+ * tooltip's business. This only says what they mean.
+ */
+const ROLE_HINT: Record<string, string> = {
+  primary: "your main colour — buttons, links, the things you want clicked",
+  secondary: "a supporting colour, used beside the main one",
+  accent: "a third colour for small highlights, used sparingly",
+  neutral: "a quiet dark tone for bars and footers",
+  info: "for telling someone something",
+  success: "for when something worked",
+  warning: "for when to be careful",
+  error: "for when something failed",
+  "base-100": "the page background",
+  "base-200": "panels and cards, one step off the page",
+  "base-300": "borders, dividers and the deepest surface",
+  "base-content": "the colour of your words",
+};
+
+/** A `-content` tile paints nothing; it is the ink that sits ON its role. */
+function roleHint(name: string): string | undefined {
+  if (name.endsWith("-content") && name !== "base-content") {
+    const role = name.slice(0, -"-content".length);
+    return `the words that sit on ${role}`;
+  }
+  return ROLE_HINT[name];
+}
 
 function ColorTile({
   name, value, active, custom, showLetter = true, letterColor, onClick,
@@ -86,11 +123,18 @@ function ColorTile({
   letterColor?: string;
   onClick: () => void;
 }) {
+  const hint = roleHint(name);
   return (
-    // The tile's visible caption is the token NAME; the tooltip adds what
-    // pressing it does, which the caption alone never says.
-    <Hint label={`Edit ${name}`} side="bottom">
-    <button type="button" onClick={onClick} aria-label={`Edit ${name}`} className="flex flex-col gap-1.5">
+    // The tile's visible caption is the token NAME, because that is what the
+    // docs, the CSS and every other surface call it. The tooltip says what the
+    // role is FOR, in words somebody who is not a designer already uses.
+    <Hint label={hint ? `${name} — ${hint}` : `Edit ${name}`} side="bottom">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={hint ? `Edit ${name}. ${hint}` : `Edit ${name}`}
+      className="flex flex-col gap-1.5"
+    >
       <span
         className={`relative grid place-items-center aspect-[1/0.9] rounded-[10px] border border-black/10 font-extrabold text-md ${
           active ? "outline outline-2 outline-primary outline-offset-2" : ""
@@ -100,7 +144,7 @@ function ColorTile({
         {showLetter && "A"}
         {custom && <span className="absolute top-0.5 right-1 text-xs opacity-80">★</span>}
       </span>
-      <span className="text-xs font-semibold text-center truncate text-base-content/55">{name}</span>
+      <span className="text-xs font-semibold text-center truncate text-base-content">{name}</span>
     </button>
     </Hint>
   );
@@ -294,7 +338,7 @@ export function ThemeEditor() {
    *  beside a label column ("relaxed", "standard"). */
   const stackedRow = (row: TokenRow) => (
     <div key={row.key} className="mb-3 last:mb-0">
-      <div className="mb-1.5 text-sm font-semibold text-base-content/70">{row.label}</div>
+      <div className="mb-1.5 text-sm font-semibold text-base-content">{row.label}</div>
       <ToggleGroup
         className="toggle-group-sm"
         value={[tokenOf(row.key, row.dflt)]}
@@ -494,7 +538,7 @@ export function ThemeEditor() {
           );
         })}
         <input
-          className="w-full min-h-[44px] rounded-[10px] border border-dashed border-base-300 bg-transparent px-1 text-center text-xs font-semibold text-base-content/50 outline-none focus:border-solid focus:border-primary focus:text-base-content"
+          className="w-full min-h-[44px] rounded-[10px] border border-dashed border-base-300 bg-transparent px-1 text-center text-xs font-semibold text-base-content outline-none focus:border-solid focus:border-primary focus:text-base-content"
           placeholder="+ color"
           value={newColor}
           onChange={(e) => setNewColor(e.target.value)}
@@ -520,7 +564,7 @@ export function ThemeEditor() {
                 type="button"
                 onClick={() => setOpenColor(null)}
                 aria-label="Close the colour picker"
-                className="ml-auto inline-flex rounded p-1 text-base-content/45 hover:bg-base-200 hover:text-base-content"
+                className="ml-auto inline-flex rounded p-1 text-base-content/70 hover:bg-base-200 hover:text-base-content"
               >
                 <Icon name="close" />
               </button>
@@ -539,7 +583,7 @@ export function ThemeEditor() {
       </div>
       {RADIUS_ROWS.map((r) => (
         <div key={r.key} className="mb-2.5 flex items-center gap-2.5">
-          <span className="w-[62px] text-sm text-base-content/70">{r.label}</span>
+          <span className="w-[62px] text-sm text-base-content">{r.label}</span>
           <div className="flex gap-1.5">
             {r.opts.map((o) => (
               // An empty element — `aria-label` IS its accessible name, and the
@@ -570,7 +614,7 @@ export function ThemeEditor() {
         <div key={e.key} className="flex items-center justify-between py-2.5 border-b border-base-200">
           <div>
             <div className="text-sm">{e.tt}</div>
-            <div className="text-xs text-base-content/48">{e.ts}</div>
+            <div className="text-xs text-base-content">{e.ts}</div>
           </div>
           <Switch
             aria-label={e.tt}
@@ -590,7 +634,7 @@ export function ThemeEditor() {
       </div>
       {SCALAR_ROWS.map((row) => (
         <div key={row.key} className="mb-2.5 flex items-center gap-2.5">
-          <span className="w-[74px] text-sm text-base-content/70">{row.label}</span>
+          <span className="w-[74px] text-sm text-base-content">{row.label}</span>
           <ToggleGroup
             className="toggle-group-sm"
             value={[tokenOf(row.key, row.dflt)]}
@@ -616,7 +660,7 @@ export function ThemeEditor() {
           {GOOGLE_OPTIONS.length}+ Google Fonts
         </span>
       </div>
-      <div className="mb-1.5 text-sm font-semibold text-base-content/70">Typeface</div>
+      <div className="mb-1.5 text-sm font-semibold text-base-content">Typeface</div>
       <Combobox
         size="sm"
         items={BODY_LABELS}
@@ -628,7 +672,7 @@ export function ThemeEditor() {
         popupProps={{ "data-theme": studioTheme }}
         aria-label="Body typeface"
       />
-      <div className="mt-3 mb-1.5 text-sm font-semibold text-base-content/70">Headings</div>
+      <div className="mt-3 mb-1.5 text-sm font-semibold text-base-content">Headings</div>
       <Combobox
         size="sm"
         items={HEADING_LABELS}

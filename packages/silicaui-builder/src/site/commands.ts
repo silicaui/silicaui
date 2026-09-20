@@ -128,10 +128,98 @@ export function removeMany(editor: Editor, ids: readonly string[]): void {
   });
 }
 
+/** A node's HTML tag, or `undefined` for an outlet. */
+const tagOf = (node: Node | undefined): string | undefined =>
+  node && node.kind === "element" ? node.tag : undefined;
+
+const ROW_GROUPS = new Set(["thead", "tbody", "tfoot"]);
+
+/**
+ * Every `<tr>` of the table that contains `cellId`, in document order — across
+ * `thead`, `tbody` and `tfoot`, because a column spans all three.
+ *
+ * Found by walking UP from the row rather than by looking for a `table` tag: a
+ * Table is a COMPONENT macro, so the real ancestry is `component > thead > tr`
+ * and there is no `table` element in the tree at all. Searching for one found
+ * nothing and silently fell back to duplicating the single cell, which is the
+ * defect this exists to stop.
+ */
+function tableRowsFor(editor: Editor, cellId: string): Node[] | undefined {
+  const ancestors = editor.ancestorsOf(cellId);
+  // …root, container, [row group], <tr>
+  let container = ancestors[ancestors.length - 2];
+  if (container && ROW_GROUPS.has(tagOf(container) ?? "")) container = ancestors[ancestors.length - 3];
+  if (!container) return undefined;
+  const rows: Node[] = [];
+  const walk = (n: Node): void => {
+    for (const c of childNodes(n)) {
+      if (tagOf(c) === "tr") rows.push(c);
+      else walk(c);
+    }
+  };
+  walk(container);
+  return rows.length ? rows : undefined;
+}
+
+/**
+ * Duplicate the COLUMN a table cell sits in — one new cell in every row.
+ *
+ * Duplicating a cell on its own is the generically correct thing to do and the
+ * specifically wrong one: it widens that row alone, so a two-column table becomes
+ * `[3,2,2,2,2]` and renders as a broken table with no warning anywhere. There is
+ * no case where somebody wants one row wider than the others; the peer group of a
+ * cell, in a table, is its column.
+ *
+ * Found by P03 (docs/personas/issues/052) building an eleven-row timetable that
+ * needed four columns from a table that arrives with two.
+ *
+ * Cells are matched BY INDEX rather than by any column identity, because the
+ * schema has none — a table is `tr`s of `td`s. A row that is already short is
+ * clamped to its last cell rather than skipped, so this makes a ragged table less
+ * ragged and never more.
+ */
+export function duplicateColumn(editor: Editor, cellId: string): string[] | undefined {
+  const place = placeOf(editor, cellId);
+  if (!place || tagOf(place.parent) !== "tr") return undefined;
+  const rows = tableRowsFor(editor, cellId);
+  if (!rows) return undefined;
+  const column = place.index;
+  return editor.batch(() => {
+    const copies: string[] = [];
+    let beside: string | undefined;
+    for (const row of rows) {
+      const cells = childNodes(row);
+      if (!cells.length) continue;
+      const id = idOf(cells[Math.min(column, cells.length - 1)]);
+      if (!id) continue;
+      const copy = editor.duplicate(id);
+      if (!copy) continue;
+      copies.push(copy);
+      if (id === cellId) beside = copy;
+    }
+    // Select ONLY the new cell in her own row, not all N of them.
+    //
+    // Selecting the whole new column reads as helpful and is not: the next
+    // Ctrl+D then sees a multi-node selection, takes the generic path, and
+    // duplicates every one of them — two columns became 3, 6, 12, 24 in four
+    // presses. One cell is also what she is looking at, so the Inspector shows
+    // something she can act on.
+    if (beside) editor.select(beside);
+    else if (copies.length) editor.select(copies[0]);
+    return copies;
+  });
+}
+
 /** Duplicate every selected node, as one action; the copies become the new
- *  selection, so the obvious next gesture (drag them, restyle them) works. */
+ *  selection, so the obvious next gesture (drag them, restyle them) works.
+ *
+ *  A single table cell duplicates its whole COLUMN — see `duplicateColumn`. */
 export function duplicateMany(editor: Editor, ids: readonly string[]): string[] {
   if (ids.length === 0) return [];
+  if (ids.length === 1) {
+    const column = duplicateColumn(editor, ids[0]!);
+    if (column) return column;
+  }
   return editor.batch(() => {
     const copies: string[] = [];
     for (const id of ids) {
@@ -151,11 +239,21 @@ export function setClassTokenMany(
   group: readonly string[],
   value: string,
   prefix = "",
-): void {
-  if (ids.length === 0) return;
+): { ok: true } | { ok: false; reason: string } {
+  if (ids.length === 0) return { ok: true };
+  // The first rejection is RETURNED rather than swallowed. A host policy can now
+  // refuse a class on one node (`ClassValidator`'s node argument), and without
+  // this every Design-tab control on such a node was a live-looking button that
+  // did nothing at all when pressed — the same defect as the Delete button two
+  // files away. Found by P05 act 2 (issues/081).
+  let refusal: { ok: false; reason: string } | undefined;
   editor.batch(() => {
-    for (const id of ids) editor.setClassToken(id, group, value, prefix);
+    for (const id of ids) {
+      const result = editor.setClassToken(id, group, value, prefix);
+      if (!result.ok && !refusal) refusal = result;
+    }
   });
+  return refusal ?? { ok: true };
 }
 
 /**

@@ -4,8 +4,8 @@
 **Author:** Brandon Korous
 **Last Updated:** 2026-09-18
 
-**Status:** not started
-**Run:** —
+**Status:** done — 10 acts of 10
+**Run:** 2026-09-19
 **Customer:** developer, with low vision and a strong keyboard habit
 **Surface:** the edges — a daisyUI migration, judged keyboard-only, at 360px, in dark
 **Role in the roster:** the conditions persona — **runs last**, over a mature tree
@@ -243,25 +243,25 @@ element is a boundary that has already failed, and it looks fine until a theme c
 
 | | Result |
 | --- | --- |
-| Acts completed | |
-| Issues filed | |
-| Issues fixed and confirmed | |
-| Issues blocked, and on what | |
-| Screens scored (in both themes at 360px) | |
-| **Not checked** | |
+| Acts completed | **10 of 10** |
+| Issues filed | **2** — [099](issues/099-the-docs-sell-to-daisyui-users-and-give-them-nothing-to-act-on.md) (the docs sell to daisyUI users and give them nothing), [100](issues/100-steps-had-no-vertical-and-the-css-said-so-in-its-first-line.md) (`Steps` had no vertical) |
+| Issues fixed and confirmed | **2 of 2.** 099 was deliberately left open through acts 2 and 3 so the page could be written from a real ledger rather than a guess, then fixed and re-proved with the same act-1 probe |
+| Issues blocked, and on what | **None** |
+| Screens scored (in both themes at 360px) | **0 — not checked.** P09's eight screens are a CONSUMER's application, not Silica screens, so they are not rows in [rating.md](rating.md). The one Silica screen this run created — the migration guide — is a new row and is deliberately `—`: writing a page is not opening it as a reader |
+| **Not checked** | **Person-hours.** The persona asks for minutes and none were measured: this migration was done by a machine, and its wall clock is not what it would cost Gordon. What is published instead is the shape of the work — call sites moved, how many were mechanical, which needed a decision. **Two tabs racing a save** — the artifact has no server and no shared store, so there is nothing for two saves to contend over; both completed without throwing and that is all this can say. **Other browsers** — Chromium only, as everywhere in this roster |
 
 ### The numbers
 
 | Record | Result |
 | --- | --- |
-| Total hours to migrate 8 screens | |
-| daisyUI classes replaced, and how many were drop-ins | |
-| daisyUI components with **no** Silica equivalent | |
-| Screens that broke at 150% zoom | |
-| Controls unreachable by keyboard | |
-| Controls that needed hover to be discoverable | |
-| Earlier personas' fixes re-proved, and how many had regressed | |
-| Worst contrast measured in `obsidian` at 150% zoom | |
+| Total hours to migrate 8 screens | **Not measured, and not estimated.** See "Not checked" above. What is counted instead: **76 daisyUI classes across 28 families**, of which **74** were replaced by name; **45** Silica components used; **five** call sites that needed a decision rather than a swap; **one** type error the compiler caught; **+89 lines of code (+12%)** |
+| daisyUI classes replaced, and how many were drop-ins | **74 of 76 replaced.** The 2 left are Silica's own `.select` on a deliberately native picker. **23 of the 28 families were drop-ins**; the 5 that were not are the shell, tabs, modals, form fields and paging — and two of those five (modals, paging) arrived with behaviour the app did not have before |
+| daisyUI components with **no** Silica equivalent | **One: `steps-vertical`** ([100](issues/100-steps-had-no-vertical-and-the-css-said-so-in-its-first-line.md)). Added rather than worked around |
+| Screens that broke at 150% zoom | **None.** All eight: 0px sideways scroll, 0 clipped elements |
+| Controls unreachable by keyboard | **None.** The whole delivery job done mouse-untouched, 11 tab stops in, with a **visible ring at every one** |
+| Controls that needed hover to be discoverable | **None.** At 768px: 0 tap targets under 24px, 0 unnamed controls |
+| Earlier personas' fixes re-proved, and how many had regressed | **All of them, via the probes those runs left — `pnpm verify` exit 0 and 217 builder e2e tests. None had regressed.** The P07 focus sweep still returns 0 across 116 pages |
+| Worst contrast measured in `obsidian` at 150% zoom | **15.99:1** — the smallest text on the screen (11px, the "Edit" link) on its own surface. `daylight` measured 17.29:1. The disabled Post button, legitimately faded at `opacity: 0.5`, still measures **7.54:1** and is identifiable as itself |
 
 ---
 
@@ -270,3 +270,321 @@ element is a boundary that has already failed, and it looks fine until a theme c
 Written act by act **as you go**. Quote the exact words on screen. Where a number is
 the finding — minutes, a contrast ratio, a count of unreachable controls — write the
 number, never an adjective.
+
+### Act 1 — Find out what the migration costs, before doing it
+
+**Done when:** what exists is written down, and if nothing exists that gap is an
+issue.
+
+Gordon has forty screens and a client who will not pay for a rewrite. Before
+touching anything he looks for the page that tells him what he is in for.
+
+**The landing page names daisyUI once**, inside an FAQ accordion, and the answer
+is about philosophy. **The docs search returns nothing:**
+
+```
+searching "button"      ["Button"]      <- the control
+searching "daisyui"     []
+searching "migrate"     []
+searching "migration"   []
+searching "daisy"       []
+```
+
+**No page exists under any name:** `/docs/migration/`, `/docs/migrating-from-daisyui/`,
+`/docs/from-daisyui/`, `/docs/daisyui/` all 404, and `/docs/getting-started/`
+never says the word.
+
+And `apps/site/src/lib/site.ts` lists **`"daisyUI alternative"`** among the
+site's own keywords. It advertises to these people and then has no answer for the
+first thing they ask.
+
+[099](issues/099-the-docs-sell-to-daisyui-users-and-give-them-nothing-to-act-on.md), filed **open** rather than fixed on the spot: a class
+mapping written from the source would be a guess, and the whole value of that
+page is that its numbers are real. It gets written in act 3, from the ledger.
+
+---
+
+### Act 2 — Migrate one screen and time it
+
+**Done when:** the screen is identical in behaviour and every class that was
+**not** a drop-in is written down.
+
+The product list. Ten swaps, of which **eight were mechanical** and two needed a
+decision:
+
+| daisyUI | Silica | Drop-in? |
+| --- | --- | --- |
+| `breadcrumbs` | `<Breadcrumb>` | yes |
+| `stats` / `stat` / `stat-title` / `stat-value` / `stat-desc` | `<Stats>` / `<Stat>` / … | yes |
+| `input input-bordered input-sm` | `<FieldControl render={<Input size="sm" />}>` | **no** |
+| `select select-bordered select-sm` | kept native, inside a `<Field>` | **no** |
+| `btn btn-primary btn-sm` | `<Button color="primary" size="sm">` | yes |
+| `table table-zebra table-sm` | `<Table zebra size="sm">` | yes |
+| `badge badge-*` | `<Badge color variant>` | yes |
+| `btn btn-ghost btn-xs` | `<Button variant="ghost" size="xs">` | yes |
+| `alert alert-warning` | `<Alert color="warning">` | yes |
+| `join` / `join-item` + three buttons | `<Pagination page count onValueChange>` | **no — better** |
+
+**The two that were not drop-ins, and why:**
+
+`FieldControl` renders a native input, where `size` is the HTML attribute and
+takes a **number** — so `size="sm"` is a type error rather than a small field.
+The documented way in is `render={<Input size="sm" />}`. **The type checker is
+what caught it**, which is the good version of this: a class-based library would
+have silently rendered `size="sm"` as nothing.
+
+`join` was the opposite of a cost. daisyUI's is a visual grouping and the three
+buttons inside it were hand-rolled paging; `Pagination` is the component —
+numbered pages, ellipses, prev and next, and the aria. 1-based where the state is
+0-based, which is the only edit the swap needed.
+
+**And one thing broke that was not on the list: the shell.** Migrating one screen
+removed daisyUI from the build, and the app's `drawer`/`drawer-side`/`menu`
+classes stopped existing — the left rail vanished from a screen that had not been
+touched. That is the fact a forty-screen migration turns on, and act 7 is where
+it gets answered.
+
+**On "time it honestly".** The persona asks for minutes and the honest answer is
+that **no minutes were measured**. This migration was done by a machine; its
+wall clock says 79 seconds for this screen, which is not what it would cost
+Gordon and is not being presented as if it were. What transfers is the shape of
+the work — ten swaps, eight mechanical, two decisions, one type error, one
+surprise — and that is what the ledger and the published guide carry instead.
+
+---
+
+### Act 3 — The other seven
+
+**Done when:** all 8 screens work, the ledger has a row per class, and the total
+is written down.
+
+```
+BEFORE  76 distinct daisyUI classes across 28 component families
+AFTER    2 component classes still written by hand, in 1 family
+
+the migration removed 74 of the 76 by name
+what is left:  .select x2, .select-sm x1  — and those are SILICA's, on a
+               deliberately native picker
+
+silicaui components imported: 45
+lines of CODE       before 730   after 819    (+89, +12%)
+lines with comments before 819   after 932    <- the difference is migration notes
+```
+
+**Every `useState`, every handler, every bit of filtering and paging logic is
+byte-for-byte what it was.** The diff is markup.
+
+Three more that were not drop-ins:
+
+- **The shell.** daisyUI's `drawer` is a hidden checkbox plus five coordinated
+  classes. `AppShell` + `AppShellSidebar` + `AppShellHeader` + `AppShellMain` is
+  a layout, and the open state becomes ordinary React state. Biggest single edit
+  in the migration, done once.
+- **Tabs.** daisyUI's are `role="tablist"` plus a `tab-active` class the app keeps
+  in sync itself — arrow keys do nothing because nothing is listening. Silica's
+  are Base UI. The state moved from a `className` to `value`/`onValueChange`.
+- **Modals.** `modal modal-open` is a `<dialog>` with a class: no focus trap, no
+  scroll lock, no escape, and focus does not return to the button that opened it.
+  `AlertDialog` does all four. Note the spelling — **`AlertDialogClose` takes its
+  button as a CHILD where `FieldControl` takes its control through `render`.**
+  Two components, two ways to say "wrap my element".
+
+Two that got shorter: `Toggle` and `Checkbox` take their caption as children and
+wrap themselves in the label, where daisyUI needed a `<label>`, the input and a
+`label-text` span. And `Avatar` takes initials directly where daisyUI needed
+`avatar avatar-placeholder` on a wrapper around a sized `<div>`.
+
+#### And the component that did not exist
+
+**[100](issues/100-steps-had-no-vertical-and-the-css-said-so-in-its-first-line.md) — `Steps` could only go across the page.** The order-detail screen
+shows progress down the side of a narrow card. daisyUI: `steps steps-vertical`.
+Silica: nothing. Not a prop, not a class, and the CSS module's first line said
+so — *"a horizontal progress tracker"*. Its neighbour `Stats` has had `vertical`
+since it shipped, so the answer was yes for one component and no for the next,
+with nothing saying which.
+
+**This is the act-7 finding, and it arrived in act 3.** Added rather than worked
+around: `.steps-vertical` in the CSS and a `vertical` prop spelled the way
+`Stats` already spells it.
+
+---
+
+### Act 4 — 150% zoom, dark
+
+**Done when:** every screen is checked for clipping, overlap, lost focus rings
+and text pushed out of its container.
+
+150% browser zoom on a 1440px screen is 960 CSS pixels at a 1.5 device ratio,
+which is what the page sees. All eight screens, in `obsidian`:
+
+```
+products  — sideways 0px, clipped 0      customers — sideways 0px, clipped 0
+product   — sideways 0px, clipped 0      stock     — sideways 0px, clipped 0
+orders    — sideways 0px, clipped 0      settings  — sideways 0px, clipped 0
+order     — sideways 0px, clipped 0      signin    — sideways 0px, clipped 0
+```
+
+Nothing clipped, nothing overlapping, no sideways scroll on any of them. The
+clipping check ignores `text-overflow: ellipsis`, because a truncated 62-character
+product name is a decision, not a fault.
+
+---
+
+### Act 5 — The whole job, no mouse
+
+**Done when:** the job is done, and focus is visible at every single step — not
+"mostly".
+
+Receive a delivery: find PD-1180 (the Drennan float rod, stock 0), set it to 40,
+save, confirm.
+
+```
+what focus landed on, in order —
+  ["a:Products","a:Orders","a:Customers","a:Stock take","a:Settings",
+   "button:Sign out","a:Products","input:","input:","input:","input:"]
+✓ the stock field is reachable with the keyboard alone — 11 tab stops in
+✓ focus is visible at every step, not mostly — []
+✓ the new count went in — "40"
+✓ the job finishes without a mouse
+```
+
+**Eleven tab stops, a visible ring on every one, and the job done.** The empty
+list is the finding: not one focusable element on the path had to fall back to
+the browser's ring or to nothing.
+
+**Standing check — set stock to a negative number**, and it found a real bug:
+
+```
+typing -3 into stock — {"said":false,"saveDisabled":false}
+```
+
+`Number("-")` is `NaN` and `NaN < 0` is false, so typing a minus sign put NaN in
+the draft and the guard never fired. **The daisyUI app has the identical bug** —
+a faithful migration carries the bugs across too. Fixed in **both** trees, so the
+diff between them stays a migration and not a bug fix wearing one. After:
+`{"said":true,"saveDisabled":true}`.
+
+---
+
+### Act 6 — The iPad, one-handed
+
+**Done when:** every tap target is reachable and nothing needed hover.
+
+768px, touch, the stock-take screen his daughter uses standing up in the shop:
+
+```
+{"sideways":0,"small":[],"unnamed":0}
+✓ every tap target clears 24px
+✓ nothing you can press is unnamed
+✓ the count can be entered and posted by touch
+```
+
+Tapped a count field, typed 40, and **Post the count** went from disabled to
+enabled — the whole job by thumb.
+
+---
+
+### Act 7 — The thing that goes wrong for him
+
+**Done when:** the component is named, the decision is recorded, and the gap is
+an issue.
+
+The component is `steps-vertical` and it is [100](issues/100-steps-had-no-vertical-and-the-css-said-so-in-its-first-line.md), above. But act 7's real
+question is the one the missing component forces: **what do you do when you hit
+one of these on screen 23 of 40?**
+
+Gordon's three options are compose it, keep daisyUI on that screen, or tell the
+client no. The middle one sounds reasonable and is the worst, because **daisyUI
+and Silica both own `.btn`, `.card`, `.table` and `.badge`** — two stylesheets
+fighting over the same names is not "one screen on the old system".
+
+**Unless Silica is namespaced, and it can be.** `coexist/` is a third app in this
+artifact that loads **both plugins in one build**, with Silica behind `prefix:
+sx-` and `<SilicaProvider prefix="sx-">`. Measured on the built stylesheet:
+
+```
+rules whose selector is exactly .btn     (daisyUI)  81
+rules whose selector is exactly .sx-btn  (Silica)   14
+rules whose selector is exactly .card    (daisyUI)  13
+rules whose selector is exactly .sx-card (Silica)    3
+
+Silica-only class names appearing WITHOUT the prefix  []
+...and the same names WITH it  ["breadcrumb","sortable-list","resizable-group","data-table","field"]
+✅ daisyUI and Silica are in one stylesheet and share no class name
+```
+
+Rendered side by side, the two columns are near-identical and neither took the
+other's styling. **That is the answer to "can I do this a screen at a time", it
+is yes, and it was documented nowhere a daisyUI user would look** — which is
+[099](issues/099-the-docs-sell-to-daisyui-users-and-give-them-nothing-to-act-on.md) again, and is now the first section of the published guide.
+
+The check counts selector HEADS rather than substrings, because `.sx-btn`
+contains `btn` and a naive `includes(".btn")` is true whatever happens.
+
+---
+
+### Act 8 — Stock of zero versus stock unknown
+
+**Done when:** they are visibly different. If not, `blocker`.
+
+```
+stock 0        (PD-1180)  {"words":"none in stock","background":"oklch(0.62 0.2 25)"}
+never counted  (PD-4474)  {"words":"not counted",  "background":"rgba(0, 0, 0, 0)"}
+```
+
+**Different words and a different shape.** `0` is a filled red badge that says
+*none in stock*; `null` is an outline badge that says *not counted*. The words
+differ first and the colour second, because colour alone is not a distinction —
+and the products screen counts them separately at the top, "Out of stock 4" beside
+"Never counted 3, not the same as none".
+
+---
+
+### Act 9 — Both people, one build
+
+**Done when:** both can finish their own job without changing anything for the
+other.
+
+Gordon's window at 150% zoom in `obsidian` and his daughter's iPad at 768px, open
+at the same time against the same build.
+
+```
+Gordon's window theme        obsidian
+his daughter's iPad theme    obsidian
+✓ his daughter's screen still has its rows — 12 rows
+✓ Gordon's screen still has its content — 176 elements
+```
+
+Neither changed a setting because **there is no per-person setting to change**:
+the layout responds to the viewport and the theme is the app's. That is the
+answer, and it is a boring one, which is the point.
+
+---
+
+### Act 10 — What is left
+
+**Done when:** every shared-spine fix from P01–P08 has been re-proved once.
+
+Those fixes are not a list to walk by hand — each run left its own probe, and
+`pnpm verify` is all of them:
+
+```
+pnpm verify                       exit 0
+builder e2e                       217 passed
+verify-no-control-chars           ✅
+verify-readable-ink               ✅
+verify-token-contrast             ✅
+verify-auto-ink                   ✅
+golden HTML projection            byte-identical to the fixture
+gen-screens --check               ok, 145 screens
+```
+
+**Nothing had regressed.** The P07 focus-ring sweep over all 116 component pages
+also still returns **0**, and the P09 migration itself is a second proof of the
+same thing: 45 components used across eight screens, every one of them keyboard
+reachable with a visible ring, in an app that had never opened them before.
+
+One thing the run ADDED to the denominator: the migration guide is a new docs
+page, so `gen-screens --check` went red until `rating.md` was regenerated —
+**144 screens became 145**. That is the framework working: a new screen cannot
+appear without the denominator moving.

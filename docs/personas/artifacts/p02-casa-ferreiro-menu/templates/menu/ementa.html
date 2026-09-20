@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<header class="mb-8">
+  <h1 class="text-4xl font-semibold text-base-content">Casa Ferreiro</h1>
+  <p class="mt-2 text-lg text-base-content">
+    Cozinha do Porto, à mesa desde 1978. Terça a domingo.
+  </p>
+
+  {% if aberto_hoje %}
+    <p class="mt-4 text-md text-base-content">
+      <span class="badge badge-success">Aberto hoje</span>
+      Almoço 12:00–15:00 · Jantar 19:00–22:30
+    </p>
+  {% else %}
+    <p class="mt-4 text-md text-base-content">
+      <span class="badge badge-error">Fechado hoje</span>
+      À segunda-feira estamos fechados. Voltamos terça ao almoço.
+    </p>
+  {% endif %}
+</header>
+
+<nav class="mb-8 flex flex-wrap gap-2">
+  {% for curso in cursos %}
+    <a class="btn btn-neutral btn-outline btn-sm" href="#{{ curso.slug }}">{{ curso.curso }}</a>
+  {% endfor %}
+</nav>
+
+{% for curso in cursos %}
+  <section id="{{ curso.slug }}" class="mb-10 scroll-mt-4">
+    <h2 class="text-2xl font-semibold text-base-content">{{ curso.curso }}</h2>
+    <div class="divider mt-2 mb-4"></div>
+
+    <ul class="flex flex-col gap-5">
+      {% for prato in curso.pratos %}
+        <li class="flex items-baseline justify-between gap-4">
+          <div class="min-w-0 flex-1">
+            {# font-sans: o marble põe a serifa de display em TODOS os h1..h6, e a
+               Cormorant a 16px numa rua ao escurecer é fina de mais. Os títulos de
+               curso ficam com ela; os nomes dos pratos são para ler. #}
+            <h3 class="font-sans text-md font-semibold text-base-content">{{ prato.nome }}</h3>
+            {% if prato.descricao %}
+              <p class="mt-1 text-md text-base-content">{{ prato.descricao }}</p>
+            {% endif %}
+          </div>
+
+          {# Um preço em falta TEM de se ler como "em falta". Um 0,00 € seria uma mentira. #}
+          {% if prato.preco %}
+            <span class="shrink-0 text-md font-semibold tabular-nums text-base-content">{{ prato.preco }} €</span>
+          {% else %}
+            <span class="badge badge-warning shrink-0">preço por definir</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endfor %}
+
+<section class="mb-10">
+  <details class="details">
+    <summary class="details-title">Carta de vinhos</summary>
+    <div class="details-content">
+      <p class="text-md text-base-content">
+        Vinhos do Douro e do Vinho Verde, a copo e a garrafa. A carta muda todos os meses;
+        pergunte ao Tomás — ele é o meu irmão e sabe sempre qual vale a pena esta semana.
+      </p>
+    </div>
+  </details>
+</section>
+
+<section id="reservar" class="mb-10">
+  <h2 class="text-2xl font-semibold text-base-content">Reservar mesa</h2>
+  <div class="divider mt-2 mb-4"></div>
+  {% include "menu/_form_reserva.html" %}
+</section>
+
+<section class="mb-10">
+  <h2 class="text-2xl font-semibold text-base-content">Horário</h2>
+  <div class="divider mt-2 mb-4"></div>
+  <table class="table">
+    <tbody>
+      <tr><th class="text-base-content">Segunda</th><td class="text-base-content">Fechado</td></tr>
+      <tr><th class="text-base-content">Terça a domingo</th><td class="text-base-content">12:00–15:00 e 19:00–22:30</td></tr>
+    </tbody>
+  </table>
+  <p class="mt-4 text-md text-base-content">{{ total_pratos }} pratos na ementa desta semana.</p>
+</section>
+
+{% endblock %}

@@ -237,10 +237,22 @@ export const TreeView = React.forwardRef<HTMLUListElement, TreeViewProps>(
       focusId(id);
     };
 
+    /** The keys a ROW owns. Anything else keeps bubbling untouched. */
+    const ROW_KEYS = new Set(["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "Enter", " ", "F2"]);
+
     const onKeyDown = (e: React.KeyboardEvent<HTMLLIElement>, id: string) => {
       const idx = flat.findIndex((f) => f.node.id === id);
       const entry = flat[idx];
       if (!entry) return;
+      // A treeitem lives INSIDE a treeitem — that is what a tree is — so this
+      // same handler is bound on every ancestor row and a bubbling key runs it
+      // once per level. Without this, ArrowDown moved to the next row and then
+      // the PARENT's copy ran and moved focus straight back to its own next
+      // row, which is the child we just left. The tree navigated exactly one
+      // step and then stuck forever, and every row below the first child was
+      // unreachable by keyboard. A flat tree has no ancestor row, so it worked
+      // and hid this. Found by P05 act "without a mouse" (issues/085).
+      if (ROW_KEYS.has(e.key)) e.stopPropagation();
       switch (e.key) {
         case "ArrowDown": {
           e.preventDefault();

@@ -21,6 +21,13 @@ async function ready(page: Page): Promise<void> {
  *  the button is disabled to match), and returns the new page's name. */
 async function addSecondPage(page: Page): Promise<string> {
   await page.getByRole("button", { name: "Add page" }).click();
+  // Adding a page now opens its name field with focus already inside it, so the
+  // panel is in rename mode until that field is committed (issues/044 — one
+  // click plus one Enter used to fire Add twice and silently make two pages).
+  // Enter on an empty field keeps the generated name, which is all this needs.
+  const field = page.getByLabel("Page name");
+  await expect(field).toBeFocused();
+  await field.press("Enter");
   const name = await page.getByRole("combobox", { name: "Current page" }).textContent();
   expect(name?.trim()).toBeTruthy();
   return name!.trim();
@@ -89,4 +96,69 @@ test("the confirm popup is themed, not the bare host page", async ({ page }) => 
 test("the last remaining page cannot be deleted", async ({ page }) => {
   await ready(page);
   await expect(page.getByRole("button", { name: "Delete page" })).toBeDisabled();
+});
+
+/**
+ * P04 act 7 / issues 072 — copying a page.
+ *
+ * The sibling of the email builder's missing template copy, found in the same
+ * act: the switcher could add a page and delete one, so a page resembling one
+ * that already existed had to be rebuilt block by block. A studio with one page
+ * per class, a shop with one per location — all the same page with different
+ * words in it.
+ */
+test("Duplicate makes a real copy of the page, with its own address, and the two are independent", async ({ page }) => {
+  await ready(page);
+
+  const first = (await page.getByRole("combobox", { name: "Current page" }).textContent())!.trim();
+
+  await page.getByRole("button", { name: "Duplicate page" }).click();
+  // Naming follows the copy, exactly as it follows an add (issues/044).
+  const field = page.getByLabel("Page name");
+  await expect(field).toBeFocused();
+  await field.fill("Term dates");
+  await field.press("Enter");
+
+  const trigger = page.getByRole("combobox", { name: "Current page" });
+  await expect(trigger).toHaveText(/Term dates/);
+
+  // Both pages are in the roster, so the copy is a second page and not a rename
+  // of the first.
+  await trigger.click();
+  await expect(page.getByRole("option", { name: first, exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Term dates", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[data-base-ui-inert]")).toHaveCount(0);
+
+  // The copy carries the original's whole tree, shape for shape, with its own
+  // fresh node ids — so editing one can never reach into the other.
+  const shape = await page.evaluate(() => {
+    const site = (window as unknown as {
+      __lastChange?: { pages?: Array<{ name: string; slug: string; root: unknown }> };
+    }).__lastChange;
+    const pages = site?.pages ?? [];
+    // Text children are bare strings and some wrappers carry no id of their own,
+    // so an id-less node contributes nothing rather than an empty string that
+    // would collide with every other one.
+    const ids = (node: unknown): string[] => {
+      if (typeof node !== "object" || node === null) return [];
+      const n = node as { id?: string; children?: unknown[] };
+      return [...(n.id ? [n.id] : []), ...(n.children ?? []).flatMap(ids)];
+    };
+    const stripped = (node: unknown): string =>
+      JSON.stringify(node, (k, v) => (k === "id" ? undefined : v));
+    return {
+      names: pages.map((p) => `${p.name}|${p.slug}`),
+      sameShape: pages.length === 2 && stripped(pages[0]!.root) === stripped(pages[1]!.root),
+      sharedIds: pages.length === 2 ? ids(pages[0]!.root).filter((id) => ids(pages[1]!.root).includes(id)) : ["not-two-pages"],
+    };
+  });
+  expect(shape.sameShape).toBe(true);
+  expect(shape.sharedIds).toEqual([]);
+
+  // Two pages cannot share a route: the copy got its own address, derived from
+  // the name it was given.
+  expect(shape.names).toHaveLength(2);
+  expect(new Set(shape.names.map((s) => s.split("|")[1])).size).toBe(2);
+  expect(shape.names).toContain("Term dates|/term-dates");
 });

@@ -2,7 +2,7 @@
   "name": "silicaui",
   "version": "0.0.0",
   "private": true,
-  "description": "Silica UI \u2014 a daisyUI-style CSS system + shadcn-style React components for Tailwind CSS v4.",
+  "description": "Silica UI — a daisyUI-style CSS system + shadcn-style React components for Tailwind CSS v4.",
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter playground dev",
@@ -11,16 +11,19 @@
     "site:build": "pnpm --filter @wizeworks/silicaui-site build",
     "build": "pnpm -r --filter \"./packages/*\" build",
     "verify:packaging": "node scripts/verify-packaging.mjs",
+    "verify:plugin-guards": "node scripts/verify-plugin-guards.mjs",
+    "verify:control-contrast": "node scripts/verify-control-contrast.mjs",
     "verify:version": "node scripts/guard-version.mjs",
     "verify:cycle": "node scripts/verify-workspace-acyclic.mjs",
     "verify:screens": "node docs/personas/gen-screens.mjs --check",
     "verify:counts": "node apps/site/scripts/gen-counts.mjs --check",
     "verify:catalog": "node apps/site/scripts/gen-catalog.mjs --check",
-    "verify": "pnpm verify:version && pnpm verify:cycle && pnpm verify:packaging && pnpm verify:screens && pnpm verify:counts && pnpm verify:catalog && pnpm -r verify && pnpm --filter @wizeworks/silicaui-html golden",
+    "verify": "pnpm verify:version && pnpm verify:control-chars && pnpm verify:cycle && pnpm verify:packaging && pnpm verify:plugin-guards && pnpm verify:control-contrast && pnpm verify:screens && pnpm verify:counts && pnpm verify:catalog && pnpm -r verify && pnpm --filter @wizeworks/silicaui-html golden",
     "lint": "node eslint-rules/verify-rules.mjs && eslint .",
     "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "verify:control-chars": "node scripts/verify-no-control-chars.mjs"
   },
   "engines": {
     "node": ">=20"

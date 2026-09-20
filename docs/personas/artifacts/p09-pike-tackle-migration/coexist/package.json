@@ -1,0 +1,23 @@
+{
+  "name": "pike-tackle-coexist",
+  "private": true,
+  "type": "module",
+  "description": "The proof that a 40-screen migration does not have to be one commit: daisyUI and Silica in the SAME build, Silica namespaced behind a prefix so the two never fight over .btn.",
+  "scripts": { "dev": "vite --port 5200", "build": "vite build" },
+  "dependencies": {
+    "@wizeworks/silicaui": "file:../../../../../packages/silicaui",
+    "@wizeworks/silicaui-react": "file:../../../../../packages/silicaui-react",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "daisyui": "^5.0.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.14"
+  }
+}

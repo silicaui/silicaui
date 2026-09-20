@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Quarrystone's own look. Slate and a quarry-orange, nothing like silicaui's
+   demo chrome — the builder is supposed to look like it belongs in here. */
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: quarrystone;
+  default: true;
+  --color-base-100: oklch(99% 0.002 240);
+  --color-base-200: oklch(96% 0.004 240);
+  --color-base-300: oklch(90% 0.007 240);
+  --color-base-content: oklch(23% 0.015 250);
+  --color-primary: oklch(58% 0.16 48);
+  --color-primary-content: oklch(99% 0.003 60);
+  --color-neutral: oklch(28% 0.02 250);
+  --color-neutral-content: oklch(97% 0.004 250);
+  --radius-field: 0.375rem;
+  --radius-box: 0.5rem;
+}
+
+/* The builder's chrome theme. It is not ours and it is not the page's — it is a
+   third island, and the point of act "contrast at the edges" is that it
+   contains itself. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: quarrystone-studio;
+  --color-base-100: oklch(97% 0.004 250);
+  --color-base-200: oklch(94% 0.006 250);
+  --color-base-300: oklch(88% 0.009 250);
+  --color-base-content: oklch(22% 0.014 252);
+  --color-primary: oklch(45% 0.09 250);
+  --color-primary-content: oklch(98% 0.004 250);
+  --radius-field: 0.375rem;
+  --radius-box: 0.5rem;
+}
+
+/*
+ * The step the contract never mentions.
+ *
+ * Tailwind v4 generates only the classes it can SEE. The builder's chrome is
+ * built out of literal class strings that live inside the installed package, and
+ * `node_modules` is not scanned by default — so following builder-contract.md to
+ * the letter mounts a fully working, completely unstyled builder. Nothing in
+ * §5, §8 or §10 says a word about CSS. See docs/personas/issues/079.
+ */
+@source "../node_modules/@wizeworks/silicaui-builder/dist/**/*.js";
+@source "../node_modules/@wizeworks/silicaui-html/dist/**/*.js";
+@source "../node_modules/@wizeworks/silicaui-react/dist/**/*.js";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

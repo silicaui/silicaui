@@ -31,6 +31,25 @@ import type { Child, ComponentNode, DataBinding, ElementNode, Node } from "./sch
 export interface DataScope {
   item?: unknown;
   index?: number;
+  /**
+   * WHO this render is for — the viewer, the recipient, the signed-in visitor.
+   *
+   * Opaque to silica, exactly like a `ref`: the core never reads it, never
+   * compares it and has no idea what is inside. It is carried from the caller
+   * of `resolveTree`/`resolveEmailTree` down to every `resolveBinding` call so
+   * a host can answer the same reference differently for different people.
+   *
+   * Separate from `item`/`index` on purpose. Those two say WHERE in a repeat a
+   * node is, and they are rewritten on every iteration; this says who the whole
+   * render is addressed to, and it is constant across the walk. Overloading
+   * `item` would have collided the moment an audience-aware binding appeared
+   * inside a collection.
+   *
+   * Added for P04 act 6 — one marketing email, three shops — where the builder
+   * could render exactly one recipient's version of a document and an author had
+   * no way to look at anybody else's.
+   */
+  audience?: unknown;
 }
 
 export interface Resolved {

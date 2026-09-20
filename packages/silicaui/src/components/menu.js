@@ -22,7 +22,7 @@ export function menu(prefix = "") {
       margin: "0",
       padding: "0.5rem",
       listStyle: "none",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
 
       "& li": { display: "flex" },
 
@@ -65,7 +65,7 @@ export function menu(prefix = "") {
     // Muted section label.
     [sel("-title")]: {
       padding: "0.5rem 0.75rem",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       textTransform: "uppercase",
       letterSpacing: "0.04em",
     },

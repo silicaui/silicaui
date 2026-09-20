@@ -33,13 +33,13 @@ export function meter(colors, prefix = "") {
       gap: "0.5rem",
     },
     [sel("-label")]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "500",
       lineHeight: "1.25",
       color: "var(--color-base-content)",
     },
     [sel("-value")]: {
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontVariantNumeric: "tabular-nums",
       lineHeight: "1.25",
       color: "var(--color-base-content)",

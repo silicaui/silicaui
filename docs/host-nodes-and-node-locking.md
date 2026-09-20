@@ -225,8 +225,8 @@ A single field (not `locked: boolean` + `lockedBy`) so there is no invalid state
 Any **truthy** `locked` (either owner) gates **structural** ops on the node itself:
 - `remove(id)` → refused (returns a no-op / falsy) when the target is `locked`. This is the direct fix for "remove(id) works on any non-root node."
 - `move`/reorder/reparent of a locked node → refused. (Reordering *other* siblings around it is fine — it holds its declared position.)
-- `duplicate` → allowed; the copy is **not** locked (a duplicate is author-owned — the field is cleared on the clone). A host that needs duplicates pinned re-locks on insert.
-- `setClass`/`setProp`/`setText`/`setData` → **allowed** — locking is about structure, not style/content. (A host that wants a fully read-only region withholds inspector controls; that's a separate concern.)
+- `duplicate` → allowed. An **author** lock is cleared on the clone (a duplicate is author-owned, and the author can set and clear that lock themselves). A **host** lock is KEPT. It used to be cleared too, on the same reasoning, with "a host that needs duplicates pinned re-locks on insert" as the escape — but there is no insert hook to re-lock from, so `pinned: true` was defeated by one Ctrl+D and the page carried an unlocked copy of a host-owned block. Corrected by P05 act 2 (docs/personas/issues/081). `setLocked` stays tier-blind, so the host is never boxed out of clearing its own.
+- `setClass`/`setProp`/`setText`/`setData` → **allowed** — locking is about structure, not style/content. A host that wants a region's *appearance* to be its own rejects the class from `validateClass`, which receives the NODE as its second argument for exactly this: it composes on top of the floor, covers every write path (`setClass`, `setClassToken`, paste, remote ops), and its `reason` is shown to the author in the Design tab. This line used to say "withholds inspector controls; that's a separate concern" and there was no way to do either — see docs/personas/issues/081.
 
 **The lock primitive.** Add one spine method:
 

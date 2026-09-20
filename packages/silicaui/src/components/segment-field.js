@@ -1,4 +1,5 @@
 import { colorVariantRules } from "../color-variants.js";
+import { inkOfRole } from "../lib/ink.js";
 
 /**
  * The segmented-field chrome shared by `DateInput`, `TimeInput`,
@@ -34,7 +35,7 @@ export function segmentField(colors, prefix = "") {
         "var(--segment-field-border, var(--segment-field-accent, var(--color-base-300)))",
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontVariantNumeric: "tabular-nums",
       transition: "border-color 0.15s ease, box-shadow 0.15s ease",
     },
@@ -60,7 +61,9 @@ export function segmentField(colors, prefix = "") {
       outline: "none",
       "&:focus": {
         backgroundColor: `color-mix(in oklab, ${accent} 20%, transparent)`,
-        color: accent,
+      // The role painted as TEXT needs the INK form, not the fill the palette
+      // tunes. See lib/ink.js and verify-ink-derivation.mjs.
+        color: `var(--segment-field-ink, ${inkOfRole("primary")})`,
       },
       "&[data-placeholder]": {
         color: "color-mix(in oklab, var(--color-base-content) 45%, transparent)",
@@ -78,27 +81,27 @@ export function segmentField(colors, prefix = "") {
     // Sizes.
     [sel("-xs")]: {
       height: "calc(var(--size-field, 0.25rem) * 6)",
-      fontSize: "0.6875rem",
+      fontSize: "0.75rem",
       paddingInline: "0.375rem",
     },
     [sel("-sm")]: {
       height: "calc(var(--size-field, 0.25rem) * 8)",
-      fontSize: "0.8125rem",
+      fontSize: "0.875rem",
       paddingInline: "0.5rem",
     },
     [sel("-md")]: {
       height: "calc(var(--size-field, 0.25rem) * 10)",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       paddingInline: "0.625rem",
     },
     [sel("-lg")]: {
       height: "calc(var(--size-field, 0.25rem) * 12)",
-      fontSize: "1rem",
+      fontSize: "1.125rem",
       paddingInline: "0.75rem",
     },
     [sel("-xl")]: {
       height: "calc(var(--size-field, 0.25rem) * 14)",
-      fontSize: "1.125rem",
+      fontSize: "1.25rem",
       paddingInline: "0.875rem",
     },
   };

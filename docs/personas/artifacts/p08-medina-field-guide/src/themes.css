@@ -1,0 +1,63 @@
+@plugin "@wizeworks/silicaui/theme" {
+  name: dune;
+  color-scheme: light;
+  default: true;
+  --color-base-100: oklch(97% 0.012 80);
+  --color-base-200: oklch(95% 0.018 80);
+  --color-base-300: oklch(89% 0.028 75);
+  --color-base-content: oklch(24% 0.025 60);
+  --color-primary: oklch(42% 0.06 60);
+  --color-secondary: oklch(48% 0.05 90);
+  --color-accent: oklch(52% 0.12 40);
+  --color-neutral: oklch(28% 0.02 60);
+  --color-info: oklch(52% 0.13 232);
+  --color-success: oklch(48% 0.13 150);
+  --color-warning: oklch(76% 0.14 80);
+  --color-error: oklch(52% 0.19 25);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.375rem;
+  --radius-box: 0.375rem;
+  --depth: 0;
+  --font-sans: "Work Sans", sans-serif;
+  --font-head: "Fraunces", serif;
+  --color-primary-content: oklch(98% 0.01 60);
+  --color-secondary-content: oklch(98% 0.01 90);
+  --color-accent-content: oklch(98% 0.01 40);
+  --color-neutral-content: oklch(98% 0.01 60);
+  --color-info-content: oklch(98% 0.01 232);
+  --color-success-content: oklch(98% 0.01 150);
+  --color-warning-content: oklch(15% 0.02 80);
+  --color-error-content: oklch(98% 0.01 25);
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: obsidian;
+  color-scheme: dark;
+  prefersdark: true;
+  --color-base-100: oklch(14% 0.006 250);
+  --color-base-200: oklch(11% 0.006 250);
+  --color-base-300: oklch(8% 0.006 250);
+  --color-base-content: oklch(94% 0.004 250);
+  --color-primary: oklch(88% 0.02 250);
+  --color-secondary: oklch(66% 0.015 250);
+  --color-accent: oklch(80% 0.12 210);
+  --color-neutral: oklch(30% 0.012 250);
+  --color-info: oklch(76% 0.11 232);
+  --color-success: oklch(76% 0.13 150);
+  --color-warning: oklch(84% 0.13 80);
+  --color-error: oklch(70% 0.17 25);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --depth: 0;
+  --font-sans: "Inter", sans-serif;
+  --font-head: "Space Grotesk", sans-serif;
+  --color-primary-content: oklch(15% 0.02 250);
+  --color-secondary-content: oklch(15% 0.015 250);
+  --color-accent-content: oklch(15% 0.02 210);
+  --color-neutral-content: oklch(98% 0.01 250);
+  --color-info-content: oklch(15% 0.02 232);
+  --color-success-content: oklch(15% 0.02 150);
+  --color-warning-content: oklch(15% 0.02 80);
+  --color-error-content: oklch(15% 0.02 25);
+}

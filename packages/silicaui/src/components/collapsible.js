@@ -105,7 +105,7 @@ export function collapsible(prefix = "") {
     // Padding wrapper (kept separate so the panel can animate to height 0).
     [sel("-content")]: {
       paddingTop: "0.5rem",
-      fontSize: "0.9375rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
   };

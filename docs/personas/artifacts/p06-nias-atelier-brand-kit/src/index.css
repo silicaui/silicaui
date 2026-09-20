@@ -1,0 +1,124 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Nia's Atelier — le kit de marque.
+
+   Trois palettes, aucune des vingt livrées. Quatre rôles inventés qui
+   n'existaient pas avant que je les tape: terracotta, bone, ironwood,
+   verdigris.
+
+   Le chemin exact suivi dans la doc (acte 1), et ce que j'ai dû DEVINER:
+
+     /docs/getting-started §2 dit « Add your own names to that list and they
+     behave identically to the built-in ones. »  → le NOM va dans `colors:`.
+     C'est la seule phrase de tout le site qui parle d'inventer une couleur.
+
+     Où va la VALEUR n'est écrit NULLE PART. Je l'ai déduite d'une phrase
+     d'avertissement — « If you declare a color in @theme and forget to list it
+     here » — qui sous-entend @theme sans jamais le montrer. Deviné, et juste.
+
+     §4 dit qu'un `--color-X` sans `--color-X-content` reçoit « a legible ink
+     derived for it automatically ». Je l'ai crue. Voir l'acte 6.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import "tailwindcss";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error,
+    terracotta, bone, ironwood, verdigris;
+}
+
+/* Les valeurs par défaut, hors de tout thème. C'est aussi ce que le contrôle de
+   build de la doc veut voir: sans ce bloc il ne dit rien. */
+@theme {
+  --color-terracotta: oklch(0.62 0.14 38);
+  --color-bone: oklch(0.94 0.012 85);
+  --color-ironwood: oklch(0.31 0.035 48);
+  --color-verdigris: oklch(0.66 0.09 172);
+}
+
+/* ── atelier-clay — l'identité du client ─────────────────────────────────── */
+@plugin "@wizeworks/silicaui/theme" {
+  name: atelier-clay;
+  color-scheme: light;
+
+  --color-base-100: oklch(0.975 0.006 85);
+  --color-base-200: oklch(0.945 0.009 85);
+  --color-base-300: oklch(0.9 0.014 82);
+  --color-base-content: oklch(0.26 0.03 48);
+
+  /* ACTE 7 — le client veut la terre cuite « deux crans plus chaude ».
+     C'est CETTE ligne, et rien d'autre dans le thème: les rôles livrés la
+     suivent par var(), ils n'en gardent pas une copie. */
+  --color-terracotta: oklch(0.64 0.145 50);
+  --color-bone: oklch(0.94 0.012 85);
+  --color-ironwood: oklch(0.31 0.035 48);
+  --color-verdigris: oklch(0.66 0.09 172);
+
+  /* Les rôles livrés, accordés sur la même famille — par référence, pas par
+     recopie. Un kit de marque ne laisse pas un `primary` bleu d'usine à côté
+     d'une terre cuite, et une copie se désynchronise au premier changement. */
+  --color-primary: var(--color-terracotta);
+  --color-secondary: var(--color-verdigris);
+  --color-accent: oklch(0.72 0.11 62);
+  --color-neutral: oklch(0.31 0.035 48);
+  --color-info: oklch(0.6 0.09 232);
+  --color-success: oklch(0.58 0.11 148);
+  --color-warning: oklch(0.72 0.14 72);
+  --color-error: oklch(0.56 0.18 25);
+
+  --radius-box: 0.125rem;
+  --radius-field: 0.125rem;
+  --border: 1px;
+}
+
+/* ── atelier-ink — le pendant sombre. Mêmes rôles, autre rampe. ──────────── */
+@plugin "@wizeworks/silicaui/theme" {
+  name: atelier-ink;
+  color-scheme: dark;
+
+  --color-base-100: oklch(0.19 0.012 48);
+  --color-base-200: oklch(0.155 0.012 48);
+  --color-base-300: oklch(0.125 0.012 48);
+  --color-base-content: oklch(0.93 0.01 85);
+
+  /* Relevées: la même teinte à 0.62 sur un fond à 0.19 est sourde. */
+  --color-terracotta: oklch(0.74 0.135 50);
+  --color-bone: oklch(0.88 0.015 85);
+  --color-ironwood: oklch(0.6 0.03 48);
+  --color-verdigris: oklch(0.76 0.09 172);
+
+  --color-primary: var(--color-terracotta);
+  --color-secondary: var(--color-verdigris);
+  --color-accent: oklch(0.8 0.1 62);
+  --color-neutral: oklch(0.6 0.03 48);
+  --color-info: oklch(0.72 0.1 232);
+  --color-success: oklch(0.72 0.12 148);
+  --color-warning: oklch(0.82 0.13 72);
+  --color-error: oklch(0.7 0.16 25);
+
+  --radius-box: 0.125rem;
+  --radius-field: 0.125rem;
+  --border: 1px;
+}
+
+/* ── atelier-signal — la palette hostile, exprès ─────────────────────────────
+   La couleur de marque est à presque exactement la même clarté que sa surface:
+   0.58 contre 0.60. Rien ici n'est un accident. La question de l'acte 6 est ce
+   que le système en FAIT: une encre lisible, un avertissement, ou du silence. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: atelier-signal;
+  color-scheme: light;
+
+  --color-base-100: oklch(0.6 0.02 262);
+  --color-base-200: oklch(0.56 0.02 262);
+  --color-base-300: oklch(0.52 0.02 262);
+  --color-base-content: oklch(0.15 0.02 262);
+
+  --color-terracotta: oklch(0.58 0.11 262);
+  --color-bone: oklch(0.62 0.02 262);
+  --color-ironwood: oklch(0.57 0.03 262);
+  --color-verdigris: oklch(0.59 0.06 200);
+
+  --color-primary: var(--color-terracotta);
+  --color-secondary: var(--color-verdigris);
+  --color-accent: oklch(0.61 0.08 300);
+  --color-neutral: oklch(0.57 0.03 262);
+}

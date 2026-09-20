@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+/* Gordon's own theme, carried across value for value.
+   The migration did NOT redesign it: every token below is the number that was
+   in the daisyUI theme block, because a migration that also changes the colours
+   is two changes and neither of them can be reviewed. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: obsidian;
+  default: true;
+  prefersdark: true;
+
+  --color-base-100: oklch(17% 0.012 260);
+  --color-base-200: oklch(21% 0.014 260);
+  --color-base-300: oklch(28% 0.016 260);
+  --color-base-content: oklch(94% 0.006 260);
+  --color-primary: oklch(68% 0.15 205);
+  --color-primary-content: oklch(15% 0.02 205);
+  --color-secondary: oklch(62% 0.13 300);
+  --color-secondary-content: oklch(15% 0.02 300);
+  --color-accent: oklch(72% 0.14 160);
+  --color-accent-content: oklch(15% 0.02 160);
+  --color-neutral: oklch(30% 0.015 260);
+  --color-neutral-content: oklch(94% 0.006 260);
+  --color-info: oklch(70% 0.12 230);
+  --color-info-content: oklch(15% 0.02 230);
+  --color-success: oklch(70% 0.16 152);
+  --color-success-content: oklch(15% 0.02 152);
+  --color-warning: oklch(80% 0.15 80);
+  --color-warning-content: oklch(18% 0.02 80);
+  --color-error: oklch(62% 0.20 25);
+  --color-error-content: oklch(98% 0.01 25);
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.375rem;
+  --border: 1px;
+}
+
+/* The light theme the daisyUI app never had.
+   Gordon does not use light mode and never will. Whoever inherits this in five
+   years is not him, so it has to be right — and it costs one block, which was
+   one of the reasons to move. */
+@plugin "@wizeworks/silicaui/theme" {
+  name: daylight;
+
+  --color-base-100: oklch(99% 0.002 260);
+  --color-base-200: oklch(96% 0.004 260);
+  --color-base-300: oklch(89% 0.008 260);
+  --color-base-content: oklch(21% 0.014 260);
+  --color-primary: oklch(48% 0.14 205);
+  --color-primary-content: oklch(99% 0.003 205);
+  --color-secondary: oklch(45% 0.14 300);
+  --color-secondary-content: oklch(99% 0.003 300);
+  --color-accent: oklch(48% 0.12 160);
+  --color-accent-content: oklch(99% 0.003 160);
+  --color-neutral: oklch(30% 0.015 260);
+  --color-neutral-content: oklch(97% 0.004 260);
+  --color-info: oklch(48% 0.12 230);
+  --color-info-content: oklch(99% 0.003 230);
+  --color-success: oklch(48% 0.13 152);
+  --color-success-content: oklch(99% 0.003 152);
+  --color-warning: oklch(62% 0.14 80);
+  --color-warning-content: oklch(18% 0.02 80);
+  --color-error: oklch(52% 0.20 25);
+  --color-error-content: oklch(99% 0.01 25);
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.375rem;
+  --border: 1px;
+}
+
+/* The classes silicaui's own components carry live inside the installed package,
+   and node_modules is not scanned by default. Learned from P05 (issues/079). */
+@source "../node_modules/@wizeworks/silicaui-react/dist/**/*.js";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

@@ -12,13 +12,15 @@
  * skip history (a token drag would otherwise flood it) but still mutate the live
  * doc IN PLACE, so a later undo snapshot always carries the current theme.
  */
-import type { BehaviorMarker, Child, ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, HostNode, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
+import type { BehaviorMarker, Child, ClassValidator, ComponentNode, DataBinding, Document, ElementNode, Frame, HostNode, MakeId, Node, Page, Site, SymbolDef, Theme } from "@wizeworks/silicaui-html";
 import { applyOverrides, assignOrds, composeValidators, rejectViewportVariants, defaultMakeId, el, flattenSymbols, listComponents, makePage, ordAt, pageBody, pageDocument, siteFromDocument, slugify, stampTree, stripIds, stripOrds, walk } from "@wizeworks/silicaui-html";
 import { defaultFrameRoot } from "./frame";
 import { declaredBreakpoints, declaresContainer, isContainerPrefix, setTokenAt, tokenStateAt } from "./class-tokens";
 import type { TokenState } from "./class-tokens";
 import { invertOp } from "./invert";
 import type { Op, OpTarget, SymbolDetachment } from "./ops";
+import { findInSite, replacementFor } from "./find";
+import type { SiteTextMatch } from "./find";
 
 /** Two id lists, same members in the same order? */
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
@@ -157,11 +159,43 @@ function newPageRoot(): Node {
     el("section", "px-6 py-16 flex flex-col items-center gap-3 text-center", {
       children: [
         el("h1", "text-3xl font-bold", { text: "New page" }),
-        el("p", "text-base-content/60", { text: "Add sections from the Insert panel." }),
+        el("p", "text-base-content", { text: "Add sections from the Insert panel." }),
       ],
     }),
   ]);
 }
+/**
+ * Ids for a tree the EDITOR conjures rather than the host supplying one.
+ *
+ * Deterministic on purpose, and the only ids here that are. Every other id is
+ * minted fresh because it names a node somebody CREATED; these name nodes
+ * nobody created — two editors handed the same `Site` both conjure them
+ * independently, and with random ids the two windows end up holding documents
+ * whose default frame has different node names. A frame op relayed between them
+ * then addresses an id the other side has never seen and is dropped, silently
+ * and permanently, while a page op in the same batch lands. Found by P05 act 5
+ * (docs/personas/issues/083).
+ *
+ * Safe because ids are TREE-scoped: two sites never share a tree, so two
+ * default frames carrying the same ids can never collide — the same reason a
+ * default is allowed to be a constant at all.
+ */
+function conjuredIds(prefix: string): MakeId {
+  let n = 0;
+  return () => `${prefix}-${n++}`;
+}
+
+/** The layout every site has. A site that arrives without one gets THIS one,
+ *  byte for byte, in every window that opens it. */
+function conjuredFrame(): Frame {
+  return { root: stampTree(defaultFrameRoot(), conjuredIds("sui-frame")), editable: true };
+}
+
+/** The page a site with no pages gets. Same argument as `conjuredFrame`. */
+function conjuredHomePage(): Page {
+  return makePage("Home", "/", stampTree(newPageRoot(), conjuredIds("sui-home")), () => "sui-home-page");
+}
+
 /**
  * Kind precedence, most structural first. A single user action can touch several
  * kinds (creating a symbol changes `structure` AND `symbols`); `kind` reports the
@@ -193,6 +227,70 @@ function kindForOp(op: Op): ChangeKind {
   if (op.kind === "node.insert" || op.kind === "node.remove" || op.kind === "node.move") return "structure";
   if (op.kind === "frame.setEditable") return "structure";
   return "props";
+}
+
+/**
+ * What an action DID, in one short phrase, for the Undo control to say out loud.
+ *
+ * Deliberately built from op KINDS only, never from the builder's display
+ * vocabulary: the engine has no React, no `node-display.ts`, and must not grow a
+ * dependency on either. That caps how specific this can be — "Remove an element",
+ * not "Remove the timetable" — which is still the difference between a button
+ * that says nothing and one that says what it is about to take back.
+ *
+ * An action that recorded several kinds is named after its most structural op,
+ * the same rule `primaryKind` already uses for `ChangeEvent.kind`, because that
+ * is the part a person would say they did.
+ */
+const OP_PHRASE: Record<string, string> = {
+  "node.insert": "Add an element",
+  "node.remove": "Remove an element",
+  "node.move": "Move an element",
+  "node.setText": "Edit text",
+  "node.setClass": "Change styling",
+  "node.setProps": "Change settings",
+  "node.setAttrs": "Change settings",
+  "node.setChildren": "Change contents",
+  "node.setTag": "Change element type",
+  "node.setBinding": "Change data binding",
+  "node.setBehavior": "Change behaviour",
+  "node.setLocked": "Lock or unlock",
+  "node.rename": "Rename an element",
+  "node.setOverride": "Change an instance",
+  "page.create": "Add a page",
+  "page.delete": "Delete a page",
+  "page.rename": "Rename a page",
+  "page.setSlug": "Change a page address",
+  "page.reorder": "Reorder pages",
+  "symbol.set": "Change a component",
+  "symbol.delete": "Delete a component",
+  "frame.setEditable": "Change the header or footer",
+  "site.replace": "Replace the site",
+};
+
+/** Rank for choosing which op in a batch names the whole action. Lower wins. */
+const PHRASE_ORDER: readonly string[] = [
+  "page.delete", "page.create", "page.rename", "page.setSlug", "page.reorder",
+  "symbol.delete", "symbol.set", "frame.setEditable",
+  "node.remove", "node.insert", "node.move", "node.setTag", "node.rename",
+  "node.setChildren", "node.setText", "node.setClass", "node.setProps",
+  "node.setAttrs", "node.setBinding", "node.setBehavior", "node.setLocked",
+  "node.setOverride", "site.replace",
+];
+
+export function describeOps(ops: readonly Op[]): string {
+  if (!ops.length) return "";
+  let best: string | undefined;
+  let bestRank = Number.POSITIVE_INFINITY;
+  for (const op of ops) {
+    let rank = PHRASE_ORDER.indexOf(op.kind);
+    if (rank < 0) rank = PHRASE_ORDER.length;
+    if (rank < bestRank) {
+      bestRank = rank;
+      best = op.kind;
+    }
+  }
+  return (best && OP_PHRASE[best]) || "";
 }
 
 /** The most structural kind in a batch — the value `ChangeEvent.kind` reports. */
@@ -323,6 +421,15 @@ export function acceptsChildren(node: Node): boolean {
   return CONTAINER_TAGS.has(node.tag);
 }
 
+/** "Term dates" → "Term dates copy", then "copy 2", "copy 3". Numbered only
+ *  from the second one, because "copy 1" reads as a mistake. */
+function copyName(name: string, existing: readonly Page[]): string {
+  const taken = new Set(existing.map((p) => p.name));
+  const base = `${name} copy`;
+  if (!taken.has(base)) return base;
+  for (let i = 2; ; i += 1) if (!taken.has(`${base} ${i}`)) return `${base} ${i}`;
+}
+
 export class Editor {
   // The whole site — pages sharing one theme + frame. The builder edits ONE page
   // at a time (`activePageId`); `useDocument`/`extract` synthesize that page as a
@@ -372,6 +479,18 @@ export class Editor {
   // all undo together. Capped so a long session can't grow the stack without bound.
   private past: Site[] = [];
   private future: Site[] = [];
+  // What each snapshot's action WAS, in the customer's words — kept beside the
+  // stacks rather than inside them so the snapshot stays a plain `Site` for
+  // `structuredClone`. `pastLabels[i]` describes the action that moved the
+  // document OFF `past[i]`, which is exactly what undoing to `past[i]` takes back.
+  //
+  // Found by P03 (docs/personas/issues/047): Marlene deleted a section, did not
+  // notice for two minutes, and then had a button that said only "Undo". Undo
+  // itself was perfect — one press, byte-identical document — but nothing on
+  // screen would tell her what that press was about to take back, and a toast
+  // would have been long gone by the time she looked.
+  private pastLabels: string[] = [];
+  private futureLabels: string[] = [];
   private static readonly HISTORY_LIMIT = 100;
   // ── open-action (transaction) state ────────────────────────────────────────
   // One USER action = one emit, however many internal mutations it makes. These
@@ -407,10 +526,10 @@ export class Editor {
     this.validateClass = composeValidators(
       !rejectViewport
         ? host
-        : (cls) => {
+        : (cls, node) => {
             const viewport = rejectViewportVariants(cls);
             if (!viewport.ok) return viewport;
-            return host ? host(cls) : { ok: true };
+            return host ? host(cls, node) : { ok: true };
           },
     );
     this.site = "pages" in input ? structuredClone(input) : siteFromDocument(input);
@@ -419,11 +538,11 @@ export class Editor {
     // lazily on first Layout-mode entry) so the Page tab shows the locked layout
     // chrome from first paint. A site that already carries one keeps it.
     if (!this.site.frame) {
-      this.site.frame = { root: stampTree(defaultFrameRoot()), editable: true };
+      this.site.frame = conjuredFrame();
     }
     // A site always has at least one page.
     if (this.site.pages.length === 0) {
-      this.site.pages = [makePage("Home", "/", stampTree(newPageRoot()))];
+      this.site.pages = [conjuredHomePage()];
     }
     // Symbols are site-scoped and shared across pages + the frame; a site may
     // arrive without any. (Held on the site so undo/redo + save carry them.)
@@ -542,8 +661,15 @@ export class Editor {
    *  Shared by node edits and page-structure edits. */
   private pushHistory(): void {
     this.past.push(structuredClone(this.site));
-    if (this.past.length > Editor.HISTORY_LIMIT) this.past.shift();
+    // Placeholder: the action has not run yet, so its ops do not exist. The
+    // outermost `transact` fills this in from what was actually recorded.
+    this.pastLabels.push("");
+    if (this.past.length > Editor.HISTORY_LIMIT) {
+      this.past.shift();
+      this.pastLabels.shift();
+    }
     this.future = [];
+    this.futureLabels = [];
   }
 
   /**
@@ -582,6 +708,12 @@ export class Editor {
       if (this.txDepth === 0) {
         const batch = this.txKinds;
         const ops = this.txOps;
+        // Name the snapshot this action moved off, now that its ops exist. Only
+        // when this action actually took one — an action that skipped history
+        // must not relabel somebody else's entry.
+        if (this.txHistory && this.pastLabels.length) {
+          this.pastLabels[this.pastLabels.length - 1] = describeOps(ops);
+        }
         this.txKinds = [];
         this.txOps = [];
         this.txHistory = false;
@@ -928,7 +1060,7 @@ export class Editor {
       el("div", "flex flex-col gap-3 p-6", {
         children: [
           el("h3", "text-lg font-semibold text-base-content", { text: "New component" }),
-          el("p", "text-base-content/70", { text: "Add elements from the Insert panel." }),
+          el("p", "text-base-content", { text: "Add elements from the Insert panel." }),
         ],
       }),
     );
@@ -1180,6 +1312,33 @@ export class Editor {
       }),
     );
     return { target: { scope: "site" }, kind: "symbol.delete", symbolId, detach };
+  }
+
+  /**
+   * How many links anywhere in the site point at `slug` — every page, the frame
+   * and every symbol master, minus `exceptPageId` (the page about to be deleted,
+   * whose own links go with it).
+   *
+   * Deleting a page does NOT delete the links to it, and a link to a page that
+   * no longer exists renders identically to a working one. Nothing else on
+   * screen counts them, so the delete prompt does (issues/057).
+   *
+   * An `href` lives on `attrs` for an element and on `props` for a component —
+   * both are checked, because a nav built from Buttons and one built from `<a>`
+   * are the same site to the person who made it.
+   */
+  linksTo(slug: string, exceptPageId?: string): number {
+    let n = 0;
+    this.forEachTree((root, target) => {
+      if (exceptPageId && target.scope === "page" && target.id === exceptPageId) return;
+      walk(root, (node) => {
+        if (node.kind === "outlet") return;
+        const href =
+          node.kind === "element" ? node.attrs?.href : (node.props as Record<string, unknown> | undefined)?.href;
+        if (href === slug) n += 1;
+      });
+    });
+    return n;
   }
 
   /** Run a fn over every editable tree in the site (pages, frame, symbol masters). */
@@ -1496,6 +1655,8 @@ export class Editor {
     if (!this.historyDelegate) {
       this.past = [];
       this.future = [];
+      this.pastLabels = [];
+      this.futureLabels = [];
     }
     this.remote++;
     try {
@@ -1538,12 +1699,22 @@ export class Editor {
         this.site = structuredClone(site);
         this.site.symbols ??= {};
         this.site.savedThemes ??= [structuredClone(this.site.theme)];
+        // The same two invariants the constructor establishes. A resync that
+        // set `this.site` and skipped them left the editor in a state the
+        // constructor guarantees cannot happen: with no frame, Layout mode
+        // falls through to the PAGE root and the author edits one page
+        // believing they are editing the shared shell (issues/083).
+        if (!this.site.frame) {
+          this.site.frame = conjuredFrame();
+        }
         if (this.site.pages.length === 0) {
-          this.site.pages = [makePage("Home", "/", stampTree(newPageRoot()))];
+          this.site.pages = [conjuredHomePage()];
         }
         this.forEachTree(assignOrds);
         this.past = [];
         this.future = [];
+        this.pastLabels = [];
+        this.futureLabels = [];
         this.seq = seq;
         this.clampActivePage();
         this.clampSymbol();
@@ -1632,6 +1803,43 @@ export class Editor {
     });
   }
 
+  /**
+   * Copy a whole page — the same layout again, under a new name and address.
+   *
+   * The sibling gap to the email builder's missing template copy: this switcher
+   * could add and delete, so a second page that resembles an existing one had
+   * to be rebuilt block by block. A studio with one page per class, a shop with
+   * one per location, a practice with one per clinician — all of them are the
+   * same page with different words in it. Found by P04 act 7 (issues/072).
+   *
+   * Fresh node ids throughout: the copy is new content, so editing one page
+   * never reaches into the other.
+   *
+   * The address is derived from the new NAME, not copied — two pages cannot
+   * share a route. `uniqueSlug` settles any remaining collision. Undoable.
+   * Returns the new page's id.
+   */
+  duplicatePage(id: string): string | undefined {
+    const source = this.site.pages.find((p) => p.id === id);
+    if (!source) return undefined;
+    const name = copyName(source.name, this.site.pages);
+    const page: Page = {
+      ...structuredClone(source),
+      id: defaultMakeId(),
+      name,
+      slug: this.uniqueSlug(slugify(name)),
+      root: stampTree(structuredClone(source.root)),
+    };
+    return this.transact(["page"], true, () => {
+      this.site.pages.push(page);
+      this.activePageId = page.id;
+      this.select(undefined);
+      this.syncPages();
+      this.record({ target: { scope: "site" }, kind: "page.create", page });
+      return page.id;
+    });
+  }
+
   /** Remove a page. Refuses to remove the last one (a site needs ≥1 page). If it
    *  was active, falls back to the previous page. Undoable. */
   removePage(id: string): void {
@@ -1649,16 +1857,38 @@ export class Editor {
     });
   }
 
-  /** Rename a page's label (no-op on empty/unchanged). Undoable. */
+  /**
+   * Rename a page's label (no-op on empty/unchanged). Undoable.
+   *
+   * The ADDRESS follows the name, but only while nobody has chosen an address.
+   *
+   * `addPage()` with no name calls the page "Page 5" and derives `/page-5` from
+   * it; renaming used to change only the label, so a studio's term-dates page
+   * stayed at `brightstepstudio.co.uk/page-5` forever. Every page made with the
+   * "+" button had a meaningless address, and nothing on screen said so.
+   * Found by P03 (docs/personas/issues/050).
+   *
+   * The test for "nobody has chosen" is exact rather than a flag: the slug still
+   * being `slugify(oldName)` means it was derived and never touched. Set an
+   * address by hand — `/prices` on a page called "Fees" — and this leaves it
+   * alone, forever, because the two no longer match.
+   *
+   * Emitted as its own `page.setSlug` op, not folded into the rename, so a
+   * collaborating host sees the address change as the distinct fact it is. Both
+   * land in one `transact`, so it is one undo step.
+   */
   renamePage(id: string, name: string): void {
     const page = this.site.pages.find((p) => p.id === id);
     if (!page) return;
     const value = name.trim();
     if (!value || value === page.name) return;
+    const wasDerived = page.slug === slugify(page.name);
+    const previous = page.name;
     this.transact(["page"], true, () => {
       page.name = value;
       this.syncPages();
       this.record({ target: { scope: "site" }, kind: "page.rename", pageId: id, name: value });
+      if (wasDerived && page.slug === slugify(previous)) this.setPageSlug(id, value);
     });
   }
 
@@ -1736,7 +1966,11 @@ export class Editor {
     if (!found) return { ok: true };
     const value = className.trim();
     if (value) {
-      const result = this.validateClass(value);
+      // The NODE goes with the string. A host policy that has to protect one
+      // region — a compliance block it is legally answerable for — cannot do it
+      // from the class alone; see `ClassValidator`. `setClassToken` routes
+      // through here, so the Design tab's controls are covered by the same call.
+      const result = this.validateClass(value, found.node);
       if (!result.ok) return result;
     }
     this.commit("class", () => {
@@ -1943,6 +2177,101 @@ export class Editor {
     });
   }
 
+  // ── find + replace across the whole site ──────────────────────────────────
+  /** Every place a piece of text sits, across every page, the frame and every
+   *  saved component. See `find.ts` for what is searched and what is not. */
+  findText(find: string): readonly SiteTextMatch[] {
+    return findInSite(this.site, find);
+  }
+
+  /**
+   * Fix it everywhere, in ONE undo step.
+   *
+   * Crosses pages, the frame and saved components, which no other method here
+   * does — so it walks each tree directly and stamps each op with that tree's
+   * OWN target, rather than going through `setText`/`setAttr`, which only ever
+   * address the tree the spine is pointed at. A peer therefore sees this as N
+   * ordinary edits across N trees, which is exactly what it is.
+   *
+   * A page SLUG is never rewritten. It is a route: changing it breaks every
+   * link that points at it and every bookmark a visitor has. Find lists it so
+   * the author can see it and go and change it deliberately.
+   *
+   * Returns the number of FIELDS changed — places, not occurrences. A place is
+   * the unit an author thinks in, and the unit they would otherwise have had to
+   * remember.
+   */
+  replaceText(find: string, replacement: string): number {
+    if (!find || find === replacement) return 0;
+    if (this.findText(find).length === 0) return 0;
+    return this.transact(["props", "page"], true, () => {
+      let places = 0;
+
+      const walk = (root: Node, target: OpTarget): void => {
+        const visit = (node: Node): void => {
+          const id = (node as { id?: string }).id;
+          const patch = id ? replacementFor(node, find, replacement) : undefined;
+          if (id && patch) {
+            if (patch.label !== undefined && node.kind !== "outlet") {
+              node.label = patch.label;
+              this.record({ target, kind: "node.rename", nodeId: id, name: patch.label });
+              places += 1;
+            }
+            if (patch.text !== undefined) {
+              if (node.kind === "element") {
+                node.children = [patch.text];
+                this.record({ target, kind: "node.setChildren", nodeId: id, children: [patch.text] });
+              } else if (node.kind === "component") {
+                const key = node.props?.label !== undefined ? "label" : "text";
+                node.props = { ...(node.props ?? {}), [key]: patch.text };
+                this.record({ target, kind: "node.setProps", nodeId: id, patch: { [key]: patch.text } });
+              }
+              places += 1;
+            }
+            if (patch.html !== undefined) {
+              if ((node as { rawHtml?: string }).rawHtml !== undefined) {
+                (node as { rawHtml?: string }).rawHtml = patch.html;
+                this.record({ target, kind: "node.setProps", nodeId: id, patch: { rawHtml: patch.html } });
+              } else if (node.kind === "component") {
+                node.props = { ...(node.props ?? {}), html: patch.html };
+                this.record({ target, kind: "node.setProps", nodeId: id, patch: { html: patch.html } });
+              }
+              places += 1;
+            }
+            if (patch.attrs && node.kind === "element") {
+              node.attrs = { ...(node.attrs ?? {}), ...patch.attrs };
+              this.record({ target, kind: "node.setAttrs", nodeId: id, patch: { ...patch.attrs } });
+              places += Object.keys(patch.attrs).length;
+            }
+            if (patch.props && node.kind === "component") {
+              node.props = { ...(node.props ?? {}), ...patch.props };
+              this.record({ target, kind: "node.setProps", nodeId: id, patch: { ...patch.props } });
+              places += Object.keys(patch.props).length;
+            }
+          }
+          const kids = node.kind === "outlet" ? [] : ((node.children ?? []) as readonly (Node | string)[]);
+          for (const child of kids) if (typeof child !== "string") visit(child);
+        };
+        visit(root);
+      };
+
+      for (const page of this.site.pages) {
+        if (page.name.includes(find)) {
+          page.name = page.name.split(find).join(replacement);
+          this.record({ target: { scope: "site" }, kind: "page.rename", pageId: page.id, name: page.name });
+          places += 1;
+        }
+        walk(page.root, { scope: "page", id: page.id });
+      }
+      if (this.site.frame?.root) walk(this.site.frame.root as Node, { scope: "frame" });
+      for (const [symId, sym] of Object.entries(this.site.symbols ?? {})) {
+        const root = (sym as { root?: Node }).root;
+        if (root) walk(root, { scope: "symbol", id: symId });
+      }
+      return places;
+    });
+  }
+
   /**
    * Change an ELEMENT node's semantic tag (a heading level h1→h2, or a container
    * div→section/nav/header/footer). Pure semantics — style rides on `class`, so a
@@ -2126,15 +2455,30 @@ export class Editor {
   }
 
   /** Duplicate a node in place (fresh ids), inserting the copy right after it.
-   *  A locked node CAN be duplicated; the copy is author-owned, so its lock is
-   *  cleared (host-nodes spec §B.2). A CLAIMED one can too, for the same reason
-   *  and one more: the copy lands beside the subtree rather than in it, so it
-   *  changes nothing the holder is looking at (`locate`, not `locateEditable`). */
+   *  An AUTHOR-locked node can be duplicated and the copy is author-owned, so
+   *  its lock is cleared (host-nodes spec §B.2). A CLAIMED one can too, for the
+   *  same reason and one more: the copy lands beside the subtree rather than in
+   *  it, so it changes nothing the holder is looking at (`locate`, not
+   *  `locateEditable`).
+   *
+   *  A HOST lock is KEPT, and §B.2 has been corrected to say so.
+   *
+   *  It used to be cleared like any other, on the reasoning that "a duplicate is
+   *  author-owned" — and the spec's own escape hatch for that was *"a host that
+   *  needs duplicates pinned re-locks on insert"*. There is no insert hook to
+   *  re-lock from: `pinned` stamps the lock when the palette places the node, and
+   *  nothing runs on a duplicate. So `pinned: true` — a host declaring "this
+   *  block is not the author's to move or delete" — was defeated by Ctrl+D, which
+   *  left an unlocked copy of a legally-owned block on the page.
+   *
+   *  The author's own lock still clears, because that one they can set and clear
+   *  themselves; the host's is not theirs to drop. Found by P05 act 2
+   *  (issues/081). */
   duplicate(id: string): string | undefined {
     const found = locate(this.activeRoot(), id);
     if (!found || !found.parent) return undefined; // can't duplicate the root
     const copy = stampTree(found.node);
-    if (copy.kind !== "outlet") delete copy.locked;
+    if (copy.kind !== "outlet" && copy.locked !== "host") delete copy.locked;
     const newId = copy.kind === "outlet" ? undefined : copy.id;
     const parent = found.parent;
     const at = found.index + 1;
@@ -2211,11 +2555,28 @@ export class Editor {
     return this.historyDelegate ? this.historyDelegate.canRedo() : this.future.length > 0;
   }
 
+  /** What the next undo would take back, e.g. `"Remove an element"` — `undefined`
+   *  when there is nothing to undo, or when a host owns the history and so owns
+   *  the naming of it too. The toolbar says this instead of a bare "Undo". */
+  get undoLabel(): string | undefined {
+    if (this.historyDelegate) return undefined;
+    return this.pastLabels[this.pastLabels.length - 1] || undefined;
+  }
+  /** What the next redo would put back. Same contract as `undoLabel`. */
+  get redoLabel(): string | undefined {
+    if (this.historyDelegate) return undefined;
+    return this.futureLabels[this.futureLabels.length - 1] || undefined;
+  }
+
   /** Step back one edit (node or page structure). Theme/library edits aren't tracked. */
   undo(): void {
     if (this.historyDelegate) return this.historyDelegate.undo();
     const prev = this.past.pop();
     if (!prev) return;
+    // The label travels with the snapshot: what undo is taking back is what redo
+    // would put back.
+    const label = this.pastLabels.pop() ?? "";
+    this.futureLabels.push(label);
     // `history: false` — undo is not itself an undoable edit; it moves the
     // existing snapshot between the two stacks by hand.
     this.transact(["replace"], false, () => {
@@ -2240,8 +2601,12 @@ export class Editor {
     if (this.historyDelegate) return this.historyDelegate.redo();
     const next = this.future.pop();
     if (!next) return;
+    const label = this.futureLabels.pop() ?? "";
     this.transact(["replace"], false, () => {
       this.past.push(structuredClone(this.site));
+      // Pushed by hand, not through `pushHistory` — which would clear the very
+      // redo stack this is stepping through. The label goes back with it.
+      this.pastLabels.push(label);
       this.site = next;
       this.clampActivePage();
       this.clampSymbol();

@@ -24,7 +24,7 @@ export function badge(colors, prefix = "") {
       height: "var(--badge-size)",
       width: "fit-content",
       paddingInline: "calc(var(--size-selector, 0.25rem) * 2.5)",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       fontWeight: "600",
       lineHeight: "1",
       // Vertical centering via block-level align-content; text-box-trim refines
@@ -83,26 +83,26 @@ export function badge(colors, prefix = "") {
     [sel("-xs")]: {
       "--badge-size": "calc(var(--size-selector, 0.25rem) * 4)",
       paddingInline: "calc(var(--size-selector, 0.25rem) * 1.5)",
-      fontSize: "0.625rem",
+      fontSize: "0.75rem",
     },
     [sel("-sm")]: {
       "--badge-size": "calc(var(--size-selector, 0.25rem) * 5)",
       paddingInline: "calc(var(--size-selector, 0.25rem) * 2)",
-      fontSize: "0.6875rem",
+      fontSize: "0.875rem",
     },
     [sel("-md")]: {
       "--badge-size": "calc(var(--size-selector, 0.25rem) * 6)",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
     },
     [sel("-lg")]: {
       "--badge-size": "calc(var(--size-selector, 0.25rem) * 7)",
       paddingInline: "calc(var(--size-selector, 0.25rem) * 3)",
-      fontSize: "0.875rem",
+      fontSize: "1.125rem",
     },
     [sel("-xl")]: {
       "--badge-size": "calc(var(--size-selector, 0.25rem) * 8)",
       paddingInline: "calc(var(--size-selector, 0.25rem) * 3.5)",
-      fontSize: "1rem",
+      fontSize: "1.25rem",
     },
   };
 

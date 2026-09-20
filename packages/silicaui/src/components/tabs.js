@@ -85,7 +85,7 @@ export function tabs(colors, prefix = "") {
       border: "0",
       cursor: "pointer",
       padding: "0.5rem 0.875rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "500",
       lineHeight: "1.4",
       color: "var(--color-base-content)",
@@ -118,7 +118,23 @@ export function tabs(colors, prefix = "") {
 
     [sel("-panel")]: {
       paddingTop: "1rem",
+      // No ring at rest: the panel is focused programmatically whenever its tab
+      // is activated, and a box drawn around a whole page of content every time
+      // someone clicks a tab is noise.
       outline: "none",
+      // But it IS in the tab order — the active panel carries `tabindex="0"`, so
+      // a keyboard user can reach content that has no focusable children of its
+      // own. `outline: none` made that a Tab press with nothing to see: focus
+      // moved, `:focus-visible` matched, and the screen did not change. Found by
+      // P03's keyboard-only pass (issues/060).
+      //
+      // `:focus-visible` is the whole point — it fires for the keyboard arrival
+      // and not for the click, so this brings the ring back for exactly the case
+      // the rule above was never meant to cover.
+      "&:focus-visible": {
+        outline: `var(--focus-width, 2px) solid ${ACCENT}`,
+        outlineOffset: "-2px",
+      },
     },
 
     // ---- Variant: boxed (segmented control) --------------------------------

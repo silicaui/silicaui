@@ -2,13 +2,13 @@
 
 **Version:** 1.0
 **Author:** Brandon Korous
-**Last Updated:** 2026-09-18
+**Last Updated:** 2026-09-19
 
 Every screen in Silica UI, scored on **Design** and **Ease** as the personas open
 them. How and when to score is RULE #6 in [CLAUDE.md](CLAUDE.md); this file is where
 the numbers live.
 
-**Scored so far: 6 of 142 screens.** Update that line as rows fill in — it is the
+**Scored so far: 9 of 146 screens.** Update that line as rows fill in — it is the
 denominator, and a rating file that does not show what it has not looked at is the
 same lie as an empty issue list.
 
@@ -92,7 +92,7 @@ than left nowhere:
 | --- | --- |
 | The site's header, theme toggle and footer | — |
 | The docs sidebar and its command palette | — |
-| The builder's toolbar (mode switch, breakpoints, undo/redo, Publish, status slot) | — |
+| The builder's toolbar (mode switch, breakpoints, undo/redo, Publish, status slot) | [047](issues/047-nothing-told-her-what-undo-was-about-to-take-back.md), [054](issues/054-she-pressed-publish-and-the-screen-did-not-change.md), [056](issues/056-the-builder-forgot-it-had-published-her-site.md), [101](issues/101-the-toolbar-drops-publish-at-1024px-and-never-says-so.md), [102](issues/102-the-site-builder-advertises-a-shortcut-for-a-feature-only-the-other-builder-has.md) |
 | The builder's selection, drop and peer overlays | — |
 
 ## Screens deliberately excluded
@@ -106,13 +106,80 @@ than left nowhere:
 They are not listed below and are not scored. **If a persona ever reaches one, that is
 a `major` issue, not a rating.**
 
+## Why P07 scored nothing, and why 17 component rows changed anyway
+
+**P07 opened no screens, so it scored none, and that is the right answer rather
+than a gap.** Its surface is five npm packages. The dashboard it produced is a
+CONSUMER's application — it is not a Silica UI screen and it is not a row here.
+
+It did touch this file's subject matter, twice, without earning a number:
+
+- **17 component families gained a focus ring** they did not have
+  ([092](issues/092-twenty-seven-controls-wore-the-browsers-focus-ring-instead-of-the-systems.md))
+  — carousel, stack, number-field, dock, diff, range, multi-select, outline,
+  power-search, sidebar, tag-input, tree-view, dropzone, file-upload, wizard,
+  wordmark and rich-text-editor. Their doc pages were opened by a **sweep looking
+  for one thing**, not by a person doing a job, so those rows stay `—`. Scoring a
+  page a probe visited is the exact lie RULE #6 exists to stop.
+- **Every themed surface** is affected by
+  [096](issues/096-a-content-colour-you-write-yourself-is-never-checked.md), which
+  measures a `-content` colour an author declares by hand.
+
+When a persona does open those pages, the deductions are already written down.
+
+## The newest screen is deliberately unscored
+
+`Site builder › Find` is new — built on 2026-09-19 to close
+[073](issues/073-twelve-places-and-no-way-to-find-any-of-them.md) /
+[111](issues/111-the-site-builder-had-no-find-and-a-site-hides-text-in-three-places.md).
+Its row is `—` on purpose, for the same reason the migration guide's was in
+[099](issues/099-the-docs-sell-to-daisyui-users-and-give-them-nothing-to-act-on.md):
+**writing a screen is not opening it as a reader.** It has been driven by four
+controls and by an e2e spec; neither is a person doing a job on it.
+
+The denominator moved 145 → 146, which is what should happen when a pane is
+added, and is why `gen-screens --check` failed the build until it was classified.
+
+## Why three builder rows are scored and nineteen are not
+
+**P03 opened thirteen of the builder's screens in its original run and scored
+none of them.** That was deliberate: RULE #6 is *score it in light and dark and at
+360px, or do not score it*, and the 360px pass was deferred by agreement during
+that run. A number taken at 1280px in light is a guess about the other three, and
+on a token engine that is exactly the guess that goes wrong.
+
+**That pass has now run** — [P03 act 10](03-bright-step-studio.md), 390×844 with
+touch, in both themes, and a width sweep from 1440px down to 360px. It found
+four more defects ([101](issues/101-the-toolbar-drops-publish-at-1024px-and-never-says-so.md)–[104](issues/104-the-panels-wrapper-documented-an-imperative-ref-it-never-forwarded.md)),
+all fixed, the worst of which was that **Publish left the screen at 1024px** and
+the canvas was 64px wide below 480px.
+
+**Three rows are scored, and only three, because three are what a person
+operated.** Canvas, Layers and Inspector › Design were selected, opened, typed
+into, undone and published from, at phone width, in light and in dark. The other
+nineteen were not opened at 360px by anyone doing a job, and a row filled in from
+a fly-past is worth less than the dash it replaces — the dash is honest about
+what nobody has looked at and a soft 7 is not.
+
+The deduction list for the unscored rows is still the part worth anything.
+**Twenty-three issues from the original run** (040–062), twenty-two fixed and one
+partly fixed, each carrying a `Rating effect` line naming the row it moves. Rows
+with a deduction already written against them: Pages (044, 050, 057, 059), Insert
+(040, 062), Inspector › Settings (051), Theme editor (045, 046), toolbar (047,
+054, 056), plus 101–104 across all of them.
+
+> This note lives **above** the generated marker on purpose. `gen-screens.mjs`
+> rebuilds everything below it section by section, and prose inside that block
+> does not survive. Scores do — they are carried over by key — but notes belong
+> here.
+
 ---
 
 <!-- BEGIN GENERATED SCREENS -->
 
-**142 screens.** Regenerated by `node docs/personas/gen-screens.mjs`.
+**146 screens.** Regenerated by `node docs/personas/gen-screens.mjs`.
 
-### silicaui.com — the site itself — 5 screens
+### silicaui.com — the site itself — 6 screens
 
 | Screen | Key | Design | Ease | Gap to 10 | Persona |
 | --- | --- | --- | --- | --- | --- |
@@ -121,6 +188,7 @@ a `major` issue, not a rating.**
 | About | `/about` | — | — | | |
 | Docs | `/docs` | 4 → 8 | 3 → 8 | grouped into 8 real categories #007 and every page now says what it is #006; drawer on a phone #003; dark #002. Left: Data input is still 38 items to scan | P01 |
 | Docs › Getting started | `/docs/getting-started` | 3 → 8 | 2 → 8 | its only sample used to 500 on paste #010; now numbered steps, the Tailwind v4 requirement, the file to put it in, and all three paths. Left: not re-read at 360px | P01 |
+| Docs › Migrating from daisyui | `/docs/migrating-from-daisyui` | — | — | | |
 
 ### silicaui.com — component doc pages — 116 screens
 
@@ -249,24 +317,27 @@ a `major` issue, not a rating.**
 | --- | --- | --- | --- | --- | --- |
 | Playground (all demos, one page) | `localhost:5173/` | — | — | | |
 
-### The builder — 20 screens
+### The builder — 23 screens
 
 | Screen | Key | Design | Ease | Gap to 10 | Persona |
 | --- | --- | --- | --- | --- | --- |
-| Site builder › Canvas | `builder?editor=site` | — | — | | |
+| Site builder › Canvas | `builder?editor=site` | 8 | 8 | **Design:** with a rail open at 360px the page drops to 130px — the rails push the canvas aside rather than sitting over it, so the thing being edited is still what pays. **Ease:** every toolbar control is 32×32, under the 44px a thumb wants; 56 of them across the builder | P03 |
 | Site builder › Component board | `canvas, component mode` | — | — | | |
 | Site builder › New component (dialog) | `component mode › New` | — | — | | |
 | Site builder › Components | `left rail head, component mode` | — | — | | |
-| Site builder › Inspector › Design | `right rail › Design` | — | — | | |
+| Site builder › Find | `left rail › Find` | — | — | | |
+| Site builder › Inspector › Design | `right rail › Design` | 8 | 7 | **Design:** correct in both themes at 256px — Color, Size, Weight, Align and Surface all legible, swatches distinct on the dark surface. **Ease:** at 256px the Design/Settings strip needs its paging arrows, so reaching Settings costs a press that a wider rail does not | P03 |
 | Site builder › Inspector › Settings | `right rail › Settings` | — | — | | |
 | Site builder › Layouts | `left rail head, layout mode` | — | — | | |
-| Site builder › Layers (Navigator) | `left rail › Layers` | — | — | | |
+| Site builder › Layers (Navigator) | `left rail › Layers` | 7 | 7 | **Design:** 12 rows read cleanly at 240px and long names ellipsis properly (measured — the label ends at 227px inside a 240px rail). **Ease:** a truncated row has no `title` and no `aria-label`, so two layers whose names differ past the cut are the same row to read; and on a phone the rail covers 240px of 390px, so finding a layer means losing sight of the page | P03 |
 | Site builder › Pages | `left rail head, page mode` | — | — | | |
 | Site builder › Insert (Palette) | `left rail › Insert` | — | — | | |
 | Site builder › Theme editor | `theme mode, right rail` | — | — | | |
 | Site builder › Theme library | `theme mode, left rail` | — | — | | |
 | Email builder › Canvas | `builder?editor=email` | — | — | | |
 | Email builder › Preview | `toolbar › Preview` | — | — | | |
+| Email builder › New email (dialog) | `left rail head › Add` | — | — | | |
+| Email builder › Find | `left rail › Find` | — | — | | |
 | Email builder › Inspector | `right rail` | — | — | | |
 | Email builder › Layers | `left rail › Layers` | — | — | | |
 | Email builder › Insert | `left rail › Insert` | — | — | | |

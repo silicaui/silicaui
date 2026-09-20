@@ -1,0 +1,209 @@
+---
+title: Migrating from daisyUI
+description: What it costs, what is a drop-in, what is not, and the one thing that lets you do it a screen at a time.
+---
+
+# Migrating from daisyUI
+
+Every number on this page came from migrating a real application: a
+six-year-old fishing-tackle shop admin, **eight screens**, 2,400 products,
+**76 distinct daisyUI classes across 28 component families**. Nothing here is an
+estimate.
+
+## The short answer
+
+| | |
+| --- | --- |
+| daisyUI classes in the app | **76**, across 28 families |
+| Replaced by a Silica component | **74** |
+| Still hand-written afterwards | **2**, and both are Silica's own `.select` on a deliberately native control |
+| Silica components it took | **45** |
+| Lines of code | **730 → 819** (+12%) |
+| daisyUI components with no Silica equivalent | **1**, now fixed |
+
+**You do not have to do it in one commit.** See
+[a screen at a time](#a-screen-at-a-time).
+
+## A screen at a time
+
+This is the part that decides whether a forty-screen migration is possible at
+all, so it comes first.
+
+daisyUI and Silica both own `.btn`, `.card`, `.table`, `.badge`. Put both in one
+stylesheet and they fight. **Give Silica a prefix and they do not:**
+
+```css
+@plugin "daisyui";
+
+@plugin "@wizeworks/silicaui" {
+  prefix: sx-;
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+```
+
+```tsx
+<SilicaProvider prefix="sx-">
+  <MigratedScreen />
+</SilicaProvider>
+```
+
+Every Silica class becomes `.sx-btn`, `.sx-card`, `.sx-table`. Verified on a real
+build with both plugins loaded: **81 rules on `.btn`, 14 on `.sx-btn`, and not
+one Silica class name in the sheet without its prefix.** Migrate one screen,
+ship it, migrate the next.
+
+Drop the prefix in the commit that migrates the last screen.
+
+## What is a drop-in
+
+Most of it. These took the same markup and the same meaning:
+
+| daisyUI | Silica | Note |
+| --- | --- | --- |
+| `btn btn-primary btn-sm` | `<Button color="primary" size="sm">` | |
+| `badge badge-success` | `<Badge color="success">` | `badge-ghost` → `variant="outline"` |
+| `card` / `card-body` / `card-title` / `card-actions` | `<Card>` / `<CardBody>` / `<CardTitle>` / `<CardActions>` | |
+| `table table-zebra table-sm` | `<Table zebra size="sm">` | wraps itself for horizontal scroll |
+| `alert alert-warning` | `<Alert color="warning">` | |
+| `breadcrumbs` | `<Breadcrumb>` | same `<ul><li>` inside |
+| `stats` / `stat` / `stat-title` / `stat-value` / `stat-desc` | `<Stats>` / `<Stat>` / `<StatTitle>` / `<StatValue>` / `<StatDesc>` | |
+| `divider` | `<Divider>` | |
+| `steps` / `step` / `step-primary` | `<Steps>` / `<Step color="primary">` | |
+| `progress progress-primary` | `<Progress color="primary" value max>` | a div with the progressbar role, not `<progress>` |
+| `loading loading-spinner` | `<Loading>` | |
+| `textarea textarea-bordered` | `<Textarea>` | no `-bordered`; it is the default |
+| `input input-bordered` | `<Input>` | same |
+
+**`-bordered` has no equivalent and does not need one.** Silica's fields are
+bordered; there is no unbordered variant to opt out of.
+
+## What is not a drop-in
+
+Five things. These are where the time goes.
+
+### The shell
+
+daisyUI's `drawer` is a CSS trick: a hidden checkbox, `drawer-side`,
+`drawer-overlay`, and `lg:drawer-open` to pin it. Silica has `AppShell` +
+`AppShellSidebar` + `AppShellHeader` + `AppShellMain`, which is a layout. The
+checkbox goes away and the open state becomes ordinary React state.
+
+This is the single biggest edit in a migration and it is done once.
+
+### Tabs
+
+daisyUI's tabs are `role="tablist"` plus a `tab-active` class **you keep in sync
+yourself** — arrow keys do nothing, because nothing is listening. Silica's are
+Base UI: roving tabindex, arrow-key movement, a moving indicator.
+
+The state moves from a `className` to `value` / `onValueChange`. Same state, different place.
+
+```tsx
+<Tabs value={tab} onValueChange={(v) => setTab(v)}>
+  <TabsList>
+    <TabsTab value="all">All</TabsTab>
+  </TabsList>
+</Tabs>
+```
+
+### Modals
+
+`modal modal-open` is a `<dialog>` with a class on it: no focus trap, no scroll
+lock, no escape handling, and focus does not return to the button that opened
+it. `<AlertDialog>` does all four.
+
+Note the spelling: **`AlertDialogClose` takes its button as a child**, where
+`FieldControl` takes its control through `render`. Two components, two ways to
+say "wrap my element". The type checker tells you which.
+
+### Form fields
+
+`form-control` + `label-text` + `input` becomes `<Field>` + `<FieldLabel>` +
+`<FieldControl>`. Base UI wires the label to the control, so the `htmlFor`/`id`
+pair you were maintaining goes away.
+
+**`FieldControl` renders a native input**, where `size` is the HTML attribute and
+takes a number — so `size="sm"` is a type error, not a small field. Silica's own
+control goes in through `render`:
+
+```tsx
+<FieldControl render={<Input size="sm" />} value={q} onChange={…} />
+```
+
+The upgrade: validation rides on the same field rather than sitting in a separate
+`alert` further down the form.
+
+```tsx
+<Field status="error" statusMessage="Stock cannot be negative.">
+```
+
+### Paging
+
+daisyUI has `join` / `join-item`, which is a visual grouping — the paging itself
+is buttons you write. `<Pagination page count onValueChange>` is the component:
+numbered pages, ellipses, prev and next, and the aria.
+
+It is 1-based. If your state is 0-based that is the one edit.
+
+## What had no equivalent
+
+**One thing, and it is fixed.** `steps-vertical` did not exist —
+`Steps` was horizontal-only, and the CSS said so in its first line. `<Steps
+vertical>` ships now, spelled the way `Stats` already spelled it.
+
+If you hit another, the honest options are the same three: compose it, keep
+daisyUI on that screen behind the prefix, or open an issue. The prefix makes the
+middle one survivable.
+
+## Themes
+
+A daisyUI theme block is a Silica theme block with the plugin name changed.
+Every `--color-*` token carries across by value:
+
+```css
+@plugin "@wizeworks/silicaui/theme" {
+  name: obsidian;
+  default: true;
+  prefersdark: true;
+  --color-base-100: oklch(17% 0.012 260);
+  --color-primary: oklch(68% 0.15 205);
+  /* … */
+}
+```
+
+**Switching themes does not change at all.** `data-theme` on any element, exactly
+as before — including nesting it to put one section on a different palette:
+
+```html
+<html data-theme="obsidian">
+  <section data-theme="daylight">…</section>
+</html>
+```
+
+Two differences worth knowing:
+
+- **`-content` colours you declare are checked.** If the ink you picked is under
+  4.5:1 on the colour it names, the build says so and tells you what a derived
+  ink would have measured. daisyUI does not check.
+- **A second theme is a second block.** No configuration, no build flag.
+
+## What the migration does not change
+
+Your code. In the application this page was written from, **every `useState`,
+every handler, every bit of filtering and paging logic is byte-for-byte what it
+was** — the diff is markup, and it is reviewable line by line.
+
+**This page gives you no hours**, on purpose. The migration it is written from
+was not done by a person at a keyboard, so any figure in hours would be invented.
+What transfers is the shape of the work: how many call sites move, how many are
+mechanical, and which five need a decision. Those are counted above.
+
+## On the +12%
+
+The migrated app has 89 more lines of code than the daisyUI one. Most of it is
+`<Field>`/`<FieldLabel>`/`<FieldControl>` where daisyUI had a label, a span and
+an input, and `render={<Input />}` on fields that need a sized control. You get
+the label wiring and the validation plumbing for it.
+
+If your app is mostly tables and buttons, expect roughly parity. If it is mostly
+forms, expect this.

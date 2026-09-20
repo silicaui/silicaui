@@ -60,13 +60,13 @@ export function popover(prefix = "") {
 
     [sel("-title")]: {
       margin: "0",
-      fontSize: "0.9375rem",
+      fontSize: "1rem",
       fontWeight: "600",
       lineHeight: "1.4",
     },
     [sel("-description")]: {
       margin: "0.25rem 0 0",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       color: "var(--color-base-content)",
     },

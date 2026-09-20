@@ -61,7 +61,7 @@ export function dialog(prefix = "") {
       // else, since `flex-basis` does nothing outside a flex parent.
       flexBasis: "100%",
       margin: "0.375rem 0 0",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.5",
       color: "var(--color-base-content)",
     },

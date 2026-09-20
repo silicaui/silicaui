@@ -253,13 +253,24 @@ test("onActivePageChange fires on mount, and again on a page switch/rename", asy
   )) as { id: string; name: string };
   expect(afterAdd.name).toBe("Page 2");
 
-  // Renaming the (now active) page fires again with the updated name.
-  await page.getByRole("button", { name: "Rename page" }).click();
-  await page.locator("input").last().fill("Landing");
-  await page.locator("input").last().press("Enter");
+  // Adding a page ALSO opens its name field (issues/044), so the rename is the
+  // same gesture continued — there is no second "Rename page" press, and the
+  // pencil is not on screen while the field is open. Naming it fires the callback
+  // again with the new name.
+  const field = page.getByLabel("Page name");
+  await expect(field).toBeFocused();
+  await field.fill("Landing");
+  await field.press("Enter");
   await page.waitForFunction(
     () => (window as unknown as { __activePage: { name: string } }).__activePage.name === "Landing",
   );
+
+  // And the ADDRESS followed the name (issues/050): a page named by hand must not
+  // stay at the `/page-2` its two-second-long generated label produced.
+  const named = (await page.evaluate(
+    () => (window as unknown as { __activePage: { name: string; slug: string } }).__activePage,
+  )) as { name: string; slug: string };
+  expect(named.slug).toBe("/landing");
 });
 
 test("the Data binding Preview row calls host.resolveBinding/resolveCollection live", async ({ page }) => {
@@ -525,7 +536,9 @@ test("a panel-scoped host tab renders with NOTHING selected, and node chrome sta
   // about that node.
   await page.locator(".sui-canvas").getByText("Ship your store in an afternoon").click();
   await expect(page.getByTestId("host-tab-history")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Duplicate" })).toHaveCount(0);
+  // `exact` since P04/issues 072 added a "Duplicate template" button to the
+  // rail: this one is the NODE toolbar's, labelled exactly "Duplicate".
+  await expect(page.getByRole("button", { name: "Duplicate", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save as component" })).toHaveCount(0);
 
   // Back to Design and the node chrome returns.
@@ -576,10 +589,24 @@ test("a host tab cannot hijack a built-in id, and overflow gets paging buttons r
   await page.getByTestId("inspector-tab-design").click();
   await expect(page.getByText("Surface", { exact: true })).toBeVisible();
 
-  // Six tabs do not fit a ~300px rail, so the paging buttons mount. They take
-  // real layout space beside the strip — an overlay would cover the end tabs.
-  const left = page.getByRole("button", { name: "Scroll tabs left" });
-  const right = page.getByRole("button", { name: "Scroll tabs right" });
+  // Eight tabs do not fit the rail, so the paging buttons mount. They take real
+  // layout space beside the strip — an overlay would cover the end tabs.
+  // (It was six until the rail gained a 256px pixel floor in issues/040; the
+  // demo host now contributes two more so this still tests overflow.)
+  // The labels are `ScrollStrip`'s — "back"/"forward", not "left"/"right" —
+  // because `TabsList` grew its own scrolling and now supplies these controls.
+  // `chrome.tsx` still carries a `PageButton` pair labelled left/right, and it no
+  // longer renders: this spec was asserting the dead one and had been failing on
+  // that string alone. Found while running P03; recorded in issues/055.
+  // Scoped to the INSPECTOR's rail, which is the strip this test is about. The
+  // locators used to ask the whole page, and that stopped being the same
+  // question once the left rail grew a third tab (Find, issues/111) and could
+  // page too — "the paging buttons" matched two strips and the locator went
+  // strict-mode-violation. An unscoped locator for a control that exists once
+  // per strip was always going to do that.
+  const inspectorRail = page.locator(".resizable-panel").last();
+  const left = inspectorRail.getByRole("button", { name: "Scroll tabs back" });
+  const right = inspectorRail.getByRole("button", { name: "Scroll tabs forward" });
   await expect(right).toBeVisible();
   // At the start there is nowhere to go left, and the button says so.
   await expect(left).toBeDisabled();
@@ -595,4 +622,63 @@ test("a host tab cannot hijack a built-in id, and overflow gets paging buttons r
     return scroller ? scroller.offsetHeight - scroller.clientHeight > 0 : null;
   });
   expect(hasScrollbar).toBe(false);
+});
+
+/**
+ * P05 act 2 / issues 081 — a pinned host node holds every line it claims.
+ *
+ * `HostComponentDef.pinned` stamps `locked: "host"`: the author gets no unlock,
+ * only the host clears it. Three ways past it, all found by an integrator whose
+ * pinned block is a compliance certificate they are legally answerable for.
+ */
+test("a pinned host node cannot be deleted, and the Delete button says so instead of doing nothing", async ({ page }) => {
+  await ready(page);
+  const canvas = page.locator(".sui-canvas");
+
+  await page.getByRole("tab", { name: "Insert" }).click();
+  await page.locator('[data-insert-key="host:CheckoutWidget"]').click();
+  await expect(canvas.locator("[data-sui-host='CheckoutWidget'], [data-sui-id]").first()).toBeVisible();
+
+  const del = page.getByRole("button", { name: "Delete", exact: true }).first();
+  await expect(del).toBeVisible();
+  // The point of the fix: OFFERED but dead, so an author can tell "refused" from
+  // "broken". It used to be offered, enabled, and silently a no-op.
+  await expect(del).toBeDisabled();
+
+  const before = await page.evaluate(() => JSON.stringify((window as unknown as { __lastChange?: unknown }).__lastChange));
+  await del.click({ force: true }).catch(() => {});
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => JSON.stringify((window as unknown as { __lastChange?: unknown }).__lastChange));
+  expect(after).toBe(before);
+
+  // CONTROL: an ordinary node's Delete is live, so this is containment and not a
+  // fix that disabled the button for everyone.
+  await canvas.locator("[data-sui-id]").first().click();
+  await page.waitForTimeout(300);
+  await expect(page.getByRole("button", { name: "Delete", exact: true }).first()).toBeEnabled();
+});
+
+test("duplicating a pinned host node keeps the host lock — Ctrl+D cannot mint an unlocked copy", async ({ page }) => {
+  await ready(page);
+
+  await page.getByRole("tab", { name: "Insert" }).click();
+  await page.locator('[data-insert-key="host:CheckoutWidget"]').click();
+  await page.waitForTimeout(500);
+
+  await page.getByRole("button", { name: "Duplicate", exact: true }).first().click();
+  await page.waitForTimeout(600);
+
+  const locks = await page.evaluate(() => {
+    const site = (window as unknown as { __lastChange?: { pages?: Array<{ root: unknown }> } }).__lastChange;
+    const out: Array<string | undefined> = [];
+    const walk = (n: unknown): void => {
+      const node = n as { kind?: string; component?: string; locked?: string; children?: unknown[] };
+      if (node.kind === "host" && node.component === "CheckoutWidget") out.push(node.locked);
+      for (const c of node.children ?? []) if (typeof c === "object" && c) walk(c);
+    };
+    for (const p of site?.pages ?? []) walk(p.root);
+    return out;
+  });
+  expect(locks.length).toBe(2);
+  expect(locks, `lock owners on the two copies: ${JSON.stringify(locks)}`).toEqual(["host", "host"]);
 });

@@ -23,7 +23,7 @@ export function tooltip(prefix = "") {
       maxWidth: "18rem",
       paddingInline: "0.625rem",
       paddingBlock: "0.375rem",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       lineHeight: "1.4",
       borderRadius: "var(--radius-field, 0.25rem)",
       backgroundColor: "var(--color-neutral, #1f2937)",

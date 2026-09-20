@@ -48,9 +48,55 @@ export function dateOrder(tokens: DateToken[]): DateSegmentKey[] {
     .map((t) => t.key);
 }
 
-/** Parse a pasted date string — digit groups mapped positionally by `order`, with an ISO/native fallback. */
+/** `YYYY-MM-DD`, optionally followed by a time. ISO 8601 is year-first in every
+ *  locale, so it must never be read through the display `order`. */
+const ISO_DATE = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s]|$)/;
+
+/** Whether these parts name a real day. `new Date(2026, 2025, 12)` is not NaN —
+ *  JavaScript rolls a month of 2026 forward into the year 2186 — so "did the Date
+ *  construct" is not a validity test, and treating it as one is what let
+ *  `99/99/9999` through as 06/07/10007. */
+function isRealDate(p: DateParts): boolean {
+  const { year, month, day } = p;
+  if (year == null || month == null || day == null) return false;
+  if (year < 1 || year > 9999) return false;
+  if (month < 1 || month > 12) return false;
+  return day >= 1 && day <= daysInMonth(year, month);
+}
+
+/**
+ * Parse a pasted date string.
+ *
+ * Three routes, in order, because they disagree and the first correct one wins:
+ *
+ *  1. **ISO 8601** (`2026-12-18`) is read year-month-day, whatever the locale
+ *     displays. This is the format every spreadsheet, CSV and API produces, so it
+ *     is the one people actually paste. Read positionally instead, en-US turned
+ *     `2026-12-18` into month 2026 / day 12 / year 18, which rolled over to
+ *     **10/12/2186** with no error anywhere. Found by P03 (issues/048).
+ *     It is also parsed by HAND rather than with `new Date("2026-12-18")`, which
+ *     is defined as UTC midnight and comes back a day earlier anywhere west of
+ *     Greenwich — the exact shift that makes a term end on the wrong Thursday.
+ *  2. **Positional**, by the locale's own segment order, for `12/18/2026`.
+ *  3. **Native**, for prose like `18 December 2026` and for real instants that
+ *     carry a time and a zone.
+ *
+ * A result that does not name a real day returns `null`, and the caller leaves
+ * the field alone. Refusing a paste is visible; accepting a wrong date is not.
+ */
 export function parseDateString(text: string, order: DateSegmentKey[]): DateParts | null {
   const trimmed = text.trim();
+
+  const iso = ISO_DATE.exec(trimmed);
+  if (iso) {
+    const parts: DateParts = {
+      year: parseInt(iso[1]!, 10),
+      month: parseInt(iso[2]!, 10),
+      day: parseInt(iso[3]!, 10),
+    };
+    return isRealDate(parts) ? parts : null;
+  }
+
   const groups = trimmed.match(/\d+/g);
   if (groups && groups.length >= 3) {
     const nums = groups.slice(0, 3).map((g) => parseInt(g, 10));
@@ -59,10 +105,15 @@ export function parseDateString(text: string, order: DateSegmentKey[]): DatePart
       result[key] = nums[i] ?? null;
     });
     if (result.year != null && result.year < 100) result.year += 2000;
-    const d = dateFromParts(result);
-    if (d && !Number.isNaN(d.getTime())) return result;
+    if (isRealDate(result)) return result;
+    // Fall through rather than return: prose like `18 December 2026 (week 1)`
+    // has three digit groups and is still parseable natively below.
   }
+
   const native = new Date(trimmed);
-  if (!Number.isNaN(native.getTime())) return partsFromDate(native);
+  if (!Number.isNaN(native.getTime())) {
+    const parts = partsFromDate(native);
+    if (isRealDate(parts)) return parts;
+  }
   return null;
 }

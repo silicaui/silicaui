@@ -29,7 +29,7 @@ export function checkboxGroup(prefix = "") {
       display: "inline-flex",
       alignItems: "center",
       gap: "0.5rem",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       lineHeight: "1.25",
       cursor: "pointer",
 

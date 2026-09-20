@@ -238,3 +238,77 @@ test("a layer name is authoring metadata — it never reaches the published HTML
 
     expect(errors, errors.join("\n")).toHaveLength(0);
 });
+
+/**
+ * Arrow keys walk the WHOLE tree, not one step.
+ *
+ * A treeitem lives inside a treeitem — that is what a tree is — so the row's own
+ * keydown handler is bound on every ancestor row too, and a bubbling ArrowDown
+ * ran it once per level. The child moved focus to the next row, then the
+ * PARENT's copy ran and moved focus back to its own next row, which is the child
+ * we had just left. The tree navigated exactly one step and stuck, so every row
+ * below the first child was unreachable without a mouse — and the canvas has no
+ * tab stops, so the tree is the only keyboard route to a selection.
+ *
+ * A flat tree has no ancestor row and worked fine, which is how this survived.
+ * Found by P05 (docs/personas/issues/085).
+ */
+test("arrow keys walk the whole layers tree, not just one row", async ({ page }) => {
+    const errors = trackErrors(page);
+    await ready(page);
+
+    const rows = () =>
+        page.evaluate(() =>
+            [...document.querySelectorAll('[role="treeitem"]')].map((r) => ({
+                label: (r.querySelector(".tree-node-label")?.textContent ?? "").trim(),
+                focused: r === document.activeElement,
+                tabbable: r.getAttribute("tabindex") === "0",
+            })),
+        );
+
+    const all = await rows();
+    // The fixture has to be a NESTED tree or this test cannot fail.
+    const nested = await page.evaluate(
+        () => document.querySelectorAll('[role="treeitem"] [role="treeitem"]').length,
+    );
+    expect(nested).toBeGreaterThan(0);
+    expect(all.length).toBeGreaterThan(4);
+
+    // Focus the first row, then walk down.
+    await page.locator('[role="treeitem"]').first().focus();
+    const seen: string[] = [];
+    for (let i = 0; i < 4; i++) {
+        await page.keyboard.press("ArrowDown");
+        const focused = (await rows()).find((r) => r.focused);
+        seen.push(focused?.label ?? "(none)");
+    }
+    // Four presses must land on four DIFFERENT rows. Before the fix this was the
+    // same row four times.
+    expect(new Set(seen).size).toBe(4);
+
+    // Exactly one row is in the tab order at any moment — the roving tabindex.
+    const tabbable = (await rows()).filter((r) => r.tabbable);
+    expect(tabbable).toHaveLength(1);
+    expect(tabbable[0]?.focused).toBe(true);
+
+    // End jumps to the last row, Home back to the first — and they must not be
+    // undone by an ancestor's copy of the handler either.
+    await page.keyboard.press("End");
+    const last = (await rows()).findIndex((r) => r.focused);
+    expect(last).toBe((await rows()).length - 1);
+    await page.keyboard.press("Home");
+    expect((await rows()).findIndex((r) => r.focused)).toBe(0);
+
+    // The control: the keyboard can still SELECT. A fix that made the rows
+    // unreachable-but-different would pass everything above.
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    const selected = await page.evaluate(() =>
+        [...document.querySelectorAll('[role="treeitem"]')].filter((r) => r.getAttribute("aria-selected") === "true")
+            .length,
+    );
+    expect(selected).toBe(1);
+
+    expect(errors).toEqual([]);
+});

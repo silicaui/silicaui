@@ -1,4 +1,5 @@
 import { colorVariantRules } from "../color-variants.js";
+import { inkOfRole } from "../lib/ink.js";
 
 /**
  * DataTable chrome — the interactive shell around a `.table`.
@@ -50,10 +51,29 @@ export function dataTable(colors, prefix = "") {
       backgroundColor: "var(--color-base-100)",
     },
 
+    // Column alignment, set per column through `meta.align`.
+    //
+    // A numeric column right-aligns its figures, and its HEADER has to move with
+    // them or the column reads as two columns. Only this component can do it: the
+    // consumer supplies a cell renderer but never touches the `<th>`, the `<td>`
+    // or the sort button inside them. The button is `inline-flex`, so it follows
+    // the cell's `text-align` without a rule of its own.
+    [`${sel()} th[data-align="right"], ${sel()} td[data-align="right"]`]: {
+      textAlign: "right",
+    },
+    [`${sel()} th[data-align="center"], ${sel()} td[data-align="center"]`]: {
+      textAlign: "center",
+    },
+
     // Sortable header — a borderless button that fills the cell.
     [sel("-sort")]: {
       display: "inline-flex",
       alignItems: "center",
+      // A sort control is the only way to reorder the table, and with no padding
+      // of its own it is exactly one line of 13px text tall -- 20px, under the
+      // 24px minimum a target needs to be hittable with a thumb. The header cell
+      // already has the vertical room, so this costs no layout.
+      minHeight: "1.5rem",
       gap: "0.35em",
       font: "inherit",
       fontWeight: "600",
@@ -85,13 +105,16 @@ export function dataTable(colors, prefix = "") {
       transition: "opacity 0.15s ease",
     },
     [`${sel("-sort")}[data-sort="asc"] ${sel("-sort-icon")} [data-part="up"]`]: {
+      // The role painted as TEXT needs the INK form, not the fill the palette
+      // tunes. See lib/ink.js and verify-ink-derivation.mjs.
       opacity: "1",
-      color: accent,
+      color: `var(--dt-ink, ${inkOfRole("primary")})`,
     },
     [`${sel("-sort")}[data-sort="desc"] ${sel("-sort-icon")} [data-part="down"]`]:
       {
         opacity: "1",
-        color: accent,
+        // Same rule, the other sort direction.
+        color: `var(--dt-ink, ${inkOfRole("primary")})`,
       },
 
     // Selected-row tint (a translucent wash of the accent — oklab, not oklch).
@@ -122,7 +145,7 @@ export function dataTable(colors, prefix = "") {
       justifyContent: "space-between",
       gap: "0.75rem",
       flexWrap: "wrap",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
     [sel("-pager")]: {

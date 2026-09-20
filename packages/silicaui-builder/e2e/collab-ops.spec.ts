@@ -210,3 +210,74 @@ test("the handle survives across editor swaps", async ({ page }) => {
 
   expect(await page.evaluate(() => (window as Bus).__lastMeta)).toEqual({ baseSeq: 5 });
 });
+
+/**
+ * A default the EDITOR conjures has to be the same default in every window.
+ *
+ * Two people open one plant page. Neither document carries a frame, so each
+ * editor materializes one — and with minted ids those two frames have different
+ * node names, so a frame op relayed between them addresses an id the other side
+ * has never seen. It is dropped, silently and forever, while a page op in the
+ * same batch lands. Found by P05 act 5 (docs/personas/issues/083).
+ */
+test("two windows on the same document conjure the SAME default frame", async ({ page, context }) => {
+  await ready(page);
+  const second = await context.newPage();
+  await second.goto("/?persist=0");
+  await second.waitForFunction(() => (window as Bus).__ready === true);
+  await second.waitForSelector(".sui-canvas");
+
+  const frameIds = (p: Page) =>
+    p.evaluate(() => {
+      const site = (window as Bus).__editor!.extractSite() as { frame?: { root: unknown } };
+      const ids: string[] = [];
+      const walk = (n: unknown): void => {
+        if (!n || typeof n !== "object") return;
+        const node = n as { id?: string; children?: unknown[] };
+        if (node.id) ids.push(node.id);
+        for (const c of node.children ?? []) walk(c);
+      };
+      walk(site.frame?.root);
+      return ids;
+    });
+
+  const a = await frameIds(page);
+  const b = await frameIds(second);
+  expect(a.length).toBeGreaterThan(0);
+  expect(b).toEqual(a);
+
+  // The control that matters: an op minted in one window APPLIES in the other.
+  // Without it this test passes on two windows that both conjure nothing.
+  const op = {
+    target: { scope: "frame" },
+    kind: "node.setText",
+    nodeId: a[a.length - 1],
+    text: "Relayed",
+  };
+  const got = await second.evaluate((o) => (window as Bus).__handle!.applyRemoteOps([o]), op);
+  expect(got).toEqual({ applied: 1, dropped: [] });
+  await second.close();
+});
+
+/**
+ * `replaceState` sets `this.site` on the other path, and has to establish the
+ * same two invariants the constructor does. With no frame, Layout mode falls
+ * through to the PAGE root: the author edits one page believing they are
+ * editing the shared shell.
+ */
+test("a resync that carries no frame and no pages still leaves a whole site", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() =>
+    (window as Bus).__handle!.replaceState({ version: "1", theme: { name: "quartz", tokens: {} }, pages: [] }, 1),
+  );
+
+  const after = await page.evaluate(() => {
+    const site = (window as Bus).__editor!.extractSite() as {
+      frame?: { root?: { id?: string } };
+      pages: { id: string }[];
+    };
+    return { frame: site.frame?.root?.id, pages: site.pages.map((p) => p.id) };
+  });
+  expect(after.frame).toBe("sui-frame-0");
+  expect(after.pages).toEqual(["sui-home-page"]);
+});

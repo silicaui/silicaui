@@ -1,0 +1,11 @@
+# O ambiente, nao o codigo.
+.venv/
+node_modules/
+staticfiles/
+db.sqlite3
+__pycache__/
+*.pyc
+
+# Gerado pelo Tailwind CLI a partir de static/src/input.css.
+# `npm run css` reconstroi-o.
+static/css/site.css

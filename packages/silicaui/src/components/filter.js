@@ -39,7 +39,7 @@ export function filter(colors, prefix = "") {
       backgroundColor: "var(--color-base-100)",
       color: "var(--color-base-content)",
       font: "inherit",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "500",
       lineHeight: "1",
       whiteSpace: "nowrap",

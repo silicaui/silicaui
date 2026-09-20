@@ -1,3 +1,4 @@
+import { inkOfRole } from "../lib/ink.js";
 /**
  * The Stat component — a metric block (title · value · description), optionally
  * with a trailing figure (icon), grouped in a `.stats` container.
@@ -45,7 +46,7 @@ export function stat(prefix = "") {
     },
     [sel("-title")]: {
       gridColumnStart: "1",
-      fontSize: "0.8125rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
     [sel("-value")]: {
@@ -57,7 +58,7 @@ export function stat(prefix = "") {
     },
     [sel("-desc")]: {
       gridColumnStart: "1",
-      fontSize: "0.75rem",
+      fontSize: "1rem",
       color: "var(--color-base-content)",
     },
     // Figure sits in an implicit second column, spanning all three text rows.
@@ -65,7 +66,9 @@ export function stat(prefix = "") {
       gridColumnStart: "2",
       gridRow: "1 / span 3",
       placeSelf: "center",
-      color: "var(--stat-figure, var(--color-primary))",
+      // The role painted as TEXT needs the INK form, not the fill the palette
+      // tunes. See lib/ink.js and verify-ink-derivation.mjs.
+      color: `var(--stat-figure, ${inkOfRole("primary")})`,
 
       // The figure is an icon slot, and it defines an implicit grid column —
       // an unsized <svg> lets that column's width vary by browser, which shifts

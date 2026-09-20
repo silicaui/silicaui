@@ -50,7 +50,7 @@ const LAYOUT: PaletteItem[] = [
                 el("div", "card-body", {
                     children: [
                         el("div", "card-title", { text: "Card title" }),
-                        el("p", "text-base-content/70", { text: "Supporting copy for this card." }),
+                        el("p", "text-base-content", { text: "Supporting copy for this card." }),
                         el("div", "card-actions", { children: [atom("Button", "btn btn-primary btn-sm", { label: "Action" })] }),
                     ],
                 }),
@@ -66,7 +66,7 @@ const LAYOUT: PaletteItem[] = [
                 el("div", "card-body", {
                     children: [
                         el("div", "card-title", { text: "Clickable card" }),
-                        el("p", "text-base-content/70", { text: "The whole surface is a link." }),
+                        el("p", "text-base-content", { text: "The whole surface is a link." }),
                     ],
                 }),
             ]),
@@ -96,8 +96,8 @@ const LAYOUT: PaletteItem[] = [
                 atom("AppShellHeader", "app-shell-header navbar bg-base-100 border-b border-base-200", undefined, [
                     el("div", "navbar-end", { children: [atom("Button", "btn btn-primary btn-sm", { label: "Sign in" })] }),
                 ]),
-                atom("AppShellMain", "app-shell-main p-6", undefined, [el("p", "text-base-content/70", { text: "Main content area" })]),
-                atom("AppShellFooter", "app-shell-footer border-t border-base-200 p-4 text-sm text-base-content/60", undefined, [
+                atom("AppShellMain", "app-shell-main p-6", undefined, [el("p", "text-base-content", { text: "Main content area" })]),
+                atom("AppShellFooter", "app-shell-footer border-t border-base-200 p-4 text-sm text-base-content", undefined, [
                     el("p", undefined, { text: "© 2026 SilicaUI" }),
                 ]),
             ]),
@@ -147,7 +147,7 @@ const CONTENT: PaletteItem[] = [
         key: "text",
         label: "Text",
         icon: "text",
-        make: () => el("p", "text-base text-base-content/70", { text: "Body text. Edit me in the inspector." }),
+        make: () => el("p", "text-base text-base-content", { text: "Body text. Edit me in the inspector." }),
     },
     { key: "button", label: "Button", icon: "button", make: () => atom("Button", "btn btn-primary", { label: "Button" }) },
     {
@@ -775,7 +775,7 @@ const OVERLAY: PaletteItem[] = [
                             el("div", "flex flex-col", {
                                 children: [
                                     el("span", "font-semibold text-base-content", { text: "SilicaUI" }),
-                                    el("span", "text-sm text-base-content/70", { text: "Design system & component kit" }),
+                                    el("span", "text-sm text-base-content", { text: "Design system & component kit" }),
                                 ],
                             }),
                         ],
@@ -889,7 +889,12 @@ const DATA: PaletteItem[] = [
         icon: "table",
         hint: "A styled data table",
         make: () =>
-            atom("Table", "table", undefined, [
+            // `table-lg` (16px cells), not the bare `table` default of 14px. This
+            // builder makes PUBLIC pages, and a table on one is the thing people
+            // came to read — Marlene's class timetable. RULE #3's body floor is
+            // 16px, and the 14px default is right for the dense admin grids the
+            // component is mostly used for, not for this. See issues/062.
+            atom("Table", "table table-lg", undefined, [
                 el("thead", undefined, {
                     children: [
                         el("tr", undefined, {
@@ -963,7 +968,7 @@ const DATA: PaletteItem[] = [
                         ]),
                     ],
                 }),
-                atom("WizardPanel", "wizard-content", undefined, [el("p", "text-base-content/70", { text: "Step content goes here." })]),
+                atom("WizardPanel", "wizard-content", undefined, [el("p", "text-base-content", { text: "Step content goes here." })]),
                 el("div", "wizard-footer", {
                     // WizardBack/Next DO default their own text ("Back"/"Next")
                     // when childless, but the canvas's empty-container check

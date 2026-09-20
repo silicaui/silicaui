@@ -12,7 +12,7 @@
  * generic neutral gray.
  */
 import type { IconName } from "../shared/icons";
-import { DEFAULT_EMAIL_COLORS } from "./schema";
+import { DEFAULT_EMAIL_COLORS, EMAIL_BUTTON_PADDING } from "./schema";
 import type { ColumnNode, ColumnsNode, EmailColorDefaults, EmailNode } from "./schema";
 
 export interface EmailPaletteItem {
@@ -148,8 +148,8 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
       colorAuto: true,
       radius: 8,
       align: "center",
-      paddingX: 16,
-      paddingY: 8,
+      paddingX: EMAIL_BUTTON_PADDING.x,
+      paddingY: EMAIL_BUTTON_PADDING.y,
     }),
   },
   {
@@ -176,8 +176,8 @@ export const EMAIL_PALETTE: EmailPaletteItem[] = [
       borderWidth: 1,
       radius: 8,
       align: "center",
-      paddingX: 16,
-      paddingY: 8,
+      paddingX: EMAIL_BUTTON_PADDING.x,
+      paddingY: EMAIL_BUTTON_PADDING.y,
     }),
   },
   {

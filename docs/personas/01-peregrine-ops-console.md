@@ -11,12 +11,16 @@
 >
 > ## ✅ ALL TEN ACTS ARE DONE. This persona is complete.
 >
-> **Issues 001–026 are filed. ALL TWENTY-SIX are fixed and confirmed. None open.**
+> **Issues 001–027 are filed. ALL TWENTY-SEVEN are fixed and confirmed. None open.**
+> (026 was the last one an act found; **027 was found after the release**, during the
+> re-pin — `pnpm verify` is red on every Windows clone for a reason nobody caused.)
 > `pnpm verify` was exit 0 at the end of act 10, and act 10 found no twenty-seventh.
 >
-> **The one thing still outstanding is a re-pin, not a defect.** The artifact runs a COPY of
-> the workspace build via `node sync-silica.mjs`. Once the changeset ships, re-pin it to the
-> published `@wizeworks/silicaui` and delete that script.
+> **The last outstanding item is closed.** `0.56.0` went out on 2026-09-18 and the artifact
+> is re-pinned to it: `"@wizeworks/silicaui": "^0.56.0"` and `-react` the same, installed
+> from the registry (`lstat` says a real directory, not a workspace symlink), and
+> `sync-silica.mjs` is deleted. Cold `next build` exit 0, and the shipped CSS carries the
+> ink split. **Nothing in this run now depends on an unpublished build.**
 >
 > **Two corrections made during the run, both mine, both left in place struck through rather
 > than deleted:** the `.select-menu-*` "class that ships and renders nothing" never existed
@@ -27,20 +31,22 @@
 > Enter stopped driving implicit form submission mid-act, which a bare-HTML-form control
 > proved was the tool rather than the product. **Act 8 holds the real keyboard proof.**
 >
-> **THE CONSOLE APP RUNS A COPY, AND THE COPY GOES STALE.** It installs
-> `"@wizeworks/silicaui": "^0.55.0"` with a plain `npm install`, so `node_modules` holds a
-> real installed copy rather than a workspace symlink — which is correct for the persona,
-> who installs the published package like any customer. A change in `packages/silicaui`
-> therefore does NOT reach it, and `rm -rf .next` does not help because the stale code is
-> upstream of the build.
->
-> Run **`node sync-silica.mjs`** in the artifact, THEN clear `.next`, THEN restart. The
-> script prints whether the ink split actually landed so the step cannot be silent.
+> **THE CONSOLE APP RAN AN INSTALLED COPY — historical, and the reason it mattered.**
+> Through the run the app installed `^0.55.0` with a plain `npm install`, so `node_modules`
+> held a real installed copy rather than a workspace symlink. A change in
+> `packages/silicaui` therefore did NOT reach it, and `rm -rf .next` did not help, because
+> the stale code was upstream of the build. `sync-silica.mjs` existed to copy the workspace
+> build in, and printed whether the ink split had landed so the step could not be silent.
 >
 > This was half-known — the block used to say the copy existed. It did not say the copy
 > goes stale, and that cost one wrong claim in issue 019, struck in act 8. **The tell: a
 > computed style still reading the OLD value after a cold build looks exactly like a fix
-> that does not work.** Re-pin to the published version once the changeset ships.
+> that does not work.**
+>
+> **Now resolved rather than worked around:** the app is pinned to the published `^0.56.0`,
+> which carries every fix this run made, and the script is gone. Any confirmation in this
+> file that names `sync-silica.mjs` was taken before the release; the re-pin section at the
+> end re-proves those fixes on the published package, out of the built CSS.
 >
 > **Stopping a dev server needs care.** `TaskStop` kills the pnpm/npx wrapper and leaves the
 > `next dev` child holding the port: the next start fails with `EADDRINUSE` while the OLD
@@ -399,8 +405,48 @@ Started the site with `pnpm site:dev` (port 4011, Next 15.5.20). Landed on `/` c
 | "**Thirteen** packages, but you install four" | ✗ #001, fixed — reworded so the number appears once |
 | "Here are all 116" + a list of 116 links | ✓ |
 | "MIT · Licensed, open source" | ✓ |
-| "CSP-clean — verified by a probe on every build" | **not checked** — P08's surface |
-| "a probe fails the build if one of them goes missing" (the five size steps) | **not checked** |
+| "CSP-clean — verified by a probe on every build" | ✓ **checked 2026-09-19** — broken on purpose and watched go red |
+| "a probe fails the build if one of them goes missing" (the five size steps) | ✓ **checked 2026-09-19** — broken on purpose and watched go red |
+
+#### The two claims that were "not checked", checked — 2026-09-19
+
+Both are claims the product makes about its own engineering, which is the
+shape most worth doubting: a probe that prints a failure and exits 0 goes
+green in CI forever, and the copy still says it guards you. So neither was
+read; each was **broken on purpose**.
+
+**"a probe fails the build if one of them goes missing."** `badge.js`'s `-xs`
+step was deleted from the source:
+
+```
+✗ badge.js: ships sm/md/lg/xl but NOT xs — a component that supports any
+  size must support the whole xs–xl scale
+  checked 32 sized component module(s)
+❌ 1 module(s) ship a partial size scale
+
+verify-size-scale exit code          1
+packages/silicaui `pnpm verify`      1
+```
+
+**"CSP-clean — verified by a probe on every build."** The offender the probe's
+own comment names was put back — sizing `Embed`'s macro-built iframe with a
+style attribute instead of utility classes — and the package rebuilt:
+
+```
+✗ case:Embed@youtube: inline style="…" attribute
+  …class="absolute inset-0 border-0" style="height:100%;width:100%"…
+❌ csp: 1 inline-style occurrence(s) in static output
+
+verify-csp exit code                 1
+```
+
+**And "on every build" is the part that could have been the lie.** Both probes
+are wired into their package's `verify` script, and `.github/workflows/ci.yml:85`
+runs `pnpm verify`. A probe nothing calls is a file, not a guard.
+
+Both were restored and re-run green: `✅ every sized component ships the full
+xs–xl scale`, `✅ csp: no style attributes or <style> elements in any
+component/block output`.
 
 The band said **113** and the very next section said **116**, twelve lines apart in the
 same file, with a comment above the first one reading *"Counts. Real, and checked
@@ -610,7 +656,7 @@ that was finding it. Now one `splitSentences` + one `capToSentence`.
 on the page. Badge's `render` row carries the CLIENT COMPONENTS ONLY caveat in full.
 Zero backticks anywhere. `pnpm verify` exit 0.
 
-**Not checked:** the other 114 pages individually, and the new section at 360px. It is
+**Not checked here:** the other 114 pages individually, and the new section at 360px. **Swept on 2026-09-19** — all 121 routes at 360×780 with touch, with a control both ways (a 900px box injected into `/` must make the check say OVERFLOWS, and it does): **0 of 121 pages scroll sideways.** The sweep also found the prop table on 116 component pages at 14px, under the floor those pages teach — [109](issues/109-the-docs-prop-table-sat-below-the-floor-the-docs-teach.md), fixed with one class. It is
 one template over generated data, so the shape should hold — but that is an inference,
 and two of the four extractor rounds above looked fine on whichever page I happened to
 be testing. Handed to P09.
@@ -719,7 +765,7 @@ every dev start — a stray binding instruction file inside this repo. Set
 `agentRules: false` and confirmed they stay deleted. Artifact folders are **lowercase**
 because npm rejects capitals in a package name.
 
-**Not checked:** the getting-started page at 360px. The Vite and plain-HTML paths end to
+**Not checked here:** the getting-started page at 360px. **Swept on 2026-09-19** — all 121 routes at 360×780 with touch, with a control both ways (a 900px box injected into `/` must make the check say OVERFLOWS, and it does): **0 of 121 pages scroll sideways.** The sweep also found the prop table on 116 component pages at 14px, under the floor those pages teach — [109](issues/109-the-docs-prop-table-sat-below-the-floor-the-docs-teach.md), fixed with one class. The Vite and plain-HTML paths end to
 end belong to P02 and P08.
 
 **Act 4 next:** break the `@plugin` import on purpose. A CSS-first plugin wired wrongly
@@ -799,9 +845,16 @@ definition of what a Silica surface is, and both selectors that establish one ca
 backup; button back to `lab(32.5387 -3.30366 -19.0915)`, 40px, `0px 16px`, `4px`.
 `pnpm verify` exit 0.
 
-**Not checked:** the `-html` and `-behaviors` guards were never driven to a real build
-overlay — same four lines, present in their built output, but only `-react` was seen on
-screen. Handed to **P08**. The 360px reading of the newly-painted dark surface is handed
+**Not checked here, and checked on 2026-09-19 — the note was worth writing.** Driven to
+a real build overlay at last, **none of the three guards fired** on the line people
+actually write. Tailwind calls a plugin that was given an options block only if its
+export is marked `__isOptionsFunction`; a plain function lands on the third branch of
+its resolver and is never invoked, so the guard's sentence was unreachable and the user
+got Tailwind's generic `does not accept options` instead. The options form is what every
+doc, every starter and **the guard's own suggested fix** write. Fixed and re-proved in
+[105](issues/105-the-wrong-plugin-guards-only-fired-on-the-one-line-nobody-writes.md).
+The gap was between *present in the bundle* and *reached* — which is exactly what
+"present in their built output" could not tell anyone. Originally handed to **P08**. The 360px reading of the newly-painted dark surface is handed
 to **P09**.
 
 **Housekeeping:** the artifact's `node_modules` now carries a **local build** of
@@ -1443,9 +1496,11 @@ say the copy **goes stale** — so the note was true, was read, and still did no
 mistake, because it described the wrong failure mode. A warning that names one hazard can
 make you feel covered against a neighbouring one.
 
-`sync-silica.mjs` now copies the workspace build in and **prints whether the ink split
-actually landed**, so the step cannot be silent. The tell to remember: a computed style
-still reading the OLD value after a cold build looks exactly like a fix that does not work.
+`sync-silica.mjs` was written to copy the workspace build in and **print whether the ink
+split actually landed**, so the step could not be silent. The tell to remember: a computed
+style still reading the OLD value after a cold build looks exactly like a fix that does not
+work. (The script is gone as of the re-pin at the end of this file — the app installs the
+published `^0.56.0`, so there is no copy left to go stale.)
 
 Re-proved properly afterwards, in the hardest configuration — **no `data-theme`, dark from
 the OS**: the served stylesheet contains `--btn-ink`, the neutral ghost headers still
@@ -1657,10 +1712,47 @@ with a real key press**, and focus back on the exact button that opened it with 
 2px ring. Act 10 adds the production build, the cold start and the 360px dark reading; it
 does not add an independent keyboard proof, and it is not written up as if it does.
 
-**Nothing new was filed.** Twenty-six issues, all fixed and confirmed, and the last act
-found no twenty-seventh — which after nine acts of finding them is a result worth stating
-plainly rather than padding.
+**Nothing new was filed by this act.** Twenty-six issues at that point, all fixed and
+confirmed, and act 10 found no twenty-seventh on the screens — which after nine acts of
+finding them is a result worth stating plainly rather than padding.
 
-**Left to do before this ships:** the artifact still runs a copy of the workspace build
-(`node sync-silica.mjs`). Re-pin it to the published `@wizeworks/silicaui` once the changeset
-goes out, and delete `sync-silica.mjs` with it.
+**A twenty-seventh did turn up afterwards**, in the re-pin below, and is issue 027. It is
+not a screen defect and act 10 was never going to see it: `pnpm verify` fails on every
+Windows checkout because two generated-file checks compare CRLF against LF and report a
+correct file as stale. It is filed rather than quietly fixed, because the interesting part
+is that the same fix already existed twice elsewhere in this repo and did not travel.
+
+### 2026-09-18 · The re-pin · **done**
+
+`0.56.0` was published, so the last outstanding item is closed. The artifact no longer runs
+a copy of anything.
+
+| | |
+| --- | --- |
+| `package.json` | `"@wizeworks/silicaui": "^0.56.0"`, `"@wizeworks/silicaui-react": "^0.56.0"` |
+| installed | **0.56.0** / **0.56.0**, from the registry |
+| workspace symlink? | **no** — `lstat().isSymbolicLink()` is `false`, so this is a customer's install |
+| `sync-silica.mjs` | **deleted** |
+| cold `next build` | **exit 0**, nine routes, TypeScript clean |
+
+**The fixes are read out of the built CSS chunk, not out of the source** — which is the
+whole point, because the last time this was claimed it was claimed against a stale copy:
+
+| issue | what the built CSS says |
+| --- | --- |
+| 026 | `.text-warning[class]{color:oklch(from color-mix(in oklab, var(--color-warning) 50%, var(--color-base-content)) l calc(c * 2) h)}` |
+| 019 | `.btn-primary{--btn-ink: …color-mix(… 50%, var(--color-base-content))…}` |
+| 021 | `.select-group-label{…}` with **no `opacity`** |
+
+Each ink rule is emitted twice: the real form inside
+`@supports (color:color-mix(in lab, red, red))`, and a chroma-only fallback outside it, so
+an old engine degrades rather than breaking. That is the progressive-enhancement pattern
+the plugin already uses elsewhere.
+
+**One defect was found doing this, and it is issue 027.** `pnpm verify` was run once more
+to close the run out and went red, naming `counts.ts` as stale while printing the correct
+numbers underneath it. The cause was `core.autocrlf`, not drift. Both affected checks now
+normalize line endings; proved by rewriting the generated files to CRLF (passes) and then
+breaking a real number (fails, and names the right file). `pnpm verify`: **exit 0**.
+
+**This persona is finished. Nothing in it depends on an unpublished build.**

@@ -24,7 +24,7 @@ export function radialProgress(prefix = "") {
       width: "var(--size)",
       height: "var(--size)",
       borderRadius: "9999px",
-      fontSize: "0.875rem",
+      fontSize: "1rem",
       fontWeight: "600",
       color: "var(--color-base-content)",
       backgroundColor: "transparent",

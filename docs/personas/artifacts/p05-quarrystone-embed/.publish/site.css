@@ -1,0 +1,13 @@
+@import "tailwindcss";
+/* Scan the pages we just wrote. Every class on them is a class the builder put
+   there, so this is the whole safelist and there is nothing to maintain. */
+@source "../out/**/*.html";
+
+@plugin "@wizeworks/silicaui" {
+  colors: primary, secondary, accent, neutral, info, success, warning, error;
+}
+
+@plugin "@wizeworks/silicaui/theme" {
+  name: quarrystone;
+
+}

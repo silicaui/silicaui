@@ -608,6 +608,37 @@ const RADIAL_VALUE_CLASSES: Record<number, string> = Object.fromEntries(
   Array.from({ length: 21 }, (_, i) => i * 5).map((v) => [v, `[--value:${v}]`]),
 );
 
+/**
+ * Turn a registry key into prose — `AvatarGroup` → "Avatar group",
+ * `feature-media` → "Feature media". Runs of capitals stay together so an
+ * acronym survives (`HTMLBlock` → "HTML block").
+ *
+ * This lives HERE, next to the registry, because `label` is what the builder's
+ * Navigator prints for a node and the palette prints for a row — and the
+ * builder already had this exact function, unable to reach the one place that
+ * could have used it. `elementDef` defaulted `label` to the raw `name`, so 33
+ * components reached those rails as machine keys: a business user read
+ * "AvatarGroup", "AppShellSidebar", "ChatLayoutMessages" in a rail whose own
+ * code comment calls itself "a rail that is meant to hold none" of them.
+ * Found by P03 — docs/personas/issues/041.
+ *
+ * Idempotent on a name that is already prose: `Button` → "Button".
+ */
+export function humanizeKey(key: string): string {
+  const words = key
+    .replace(/[-_.]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .trim()
+    .split(/\s+/);
+  return words
+    .map((word, i) => {
+      if (word === word.toUpperCase()) return word; // an acronym keeps its case
+      return i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word.toLowerCase();
+    })
+    .join(" ");
+}
+
 /** A plain element atom: one tag carrying class + (children | text prop). */
 function elementDef(
   name: string,
@@ -619,7 +650,9 @@ function elementDef(
   return {
     name,
     category,
-    label: name,
+    // Prose, not the key. `humanizeKey` is a no-op for the ones already spelled
+    // as words (`Button`, `Card`, `Image`), so only the compound keys move.
+    label: humanizeKey(name),
     icon,
     container,
     expand: (n) => lower(n, tag, { children: textChildren(n, "text") }),

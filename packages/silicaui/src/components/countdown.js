@@ -38,7 +38,7 @@ export function countdown(prefix = "") {
 
     // "days" / "hours" — the word that says what the number means.
     [sel("-label")]: {
-      fontSize: "0.6875rem",
+      fontSize: "1rem",
       textTransform: "uppercase",
       letterSpacing: "0.05em",
     },
@@ -56,7 +56,7 @@ export function countdown(prefix = "") {
         alignItems: "baseline",
         gap: "0.125rem",
       },
-      [`& ${sel("-label")}`]: { fontSize: "0.875rem" },
+      [`& ${sel("-label")}`]: { fontSize: "1rem" },
       [`& ${sel("-value")}`]: { fontSize: "1.5rem" },
     },
   };
