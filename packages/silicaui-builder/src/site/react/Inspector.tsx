@@ -1368,8 +1368,25 @@ function ElementSection({ id, node }: { id: string; node: Node }) {
  *  from a host action (a Data binding of kind "action"). */
 function LinkSection({ id, node }: { id: string; node: ElementNode }) {
   const editor = useEditor();
+  const host = useHost();
   const { pages } = usePages();
   const listId = React.useId();
+  // The site's own pages first, then the places the HOST serves (policy pages,
+  // products, …). An address both offer is listed once, under the page's name.
+  // Read on every render, not memoized on `host`: the host object is stable while
+  // its list may arrive after the first render, and a memo would keep it empty.
+  const seen = new Set<string>();
+  const suggestions: { href: string; label: string }[] = [];
+  for (const p of pages) {
+    if (seen.has(p.slug)) continue;
+    seen.add(p.slug);
+    suggestions.push({ href: p.slug, label: p.name });
+  }
+  for (const t of host?.linkTargets?.() ?? []) {
+    if (!t.href || seen.has(t.href)) continue;
+    seen.add(t.href);
+    suggestions.push(t);
+  }
   const attrs = node.attrs ?? {};
   const href = attrs.href != null ? String(attrs.href) : "";
   const rel = attrs.rel != null ? String(attrs.rel) : "";
@@ -1388,10 +1405,13 @@ function LinkSection({ id, node }: { id: string; node: ElementNode }) {
   };
   return (
     <Group label="Link">
-      <Row label="URL">
-        {/* Her OWN pages, offered by address with the page's name beside it.
-            The field stays free text, because a link may point anywhere — this
-            only removes the need to already KNOW the address.
+      {/* "Links to", not "URL": the owner knows where a link goes, not the word
+          for its address (sparx persona issue 042). */}
+      <Row label="Links to">
+        {/* Her OWN pages, offered by address with the page's name beside it, and
+            then whatever the host serves (`BuilderHost.linkTargets`). The field
+            stays free text, because a link may point anywhere — this only
+            removes the need to already KNOW the address.
 
             Found by P03 (docs/personas/issues/051). Marlene had seven pages and a
             nav full of `href="#"`, and nothing on any screen told her what her
@@ -1406,8 +1426,8 @@ function LinkSection({ id, node }: { id: string; node: ElementNode }) {
           onCommit={(v) => editor.setAttr(id, "href", v || undefined)}
         />
         <datalist id={listId}>
-          {pages.map((p) => (
-            <option key={p.id} value={p.slug} label={p.name} />
+          {suggestions.map((s) => (
+            <option key={s.href} value={s.href} label={s.label} />
           ))}
         </datalist>
       </Row>
@@ -1762,7 +1782,11 @@ function AccessibilitySection({ id, node, isImg }: { id: string; node: ElementNo
               editor.setAttr(id, "src", asset.url || undefined);
               editor.setAttr(id, "srcset", asset.srcset || undefined);
               editor.setAttr(id, "sizes", asset.sizes || undefined);
-              if (asset.alt) editor.setAttr(id, "alt", asset.alt);
+              // The alt described the OLD picture. Keeping it put a laptop's
+              // description on a photo of a diesel shop, and an alt-text check
+              // counts a stale alt as present. A new picture takes the host's alt,
+              // or none, so the check can ask for one.
+              editor.setAttr(id, "alt", asset.alt || undefined);
             })
           }
         />

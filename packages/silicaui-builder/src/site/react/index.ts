@@ -39,6 +39,7 @@ export type {
   HostComponentDef,
   HostPropDef,
   HostRenderCtx,
+  LinkTarget,
 } from "./host";
 // Other editors. `Peer` is what `<Builder peers>` / `editor.setPeers` take;
 // `peerColor` is exported so a host's own presence UI (a toolbar avatar stack, a
