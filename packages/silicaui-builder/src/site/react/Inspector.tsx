@@ -29,6 +29,7 @@ import { Hint, IconButton } from "../../shared/react/Hint";
 import { mergeInspectorTabs, tabIcon } from "../../shared/inspector-tabs";
 import { nodeIconName, nodeName, editableText } from "../node-display";
 import { unbackedClasses } from "../class-support";
+import { isTemplateSlug, pageHref } from "../page-href";
 import {
   FONT_SIZE, WEIGHT, ALIGN, PADDING, PAD_X, PAD_Y, RADIUS, WIDTH, MAX_WIDTH, POSITION,
   SELF_ALIGN, FLEX_CHILD, DISPLAY, DIRECTION, JUSTIFY, ITEMS, GAP, WRAP, GRID_COLS,
@@ -1378,9 +1379,14 @@ function LinkSection({ id, node }: { id: string; node: ElementNode }) {
   const seen = new Set<string>();
   const suggestions: { href: string; label: string }[] = [];
   for (const p of pages) {
-    if (seen.has(p.slug)) continue;
-    seen.add(p.slug);
-    suggestions.push({ href: p.slug, label: p.name });
+    // An address, never a bare slug: "contact" is a RELATIVE link and lands on
+    // /blog/contact from a blog post. A record template ("/products/:handle") is
+    // not a place at all (sparx persona issue 054).
+    if (isTemplateSlug(p.slug)) continue;
+    const href = pageHref(p.slug);
+    if (seen.has(href)) continue;
+    seen.add(href);
+    suggestions.push({ href, label: p.name });
   }
   for (const t of host?.linkTargets?.() ?? []) {
     if (!t.href || seen.has(t.href)) continue;
