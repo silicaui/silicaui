@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-behaviors
 
+## 0.58.0
+
 ## 0.57.0
 
 ### Patch Changes

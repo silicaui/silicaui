@@ -1,5 +1,25 @@
 # @wizeworks/silicaui-builder
 
+## 0.58.0
+
+### Minor Changes
+
+- cbd0de1: Links and pictures in the site Inspector.
+
+  - New `BuilderHost.linkTargets()`: places a link may point that are not builder
+    pages (a host's policy pages, products, collections). The link field offers them
+    by name after the site's own pages. The field stays free text.
+  - The link field is labeled "Links to" instead of "URL".
+  - Picking a new picture for an image now replaces its alt text with the host's
+    alt, or clears it. It used to keep the old picture's alt, which described the
+    wrong picture and passed an alt-text check.
+
+### Patch Changes
+
+- @wizeworks/silicaui@0.58.0
+- @wizeworks/silicaui-html@0.58.0
+- @wizeworks/silicaui-panels@0.58.0
+
 ## 0.57.0
 
 ### Minor Changes
