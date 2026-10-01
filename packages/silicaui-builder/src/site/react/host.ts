@@ -256,4 +256,22 @@ export interface BuilderHost extends ResolveHost {
   /** Live canvas preview of a host node — the host renders its real component.
    *  Absent (or returns null) → the engine renders a labeled placeholder (§A.6). */
   renderHostNode?(node: HostNode, ctx: HostRenderCtx): React.ReactNode;
+  /**
+   * Places a link may point that are NOT pages in this builder: a host's policy
+   * pages, product and collection pages, a booking page. The Inspector's link
+   * field offers them by name beside the site's own pages. Suggestions only; the
+   * field stays free text, because a link may point anywhere.
+   *
+   * Without it the field offered only builder pages, so an owner pointing
+   * "Returns & refunds" at a refund policy the HOST serves had to know its
+   * address by heart.
+   */
+  linkTargets?(): readonly LinkTarget[];
+}
+
+/** One place `BuilderHost.linkTargets` offers: the address written into `href`,
+ *  and the name the owner knows it by. */
+export interface LinkTarget {
+  href: string;
+  label: string;
 }
