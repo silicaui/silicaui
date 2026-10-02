@@ -21,6 +21,7 @@ import { invertOp } from "./invert";
 import type { Op, OpTarget, SymbolDetachment } from "./ops";
 import { findInSite, replacementFor } from "./find";
 import type { SiteTextMatch } from "./find";
+import { linksToPage } from "./page-href";
 
 /** Two id lists, same members in the same order? */
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
@@ -1335,7 +1336,7 @@ export class Editor {
         if (node.kind === "outlet") return;
         const href =
           node.kind === "element" ? node.attrs?.href : (node.props as Record<string, unknown> | undefined)?.href;
-        if (href === slug) n += 1;
+        if (linksToPage(href, slug)) n += 1;
       });
     });
     return n;
