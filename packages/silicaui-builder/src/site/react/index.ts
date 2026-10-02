@@ -47,6 +47,8 @@ export type {
 // two different colors for one person is worse than no color at all.
 export type { Peer } from "../engine";
 export { peerColor } from "../peers";
+// A page as a link: its address from its slug, and whether a link points at it.
+export { isTemplateSlug, linksToPage, pageHref } from "../page-href";
 export { usePeers, useClaim } from "./editor-context";
 export { useHost } from "./host-context";
 export {
