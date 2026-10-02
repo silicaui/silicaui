@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-html
 
+## 0.58.2
+
 ## 0.58.1
 
 ## 0.58.0

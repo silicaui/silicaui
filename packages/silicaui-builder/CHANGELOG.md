@@ -1,5 +1,13 @@
 # @wizeworks/silicaui-builder
 
+## 0.58.2
+
+### Patch Changes
+
+- @wizeworks/silicaui-panels@0.58.2
+- @wizeworks/silicaui@0.58.2
+- @wizeworks/silicaui-html@0.58.2
+
 ## 0.58.1
 
 ### Patch Changes
