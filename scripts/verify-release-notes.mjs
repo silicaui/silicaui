@@ -95,20 +95,29 @@ check(
 
 // ---------------------------------------------------------------------------
 // 3. Both degradation paths, driven against THIS script.
+//
+// The thresholds are derived from the body this version actually produces. Fixed
+// numbers (a 2,000-character budget, a 1,500-character limit) assumed every release
+// is large: 0.58.0's notes were 1,344 characters, under both, so neither path ran and
+// all four checks failed on a release that was perfectly fine.
 // ---------------------------------------------------------------------------
-const small = run({ RELEASE_NOTES_BUDGET: "2000" });
+const fullHeadings = headings.length;
+const small = run({ RELEASE_NOTES_BUDGET: String(out.length - 1) });
+const smallHeadings = [...small.out.matchAll(/^## (.+)$/gm)].length;
 check(
   "over budget, it falls back to headlines",
-  small.out.length < out.length && /Summarised to fit GitHub's release-body limit/.test(small.out),
-  `${small.out.length.toLocaleString()} characters`,
+  /Summarised to fit GitHub's release-body limit/.test(small.out) && smallHeadings === fullHeadings,
+  `${small.out.length.toLocaleString()} characters, ${smallHeadings} of ${fullHeadings} entries`,
 );
 check("the fallback is reported on stderr, not silent", /over the .* budget/.test(small.err));
 
-const tiny = run({ RELEASE_NOTES_BUDGET: "500", RELEASE_NOTES_LIMIT: "1500" });
+// Half the headlines body, but never below what the truncation note itself needs.
+const limit = Math.max(200, Math.floor(small.out.length / 2));
+const tiny = run({ RELEASE_NOTES_BUDGET: "1", RELEASE_NOTES_LIMIT: String(limit) });
 check(
   "when even headlines overrun, it hard-truncates to the limit",
-  tiny.out.length <= 1500 && /_Truncated: too many entries/.test(tiny.out),
-  `${tiny.out.length} / 1500 characters`,
+  tiny.out.length <= limit && /_Truncated: too many entries/.test(tiny.out),
+  `${tiny.out.length} / ${limit} characters`,
 );
 check("the truncation is reported on stderr", /Hard-truncating/.test(tiny.err));
 
