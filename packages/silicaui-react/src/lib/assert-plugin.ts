@@ -27,13 +27,45 @@ import { isDev } from "./dev";
 /** Fires once per page, not once per component. */
 let checked = false;
 
+/**
+ * How long a missing sentinel is given to appear before it counts as missing.
+ *
+ * "The document has loaded" is not "the styles have arrived". A client-side
+ * route change runs long after `load`, and the stylesheet for the route being
+ * entered can still be in flight when its first Silica component renders: Next.js
+ * in dev injects a route's CSS after the navigation starts. Read at that moment,
+ * a correctly wired app reports itself broken. Measured on a storefront's
+ * cart-to-checkout navigation: the error fired, and `--sui-plugin` read `1` a
+ * moment later on the same page.
+ *
+ * A genuinely missing plugin never produces the sentinel, so waiting costs that
+ * case nothing but a short delay before the same message.
+ */
+const SETTLE_MS = 3000;
+const STEP_MS = 100;
+
+function sentinelPresent(): boolean {
+  return (
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--sui-plugin")
+      .trim() !== ""
+  );
+}
+
+function checkWhenSettled(): void {
+  const deadline = Date.now() + SETTLE_MS;
+  const attempt = (): void => {
+    if (sentinelPresent()) return;
+    if (Date.now() < deadline) {
+      setTimeout(attempt, STEP_MS);
+      return;
+    }
+    report();
+  };
+  attempt();
+}
+
 function report(): void {
-  const sentinel = getComputedStyle(document.documentElement)
-    .getPropertyValue("--sui-plugin")
-    .trim();
-
-  if (sentinel) return;
-
   console.error(
     `[silicaui] The @wizeworks/silicaui CSS plugin is not loaded, so every Silica ` +
       `class on this page resolves to nothing.\n` +
@@ -46,7 +78,7 @@ function report(): void {
       `      colors: primary, secondary, accent, neutral, info, success, warning, error;\n` +
       `    }\n` +
       `  If that line is already there, check it is in the stylesheet your root layout ` +
-      `imports — a plugin declared in a CSS file nobody imports is the same as no plugin.`,
+      `imports — a plugin declared in a CSS file nobody imports is the same as no plugin.`
   );
 }
 
@@ -58,10 +90,11 @@ function report(): void {
  * a no-op on the server (no `document`), and stripped from production builds by
  * the `isDev` guard, which bundlers fold to a literal `false`.
  *
- * The read is DEFERRED to the `load` event when the document is still parsing.
- * Reading `--sui-plugin` before the stylesheet has been applied would report a
- * correctly-wired app as broken, and a false alarm here is worse than silence —
- * it would teach people to ignore the message that matters.
+ * The read is DEFERRED to the `load` event when the document is still parsing,
+ * and then given `SETTLE_MS` for the sentinel to appear. Reading `--sui-plugin`
+ * before the stylesheet has been applied would report a correctly-wired app as
+ * broken, and a false alarm here is worse than silence — it would teach people
+ * to ignore the message that matters.
  */
 export function assertPluginPresent(): void {
   if (!isDev || checked) return;
@@ -70,8 +103,8 @@ export function assertPluginPresent(): void {
   checked = true;
 
   if (document.readyState === "complete") {
-    report();
+    checkWhenSettled();
   } else {
-    window.addEventListener("load", report, { once: true });
+    window.addEventListener("load", checkWhenSettled, { once: true });
   }
 }
