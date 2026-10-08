@@ -13,6 +13,7 @@
  * strip it just show the desktop table, which still reads fine at a fixed width.
  */
 import type {
+  Align,
   ButtonNode,
   ColumnNode,
   ColumnsNode,
@@ -142,6 +143,31 @@ function renderText(node: TextNode, link?: string): string {
   })}>${html}</div>`;
 }
 
+/**
+ * Put a block at its own alignment, whatever the cell around it says.
+ *
+ * A section's cell carries `align` (center unless the author changes it), and
+ * browsers read that attribute as `text-align: -webkit-center`, which centers
+ * BLOCK children too, tables and block images included. A block that said
+ * "left" only through `margin: 0` had nothing nearer than that cell, so a left
+ * button, social row or image landed in the middle of every inbox while the
+ * canvas drew it at the left. Found by sparx persona P01, act 10 (issue 155):
+ * "Book a winter check" moved between the canvas and "Preview & check".
+ *
+ * A full-width, one-cell table whose cell carries the block's own `align` is
+ * the nearest cell, so it wins in browsers. It is also how email HTML places a
+ * block in Outlook's Word engine, which ignores the `margin: auto` the right
+ * and center cases leaned on. No `text-align` style here: the attribute's
+ * `-webkit-*` value is what moves a block, and a plain `text-align` would
+ * replace it and stop centering one.
+ */
+function placed(align: Align, html: string): string {
+  return (
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">` +
+    `<tr><td align="${align}">${html}</td></tr></table>`
+  );
+}
+
 function renderImage(node: ImageNode, link?: string): string {
   // NO `src=""` for an image whose source is empty — the attribute is OMITTED.
   // An empty `src` is resolved by many clients as a reference to the current
@@ -175,11 +201,10 @@ function renderImage(node: ImageNode, link?: string): string {
     width: "100%",
     "max-width": `${node.width}px`,
     height: "auto",
-    ...(node.align === "center" ? { margin: "0 auto" } : node.align === "right" ? { "margin-left": "auto" } : {}),
   })} />`;
   // The image's own href wins over a group link — explicit beats inherited.
   const href = safeUrl(node.href) ?? safeUrl(link);
-  return href ? `<a href="${esc(href)}" target="_blank">${img}</a>` : img;
+  return placed(node.align, href ? `<a href="${esc(href)}" target="_blank">${img}</a>` : img);
 }
 
 function renderButton(node: ButtonNode): string {
@@ -214,10 +239,9 @@ function renderButton(node: ButtonNode): string {
   const outline = node.variant === "outline";
   const borderWidth = node.borderWidth ?? (outline ? 1 : 0);
   const border = borderWidth > 0 ? `${borderWidth}px solid ${node.borderColor ?? node.bg}` : undefined;
-  return (
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"${styleAttr({
-      margin: node.align === "center" ? "0 auto" : node.align === "right" ? "0 0 0 auto" : "0",
-    })}><tr><td align="center"${outline ? "" : ` bgcolor="${node.bg}"`}${styleAttr({
+  return placed(
+    node.align,
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center"${outline ? "" : ` bgcolor="${node.bg}"`}${styleAttr({
       "border-radius": `${node.radius}px`,
       background: outline ? "transparent" : node.bg,
       border,
@@ -267,11 +291,7 @@ function renderSocial(node: SocialNode): string {
         })}>${esc(SOCIAL_PLATFORM[l.platform].label)}</a></td>`,
     )
     .join("");
-  return (
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"${styleAttr({
-      margin: node.align === "center" ? "0 auto" : node.align === "right" ? "0 0 0 auto" : "0",
-    })}><tr>${cells}</tr></table>`
-  );
+  return placed(node.align, `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table>`);
 }
 
 function renderHtml(node: HtmlNode): string {
