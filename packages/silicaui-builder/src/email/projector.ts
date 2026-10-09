@@ -671,17 +671,22 @@ export function toEmailHtml(doc: EmailDocument, options?: EmailResolveHost | Ema
   const subject = resolver ? resolveTokens(doc.subject, resolver, at, false) : doc.subject;
   const preheader = resolver ? resolveTokens(doc.preheader, resolver, at, false) : doc.preheader;
   const sections = root.children.map(renderSection).join("\n");
+  // The page and the content area carry `bgcolor` as well as their inline
+  // `background`, like every section and button. A host's dark mode can only
+  // remap a color by value (`[bgcolor="#e9ebee"]{…}`), since email HTML has no
+  // classes to theme; without it every block went dark and the page under them
+  // stayed light.
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 ${renderHead(root, subject, head)}
 </head>
-<body${styleAttr({ margin: "0", padding: "0", background: root.bg, "font-family": bodyFontStack(root) })}>
+<body bgcolor="${root.bg}"${styleAttr({ margin: "0", padding: "0", background: root.bg, "font-family": bodyFontStack(root) })}>
 ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>` : ""}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${styleAttr({ background: root.bg })}>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${root.bg}"${styleAttr({ background: root.bg })}>
 <tr><td align="center">
 <!--[if mso]><table role="presentation" width="${root.width}" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" class="sui-body" cellpadding="0" cellspacing="0" border="0"${styleAttr({
+<table role="presentation" width="100%" class="sui-body" cellpadding="0" cellspacing="0" border="0" bgcolor="${root.contentBg}"${styleAttr({
     width: "100%",
     "max-width": `${root.width}px`,
     background: root.contentBg,
