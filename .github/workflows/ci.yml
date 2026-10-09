@@ -154,6 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # the version commit, its tags, and the GitHub Release
+      id-token: write # npm trusted publishing: the OIDC token npm trades for a publish credential
     steps:
       # Full history: the `git pull --rebase` below is unreliable against a depth-1
       # clone, and this is the one job that writes back to the repository.
@@ -205,15 +206,19 @@ jobs:
           git commit -m "chore: version packages"
           git pull --rebase origin main
 
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 ships npm 10. changesets
+      # runs `pnpm publish`, and pnpm 9 hands the upload to the `npm` on PATH, so this
+      # is the npm that authenticates.
+      - name: Install an npm that can publish with OIDC
+        run: npm install -g npm@^11.5.1
+
+      # No token. Each package trusts this repository's `ci.yml` (no environment) on
+      # npmjs.com, and npm trades the job's OIDC token for a short-lived publish
+      # credential, which also attaches provenance. A stored token expired after 90
+      # days and, once replaced, npm still stopped at the 2FA prompt (EOTP). changesets
+      # never asks for a one-time code here: with no TTY it skips its 2FA check.
       - name: Publish to npm
         run: pnpm release
-        env:
-          # changesets/cli's own npm publish calls check for NPM_TOKEN by that exact
-          # name — NODE_AUTH_TOKEN alone makes it fall back to OIDC trusted publishing,
-          # which has no trust relationship configured for this scope. Set both so the
-          # npm CLI authenticates either way.
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Only now does main move. `--tags` restores something that was quietly lost:
       # when the publish step was hand-rolled to replace changesets/action, it also

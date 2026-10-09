@@ -19,8 +19,9 @@ inputs:
     default: "22"
   registry-url:
     description: >-
-      npm registry to write into .npmrc. Only the release job sets it — that is
-      what wires NODE_AUTH_TOKEN through to `npm publish`. Empty leaves it unset.
+      npm registry to write into .npmrc. Only the release job sets it, so
+      `npm publish` targets npmjs.org (it authenticates there through trusted
+      publishing, not a stored token). Empty leaves it unset.
     required: false
     default: ""
 
