@@ -1,5 +1,14 @@
 # @wizeworks/silicaui-builder
 
+## 0.59.1
+
+### Patch Changes
+
+- 378cb2f: An email's page and content area now carry `bgcolor`, like every section and button, so a host's dark-mode remap (`[bgcolor="#…"]{…}`) turns the whole email dark instead of leaving the page light under dark blocks.
+  - @wizeworks/silicaui@0.59.1
+  - @wizeworks/silicaui-html@0.59.1
+  - @wizeworks/silicaui-panels@0.59.1
+
 ## 0.59.0
 
 ### Patch Changes
