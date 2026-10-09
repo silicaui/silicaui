@@ -111,6 +111,13 @@ export interface ComboboxProps extends PositioningProps {
   itemToStringLabel?: (item: unknown) => string;
   /** Override how each filtered item renders. */
   renderItem?: (item: unknown, index: number) => React.ReactNode;
+  /**
+   * Decide whether an item matches what was typed. By default an item matches
+   * when its label contains the query. Pass this when people type words that are
+   * not in the label: a detail labeled "Order · Payment" should come up for
+   * "paid", which is one of its values, not part of its name.
+   */
+  filter?: (item: unknown, query: string) => boolean;
   "aria-label"?: string;
   "aria-labelledby"?: string;
   id?: string;
@@ -154,6 +161,7 @@ export function Combobox({
   popupProps,
   itemToStringLabel,
   renderItem,
+  filter,
   id,
   ...aria
 }: ComboboxProps) {
@@ -170,6 +178,7 @@ export function Combobox({
       disabled={disabled}
       required={required}
       itemToStringLabel={itemToStringLabel as never}
+      {...(filter ? { filter: (item: unknown, query: string) => filter(item, query) } : {})}
     >
       <div className={cx(sc("combobox-control"))}>
         <BaseCombobox.Input
