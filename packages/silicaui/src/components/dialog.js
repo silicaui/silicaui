@@ -15,6 +15,8 @@ export function dialog(prefix = "") {
 
   return {
     [sel("-backdrop")]: {
+      // Still mounted while it fades out: let a click reach what is underneath.
+      "&[data-ending-style]": { pointerEvents: "none" },
       position: "fixed",
       inset: "0",
       zIndex: "var(--z-dialog, 50)",
@@ -26,6 +28,8 @@ export function dialog(prefix = "") {
     },
 
     [sel("-popup")]: {
+      // Still mounted while it fades out: let a click reach what is underneath.
+      "&[data-ending-style]": { pointerEvents: "none" },
       position: "fixed",
       top: "50%",
       left: "50%",
