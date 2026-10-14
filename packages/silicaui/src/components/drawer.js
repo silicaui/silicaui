@@ -13,6 +13,8 @@ export function drawer(prefix = "") {
 
   return {
     [sel("-backdrop")]: {
+      // Still mounted while it fades out: let a click reach what is underneath.
+      "&[data-ending-style]": { pointerEvents: "none" },
       position: "fixed",
       inset: "0",
       zIndex: "var(--z-drawer, 40)",
@@ -23,6 +25,8 @@ export function drawer(prefix = "") {
     },
 
     [sel("-popup")]: {
+      // Still mounted while it fades out: let a click reach what is underneath.
+      "&[data-ending-style]": { pointerEvents: "none" },
       position: "fixed",
       zIndex: "var(--z-drawer, 40)",
       display: "flex",
