@@ -59,6 +59,12 @@ export function selectMenu(prefix = "") {
     [`${sel("-trigger")}[data-placeholder] ${sel("-placeholder")}`]: {
       display: "block",
     },
+    // Base UI still renders the value span, empty, while nothing is chosen. Left
+    // in the row, `space-between` pushed the placeholder to the middle.
+    [`${sel("-trigger")}:has(${sel("-placeholder")}) ${sel("-value")}[data-placeholder]`]:
+      {
+        display: "none",
+      },
 
     // Trailing chevron; flips while the popup is open.
     [sel("-icon")]: affordanceIcon(),
