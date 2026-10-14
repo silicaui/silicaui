@@ -37,6 +37,8 @@ export function lightbox(prefix = "") {
 
   return {
     [sel("-backdrop")]: {
+      // Still mounted while it fades out: let a click reach what is underneath.
+      "&[data-ending-style]": { pointerEvents: "none" },
       position: "fixed",
       inset: "0",
       zIndex: "var(--z-lightbox, 60)",
@@ -48,6 +50,8 @@ export function lightbox(prefix = "") {
     },
 
     [sel("-popup")]: {
+      // Still mounted while it fades out: let a click reach what is underneath.
+      "&[data-ending-style]": { pointerEvents: "none" },
       position: "fixed",
       inset: "0",
       zIndex: "calc(var(--z-lightbox, 60) + 1)",
