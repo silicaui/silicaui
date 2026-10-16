@@ -1841,7 +1841,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
     "sourceFile": "silicaui-react/src/preview-card.tsx",
-    "description": "Silica PreviewCard — a hover/focus link preview (hovercard). Behavior from Base UI, look from Silica's `.preview-card` CSS. <PreviewCard content={<UserPreview user={u} />}> <Link href={u.url}>@{u.handle}</Link> </PreviewCard>",
+    "description": "Silica PreviewCard — a hover/focus link preview (hovercard). Behavior from Base UI, look from Silica's `.preview-card` CSS. <PreviewCard content={<UserPreview user={u} />}> <Link href={u.url}>@{u.handle}</Link> </PreviewCard> THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "PreviewCardProps",
@@ -2057,7 +2057,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data display",
     "sourceFile": "silicaui-react/src/table.tsx",
-    "description": "Silica Table — a styled `<table>`. Compose it from plain semantic rows; the CSS styles the native elements, so no per-cell classes are needed: <Table zebra hover> <thead> <tr><th>Name</th><th>Role</th></tr> </thead> <tbody> <tr><td>Ada</td><td>Engineer</td></tr> </tbody> </Table> Auto-wrapped in an `overflow-x: auto` container so a wide table scrolls instead of blowing out the page; `ref`/`className` land on the `<table>`.",
+    "description": "Silica Table — a styled `<table>`. Compose it from plain semantic rows; the CSS styles the native elements, so no per-cell classes are needed: <Table zebra hover> <thead> <tr><th>Name</th><th>Role</th></tr> </thead> <tbody> <tr><td>Ada</td><td>Engineer</td></tr> </tbody> </Table> Auto-wrapped in a `table-scroll` container so a wide table scrolls instead of blowing out the page; `ref`/`className` land on the `<table>`. A list that has to fit a narrow pane takes `stack`, and its rows become blocks below the container width.",
     "props": [
       {
         "name": "TableProps",
@@ -2082,15 +2082,21 @@
             "doc": "Default `md`. Scales cell padding + type."
           },
           {
+            "name": "stack",
+            "optional": true,
+            "type": "boolean | TableStackBreakpoint",
+            "doc": "Stack the rows into blocks while the table's container is narrow, so a list fits a narrow pane instead of running past it. The header is visually hidden (a screen reader still reads it), each row wraps its cells with the first on a line of its own and the last at the end, and a cell with `data-label=\"Total\"` shows that label before its value. `true` stacks below a 36rem container. A breakpoint (`\"sm\"` 24rem, `\"md\"` 28rem, `\"lg\"` 32rem, `\"xl\"` 36rem, `\"2xl\"` 42rem, `\"3xl\"` 48rem) stacks below that width instead, the same widths as Tailwind's `@sm:` to `@3xl:`. Wider than the breakpoint it is an ordinary table. The container is the table's own wrapper, so no `@container` is needed above it. Default `false`."
+          },
+          {
             "name": "wrapperClassName",
             "optional": true,
             "type": "string",
-            "doc": "Class for the horizontal-scroll wrapper (the outer `<div>`)."
+            "doc": "Class for the wrapper `<div>`. It scrolls a wide table sideways, and it is the container a stacked table measures."
           }
         ]
       }
     ],
-    "usageExample": "import { Table, Badge } from \"@wizeworks/silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nconst ROWS = [\n    { name: \"Ada Lovelace\", role: \"Engineer\", status: \"Active\" as const },\n    { name: \"Grace Hopper\", role: \"Admin\", status: \"Active\" as const },\n    { name: \"Alan Turing\", role: \"Engineer\", status: \"Away\" as const },\n];\n\nexport function TableDemo() {\n    return (\n        <>\n            <Section title=\"Real use · team table\">\n                <Table zebra hover className=\"max-w-xl\">\n                    <thead>\n                        <tr>\n                            <th>Name</th>\n                            <th>Role</th>\n                            <th>Status</th>\n                        </tr>\n                    </thead>\n                    <tbody>\n                        {ROWS.map((r) => (\n                            <tr key={r.name}>\n                                <td>{r.name}</td>\n                                <td>{r.role}</td>\n                                <td>\n                                    <Badge\n                                        color={r.status === \"Active\" ? \"success\" : \"warning\"}\n                                        variant=\"soft\"\n                                    >\n                                        {r.status}\n                                    </Badge>\n                                </td>\n                            </tr>\n                        ))}\n                    </tbody>\n                </Table>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <div className=\"flex max-w-xl flex-col gap-4\">\n                    {([\"xs\", \"sm\", \"md\", \"lg\"] as const).map((size) => (\n                        <Table key={size} size={size} zebra>\n                            <thead>\n                                <tr>\n                                    <th>Size</th>\n                                    <th>Value</th>\n                                </tr>\n                            </thead>\n                            <tbody>\n                                <tr>\n                                    <td>{size}</td>\n                                    <td>Row height scales with density</td>\n                                </tr>\n                            </tbody>\n                        </Table>\n                    ))}\n                </div>\n            </Section>\n        </>\n    );\n}"
+    "usageExample": "import { Table, Badge, Button } from \"@wizeworks/silicaui-react\";\nimport { Section } from \"../lib/Section\";\n\nconst ROWS = [\n    { name: \"Ada Lovelace\", role: \"Engineer\", status: \"Active\" as const },\n    { name: \"Grace Hopper\", role: \"Admin\", status: \"Active\" as const },\n    { name: \"Alan Turing\", role: \"Engineer\", status: \"Away\" as const },\n];\n\nconst INVOICES = [\n    { customer: \"Harbor Street Bakery\", number: \"INV-1042\", due: \"$1,240.00\", state: \"Overdue\" as const },\n    { customer: \"Juniper and Fern Florists\", number: \"INV-1043\", due: \"$386.50\", state: \"Due\" as const },\n    { customer: \"Ridgeview Family Dental, second location\", number: \"INV-1044\", due: \"$12,900.00\", state: \"Paid\" as const },\n];\n\nconst STATE_COLOR = { Overdue: \"error\", Due: \"warning\", Paid: \"success\" } as const;\n\n/**\n * A list shaped the way real list panes are: a name cell that fills the row\n * and truncates, then nowrap cells for the amount, the state, and the row's own\n * button. As a table that is wider than a 343px pane; stacked, it fits.\n */\nfunction InvoiceList() {\n    return (\n        <Table stack zebra size=\"sm\">\n            <thead>\n                <tr>\n                    <th>Customer</th>\n                    <th>Due</th>\n                    <th>State</th>\n                    <th>\n                        <span className=\"sr-only\">Actions</span>\n                    </th>\n                </tr>\n            </thead>\n            <tbody>\n                {INVOICES.map((r) => (\n                    <tr key={r.number}>\n                        <td className=\"w-full max-w-0 min-w-56\">\n                            <div className=\"truncate font-semibold\">{r.customer}</div>\n                            <div className=\"truncate\">{r.number}</div>\n                        </td>\n                        <td data-label=\"Due\" className=\"whitespace-nowrap\">\n                            {r.due}\n                        </td>\n                        <td className=\"whitespace-nowrap\">\n                            <Badge color={STATE_COLOR[r.state]} variant=\"soft\">\n                                {r.state}\n                            </Badge>\n                        </td>\n                        <td className=\"whitespace-nowrap text-right\">\n                            <Button size=\"sm\">Send reminder</Button>\n                        </td>\n                    </tr>\n                ))}\n            </tbody>\n            <tfoot>\n                <tr>\n                    <td>Outstanding</td>\n                    <td className=\"whitespace-nowrap\">$1,626.50</td>\n                    <td />\n                    <td />\n                </tr>\n            </tfoot>\n        </Table>\n    );\n}\n\nexport function TableDemo() {\n    return (\n        <>\n            <Section title=\"Real use · team table\">\n                <Table zebra hover className=\"max-w-xl\">\n                    <thead>\n                        <tr>\n                            <th>Name</th>\n                            <th>Role</th>\n                            <th>Status</th>\n                        </tr>\n                    </thead>\n                    <tbody>\n                        {ROWS.map((r) => (\n                            <tr key={r.name}>\n                                <td>{r.name}</td>\n                                <td>{r.role}</td>\n                                <td>\n                                    <Badge\n                                        color={r.status === \"Active\" ? \"success\" : \"warning\"}\n                                        variant=\"soft\"\n                                    >\n                                        {r.status}\n                                    </Badge>\n                                </td>\n                            </tr>\n                        ))}\n                    </tbody>\n                </Table>\n            </Section>\n\n            <Section title=\"Stacked in a narrow pane\">\n                <p className=\"max-w-xl\">\n                    With <code>stack</code>, a list turns its rows into blocks while its\n                    container is narrower than 36rem, so the amount, the state and the\n                    button stay in the pane. The same list in a wide pane is an ordinary\n                    table. Pass a breakpoint, such as <code>stack=\"lg\"</code>, to switch at\n                    a different width.\n                </p>\n                <div className=\"flex flex-col gap-6\">\n                    <div\n                        data-demo=\"stack-narrow\"\n                        className=\"w-[343px] max-w-full rounded-box border border-base-300\"\n                    >\n                        <InvoiceList />\n                    </div>\n                    <div data-demo=\"stack-wide\" className=\"rounded-box border border-base-300\">\n                        <InvoiceList />\n                    </div>\n                </div>\n            </Section>\n\n            <Section title=\"Sizes\">\n                <div className=\"flex max-w-xl flex-col gap-4\">\n                    {([\"xs\", \"sm\", \"md\", \"lg\"] as const).map((size) => (\n                        <Table key={size} size={size} zebra>\n                            <thead>\n                                <tr>\n                                    <th>Size</th>\n                                    <th>Value</th>\n                                </tr>\n                            </thead>\n                            <tbody>\n                                <tr>\n                                    <td>{size}</td>\n                                    <td>Row height scales with density</td>\n                                </tr>\n                            </tbody>\n                        </Table>\n                    ))}\n                </div>\n            </Section>\n        </>\n    );\n}"
   },
   {
     "name": "Timeline",
@@ -2183,7 +2189,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/autocomplete.tsx",
-    "description": "Silica Autocomplete — a free-text input with a filtered suggestion list (Base UI). Unlike `Combobox` (which selects a value from a fixed set), the value here IS the typed string; suggestions just help complete it. <Autocomplete items={[\"React\", \"React Native\", \"Redux\", \"Remix\"]} value={q} onValueChange={setQ} placeholder=\"Search the docs…\" />",
+    "description": "Silica Autocomplete — a free-text input with a filtered suggestion list (Base UI). Unlike `Combobox` (which selects a value from a fixed set), the value here IS the typed string; suggestions just help complete it. <Autocomplete items={[\"React\", \"React Native\", \"Redux\", \"Remix\"]} value={q} onValueChange={setQ} placeholder=\"Search the docs…\" /> THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "AutocompleteItemProps",
@@ -2942,6 +2948,12 @@
             "doc": "Override how each filtered item renders."
           },
           {
+            "name": "filter",
+            "optional": true,
+            "type": "(item: unknown, query: string) => boolean",
+            "doc": "Decide whether an item matches what was typed. By default an item matches when its label contains the query. Pass this when people type words that are not in the label: a detail labeled \"Order · Payment\" should come up for \"paid\", which is one of its values, not part of its name."
+          },
+          {
             "name": "\"aria-label\"",
             "optional": true,
             "type": "string",
@@ -3190,7 +3202,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/date-picker.tsx",
-    "description": "Silica DatePicker — an input that opens a `Calendar` popover to pick one date. <DatePicker value={date} onValueChange={setDate} placeholder=\"Pick a date\" />",
+    "description": "Silica DatePicker — an input that opens a `Calendar` popover to pick one date. <DatePicker value={date} onValueChange={setDate} placeholder=\"Pick a date\" /> THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "DatePickerProps",
@@ -4682,7 +4694,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Data input",
     "sourceFile": "silicaui-react/src/multi-select.tsx",
-    "description": "Silica MultiSelect — a searchable listbox that picks *several* values from a fixed option set, shown as removable chips in the field (Base UI Combobox in `multiple` mode). Type to filter `items`; click or Enter to add; click a chip's × or Backspace at the start of the field to remove. <MultiSelect items={[\"React\", \"Vue\", \"Svelte\", \"Solid\"]} value={frameworks} onValueChange={setFrameworks} placeholder=\"Frameworks…\" /> // object items: <MultiSelect items={[{ value: \"us\", label: \"United States\" }, { value: \"ca\", label: \"Canada\" }]} placeholder=\"Countries\" color=\"primary\" />",
+    "description": "Silica MultiSelect — a searchable listbox that picks *several* values from a fixed option set, shown as removable chips in the field (Base UI Combobox in `multiple` mode). Type to filter `items`; click or Enter to add; click a chip's × or Backspace at the start of the field to remove. <MultiSelect items={[\"React\", \"Vue\", \"Svelte\", \"Solid\"]} value={frameworks} onValueChange={setFrameworks} placeholder=\"Frameworks…\" /> // object items: <MultiSelect items={[{ value: \"us\", label: \"United States\" }, { value: \"ca\", label: \"Canada\" }]} placeholder=\"Countries\" color=\"primary\" /> THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "MultiSelectItemProps",
@@ -4996,6 +5008,18 @@
             "optional": true,
             "type": "{ show: string; hide: string }",
             "doc": "Accessible label for the show/hide toggle. Default `\"Show password\"` / `\"Hide password\"`."
+          },
+          {
+            "name": "className",
+            "optional": true,
+            "type": "string",
+            "doc": "Classes for the component's OUTER box — the `input-group` that lays out the field and its affixes. This is where `w-*`, `max-w-*` and margins belong: sizing only the inner `<input>` leaves the group at its own width and strands the trailing button against the container's edge (docs/personas/issues/020)."
+          },
+          {
+            "name": "inputClassName",
+            "optional": true,
+            "type": "string",
+            "doc": "Classes for the `<input>` itself, for the rarer case of styling the field."
           }
         ]
       }
@@ -5561,6 +5585,18 @@
             "optional": true,
             "type": "() => void",
             "doc": "Fires when the clear (×) button is pressed."
+          },
+          {
+            "name": "className",
+            "optional": true,
+            "type": "string",
+            "doc": "Classes for the component's OUTER box — the `input-group` that lays out the field and its affixes. This is where `w-*`, `max-w-*` and margins belong: sizing only the inner `<input>` leaves the group at its own width and strands the trailing button against the container's edge, 700px from the field it belongs to (docs/personas/issues/020)."
+          },
+          {
+            "name": "inputClassName",
+            "optional": true,
+            "type": "string",
+            "doc": "Classes for the `<input>` itself, for the rarer case of styling the field."
           }
         ]
       }
@@ -6417,7 +6453,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Navigation",
     "sourceFile": "silicaui-react/src/navigation-menu.tsx",
-    "description": "Silica NavigationMenu — a site-nav bar with rich dropdown panels (mega menu). Behavior from Base UI (shared animated viewport that resizes between panels); look from Silica. <NavigationMenu> <NavigationMenuItem> <NavigationMenuTrigger>Products</NavigationMenuTrigger> <NavigationMenuContent> <ul className=\"grid gap-1\">…</ul> </NavigationMenuContent> </NavigationMenuItem> <NavigationMenuItem> <NavigationMenuLink href=\"/pricing\">Pricing</NavigationMenuLink> </NavigationMenuItem> </NavigationMenu>",
+    "description": "Silica NavigationMenu — a site-nav bar with rich dropdown panels (mega menu). Behavior from Base UI (shared animated viewport that resizes between panels); look from Silica. <NavigationMenu> <NavigationMenuItem> <NavigationMenuTrigger>Products</NavigationMenuTrigger> <NavigationMenuContent> <ul className=\"grid gap-1\">…</ul> </NavigationMenuContent> </NavigationMenuItem> <NavigationMenuItem> <NavigationMenuLink href=\"/pricing\">Pricing</NavigationMenuLink> </NavigationMenuItem> </NavigationMenu> THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "NavigationMenuProps",
@@ -6809,6 +6845,12 @@
             "optional": true,
             "type": "React.ElementType",
             "doc": "Render as a different element, typically `\"a\"` (or a router's `Link`) for real navigation — `AllHTMLAttributes` (not the plain `HTMLAttributes` most components here use) is deliberate so `href`/`target`/etc. type-check when doing so."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <SidebarItem render={<Link href=\"/shipments\" />}>…</SidebarItem> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (SidebarItem cannot know that `Link` needs an `href`)."
           }
         ]
       },
@@ -6825,12 +6867,19 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Navigation",
     "sourceFile": "silicaui-react/src/steps.tsx",
-    "description": "Silica Steps — a horizontal progress tracker. Children are `<Step>`s; color the ones up to (and including) the current step to show completion. <Steps> <Step color=\"primary\" data-content=\"✓\">Cart</Step> <Step color=\"primary\">Shipping</Step> <Step>Payment</Step> <Step>Done</Step> </Steps>",
+    "description": "Silica Steps — a progress tracker. Children are `<Step>`s; color the ones up to (and including) the current step to show completion. <Steps> <Step color=\"primary\" data-content=\"✓\">Cart</Step> <Step color=\"primary\">Shipping</Step> <Step>Payment</Step> <Step>Done</Step> </Steps> <Steps vertical>…</Steps> // down a narrow column instead of across",
     "props": [
       {
         "name": "StepsProps",
         "extends": "extends React.OlHTMLAttributes<HTMLOListElement>",
-        "members": []
+        "members": [
+          {
+            "name": "vertical",
+            "optional": true,
+            "type": "boolean",
+            "doc": "Stack the steps down the page instead of across it. Spelled the same as `Stats`, which has had this since it shipped. Added after a daisyUI migration needed an order's progress down the side of a card and found `steps-vertical` had no equivalent here at all (docs/personas/issues/100)."
+          }
+        ]
       },
       {
         "name": "StepProps",
@@ -7323,7 +7372,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Feedback & overlay",
     "sourceFile": "silicaui-react/src/lightbox.tsx",
-    "description": "Silica Lightbox — a full-viewport image viewer for a gallery. Not a trigger itself: render your own thumbnails and drive `index` (controlled or uncontrolled) from their click handlers. Left/Right arrow keys navigate; Escape and the backdrop close it (Base UI Dialog underneath). const [index, setIndex] = useState<number | null>(null); <div className=\"grid grid-cols-4 gap-2\"> {photos.map((p, i) => ( <button key={p.src} onClick={() => setIndex(i)}><img src={p.src} /></button> ))} </div> <Lightbox items={photos} index={index} onIndexChange={setIndex} />",
+    "description": "Silica Lightbox — a full-viewport image viewer for a gallery. Not a trigger itself: render your own thumbnails and drive `index` (controlled or uncontrolled) from their click handlers. Left/Right arrow keys navigate; Escape and the backdrop close it (Base UI Dialog underneath). const [index, setIndex] = useState<number | null>(null); <div className=\"grid grid-cols-4 gap-2\"> {photos.map((p, i) => ( <button key={p.src} onClick={() => setIndex(i)}><img src={p.src} /></button> ))} </div> <Lightbox items={photos} index={index} onIndexChange={setIndex} /> THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "LightboxProps",
@@ -7715,7 +7764,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Feedback & overlay",
     "sourceFile": "silicaui-react/src/toast.tsx",
-    "description": "Silica ToastProvider — wrap your app once, then call `useToast().add(...)`. <ToastProvider> <App /> </ToastProvider> const toast = useToast(); toast.add({ title: \"Saved\", description: \"Your changes are saved.\", type: \"success\" }); For a sticky toast with a clickable action, pass `actionProps` (forwarded to Base UI's `Toast.Action`, which renders a `<button>`) — commonly paired with `timeout: 0` so it doesn't auto-dismiss before the user can act: toast.add({ title: \"New version available\", actionProps: { children: \"Refresh\", onClick: () => location.reload() }, timeout: 0, }); For a glass toast, pass a `className` through `data` (there's no direct `className` on the imperative `add()` call): toast.add({ title: \"Saved\", data: { className: \"glass\" } });",
+    "description": "Silica ToastProvider — wrap your app once, then call `useToast().add(...)`. <ToastProvider> <App /> </ToastProvider> const toast = useToast(); toast.add({ title: \"Saved\", description: \"Your changes are saved.\", type: \"success\" }); For a sticky toast with a clickable action, pass `actionProps` (forwarded to Base UI's `Toast.Action`, which renders a `<button>`) — commonly paired with `timeout: 0` so it doesn't auto-dismiss before the user can act: toast.add({ title: \"New version available\", actionProps: { children: \"Refresh\", onClick: () => location.reload() }, timeout: 0, }); For a glass toast, pass a `className` through `data` (there's no direct `className` on the imperative `add()` call): toast.add({ title: \"Saved\", data: { className: \"glass\" } }); THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "ToastProviderProps",
@@ -8162,7 +8211,7 @@
     "package": "@wizeworks/silicaui-react",
     "category": "Advanced / composite",
     "sourceFile": "silicaui-react/src/command-palette.tsx",
-    "description": "CommandPalette — a ⌘K launcher. Feed it a flat `items` list (optionally grouped); it filters as you type, moves the highlight with ↑/↓, runs the active command on Enter, and closes on Escape or backdrop click. Opens on ⌘K/Ctrl+K by default, or drive it with `open`/`onOpenChange`.",
+    "description": "CommandPalette — a ⌘K launcher. Feed it a flat `items` list (optionally grouped); it filters as you type, moves the highlight with ↑/↓, runs the active command on Enter, and closes on Escape or backdrop click. Opens on ⌘K/Ctrl+K by default, or drive it with `open`/`onOpenChange`. THEME ISLANDS. This surface portals to `document.body`, so its nearest `[data-theme]` is the one on `<html>`, not the island it was opened from — a dialog opened inside a dark panel comes up in the page's theme, silently, and nothing errors. Wrap the region in `<PortalContainerProvider container={islandEl}>`, or pass `popupProps={{ \"data-theme\": \"…\" }}` on the components that take one.",
     "props": [
       {
         "name": "CommandPaletteProps",
@@ -8806,7 +8855,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `p`."
+            "doc": "@deprecated Use `render`. Element to render. Default `p`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <Text render={{<Link href=\"/shipments\" />}}>Shipments</Text> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (Text cannot know that `Link` needs an `href`)."
           }
         ]
       },
@@ -8822,7 +8877,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `footer`."
+            "doc": "@deprecated Use `render`. Element to render. Default `footer`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <BlockquoteCite render={<cite />}>…</BlockquoteCite> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (BlockquoteCite cannot know that `Link` needs an `href`)."
           }
         ]
       }
@@ -8904,7 +8965,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `p`."
+            "doc": "@deprecated Use `render`. Element to render. Default `p`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <Text render={{<Link href=\"/shipments\" />}}>Shipments</Text> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (Text cannot know that `Link` needs an `href`)."
           }
         ]
       },
@@ -8920,7 +8987,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `footer`."
+            "doc": "@deprecated Use `render`. Element to render. Default `footer`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <BlockquoteCite render={<cite />}>…</BlockquoteCite> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (BlockquoteCite cannot know that `Link` needs an `href`)."
           }
         ]
       }
@@ -9002,7 +9075,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `p`."
+            "doc": "@deprecated Use `render`. Element to render. Default `p`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <Text render={{<Link href=\"/shipments\" />}}>Shipments</Text> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (Text cannot know that `Link` needs an `href`)."
           }
         ]
       },
@@ -9018,7 +9097,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `footer`."
+            "doc": "@deprecated Use `render`. Element to render. Default `footer`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <BlockquoteCite render={<cite />}>…</BlockquoteCite> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (BlockquoteCite cannot know that `Link` needs an `href`)."
           }
         ]
       }
@@ -9122,7 +9207,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `p`."
+            "doc": "@deprecated Use `render`. Element to render. Default `p`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <Text render={{<Link href=\"/shipments\" />}}>Shipments</Text> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (Text cannot know that `Link` needs an `href`)."
           }
         ]
       },
@@ -9138,7 +9229,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Element to render. Default `footer`."
+            "doc": "@deprecated Use `render`. Element to render. Default `footer`."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <BlockquoteCite render={<cite />}>…</BlockquoteCite> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (BlockquoteCite cannot know that `Link` needs an `href`)."
           }
         ]
       }
@@ -9172,7 +9269,13 @@
             "name": "as",
             "optional": true,
             "type": "React.ElementType",
-            "doc": "Render as a different element — typically `\"a\"` when the mark links home."
+            "doc": "@deprecated Use `render`. Typically `\"a\"` when the mark links home."
+          },
+          {
+            "name": "render",
+            "optional": true,
+            "type": "React.ReactElement",
+            "doc": "Render as a different element, composing your props with this component's — the same `render` Button/Badge/Card take, and Base UI's own composition model: <Wordmark render={<Link href=\"/\" />}>…</Wordmark> Preferred over `as`, because the element carries its OWN props and they are type-checked against it (Wordmark cannot know that `Link` needs an `href`)."
           },
           {
             "name": "src",
@@ -9319,7 +9422,7 @@
             "name": "sortable",
             "optional": true,
             "type": "boolean",
-            "doc": "Column sorting (click header to cycle asc → desc → none). Default `true`."
+            "doc": "Column sorting. Default `true`. Clicking a header cycles through both directions and back to unsorted, and **which direction comes first depends on the column's type**: a numeric column starts DESCENDING and a text column starts ASCENDING. That is not an accident of the engine, it is what a person means by the click — pressing \"Delay\" on a fleet list means *show me the worst*, and pressing \"Vessel\" means *start at A*. The header carries `aria-sort`, so the current direction is announced and is the honest thing to assert against. (This comment used to say the cycle was always asc first, which the component has never done — found by P07, docs/personas/issues/088.)"
           },
           {
             "name": "selectable",
@@ -9392,6 +9495,12 @@
             "optional": true,
             "type": "(rows: TData[]) => void",
             "doc": "Fired with the selected originals whenever selection changes."
+          },
+          {
+            "name": "getRowId",
+            "optional": true,
+            "type": "(row: TData, index: number) => string",
+            "doc": "What makes a row THAT row, across a data change. Selection is remembered by this key. Leave it out and rows with an `id` field are keyed by it; rows without one fall back to their position in the array, which is all a table can do when nothing identifies a row. Position is not identity on a screen that refreshes itself. A fleet feed that drops a berthed vessel shifts every row after it, and a selection held by position then points at a different ship without saying so."
           },
           {
             "name": "className",
@@ -9472,7 +9581,7 @@
     "package": "@wizeworks/silicaui-dnd",
     "category": "wrapper",
     "sourceFile": "silicaui-dnd/src/sortable-list.tsx",
-    "description": "SortableList — a drag-to-reorder list over dnd-kit. Give it `items`, a `getItemId`, and a `renderItem`; it fires `onReorder` with the new order after a pointer drag or keyboard move (Space to pick up, arrows to move, Space to drop). Set `handle` to drag only from a grip you wire with `ctx.handleProps`.",
+    "description": "SortableList — a drag-to-reorder list over dnd-kit. Give it `items`, a `getItemId`, and a `renderItem`; it fires `onReorder` with the new order after a pointer drag or keyboard move (Space to pick up, arrows to move, Space to drop, Escape to cancel). Set `handle` to drag only from a grip you wire with `ctx.handleProps`. **The list and its rows come styled.** The `<ul>` carries `sortable-list` and each `<li>` carries `sortable-item` — a flex row with a border, a surface, padding and a radius, plus a lifted look while it is being dragged. So `renderItem` returns the row's CONTENTS, not a second box. Add to the row with `itemClassName`. **Name your items.** Pass `getItemLabel` so the live announcements say what moved. Without it the announcements fall back to the ids from `getItemId`.",
     "props": [
       {
         "name": "SortableHandleProps",
@@ -9494,6 +9603,12 @@
             "doc": "Stable id for each item (drag identity + React key)."
           },
           {
+            "name": "getItemLabel",
+            "optional": true,
+            "type": "(item: T) => string",
+            "doc": "What to CALL an item out loud. Everything a person who is not using a mouse learns about a reorder comes from here: \"Kaihō Maru picked up, position 3 of 9.\" Without it the only name an item has is its id, and `getItemId` returns keys, not names — so the announcements degrade to \"v-5 moved over v-8\", which is unusable. Provide it whenever the ids are not already human words."
+          },
+          {
             "name": "onReorder",
             "optional": false,
             "type": "(items: T[]) => void",
@@ -9503,7 +9618,7 @@
             "name": "renderItem",
             "optional": false,
             "type": "(item: T, ctx: SortableItemContext) => React.ReactNode",
-            "doc": "Render a row; `ctx.handleProps` wires the drag handle (or is a no-op)."
+            "doc": "Render a row's CONTENTS. The `<li>` around them is already a styled flex row — border, surface, padding and radius, from the `sortable-item` class — so return the pieces that go inside it (a handle, a label, a badge), not another bordered box. A single returned element is stretched to fill the row."
           },
           {
             "name": "handle",
@@ -9515,7 +9630,13 @@
             "name": "className",
             "optional": true,
             "type": "string",
-            "doc": ""
+            "doc": "Added to the `<ul>`."
+          },
+          {
+            "name": "itemClassName",
+            "optional": true,
+            "type": "string",
+            "doc": "Added to every row `<li>`, alongside the row's own class."
           }
         ]
       }
@@ -9546,7 +9667,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Button — a <button>, or an <a> when it carries an href; label is text sugar.",
-    "sourceFile": "silicaui-html/src/component.ts:633"
+    "sourceFile": "silicaui-html/src/component.ts:666"
   },
   {
     "name": "Image",
@@ -9557,7 +9678,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Image — a self-closing <img>; `ratio` maps to an aspect utility appended to the class, then the whole string is prefixed as normal.",
-    "sourceFile": "silicaui-html/src/component.ts:653"
+    "sourceFile": "silicaui-html/src/component.ts:686"
   },
   {
     "name": "Video",
@@ -9568,7 +9689,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Video — a native <video>; `ratio` maps to an aspect utility like Image. A single `src` renders on the element; `props.sources` (`{src,type}[]`) OR authored children (hand-authored <source>/<track>) render nested instead, so the browser can pick a format. Boolean playback props follow the `=== true` convention every other boolean prop uses (the inspector toggle writes `undefined` when off), so a freshly-dropped Video seeds `controls: true`.",
-    "sourceFile": "silicaui-html/src/component.ts:686"
+    "sourceFile": "silicaui-html/src/component.ts:719"
   },
   {
     "name": "Embed",
@@ -9647,7 +9768,7 @@
         "embedUrlOnly": true
       }
     ],
-    "sourceFile": "silicaui-html/src/component.ts:730"
+    "sourceFile": "silicaui-html/src/component.ts:763"
   },
   {
     "name": "Heading",
@@ -9658,7 +9779,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Heading — <h1>…<h6> from props.level (default 2, clamped).",
-    "sourceFile": "silicaui-html/src/component.ts:777"
+    "sourceFile": "silicaui-html/src/component.ts:810"
   },
   {
     "name": "Icon",
@@ -9669,7 +9790,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Icon — an inline <span> carrying its name for a runtime/icon font to resolve.",
-    "sourceFile": "silicaui-html/src/component.ts:789"
+    "sourceFile": "silicaui-html/src/component.ts:822"
   },
   {
     "name": "Divider",
@@ -9680,7 +9801,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Divider — a void <hr>.",
-    "sourceFile": "silicaui-html/src/component.ts:800"
+    "sourceFile": "silicaui-html/src/component.ts:833"
   },
   {
     "name": "Link",
@@ -9691,7 +9812,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Link — a styled inline <a>. Static output had no way to author one at all, so every link in a projected page had to be a raw element node.",
-    "sourceFile": "silicaui-html/src/component.ts:804"
+    "sourceFile": "silicaui-html/src/component.ts:837"
   },
   {
     "name": "Input",
@@ -9702,7 +9823,7 @@
     "container": false,
     "behaviors": [],
     "doc": "── form controls ───────────────────────────────────────────────────────── Each lowers to a native form element, so the browser's built-in behavior + accessibility come for free and the Phase 2 form contract wires the same tags. Input — a single-line <input>; props.type picks the mode (default 'text').",
-    "sourceFile": "silicaui-html/src/component.ts:823"
+    "sourceFile": "silicaui-html/src/component.ts:856"
   },
   {
     "name": "FileInput",
@@ -9713,7 +9834,7 @@
     "container": false,
     "behaviors": [],
     "doc": "FileInput — an <input type=\"file\">. `type` is fixed, so it isn't reachable through Input's props.type the way the other field modes are.",
-    "sourceFile": "silicaui-html/src/component.ts:835"
+    "sourceFile": "silicaui-html/src/component.ts:868"
   },
   {
     "name": "FloatingLabel",
@@ -9724,7 +9845,7 @@
     "container": true,
     "behaviors": [],
     "doc": "FloatingLabel — <label> wrapping the control, caption LAST (the CSS floats it via the control's :placeholder-shown, which needs the sibling order the React component also produces: control first, caption second).",
-    "sourceFile": "silicaui-html/src/component.ts:848"
+    "sourceFile": "silicaui-html/src/component.ts:881"
   },
   {
     "name": "Textarea",
@@ -9735,7 +9856,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Textarea — a multi-line <textarea>; text/children are its value.",
-    "sourceFile": "silicaui-html/src/component.ts:862"
+    "sourceFile": "silicaui-html/src/component.ts:895"
   },
   {
     "name": "Select",
@@ -9746,7 +9867,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Select — a native <select>; options come from props.options (or child nodes).",
-    "sourceFile": "silicaui-html/src/component.ts:874"
+    "sourceFile": "silicaui-html/src/component.ts:907"
   },
   {
     "name": "Checkbox",
@@ -9757,7 +9878,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Checkbox / Radio / Toggle — native <input>s of the matching type. Toggle shares checkbox semantics; only its class (`toggle`) plus role=\"switch\" makes it a switch.",
-    "sourceFile": "silicaui-html/src/component.ts:891"
+    "sourceFile": "silicaui-html/src/component.ts:924"
   },
   {
     "name": "Radio",
@@ -9767,7 +9888,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:899"
+    "sourceFile": "silicaui-html/src/component.ts:932"
   },
   {
     "name": "Toggle",
@@ -9777,7 +9898,7 @@
     "icon": "toggle",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:907"
+    "sourceFile": "silicaui-html/src/component.ts:940"
   },
   {
     "name": "Text",
@@ -9788,7 +9909,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Simple element atoms.",
-    "sourceFile": "silicaui-html/src/component.ts:916"
+    "sourceFile": "silicaui-html/src/component.ts:949"
   },
   {
     "name": "Badge",
@@ -9799,7 +9920,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Badge — lowers to `<span>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:917"
+    "sourceFile": "silicaui-html/src/component.ts:950"
   },
   {
     "name": "Wordmark",
@@ -9810,7 +9931,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Wordmark — the brand lockup: an optional MARK (logo image or a slotted svg/Icon child) beside the brand name. It was `elementDef(…, \"span\")` — text-only, container:false — while its CSS (`& :is(svg,img)` sizing) and its React wrapper (`<Wordmark as=\"a\"><LogoMark/>Acme</Wordmark>`) both already assumed a mark. The schema is the layer the builder reads, so the builder won and \"put the logo in the wordmark\" was impossible by construction. Two paths, one DOM: nest a child (the power path), or set `src` (the one-control Inspector path). `primary: \"text\"` keeps a bare bind on the NAME — without it, adding `src` would make a bound site name fill the image URL instead.",
-    "sourceFile": "silicaui-html/src/component.ts:928"
+    "sourceFile": "silicaui-html/src/component.ts:961"
   },
   {
     "name": "Card",
@@ -9821,7 +9942,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Card — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:958"
+    "sourceFile": "silicaui-html/src/component.ts:991"
   },
   {
     "name": "SelectableCard",
@@ -9832,7 +9953,7 @@
     "container": true,
     "behaviors": [],
     "doc": "SelectableCard — a card that IS an option tile: a real (visually hidden) radio/checkbox inside a <label>, so the whole card is the click target and the selection posts with the form. Matches the React component's DOM.",
-    "sourceFile": "silicaui-html/src/component.ts:963"
+    "sourceFile": "silicaui-html/src/component.ts:996"
   },
   {
     "name": "Section",
@@ -9843,7 +9964,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Section — lowers to `<section>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:982"
+    "sourceFile": "silicaui-html/src/component.ts:1015"
   },
   {
     "name": "Container",
@@ -9854,7 +9975,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Container — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:983"
+    "sourceFile": "silicaui-html/src/component.ts:1016"
   },
   {
     "name": "Grid",
@@ -9865,7 +9986,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Grid — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:984"
+    "sourceFile": "silicaui-html/src/component.ts:1017"
   },
   {
     "name": "Stack",
@@ -9876,7 +9997,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Stack — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:985"
+    "sourceFile": "silicaui-html/src/component.ts:1018"
   },
   {
     "name": "Loading",
@@ -9887,7 +10008,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Feedback leaves — colorless status surfaces (class carries size/variant).",
-    "sourceFile": "silicaui-html/src/component.ts:987"
+    "sourceFile": "silicaui-html/src/component.ts:1020"
   },
   {
     "name": "Skeleton",
@@ -9898,7 +10019,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Skeleton — lowers to `<div>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:988"
+    "sourceFile": "silicaui-html/src/component.ts:1021"
   },
   {
     "name": "Status",
@@ -9909,7 +10030,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Status — lowers to `<span>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:989"
+    "sourceFile": "silicaui-html/src/component.ts:1022"
   },
   {
     "name": "Kbd",
@@ -9920,7 +10041,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Kbd — lowers to `<kbd>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:990"
+    "sourceFile": "silicaui-html/src/component.ts:1023"
   },
   {
     "name": "Navbar",
@@ -9931,7 +10052,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Navbar / Table — structural containers (children authored in the tree).",
-    "sourceFile": "silicaui-html/src/component.ts:992"
+    "sourceFile": "silicaui-html/src/component.ts:1025"
   },
   {
     "name": "Table",
@@ -9941,8 +10062,8 @@
     "icon": "table",
     "container": true,
     "behaviors": [],
-    "doc": "Table — lowers to `<table>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:993"
+    "doc": "Table lowers to `<table>`, holding its thead/tbody/tfoot children. Its options are classes on the node, as on the CSS path: `table-zebra`, `table-hover`, a size `table-xs` to `table-xl`, and `table-stack`, which turns the rows into blocks while the table's container is narrower than 36rem so a list fits a narrow pane (`table-stack-sm`, `-md`, `-lg`, `-xl`, `-2xl`, `-3xl` switch at 24, 28, 32, 36, 42 or 48rem instead). The container is the Table's parent node, which the plugin turns into a query container by itself; give that parent the `table-scroll` class (a full-width block that also scrolls a wide table sideways). A cell that needs a visible label once stacked carries `attrs: { \"data-label\": \"Total\" }`.",
+    "sourceFile": "silicaui-html/src/component.ts:1036"
   },
   {
     "name": "Field",
@@ -9953,7 +10074,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Field — a form-row container (label + control as children).",
-    "sourceFile": "silicaui-html/src/component.ts:995"
+    "sourceFile": "silicaui-html/src/component.ts:1038"
   },
   {
     "name": "Form",
@@ -9966,7 +10087,7 @@
       "form"
     ],
     "doc": "Form — a <form> that ALWAYS lowers with the `form` behavior marker so a published form is functional (validate + submit) with zero author wiring. `props.action` names the host action a valid submit dispatches to; an explicitly-set behavior/data on the node is respected and never overwritten.",
-    "sourceFile": "silicaui-html/src/component.ts:1001"
+    "sourceFile": "silicaui-html/src/component.ts:1044"
   },
   {
     "name": "Sidebar",
@@ -9979,7 +10100,7 @@
       "sidebar"
     ],
     "doc": "Sidebar — a persistent nav panel (`<aside>`) that collapses in place to an icon rail, unlike Drawer (which overlays and dismisses). Always carries the `sidebar` behavior so a `SidebarTrigger` nested anywhere inside it works with zero authored wiring; `props.defaultCollapsed` seeds the initial state.",
-    "sourceFile": "silicaui-html/src/component.ts:1020"
+    "sourceFile": "silicaui-html/src/component.ts:1063"
   },
   {
     "name": "SidebarTrigger",
@@ -9990,7 +10111,7 @@
     "container": false,
     "behaviors": [],
     "doc": "SidebarTrigger — the sidebar's collapse/expand button. A structural PART (`trigger`), not a behavior root itself — it must be authored somewhere inside the `Sidebar` it controls (e.g. its header).",
-    "sourceFile": "silicaui-html/src/component.ts:1041"
+    "sourceFile": "silicaui-html/src/component.ts:1084"
   },
   {
     "name": "SelectionList",
@@ -10003,7 +10124,7 @@
       "selection-list"
     ],
     "doc": "SelectionList — a selectable listbox (single- or multi-select), items driven by props (not authored children, like Breadcrumb/Steps). Always carries the `selection-list` behavior so it's clickable/keyboard-navigable once published, with zero authored wiring. `props.items`: `{id, label, description?}[]` (or plain strings); `props.multiple`; `props.selected`: array of selected ids.",
-    "sourceFile": "silicaui-html/src/component.ts:1058"
+    "sourceFile": "silicaui-html/src/component.ts:1101"
   },
   {
     "name": "Breadcrumb",
@@ -10014,7 +10135,7 @@
     "container": false,
     "behaviors": [],
     "doc": "── navigation ───────────────────────────────────────────────────────────── Breadcrumb — a <nav class=\"breadcrumb\"> wrapping an <ol>; each item is a link, the last marked aria-current=\"page\". Items come from props.items (strings).",
-    "sourceFile": "silicaui-html/src/component.ts:1117"
+    "sourceFile": "silicaui-html/src/component.ts:1160"
   },
   {
     "name": "Menu",
@@ -10025,7 +10146,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Menu — a vertical <ul class=\"menu\"> of link items (sidebars / popover bodies).",
-    "sourceFile": "silicaui-html/src/component.ts:1134"
+    "sourceFile": "silicaui-html/src/component.ts:1177"
   },
   {
     "name": "Steps",
@@ -10036,7 +10157,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Steps — a <ul class=\"steps\"> tracker; items up to props.current are `-primary` (read as completed). Both from props.",
-    "sourceFile": "silicaui-html/src/component.ts:1148"
+    "sourceFile": "silicaui-html/src/component.ts:1191"
   },
   {
     "name": "Pagination",
@@ -10047,7 +10168,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Pagination — a joined button row (1…props.pages), the first marked active.",
-    "sourceFile": "silicaui-html/src/component.ts:1163"
+    "sourceFile": "silicaui-html/src/component.ts:1206"
   },
   {
     "name": "Alert",
@@ -10058,7 +10179,7 @@
     "container": false,
     "behaviors": [],
     "doc": "── feedback ─────────────────────────────────────────────────────────────── Alert — a role=\"alert\" surface; its children (or text prop) sit in the flex row.",
-    "sourceFile": "silicaui-html/src/component.ts:1184"
+    "sourceFile": "silicaui-html/src/component.ts:1227"
   },
   {
     "name": "Progress",
@@ -10069,7 +10190,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Progress — a track div + a fill div whose LITERAL width utility encodes value.",
-    "sourceFile": "silicaui-html/src/component.ts:1215"
+    "sourceFile": "silicaui-html/src/component.ts:1258"
   },
   {
     "name": "Stat",
@@ -10080,7 +10201,7 @@
     "container": false,
     "behaviors": [],
     "doc": "── data display ─────────────────────────────────────────────────────────── Stat — a .stats container holding one .stat (title / value / desc from props).",
-    "sourceFile": "silicaui-html/src/component.ts:1228"
+    "sourceFile": "silicaui-html/src/component.ts:1271"
   },
   {
     "name": "Avatar",
@@ -10091,7 +10212,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Avatar — a single .avatar div whose inner <img> rounds via inherited radius.",
-    "sourceFile": "silicaui-html/src/component.ts:1243"
+    "sourceFile": "silicaui-html/src/component.ts:1286"
   },
   {
     "name": "Collapse",
@@ -10102,7 +10223,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Collapse — a native <details> disclosure (works with zero JS on publish). Not a container: its body is `props.content` (text). `expand` still honors authored children as the body for direct toHtml use, but the builder edits it as a prop. Root class is author-supplied (see palette.ts) and should be `details`, NOT `collapse` — Tailwind v4's built-in `.collapse` utility (`visibility: collapse`) wins over any component rule of that name and silently hides the whole thing; see the doc comment in @wizeworks/silicaui/src/components/collapse.js for the full story.",
-    "sourceFile": "silicaui-html/src/component.ts:1265"
+    "sourceFile": "silicaui-html/src/component.ts:1308"
   },
   {
     "name": "Timeline",
@@ -10113,7 +10234,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Timeline — a <ul class=\"timeline\"> of events (marker + content per item).",
-    "sourceFile": "silicaui-html/src/component.ts:1281"
+    "sourceFile": "silicaui-html/src/component.ts:1324"
   },
   {
     "name": "Label",
@@ -10124,18 +10245,18 @@
     "container": false,
     "behaviors": [],
     "doc": "── structural/presentational catch-up (2026-07-08 sync pass) ────────────── Plain element atoms — same shape as `elementDef`, one tag each, no behavior. Sub-parts that carry no semantic tag of their own (a styled <div>/<span> — Card's CardBody/CardTitle, Hero's HeroContent, etc.) are deliberately NOT registered here: a host authors them as plain class-carrying children, per the confirmed Card precedent. Only parts with real semantic value (a distinct tag, or \"part\" behavior metadata) get their own atom.",
-    "sourceFile": "silicaui-html/src/component.ts:1303"
+    "sourceFile": "silicaui-html/src/component.ts:1346"
   },
   {
     "name": "AvatarGroup",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "AvatarGroup",
+    "label": "Avatar group",
     "icon": "avatar",
     "container": true,
     "behaviors": [],
     "doc": "AvatarGroup — lowers to `<span>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1304"
+    "sourceFile": "silicaui-html/src/component.ts:1347"
   },
   {
     "name": "Prose",
@@ -10146,7 +10267,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Prose — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1305"
+    "sourceFile": "silicaui-html/src/component.ts:1348"
   },
   {
     "name": "RichText",
@@ -10157,7 +10278,7 @@
     "container": true,
     "behaviors": [],
     "doc": "RichText — a `.prose` container for TRUSTED rich-text / CMS long-form HTML. Authored children render as-is; pair it with an `html` data binding and `resolveTree` fills its inner HTML from the host-sanitized resolved value (see NodeBase.rawHtml). This is the data-bound content-page primitive.",
-    "sourceFile": "silicaui-html/src/component.ts:1311"
+    "sourceFile": "silicaui-html/src/component.ts:1354"
   },
   {
     "name": "Hero",
@@ -10168,7 +10289,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Hero — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1318"
+    "sourceFile": "silicaui-html/src/component.ts:1361"
   },
   {
     "name": "Footer",
@@ -10179,51 +10300,51 @@
     "container": true,
     "behaviors": [],
     "doc": "Footer — lowers to `<footer>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1319"
+    "sourceFile": "silicaui-html/src/component.ts:1362"
   },
   {
     "name": "FooterTitle",
     "package": "@wizeworks/silicaui-html",
     "category": "layout",
-    "label": "FooterTitle",
+    "label": "Footer title",
     "icon": "heading",
     "container": false,
     "behaviors": [],
     "doc": "FooterTitle — lowers to `<h6>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:1320"
+    "sourceFile": "silicaui-html/src/component.ts:1363"
   },
   {
     "name": "MockupWindow",
     "package": "@wizeworks/silicaui-html",
     "category": "media",
-    "label": "MockupWindow",
+    "label": "Mockup window",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "MockupWindow — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1321"
+    "sourceFile": "silicaui-html/src/component.ts:1364"
   },
   {
     "name": "MockupBrowser",
     "package": "@wizeworks/silicaui-html",
     "category": "media",
-    "label": "MockupBrowser",
+    "label": "Mockup browser",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "MockupBrowser — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1322"
+    "sourceFile": "silicaui-html/src/component.ts:1365"
   },
   {
     "name": "MockupCode",
     "package": "@wizeworks/silicaui-html",
     "category": "media",
-    "label": "MockupCode",
+    "label": "Mockup code",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "MockupCode — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1323"
+    "sourceFile": "silicaui-html/src/component.ts:1366"
   },
   {
     "name": "MockupCodeLine",
@@ -10234,18 +10355,18 @@
     "container": true,
     "behaviors": [],
     "doc": "MockupCodeLine — a <pre> row inside MockupCode. The gutter marker is a real `data-prefix` attribute the CSS reads, not text content.",
-    "sourceFile": "silicaui-html/src/component.ts:1327"
+    "sourceFile": "silicaui-html/src/component.ts:1370"
   },
   {
     "name": "MockupPhone",
     "package": "@wizeworks/silicaui-html",
     "category": "media",
-    "label": "MockupPhone",
+    "label": "Mockup phone",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "MockupPhone — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1338"
+    "sourceFile": "silicaui-html/src/component.ts:1381"
   },
   {
     "name": "List",
@@ -10256,7 +10377,7 @@
     "container": true,
     "behaviors": [],
     "doc": "List — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1339"
+    "sourceFile": "silicaui-html/src/component.ts:1382"
   },
   {
     "name": "Dock",
@@ -10267,7 +10388,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Dock — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1340"
+    "sourceFile": "silicaui-html/src/component.ts:1383"
   },
   {
     "name": "Join",
@@ -10278,7 +10399,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Join — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1341"
+    "sourceFile": "silicaui-html/src/component.ts:1384"
   },
   {
     "name": "Indicator",
@@ -10289,7 +10410,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Indicator — lowers to `<span>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1342"
+    "sourceFile": "silicaui-html/src/component.ts:1385"
   },
   {
     "name": "Mask",
@@ -10300,7 +10421,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Mask — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1343"
+    "sourceFile": "silicaui-html/src/component.ts:1386"
   },
   {
     "name": "Fieldset",
@@ -10311,18 +10432,18 @@
     "container": true,
     "behaviors": [],
     "doc": "Fieldset — lowers to `<fieldset>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1344"
+    "sourceFile": "silicaui-html/src/component.ts:1387"
   },
   {
     "name": "FieldsetLegend",
     "package": "@wizeworks/silicaui-html",
     "category": "form",
-    "label": "FieldsetLegend",
+    "label": "Fieldset legend",
     "icon": "label",
     "container": false,
     "behaviors": [],
     "doc": "FieldsetLegend — lowers to `<legend>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:1345"
+    "sourceFile": "silicaui-html/src/component.ts:1388"
   },
   {
     "name": "Blockquote",
@@ -10333,95 +10454,95 @@
     "container": true,
     "behaviors": [],
     "doc": "Blockquote — lowers to `<blockquote>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1346"
+    "sourceFile": "silicaui-html/src/component.ts:1389"
   },
   {
     "name": "BlockquoteCite",
     "package": "@wizeworks/silicaui-html",
     "category": "content",
-    "label": "BlockquoteCite",
+    "label": "Blockquote cite",
     "icon": "text",
     "container": false,
     "behaviors": [],
     "doc": "BlockquoteCite — lowers to `<footer>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:1347"
+    "sourceFile": "silicaui-html/src/component.ts:1390"
   },
   {
     "name": "MetadataList",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "MetadataList",
+    "label": "Metadata list",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "MetadataList — lowers to `<dl>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1348"
+    "sourceFile": "silicaui-html/src/component.ts:1391"
   },
   {
     "name": "AppShell",
     "package": "@wizeworks/silicaui-html",
     "category": "layout",
-    "label": "AppShell",
+    "label": "App shell",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "AppShell — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1349"
+    "sourceFile": "silicaui-html/src/component.ts:1392"
   },
   {
     "name": "AppShellSidebar",
     "package": "@wizeworks/silicaui-html",
     "category": "layout",
-    "label": "AppShellSidebar",
+    "label": "App shell sidebar",
     "icon": "sidebar",
     "container": true,
     "behaviors": [],
     "doc": "AppShellSidebar — lowers to `<aside>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1350"
+    "sourceFile": "silicaui-html/src/component.ts:1393"
   },
   {
     "name": "AppShellHeader",
     "package": "@wizeworks/silicaui-html",
     "category": "layout",
-    "label": "AppShellHeader",
+    "label": "App shell header",
     "icon": "header",
     "container": true,
     "behaviors": [],
     "doc": "AppShellHeader — lowers to `<header>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1351"
+    "sourceFile": "silicaui-html/src/component.ts:1394"
   },
   {
     "name": "AppShellMain",
     "package": "@wizeworks/silicaui-html",
     "category": "layout",
-    "label": "AppShellMain",
+    "label": "App shell main",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "AppShellMain — lowers to `<main>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1352"
+    "sourceFile": "silicaui-html/src/component.ts:1395"
   },
   {
     "name": "AppShellFooter",
     "package": "@wizeworks/silicaui-html",
     "category": "layout",
-    "label": "AppShellFooter",
+    "label": "App shell footer",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "AppShellFooter — lowers to `<footer>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1353"
+    "sourceFile": "silicaui-html/src/component.ts:1396"
   },
   {
     "name": "InputGroup",
     "package": "@wizeworks/silicaui-html",
     "category": "form",
-    "label": "InputGroup",
+    "label": "Input group",
     "icon": "input",
     "container": true,
     "behaviors": [],
     "doc": "InputGroup — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1354"
+    "sourceFile": "silicaui-html/src/component.ts:1397"
   },
   {
     "name": "Diff",
@@ -10432,7 +10553,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Diff — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1355"
+    "sourceFile": "silicaui-html/src/component.ts:1398"
   },
   {
     "name": "Toolbar",
@@ -10443,18 +10564,18 @@
     "container": true,
     "behaviors": [],
     "doc": "Toolbar — size/variant/dividers are props on the source node, forwarded as data-attrs the CSS reads (mirrors DrawerContent's `data-side` below).",
-    "sourceFile": "silicaui-html/src/component.ts:1359"
+    "sourceFile": "silicaui-html/src/component.ts:1402"
   },
   {
     "name": "ToolbarCenter",
     "package": "@wizeworks/silicaui-html",
     "category": "nav",
-    "label": "ToolbarCenter",
+    "label": "Toolbar center",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ToolbarCenter — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1375"
+    "sourceFile": "silicaui-html/src/component.ts:1418"
   },
   {
     "name": "DockItem",
@@ -10465,7 +10586,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Button-shaped structural atoms — a real <button>/<a>, so registering them (vs. plain divs) buys the host correct semantics + tab order for free.",
-    "sourceFile": "silicaui-html/src/component.ts:1380"
+    "sourceFile": "silicaui-html/src/component.ts:1423"
   },
   {
     "name": "InputGroupButton",
@@ -10475,7 +10596,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1388"
+    "sourceFile": "silicaui-html/src/component.ts:1431"
   },
   {
     "name": "ToolbarButton",
@@ -10485,7 +10606,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1396"
+    "sourceFile": "silicaui-html/src/component.ts:1439"
   },
   {
     "name": "ToolbarLink",
@@ -10495,7 +10616,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1404"
+    "sourceFile": "silicaui-html/src/component.ts:1447"
   },
   {
     "name": "ToolbarSeparator",
@@ -10505,7 +10626,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1412"
+    "sourceFile": "silicaui-html/src/component.ts:1455"
   },
   {
     "name": "ClickableCard",
@@ -10516,7 +10637,7 @@
     "container": true,
     "behaviors": [],
     "doc": "ClickableCard — a Card that's a whole clickable surface; a <button>, or an <a> when it carries an href (mirrors Button's own href-swap rule).",
-    "sourceFile": "silicaui-html/src/component.ts:1421"
+    "sourceFile": "silicaui-html/src/component.ts:1464"
   },
   {
     "name": "SearchInput",
@@ -10527,7 +10648,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Leaf form inputs — native controls only; the show/hide + clear-button chrome the React versions add needs real JS, so those are dropped here rather than shipping a dead button (see the sync-gap memory).",
-    "sourceFile": "silicaui-html/src/component.ts:1437"
+    "sourceFile": "silicaui-html/src/component.ts:1480"
   },
   {
     "name": "PasswordInput",
@@ -10537,7 +10658,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1444"
+    "sourceFile": "silicaui-html/src/component.ts:1487"
   },
   {
     "name": "CheckboxGroup",
@@ -10548,7 +10669,7 @@
     "container": true,
     "behaviors": [],
     "doc": "CheckboxGroup / CheckboxOption — a native fieldset-free group of checkboxes; CheckboxOption's label text is its children, matching the React shape.",
-    "sourceFile": "silicaui-html/src/component.ts:1454"
+    "sourceFile": "silicaui-html/src/component.ts:1497"
   },
   {
     "name": "CheckboxOption",
@@ -10558,7 +10679,7 @@
     "icon": "checkbox",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1462"
+    "sourceFile": "silicaui-html/src/component.ts:1505"
   },
   {
     "name": "Swap",
@@ -10569,7 +10690,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Swap — a hidden checkbox driving a pure-CSS cross-fade between two children (`.swap-on` / `.swap-off`, authored by the host as the node's children).",
-    "sourceFile": "silicaui-html/src/component.ts:1474"
+    "sourceFile": "silicaui-html/src/component.ts:1517"
   },
   {
     "name": "Display",
@@ -10580,7 +10701,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Display — an oversized hero heading; always `.display`-styled, semantic level from props (mirrors Heading's own level handling).",
-    "sourceFile": "silicaui-html/src/component.ts:1488"
+    "sourceFile": "silicaui-html/src/component.ts:1531"
   },
   {
     "name": "Timestamp",
@@ -10591,7 +10712,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Timestamp — dependency-free `Intl`-formatted date text. Computed once at render time (no live \"3m ago\" ticking without a JS runtime); `props.value` is an ISO date string, `props.format` picks relative vs. absolute.",
-    "sourceFile": "silicaui-html/src/component.ts:1503"
+    "sourceFile": "silicaui-html/src/component.ts:1546"
   },
   {
     "name": "EmptyState",
@@ -10602,7 +10723,7 @@
     "container": false,
     "behaviors": [],
     "doc": "EmptyState — the centered \"nothing here yet\" placeholder; icon/title/ description/actions are DATA slots (mirrors Stat's prop-driven rows).",
-    "sourceFile": "silicaui-html/src/component.ts:1537"
+    "sourceFile": "silicaui-html/src/component.ts:1580"
   },
   {
     "name": "RadioGroup",
@@ -10613,7 +10734,7 @@
     "container": true,
     "behaviors": [],
     "doc": "RadioGroup / RadioOption — same shape as CheckboxGroup/CheckboxOption, one native radio per option (shared `name` gives arrow-key nav for free).",
-    "sourceFile": "silicaui-html/src/component.ts:1556"
+    "sourceFile": "silicaui-html/src/component.ts:1599"
   },
   {
     "name": "RadioOption",
@@ -10623,7 +10744,7 @@
     "icon": "radio",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1564"
+    "sourceFile": "silicaui-html/src/component.ts:1607"
   },
   {
     "name": "Stats",
@@ -10634,7 +10755,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Stats — a flex row grouping multiple Stat blocks (mirrors AvatarGroup).",
-    "sourceFile": "silicaui-html/src/component.ts:1572"
+    "sourceFile": "silicaui-html/src/component.ts:1615"
   },
   {
     "name": "Meter",
@@ -10645,7 +10766,7 @@
     "container": false,
     "behaviors": [],
     "doc": "Meter — a static measurement (not task advancement, unlike Progress); same bucketed-literal-width technique so the fill needs no inline style.",
-    "sourceFile": "silicaui-html/src/component.ts:1577"
+    "sourceFile": "silicaui-html/src/component.ts:1620"
   },
   {
     "name": "RadialProgress",
@@ -10656,7 +10777,7 @@
     "container": false,
     "behaviors": [],
     "doc": "RadialProgress — a circular ring; `--value` can't be an inline style (no inline style, ever), so the value snaps to the nearest of 21 literal `[--value:N]` utility buckets, same principle as Progress's width buckets.",
-    "sourceFile": "silicaui-html/src/component.ts:1591"
+    "sourceFile": "silicaui-html/src/component.ts:1634"
   },
   {
     "name": "Accordion",
@@ -10669,18 +10790,18 @@
       "disclosure"
     ],
     "doc": "Accordion — `disclosure` with `params.single`; AccordionItem is a plain wrapper div (no part), Trigger/Panel carry the trigger/panel roles.",
-    "sourceFile": "silicaui-html/src/component.ts:1624"
+    "sourceFile": "silicaui-html/src/component.ts:1667"
   },
   {
     "name": "AccordionItem",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "AccordionItem",
+    "label": "Accordion item",
     "icon": "collapse",
     "container": true,
     "behaviors": [],
     "doc": "AccordionItem — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1638"
+    "sourceFile": "silicaui-html/src/component.ts:1681"
   },
   {
     "name": "AccordionTrigger",
@@ -10690,7 +10811,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1640"
+    "sourceFile": "silicaui-html/src/component.ts:1683"
   },
   {
     "name": "AccordionPanel",
@@ -10700,7 +10821,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1652"
+    "sourceFile": "silicaui-html/src/component.ts:1695"
   },
   {
     "name": "Collapsible",
@@ -10713,7 +10834,7 @@
       "disclosure"
     ],
     "doc": "Collapsible — a single `disclosure` trigger/panel pair (not single-open — there's only one pair under this root).",
-    "sourceFile": "silicaui-html/src/component.ts:1668"
+    "sourceFile": "silicaui-html/src/component.ts:1711"
   },
   {
     "name": "CollapsibleTrigger",
@@ -10723,7 +10844,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1680"
+    "sourceFile": "silicaui-html/src/component.ts:1723"
   },
   {
     "name": "CollapsiblePanel",
@@ -10733,7 +10854,7 @@
     "icon": "collapse",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1692"
+    "sourceFile": "silicaui-html/src/component.ts:1735"
   },
   {
     "name": "ColorPicker",
@@ -10746,7 +10867,7 @@
       "color-picker"
     ],
     "doc": "ColorPicker — the real OKLCH editor, not `<input type=\"color\">`. The native input was the obvious shortcut and is a DIFFERENT control (an sRGB swatch dialog, not an L/C/H editor); shipping it under this name would misdescribe what a consumer gets. Structure only — no `style` attributes, since static output must stay CSP-clean (verify-csp). The handler paints the ramps.",
-    "sourceFile": "silicaui-html/src/component.ts:1711"
+    "sourceFile": "silicaui-html/src/component.ts:1754"
   },
   {
     "name": "TagInput",
@@ -10759,7 +10880,7 @@
       "tag-input"
     ],
     "doc": "TagInput — chips + a text field. The `template` part is what lets the handler create new chips without hardcoding class names in the runtime, which would break under a SilicaProvider prefix.",
-    "sourceFile": "silicaui-html/src/component.ts:1797"
+    "sourceFile": "silicaui-html/src/component.ts:1840"
   },
   {
     "name": "Countdown",
@@ -10772,7 +10893,7 @@
       "countdown"
     ],
     "doc": "Countdown — a live clock. Renders the CORRECT values for its build moment rather than zeros, so a page that never hydrates shows a sensible (if frozen) countdown instead of empty boxes; the handler then takes over.",
-    "sourceFile": "silicaui-html/src/component.ts:1870"
+    "sourceFile": "silicaui-html/src/component.ts:1913"
   },
   {
     "name": "Filter",
@@ -10785,7 +10906,7 @@
       "toggle-group"
     ],
     "doc": "Filter — a single-select chip row with a reset. This is the EXISTING `toggle-group` behavior, not a new one: same single-select press semantics, same roving focus, same aria-pressed buttons. The only delta was the reset, which is now an optional `reset` part on that handler. Reusing kept the BehaviorType vocabulary closed, which is deliberate.",
-    "sourceFile": "silicaui-html/src/component.ts:1923"
+    "sourceFile": "silicaui-html/src/component.ts:1966"
   },
   {
     "name": "FilterItem",
@@ -10795,84 +10916,84 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:1945"
+    "sourceFile": "silicaui-html/src/component.ts:1988"
   },
   {
     "name": "ChatImage",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatImage",
+    "label": "Chat image",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "── chat ────────────────────────────────────────────────────────────────── The whole family lands together on purpose. Half a family is worse than none: a consumer who finds `Chat` but no `ChatComposer` hand-rolls the missing half in markup that then drifts from the React layer, which is the exact failure this registry exists to prevent.\n\nThe primitives (image/header/footer/bubble/layout) take their class from the authored node like `Card` does; the composites below build inner structure the author never writes, so those classes ARE emitted here.",
-    "sourceFile": "silicaui-html/src/component.ts:1977"
+    "sourceFile": "silicaui-html/src/component.ts:2020"
   },
   {
     "name": "ChatHeader",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatHeader",
+    "label": "Chat header",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ChatHeader — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1978"
+    "sourceFile": "silicaui-html/src/component.ts:2021"
   },
   {
     "name": "ChatFooter",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatFooter",
+    "label": "Chat footer",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ChatFooter — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1979"
+    "sourceFile": "silicaui-html/src/component.ts:2022"
   },
   {
     "name": "ChatBubble",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatBubble",
+    "label": "Chat bubble",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ChatBubble — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1980"
+    "sourceFile": "silicaui-html/src/component.ts:2023"
   },
   {
     "name": "ChatLayout",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatLayout",
+    "label": "Chat layout",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ChatLayout — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1981"
+    "sourceFile": "silicaui-html/src/component.ts:2024"
   },
   {
     "name": "ChatLayoutMessages",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatLayoutMessages",
+    "label": "Chat layout messages",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ChatLayoutMessages — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1982"
+    "sourceFile": "silicaui-html/src/component.ts:2025"
   },
   {
     "name": "ChatMessageMetadata",
     "package": "@wizeworks/silicaui-html",
     "category": "data",
-    "label": "ChatMessageMetadata",
+    "label": "Chat message metadata",
     "icon": "box",
     "container": true,
     "behaviors": [],
     "doc": "ChatMessageMetadata — lowers to `<div>`, holding its children.",
-    "sourceFile": "silicaui-html/src/component.ts:1983"
+    "sourceFile": "silicaui-html/src/component.ts:2026"
   },
   {
     "name": "Chat",
@@ -10883,7 +11004,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Chat — one message row. `side: \"end\"` flips it to the outgoing side.",
-    "sourceFile": "silicaui-html/src/component.ts:1986"
+    "sourceFile": "silicaui-html/src/component.ts:2029"
   },
   {
     "name": "ChatSystemMessage",
@@ -10894,7 +11015,7 @@
     "container": true,
     "behaviors": [],
     "doc": "A centered notice (\"Today\", \"Ada joined\") — attributed to neither side.",
-    "sourceFile": "silicaui-html/src/component.ts:2001"
+    "sourceFile": "silicaui-html/src/component.ts:2044"
   },
   {
     "name": "ChatMessage",
@@ -10905,7 +11026,7 @@
     "container": true,
     "behaviors": [],
     "doc": "ChatMessage — the convenience composite the React layer also exposes, lowering to the same primitives. `avatar` is a STRING here (initials); a rich avatar node is authored by composing Chat/ChatImage/ChatBubble directly, exactly as in React.",
-    "sourceFile": "silicaui-html/src/component.ts:2018"
+    "sourceFile": "silicaui-html/src/component.ts:2061"
   },
   {
     "name": "ChatTypingIndicator",
@@ -10916,7 +11037,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Three animated dots inside a real bubble, so it occupies the slot the next message will land in rather than reading as a stray line of muted text.",
-    "sourceFile": "silicaui-html/src/component.ts:2051"
+    "sourceFile": "silicaui-html/src/component.ts:2094"
   },
   {
     "name": "ChatToolCalls",
@@ -10929,7 +11050,7 @@
       "disclosure"
     ],
     "doc": "ChatToolCalls — reuses the existing `disclosure` behavior and the Collapsible part classes the CSS already targets, rather than inventing a new BehaviorType for what is structurally a collapsible.",
-    "sourceFile": "silicaui-html/src/component.ts:2077"
+    "sourceFile": "silicaui-html/src/component.ts:2120"
   },
   {
     "name": "ChatComposer",
@@ -10942,7 +11063,7 @@
       "form"
     ],
     "doc": "ChatComposer — a real <form> so a static page can actually send. React adds autoresize and Enter-to-send on top; those are progressive enhancements, and their absence degrades to a normal textarea + submit rather than to something broken.",
-    "sourceFile": "silicaui-html/src/component.ts:2104"
+    "sourceFile": "silicaui-html/src/component.ts:2147"
   },
   {
     "name": "Carousel",
@@ -10955,7 +11076,7 @@
       "carousel"
     ],
     "doc": "Carousel — `carousel`; unlike Accordion/Tabs/Menu, Track/Prev/Next/Dot aren't part of the public React API (Carousel/CarouselItem only), so the macro builds that inner structure itself from `node.children`, matching what the React component does internally.",
-    "sourceFile": "silicaui-html/src/component.ts:2139"
+    "sourceFile": "silicaui-html/src/component.ts:2182"
   },
   {
     "name": "CarouselItem",
@@ -10965,7 +11086,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2173"
+    "sourceFile": "silicaui-html/src/component.ts:2216"
   },
   {
     "name": "Marquee",
@@ -10978,7 +11099,7 @@
       "marquee"
     ],
     "doc": "Marquee — `marquee`. Direction/speed/fade are CLASSES, not props: they're pure presentation with no structural or runtime counterpart, so the class is the API exactly as it is for Button. `repeat` earns a prop because it changes the STRUCTURE (how many copies get rendered) and the copy count has to agree with `--marquee-copies` or the loop distance is wrong — so the macro owns both halves. `pauseOnHover` earns one because it has a runtime counterpart to keep in step (the behavior param below).",
-    "sourceFile": "silicaui-html/src/component.ts:2193"
+    "sourceFile": "silicaui-html/src/component.ts:2236"
   },
   {
     "name": "DropdownMenu",
@@ -10991,7 +11112,7 @@
       "menu"
     ],
     "doc": "DropdownMenu — `menu`; Trigger/Content/Item carry the trigger/panel/item roles. Content starts hidden (menu.ts reads its own `hidden` attribute to determine open state). Group/Label/Separator are plain elements — author them directly inside Content, same rule as every other sub-part above.",
-    "sourceFile": "silicaui-html/src/component.ts:2234"
+    "sourceFile": "silicaui-html/src/component.ts:2277"
   },
   {
     "name": "DropdownMenuTrigger",
@@ -11001,7 +11122,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2246"
+    "sourceFile": "silicaui-html/src/component.ts:2289"
   },
   {
     "name": "DropdownMenuContent",
@@ -11011,7 +11132,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2258"
+    "sourceFile": "silicaui-html/src/component.ts:2301"
   },
   {
     "name": "DropdownMenuItem",
@@ -11021,7 +11142,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2272"
+    "sourceFile": "silicaui-html/src/component.ts:2315"
   },
   {
     "name": "Tabs",
@@ -11034,7 +11155,7 @@
       "tabs"
     ],
     "doc": "Tabs — `tabs`; Tab/Panel pair by position. TabsList is a plain wrapper (tabs.ts scopes `ownParts` to the whole root, not a specific list part).",
-    "sourceFile": "silicaui-html/src/component.ts:2287"
+    "sourceFile": "silicaui-html/src/component.ts:2330"
   },
   {
     "name": "TabsList",
@@ -11045,7 +11166,7 @@
     "container": true,
     "behaviors": [],
     "doc": "TabsList carries the tablist role its role=tab children require; the tabs behavior fills in aria-selected/tabindex at hydrate. Panels stay visible pre-hydration on purpose (progressive enhancement — no-JS readers get all content), the runtime hides the inactive ones.",
-    "sourceFile": "silicaui-html/src/component.ts:2303"
+    "sourceFile": "silicaui-html/src/component.ts:2346"
   },
   {
     "name": "TabsTab",
@@ -11055,7 +11176,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2336"
+    "sourceFile": "silicaui-html/src/component.ts:2379"
   },
   {
     "name": "TabsPanel",
@@ -11065,7 +11186,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2348"
+    "sourceFile": "silicaui-html/src/component.ts:2391"
   },
   {
     "name": "Outline",
@@ -11078,7 +11199,7 @@
       "toc"
     ],
     "doc": "Outline — `toc`; unlike the React version (which derives its list from scanning heading elements at runtime), the vanilla macro is prop-driven like Breadcrumb/Steps/Timeline: `props.items`: `{id, label}[]` becomes the anchor links the `toc` behavior tracks via IntersectionObserver.",
-    "sourceFile": "silicaui-html/src/component.ts:2365"
+    "sourceFile": "silicaui-html/src/component.ts:2408"
   },
   {
     "name": "Dialog",
@@ -11091,7 +11212,7 @@
       "modal"
     ],
     "doc": "── interactive: new primitives (2026-07-08 bucket-2b sync pass) ────────── `modal` — Dialog/Drawer/AlertDialog/Lightbox/CommandPalette all share one Root(behavior) > Trigger(part=trigger) + Backdrop(part=backdrop) + Content(part=panel) + Close(part=close) shape; Lightbox layers `slide`/ `prev`/`next`/`title`(counter) parts and CommandPalette layers `search`/ `item` parts on the SAME behavior type rather than getting their own — see `modal.ts`. Header/Footer/Group/Label sub-parts are NOT registered (plain docking-bar divs — same sub-part rule as Card's CardBody).",
-    "sourceFile": "silicaui-html/src/component.ts:2398"
+    "sourceFile": "silicaui-html/src/component.ts:2441"
   },
   {
     "name": "DialogTrigger",
@@ -11101,7 +11222,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2410"
+    "sourceFile": "silicaui-html/src/component.ts:2453"
   },
   {
     "name": "DialogBackdrop",
@@ -11111,7 +11232,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2422"
+    "sourceFile": "silicaui-html/src/component.ts:2465"
   },
   {
     "name": "DialogContent",
@@ -11121,7 +11242,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2433"
+    "sourceFile": "silicaui-html/src/component.ts:2476"
   },
   {
     "name": "DialogClose",
@@ -11131,29 +11252,29 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2448"
+    "sourceFile": "silicaui-html/src/component.ts:2491"
   },
   {
     "name": "DialogTitle",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "DialogTitle",
+    "label": "Dialog title",
     "icon": "heading",
     "container": false,
     "behaviors": [],
     "doc": "DialogTitle — lowers to `<h2>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2459"
+    "sourceFile": "silicaui-html/src/component.ts:2502"
   },
   {
     "name": "DialogDescription",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "DialogDescription",
+    "label": "Dialog description",
     "icon": "text",
     "container": false,
     "behaviors": [],
     "doc": "DialogDescription — lowers to `<p>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2460"
+    "sourceFile": "silicaui-html/src/component.ts:2503"
   },
   {
     "name": "Drawer",
@@ -11166,7 +11287,7 @@
       "modal"
     ],
     "doc": "Drawer — identical shape to Dialog; `props.side` becomes a `data-side` attribute on the panel for the CSS to slide from (render-neutral to the behavior itself).",
-    "sourceFile": "silicaui-html/src/component.ts:2466"
+    "sourceFile": "silicaui-html/src/component.ts:2509"
   },
   {
     "name": "DrawerTrigger",
@@ -11176,7 +11297,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2478"
+    "sourceFile": "silicaui-html/src/component.ts:2521"
   },
   {
     "name": "DrawerBackdrop",
@@ -11186,7 +11307,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2490"
+    "sourceFile": "silicaui-html/src/component.ts:2533"
   },
   {
     "name": "DrawerContent",
@@ -11196,7 +11317,7 @@
     "icon": "sidebar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2501"
+    "sourceFile": "silicaui-html/src/component.ts:2544"
   },
   {
     "name": "DrawerClose",
@@ -11206,29 +11327,29 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2517"
+    "sourceFile": "silicaui-html/src/component.ts:2560"
   },
   {
     "name": "DrawerTitle",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "DrawerTitle",
+    "label": "Drawer title",
     "icon": "heading",
     "container": false,
     "behaviors": [],
     "doc": "DrawerTitle — lowers to `<h2>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2528"
+    "sourceFile": "silicaui-html/src/component.ts:2571"
   },
   {
     "name": "DrawerDescription",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "DrawerDescription",
+    "label": "Drawer description",
     "icon": "text",
     "container": false,
     "behaviors": [],
     "doc": "DrawerDescription — lowers to `<p>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2529"
+    "sourceFile": "silicaui-html/src/component.ts:2572"
   },
   {
     "name": "AlertDialog",
@@ -11241,7 +11362,7 @@
       "modal"
     ],
     "doc": "AlertDialog — same shape, `params.dismissible: false` (backdrop is inert — clicking it does NOT close, only Escape/an explicit close does, per the ARIA alert-dialog pattern). Action/Cancel are both `close` parts — a host's own click listener on Action still runs before this one closes it.",
-    "sourceFile": "silicaui-html/src/component.ts:2536"
+    "sourceFile": "silicaui-html/src/component.ts:2579"
   },
   {
     "name": "AlertDialogTrigger",
@@ -11251,7 +11372,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2548"
+    "sourceFile": "silicaui-html/src/component.ts:2591"
   },
   {
     "name": "AlertDialogBackdrop",
@@ -11261,7 +11382,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2560"
+    "sourceFile": "silicaui-html/src/component.ts:2603"
   },
   {
     "name": "AlertDialogContent",
@@ -11271,7 +11392,7 @@
     "icon": "warning",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2571"
+    "sourceFile": "silicaui-html/src/component.ts:2614"
   },
   {
     "name": "AlertDialogClose",
@@ -11281,7 +11402,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2586"
+    "sourceFile": "silicaui-html/src/component.ts:2629"
   },
   {
     "name": "AlertDialogCancel",
@@ -11291,7 +11412,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2598"
+    "sourceFile": "silicaui-html/src/component.ts:2641"
   },
   {
     "name": "AlertDialogAction",
@@ -11301,29 +11422,29 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2610"
+    "sourceFile": "silicaui-html/src/component.ts:2653"
   },
   {
     "name": "AlertDialogTitle",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "AlertDialogTitle",
+    "label": "Alert dialog title",
     "icon": "heading",
     "container": false,
     "behaviors": [],
     "doc": "AlertDialogTitle — lowers to `<h2>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2621"
+    "sourceFile": "silicaui-html/src/component.ts:2664"
   },
   {
     "name": "AlertDialogDescription",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "AlertDialogDescription",
+    "label": "Alert dialog description",
     "icon": "text",
     "container": false,
     "behaviors": [],
     "doc": "AlertDialogDescription — lowers to `<p>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2622"
+    "sourceFile": "silicaui-html/src/component.ts:2665"
   },
   {
     "name": "Lightbox",
@@ -11336,7 +11457,7 @@
       "modal"
     ],
     "doc": "Lightbox — trigger[i] opens slide[i] (positional pairing, like `tabs`); Counter reuses the `title` role (same \"text this behavior keeps in sync\" convention `calendar`'s month label uses).",
-    "sourceFile": "silicaui-html/src/component.ts:2628"
+    "sourceFile": "silicaui-html/src/component.ts:2671"
   },
   {
     "name": "LightboxTrigger",
@@ -11346,7 +11467,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2640"
+    "sourceFile": "silicaui-html/src/component.ts:2683"
   },
   {
     "name": "LightboxBackdrop",
@@ -11356,7 +11477,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2652"
+    "sourceFile": "silicaui-html/src/component.ts:2695"
   },
   {
     "name": "LightboxContent",
@@ -11366,7 +11487,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2663"
+    "sourceFile": "silicaui-html/src/component.ts:2706"
   },
   {
     "name": "LightboxSlide",
@@ -11376,7 +11497,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2678"
+    "sourceFile": "silicaui-html/src/component.ts:2721"
   },
   {
     "name": "LightboxPrev",
@@ -11386,7 +11507,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2690"
+    "sourceFile": "silicaui-html/src/component.ts:2733"
   },
   {
     "name": "LightboxNext",
@@ -11396,7 +11517,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2704"
+    "sourceFile": "silicaui-html/src/component.ts:2747"
   },
   {
     "name": "LightboxClose",
@@ -11406,7 +11527,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2718"
+    "sourceFile": "silicaui-html/src/component.ts:2761"
   },
   {
     "name": "LightboxCounter",
@@ -11416,7 +11537,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2733"
+    "sourceFile": "silicaui-html/src/component.ts:2776"
   },
   {
     "name": "CommandPalette",
@@ -11429,7 +11550,7 @@
       "modal"
     ],
     "doc": "CommandPalette — `params.hotkey` binds ⌘K/Ctrl+K globally (default `true`; `props.hotkey === false` disables it). Input/Item reuse the `search`/`item` parts `modal.ts` optionally wires filter+arrow-nav for.",
-    "sourceFile": "silicaui-html/src/component.ts:2748"
+    "sourceFile": "silicaui-html/src/component.ts:2791"
   },
   {
     "name": "CommandPaletteBackdrop",
@@ -11439,7 +11560,7 @@
     "icon": "box",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2763"
+    "sourceFile": "silicaui-html/src/component.ts:2806"
   },
   {
     "name": "CommandPaletteContent",
@@ -11449,7 +11570,7 @@
     "icon": "search",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2774"
+    "sourceFile": "silicaui-html/src/component.ts:2817"
   },
   {
     "name": "CommandPaletteInput",
@@ -11459,7 +11580,7 @@
     "icon": "input",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2789"
+    "sourceFile": "silicaui-html/src/component.ts:2832"
   },
   {
     "name": "CommandPaletteItem",
@@ -11469,7 +11590,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2802"
+    "sourceFile": "silicaui-html/src/component.ts:2845"
   },
   {
     "name": "Popover",
@@ -11482,7 +11603,7 @@
       "popover"
     ],
     "doc": "`popover` — anchored trigger/panel pairs; positioning is computed at runtime (see `popover.ts`), same precedent as `carousel`'s `track.style.transform`. Popover/Tooltip/PreviewCard differ only by `params.trigger` — real parameters, not a papered-over mismatch.",
-    "sourceFile": "silicaui-html/src/component.ts:2819"
+    "sourceFile": "silicaui-html/src/component.ts:2862"
   },
   {
     "name": "PopoverTrigger",
@@ -11492,7 +11613,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2831"
+    "sourceFile": "silicaui-html/src/component.ts:2874"
   },
   {
     "name": "PopoverContent",
@@ -11502,7 +11623,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2843"
+    "sourceFile": "silicaui-html/src/component.ts:2886"
   },
   {
     "name": "PopoverClose",
@@ -11512,29 +11633,29 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2855"
+    "sourceFile": "silicaui-html/src/component.ts:2898"
   },
   {
     "name": "PopoverTitle",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "PopoverTitle",
+    "label": "Popover title",
     "icon": "heading",
     "container": false,
     "behaviors": [],
     "doc": "PopoverTitle — lowers to `<h3>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2866"
+    "sourceFile": "silicaui-html/src/component.ts:2909"
   },
   {
     "name": "PopoverDescription",
     "package": "@wizeworks/silicaui-html",
     "category": "overlay",
-    "label": "PopoverDescription",
+    "label": "Popover description",
     "icon": "text",
     "container": false,
     "behaviors": [],
     "doc": "PopoverDescription — lowers to `<p>`, carrying `props.text` as its content.",
-    "sourceFile": "silicaui-html/src/component.ts:2867"
+    "sourceFile": "silicaui-html/src/component.ts:2910"
   },
   {
     "name": "Tooltip",
@@ -11547,7 +11668,7 @@
       "popover"
     ],
     "doc": "Tooltip — `params.trigger: \"hover\"`; the trigger wraps an arbitrary element (Base UI merges hover/focus onto it directly — a framework-free host instead gets a small inline wrapper, a documented simplification).",
-    "sourceFile": "silicaui-html/src/component.ts:2873"
+    "sourceFile": "silicaui-html/src/component.ts:2916"
   },
   {
     "name": "TooltipTrigger",
@@ -11557,7 +11678,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2885"
+    "sourceFile": "silicaui-html/src/component.ts:2928"
   },
   {
     "name": "TooltipContent",
@@ -11567,7 +11688,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2897"
+    "sourceFile": "silicaui-html/src/component.ts:2940"
   },
   {
     "name": "PreviewCard",
@@ -11580,7 +11701,7 @@
       "popover"
     ],
     "doc": "PreviewCard — same shape as Tooltip (hover trigger), rich card content rather than a short text label.",
-    "sourceFile": "silicaui-html/src/component.ts:2912"
+    "sourceFile": "silicaui-html/src/component.ts:2955"
   },
   {
     "name": "PreviewCardTrigger",
@@ -11590,7 +11711,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2924"
+    "sourceFile": "silicaui-html/src/component.ts:2967"
   },
   {
     "name": "PreviewCardContent",
@@ -11600,7 +11721,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2936"
+    "sourceFile": "silicaui-html/src/component.ts:2979"
   },
   {
     "name": "ContextMenu",
@@ -11613,7 +11734,7 @@
       "menu"
     ],
     "doc": "ContextMenu — reuses `menu` (not `popover`): its content is a flat action-item list that wants the SAME arrow-key/Home/End roving focus DropdownMenu already has, not a rich anchored panel. `params.trigger: \"context\"` swaps the open event to `contextmenu` and positions at the pointer instead of the trigger rect (see `menu.ts`).",
-    "sourceFile": "silicaui-html/src/component.ts:2954"
+    "sourceFile": "silicaui-html/src/component.ts:2997"
   },
   {
     "name": "ContextMenuTrigger",
@@ -11623,7 +11744,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2966"
+    "sourceFile": "silicaui-html/src/component.ts:3009"
   },
   {
     "name": "ContextMenuContent",
@@ -11633,7 +11754,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2978"
+    "sourceFile": "silicaui-html/src/component.ts:3021"
   },
   {
     "name": "ContextMenuItem",
@@ -11643,7 +11764,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:2990"
+    "sourceFile": "silicaui-html/src/component.ts:3033"
   },
   {
     "name": "Menubar",
@@ -11654,7 +11775,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Menubar — each menu is its OWN independent `menu` root (a documented simplification: no bar-wide single-open coordination or hover-to-switch in vanilla, since sibling behavior roots can't see each other — but every menu still fully opens/closes/roves/dismisses on its own).",
-    "sourceFile": "silicaui-html/src/component.ts:3006"
+    "sourceFile": "silicaui-html/src/component.ts:3049"
   },
   {
     "name": "MenubarMenu",
@@ -11666,7 +11787,7 @@
     "behaviors": [
       "menu"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3008"
+    "sourceFile": "silicaui-html/src/component.ts:3051"
   },
   {
     "name": "MenubarTrigger",
@@ -11676,7 +11797,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3020"
+    "sourceFile": "silicaui-html/src/component.ts:3063"
   },
   {
     "name": "MenubarContent",
@@ -11686,7 +11807,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3032"
+    "sourceFile": "silicaui-html/src/component.ts:3075"
   },
   {
     "name": "MenubarItem",
@@ -11696,18 +11817,18 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3044"
+    "sourceFile": "silicaui-html/src/component.ts:3087"
   },
   {
     "name": "NavigationMenu",
     "package": "@wizeworks/silicaui-html",
     "category": "nav",
-    "label": "NavigationMenu",
+    "label": "Navigation menu",
     "icon": "nav",
     "container": true,
     "behaviors": [],
     "doc": "NavigationMenu — each item is its own independent `popover` root (`hover` trigger; same bar-wide-coordination simplification as Menubar). Content is rich mega-menu markup, not a flat item list, so this reuses `popover` (no item roving assumed) rather than `menu`.",
-    "sourceFile": "silicaui-html/src/component.ts:3060"
+    "sourceFile": "silicaui-html/src/component.ts:3103"
   },
   {
     "name": "NavigationMenuItem",
@@ -11719,7 +11840,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3062"
+    "sourceFile": "silicaui-html/src/component.ts:3105"
   },
   {
     "name": "NavigationMenuTrigger",
@@ -11729,7 +11850,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3074"
+    "sourceFile": "silicaui-html/src/component.ts:3117"
   },
   {
     "name": "NavigationMenuContent",
@@ -11739,7 +11860,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3086"
+    "sourceFile": "silicaui-html/src/component.ts:3129"
   },
   {
     "name": "NavigationMenuLink",
@@ -11749,7 +11870,7 @@
     "icon": "nav",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3098"
+    "sourceFile": "silicaui-html/src/component.ts:3141"
   },
   {
     "name": "Combobox",
@@ -11762,7 +11883,7 @@
       "combobox"
     ],
     "doc": "`combobox` — Combobox/Autocomplete/MultiSelect are all SINGLE, self- contained React components with an `items` prop (like `Select`, not a Root/Trigger/Content compound tree), so their vanilla macros follow the same shape: build the whole input+popup+options structure from `props.items` (unauthored structural sugar, same precedent as `Carousel`'s invented track/dots). Only `params.mode` differs.",
-    "sourceFile": "silicaui-html/src/component.ts:3113"
+    "sourceFile": "silicaui-html/src/component.ts:3156"
   },
   {
     "name": "Autocomplete",
@@ -11774,7 +11895,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3120"
+    "sourceFile": "silicaui-html/src/component.ts:3163"
   },
   {
     "name": "MultiSelect",
@@ -11786,7 +11907,7 @@
     "behaviors": [
       "combobox"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3127"
+    "sourceFile": "silicaui-html/src/component.ts:3170"
   },
   {
     "name": "DateInput",
@@ -11799,7 +11920,7 @@
       "date-segment"
     ],
     "doc": "`date-segment` — DateInput/DateTimeInput/TimeInput carry the behavior on their own root; DateRangeInput is two INDEPENDENT `date-segment` roots nested side by side (hydrate() scans the whole document for behavior roots, not just top-level ones, so both wire up with zero extra code).",
-    "sourceFile": "silicaui-html/src/component.ts:3139"
+    "sourceFile": "silicaui-html/src/component.ts:3182"
   },
   {
     "name": "DateRangeInput",
@@ -11811,7 +11932,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3157"
+    "sourceFile": "silicaui-html/src/component.ts:3200"
   },
   {
     "name": "DateTimeInput",
@@ -11823,7 +11944,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3173"
+    "sourceFile": "silicaui-html/src/component.ts:3216"
   },
   {
     "name": "TimeInput",
@@ -11835,7 +11956,7 @@
     "behaviors": [
       "date-segment"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3199"
+    "sourceFile": "silicaui-html/src/component.ts:3242"
   },
   {
     "name": "PinInput",
@@ -11848,7 +11969,7 @@
       "pin-input"
     ],
     "doc": "`pin-input` — real single-char `<input>` cells (index-based), unlike `date-segment`'s buffer-accumulate model — see `pin-input.ts`.",
-    "sourceFile": "silicaui-html/src/component.ts:3225"
+    "sourceFile": "silicaui-html/src/component.ts:3268"
   },
   {
     "name": "Calendar",
@@ -11861,7 +11982,7 @@
       "calendar"
     ],
     "doc": "`calendar` — Calendar carries the behavior directly; DatePicker/ DateRangePicker are the SAME calendar shell nested inside a `popover` root's panel (a `calendar` behavior root nested inside a `popover` one — `ownParts` already stops at nested behavior boundaries, so this needs no extra code, same composition trick as Lightbox nesting inside `modal`).",
-    "sourceFile": "silicaui-html/src/component.ts:3270"
+    "sourceFile": "silicaui-html/src/component.ts:3313"
   },
   {
     "name": "DatePicker",
@@ -11873,7 +11994,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3282"
+    "sourceFile": "silicaui-html/src/component.ts:3325"
   },
   {
     "name": "DatePickerTrigger",
@@ -11883,7 +12004,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3294"
+    "sourceFile": "silicaui-html/src/component.ts:3337"
   },
   {
     "name": "DatePickerContent",
@@ -11895,7 +12016,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3306"
+    "sourceFile": "silicaui-html/src/component.ts:3349"
   },
   {
     "name": "DateRangePicker",
@@ -11907,7 +12028,7 @@
     "behaviors": [
       "popover"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3320"
+    "sourceFile": "silicaui-html/src/component.ts:3363"
   },
   {
     "name": "DateRangePickerTrigger",
@@ -11917,7 +12038,7 @@
     "icon": "calendar",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3332"
+    "sourceFile": "silicaui-html/src/component.ts:3375"
   },
   {
     "name": "DateRangePickerContent",
@@ -11929,7 +12050,7 @@
     "behaviors": [
       "calendar"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3344"
+    "sourceFile": "silicaui-html/src/component.ts:3387"
   },
   {
     "name": "TreeView",
@@ -11942,7 +12063,7 @@
       "tree"
     ],
     "doc": "`tree` — TreeGroup defaults hidden unless `defaultExpanded`, same convention `AccordionPanel`/`CollapsiblePanel` established (the behavior only READS existing hidden state on hydrate, never forces it).",
-    "sourceFile": "silicaui-html/src/component.ts:3364"
+    "sourceFile": "silicaui-html/src/component.ts:3407"
   },
   {
     "name": "TreeNode",
@@ -11952,7 +12073,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3376"
+    "sourceFile": "silicaui-html/src/component.ts:3419"
   },
   {
     "name": "TreeToggle",
@@ -11962,7 +12083,7 @@
     "icon": "button",
     "container": false,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3388"
+    "sourceFile": "silicaui-html/src/component.ts:3431"
   },
   {
     "name": "TreeGroup",
@@ -11972,7 +12093,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3402"
+    "sourceFile": "silicaui-html/src/component.ts:3445"
   },
   {
     "name": "Wizard",
@@ -11985,7 +12106,7 @@
       "wizard"
     ],
     "doc": "`wizard` — Back/Next reuse the `prev`/`next` roles (already exist).",
-    "sourceFile": "silicaui-html/src/component.ts:3416"
+    "sourceFile": "silicaui-html/src/component.ts:3459"
   },
   {
     "name": "WizardStep",
@@ -11995,7 +12116,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3428"
+    "sourceFile": "silicaui-html/src/component.ts:3471"
   },
   {
     "name": "WizardPanel",
@@ -12005,7 +12126,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3442"
+    "sourceFile": "silicaui-html/src/component.ts:3485"
   },
   {
     "name": "WizardBack",
@@ -12015,7 +12136,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3454"
+    "sourceFile": "silicaui-html/src/component.ts:3497"
   },
   {
     "name": "WizardNext",
@@ -12025,7 +12146,7 @@
     "icon": "button",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3466"
+    "sourceFile": "silicaui-html/src/component.ts:3509"
   },
   {
     "name": "NumberField",
@@ -12038,7 +12159,7 @@
       "number-field"
     ],
     "doc": "`number-field` — native `<input type=number>`, no Base-UI-only CSS selectors to work around (confirmed via the CSS check this pass).",
-    "sourceFile": "silicaui-html/src/component.ts:3484"
+    "sourceFile": "silicaui-html/src/component.ts:3527"
   },
   {
     "name": "ToggleGroup",
@@ -12051,7 +12172,7 @@
       "toggle-group"
     ],
     "doc": "`toggle-group` — a toolbar of toggle buttons, NOT a listbox (distinct ARIA pattern from `SelectionList`: `aria-pressed` on real buttons).",
-    "sourceFile": "silicaui-html/src/component.ts:3514"
+    "sourceFile": "silicaui-html/src/component.ts:3557"
   },
   {
     "name": "ToggleGroupItem",
@@ -12061,7 +12182,7 @@
     "icon": "toggle",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3532"
+    "sourceFile": "silicaui-html/src/component.ts:3575"
   },
   {
     "name": "Range",
@@ -12074,7 +12195,7 @@
       "slider"
     ],
     "doc": "`slider` — Range (compact) and Slider (rich, `showValue`) are both single self-contained components; see `sliderExpand`. Base UI's three addressable Track/Indicator/Thumb nodes are rebuilt here since a bare `<input type=range>` has no such structure (confirmed via the CSS check this pass) — real pointer-drag + keyboard geometry, not a native fallback.",
-    "sourceFile": "silicaui-html/src/component.ts:3552"
+    "sourceFile": "silicaui-html/src/component.ts:3595"
   },
   {
     "name": "Slider",
@@ -12086,7 +12207,7 @@
     "behaviors": [
       "slider"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3553"
+    "sourceFile": "silicaui-html/src/component.ts:3596"
   },
   {
     "name": "Switch",
@@ -12099,7 +12220,7 @@
       "switch"
     ],
     "doc": "`switch` — a `role=switch` element the CSS keys off `[data-checked]` for (Base UI's synthetic attribute, ported verbatim — a bare `<input type=checkbox>` would NOT match `.switch`'s selectors).",
-    "sourceFile": "silicaui-html/src/component.ts:3559"
+    "sourceFile": "silicaui-html/src/component.ts:3602"
   },
   {
     "name": "Rating",
@@ -12112,7 +12233,7 @@
       "rating"
     ],
     "doc": "`rating` — not Base UI-backed in React either (plain JSX-set `data-filled`), so this ports near 1:1.",
-    "sourceFile": "silicaui-html/src/component.ts:3583"
+    "sourceFile": "silicaui-html/src/component.ts:3626"
   },
   {
     "name": "ScrollArea",
@@ -12125,7 +12246,7 @@
       "scroll-area"
     ],
     "doc": "`scroll-area` — a real `overflow:auto` `track` (CSS hides its native scrollbar) with a custom `thumb` the behavior sizes/positions from the viewport/content ratio — not achievable as a pure-CSS trick (confirmed this pass).",
-    "sourceFile": "silicaui-html/src/component.ts:3619"
+    "sourceFile": "silicaui-html/src/component.ts:3662"
   },
   {
     "name": "ScrollStrip",
@@ -12138,7 +12259,7 @@
       "scroll-strip"
     ],
     "doc": "`scroll-strip` — a horizontal strip that SAYS SO when part of it is off-screen. The prev/next controls ship `hidden` so a no-JS render is a plain scroller rather than two dead buttons; the behavior reveals the PAIR once the content stops fitting (never one at a time — see the handler for why that oscillates).",
-    "sourceFile": "silicaui-html/src/component.ts:3641"
+    "sourceFile": "silicaui-html/src/component.ts:3684"
   },
   {
     "name": "OverflowList",
@@ -12151,7 +12272,7 @@
       "overflow-list"
     ],
     "doc": "`overflow-list` — real `item`s reparent into the `panel` behind a \"+N\" `trigger` once they don't fit; `params.maxVisible` forces a fixed count when real layout isn't available (see `overflow-list.ts`).",
-    "sourceFile": "silicaui-html/src/component.ts:3681"
+    "sourceFile": "silicaui-html/src/component.ts:3724"
   },
   {
     "name": "OverflowListItem",
@@ -12161,7 +12282,7 @@
     "icon": "box",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3709"
+    "sourceFile": "silicaui-html/src/component.ts:3752"
   },
   {
     "name": "Dropzone",
@@ -12174,7 +12295,7 @@
       "dropzone"
     ],
     "doc": "`dropzone` — Dropzone is bare (presentational only, host owns the file list via `onFiles`-equivalent listening for `sui:file`); FileUpload adds a managed `list` part the behavior renders thumbnail/name/remove rows into directly (the one place a behavior owns real create-your-own-markup state, same precedent as `Carousel`'s track/dots).",
-    "sourceFile": "silicaui-html/src/component.ts:3726"
+    "sourceFile": "silicaui-html/src/component.ts:3769"
   },
   {
     "name": "FileUpload",
@@ -12186,7 +12307,7 @@
     "behaviors": [
       "dropzone"
     ],
-    "sourceFile": "silicaui-html/src/component.ts:3727"
+    "sourceFile": "silicaui-html/src/component.ts:3770"
   },
   {
     "name": "PhoneInput",
@@ -12199,7 +12320,7 @@
       "phone-input"
     ],
     "doc": "`phone-input` — a country `<select>` (options carry `data-dial`) joined with a digits `input`; the country list is plain static data, ported verbatim (no React-only mechanism was involved in the original).",
-    "sourceFile": "silicaui-html/src/component.ts:3733"
+    "sourceFile": "silicaui-html/src/component.ts:3776"
   },
   {
     "name": "ThemeController",
@@ -12212,7 +12333,7 @@
       "theme-toggle"
     ],
     "doc": "`theme-toggle` — thin wiring over the existing `setTheme`/`getTheme` primitives (see `theme-toggle.ts`); there was no new state machine to build here, just a registration.",
-    "sourceFile": "silicaui-html/src/component.ts:3772"
+    "sourceFile": "silicaui-html/src/component.ts:3815"
   },
   {
     "name": "Overlay",
@@ -12223,7 +12344,7 @@
     "container": true,
     "behaviors": [],
     "doc": "Overlay — pure CSS (`[data-reveal=\"hover\"]:hover .overlay-scrim`); no behavior at all (confirmed this pass). OverlayScrim is a real sub-atom (not a plain div) because `data-placement` is behavior-relevant to the CSS, same rule that earned ToolbarSeparator its own atom.",
-    "sourceFile": "silicaui-html/src/component.ts:3794"
+    "sourceFile": "silicaui-html/src/component.ts:3837"
   },
   {
     "name": "OverlayScrim",
@@ -12233,7 +12354,7 @@
     "icon": "image",
     "container": true,
     "behaviors": [],
-    "sourceFile": "silicaui-html/src/component.ts:3802"
+    "sourceFile": "silicaui-html/src/component.ts:3845"
   },
   {
     "name": "accordion",
@@ -12607,7 +12728,8 @@
     ],
     "compoundSelectors": [
       ".carousel-center .carousel-item",
-      ".carousel-end .carousel-item"
+      ".carousel-end .carousel-item",
+      ".carousel-control:focus-visible, .carousel-dot:focus-visible, .carousel-number:focus-visible"
     ]
   },
   {
@@ -12909,6 +13031,8 @@
     "compoundSelectors": [
       ".data-table-sticky .data-table-scroll",
       ".data-table-sticky thead th",
+      ".data-table th[data-align=\"right\"], .data-table td[data-align=\"right\"]",
+      ".data-table th[data-align=\"center\"], .data-table td[data-align=\"center\"]",
       ".data-table-sort-icon [data-part]",
       ".data-table-sort[data-sort=\"asc\"] .data-table-sort-icon [data-part=\"up\"]",
       ".data-table-sort[data-sort=\"desc\"] .data-table-sort-icon [data-part=\"down\"]",
@@ -12951,7 +13075,8 @@
     ],
     "compoundSelectors": [
       ".diff-item-1, .diff-item-2",
-      ".diff-item-1 > *, .diff-item-2 > *"
+      ".diff-item-1 > *, .diff-item-2 > *",
+      ".diff-resizer:focus-visible"
     ]
   },
   {
@@ -12998,7 +13123,10 @@
       "dock-error"
     ],
     "colorPattern": "dock-<color>",
-    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `dock-<color>` accepts any color the app registers (see get_tokens → customColors). `dock-brand` is as real as `dock-primary` once `brand` is declared."
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `dock-<color>` accepts any color the app registers (see get_tokens → customColors). `dock-brand` is as real as `dock-primary` once `brand` is declared.",
+    "compoundSelectors": [
+      ".dock-item:focus-visible"
+    ]
   },
   {
     "name": "drawer",
@@ -13052,7 +13180,9 @@
     "compoundSelectors": [
       ".dropzone[data-dragging]",
       ".dropzone[data-disabled]",
-      ".dropzone[data-dragging] .dropzone-icon"
+      ".dropzone[data-dragging] .dropzone-icon",
+      ".dropzone-input:focus-visible",
+      ".dropzone:has(.dropzone-input:focus-visible)"
     ]
   },
   {
@@ -13651,7 +13781,8 @@
     "colorNote": "The eight above are the DEFAULT roles, not the whole set — `multi-select-<color>` accepts any color the app registers (see get_tokens → customColors). `multi-select-brand` is as real as `multi-select-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".multi-select:focus-within",
-      ".multi-select[data-disabled]"
+      ".multi-select[data-disabled]",
+      ".multi-select-chip-remove:focus-visible"
     ]
   },
   {
@@ -13701,6 +13832,10 @@
       "number-field-group",
       "number-field-increment",
       "number-field-input"
+    ],
+    "compoundSelectors": [
+      ".number-field-button:focus-visible",
+      ".number-field:has(.number-field-input:focus-visible)"
     ]
   },
   {
@@ -13714,6 +13849,9 @@
       "outline",
       "outline-link",
       "outline-list"
+    ],
+    "compoundSelectors": [
+      ".outline-link:focus-visible"
     ]
   },
   {
@@ -13881,7 +14019,8 @@
       "power-search-value-picker-label"
     ],
     "compoundSelectors": [
-      ".power-search:focus-within"
+      ".power-search:focus-within",
+      ".power-search-chip-trigger:focus-visible, .power-search-chip-remove:focus-visible, .power-search-add:focus-visible"
     ]
   },
   {
@@ -14056,7 +14195,8 @@
     "colorPattern": "range-<color>",
     "colorNote": "The eight above are the DEFAULT roles, not the whole set — `range-<color>` accepts any color the app registers (see get_tokens → customColors). `range-brand` is as real as `range-primary` once `brand` is declared.",
     "compoundSelectors": [
-      ".range[data-disabled] .range-thumb"
+      ".range[data-disabled] .range-thumb",
+      ".range:focus-visible"
     ]
   },
   {
@@ -14142,6 +14282,7 @@
     ],
     "compoundSelectors": [
       ".rich-text-editor-btn[data-active]",
+      ".rich-text-editor-content:focus-within",
       ".rich-text-editor-content h1",
       ".rich-text-editor-content h2",
       ".rich-text-editor-content h3",
@@ -14273,6 +14414,7 @@
     ],
     "compoundSelectors": [
       ".select-trigger[data-placeholder] .select-placeholder",
+      ".select-trigger:has(.select-placeholder) .select-value[data-placeholder]",
       ".select-trigger[data-popup-open] .select-icon svg"
     ]
   },
@@ -14381,12 +14523,14 @@
       ".sidebar[data-collapsed] .sidebar-header",
       ".sidebar[data-collapsed] .sidebar-header-brand",
       ".sidebar[data-collapsed] .sidebar-group-label",
+      "@media (pointer: coarse)",
       ".sidebar-item[data-active=\"true\"]",
       ".sidebar-item[data-disabled=\"true\"]",
       ".sidebar-item:focus-visible",
       ".sidebar[data-collapsed] .sidebar-item",
       ".sidebar[data-collapsed] .sidebar-item-label",
-      ".sidebar[data-collapsed] .sidebar-item-trailing"
+      ".sidebar[data-collapsed] .sidebar-item-trailing",
+      ".sidebar-trigger:focus-visible"
     ]
   },
   {
@@ -14485,6 +14629,9 @@
       "stack-start",
       "stack-xl",
       "stack-xs"
+    ],
+    "compoundSelectors": [
+      ".stack:focus-visible"
     ]
   },
   {
@@ -14554,7 +14701,7 @@
     "package": "@wizeworks/silicaui",
     "category": "Navigation",
     "sourceFile": "silicaui/src/components/steps.js",
-    "description": "The Steps component — a horizontal progress tracker. A `.steps` list lays each `.step` out as an equal-width column: a numbered node on top, a label under it. Two pseudo-elements do the work — `::before` is the node (shows `counter(step)`, or a `data-content` override like a check), `::after` is the connector line reaching back to the previous node (absolutely placed at the node's center line, behind it). The first step drops its connector. A step marked with a color (`.step-primary`) paints its node AND its incoming connector via `--step-bg`/`--step-fg` — so coloring the steps up to the current one reads as \"completed\". Extensible over the color set. @param {string[]} colors - color names to generate `.step-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "description": "The Steps component — a progress tracker, horizontal or vertical. A `.steps` list lays each `.step` out as an equal-width column: a numbered node on top, a label under it. Two pseudo-elements do the work — `::before` is the node (shows `counter(step)`, or a `data-content` override like a check), `::after` is the connector line reaching back to the previous node (absolutely placed at the node's center line, behind it). The first step drops its connector. A step marked with a color (`.step-primary`) paints its node AND its incoming connector via `--step-bg`/`--step-fg` — so coloring the steps up to the current one reads as \"completed\". Extensible over the color set. @param {string[]} colors - color names to generate `.step-<name>` variants for @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
     "root": "step",
     "classes": [
       "step",
@@ -14566,7 +14713,8 @@
       "step-secondary",
       "step-success",
       "step-warning",
-      "steps"
+      "steps",
+      "steps-vertical"
     ],
     "colorVariants": [
       "step-primary",
@@ -14584,7 +14732,9 @@
       ".step::before",
       ".step[data-content]::before",
       ".step::after",
-      ".step:first-child::after"
+      ".step:first-child::after",
+      ".steps-vertical > .step",
+      ".steps-vertical > .step::after"
     ]
   },
   {
@@ -14660,17 +14810,28 @@
     "package": "@wizeworks/silicaui",
     "category": "Data display",
     "sourceFile": "silicaui/src/components/table.js",
-    "description": "The Table component — a styled native `<table>`. Colorless (like Card/Skeleton → `table(prefix)` only). Rather than wrapping every cell in a class, `.table` styles the native table elements it contains (`th`, `td`, `thead`, `tbody tr`) via descendant selectors — so it works on plain semantic HTML (`<table class=\"table\"><thead>…`) with no per-cell classes, and the React layer can stay a single `<Table>` over raw rows. Modifiers: `-zebra` (striped rows), `-hover` (row highlight — a translucent base-content wash so it stays visible ON TOP of a zebra stripe too), and sizes `-xs…-xl` (cell padding + type). Neutral by design; no color variants. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "description": "The Table component — a styled native `<table>`. Colorless (like Card/Skeleton → `table(prefix)` only). Rather than wrapping every cell in a class, `.table` styles the native table elements it contains (`th`, `td`, `thead`, `tbody tr`) via descendant selectors — so it works on plain semantic HTML (`<table class=\"table\"><thead>…`) with no per-cell classes, and the React layer can stay a single `<Table>` over raw rows. Modifiers: `-zebra` (striped rows), `-hover` (row highlight — a translucent base-content wash so it stays visible ON TOP of a zebra stripe too), and sizes `-xs…-xl` (cell padding + type). Neutral by design; no color variants. Stacked: `table-stack` turns the rows into blocks while the table's CONTAINER is narrower than 36rem, so a list fits a narrow pane instead of running past it. The header is visually hidden (a screen reader still reads it), each row wraps its cells with the first on a line of its own and the last at the end, and a cell with `data-label=\"Total\"` shows that label before its value. At 36rem and wider it is an ordinary table. `table-stack-sm`, `-md`, `-lg`, `-xl`, `-2xl` and `-3xl` stack below 24, 28, 32, 36, 42 and 48rem instead: Tailwind's container sizes, so `table-stack-lg` switches where `@lg:` does. Use one of them per table. Works with zebra, hover, every size, and tfoot. The container is the table's parent, which the plugin makes an inline-size query container itself (`:has(> .table-stack)`), so nothing upstream needs `@container`. That parent must take its width from its surroundings (a block, or a stretched flex or grid item), not from the table: a parent sized to its content measures 0 wide. `table-scroll` is that parent ready-made, a full-width block that also scrolls a wide table sideways; the React `<Table>` renders it. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
     "root": "table",
     "classes": [
       "table",
       "table-hover",
       "table-lg",
       "table-md",
+      "table-scroll",
       "table-sm",
+      "table-stack",
+      "table-stack-2xl",
+      "table-stack-3xl",
+      "table-stack-lg",
+      "table-stack-md",
+      "table-stack-sm",
+      "table-stack-xl",
       "table-xl",
       "table-xs",
       "table-zebra"
+    ],
+    "compoundSelectors": [
+      ":where(:has(> :is(.table-stack, .table-stack-sm, .table-stack-md, .table-stack-lg, .table-stack-xl, .table-stack-2xl, .table-stack-3xl)))"
     ]
   },
   {
@@ -14764,7 +14925,8 @@
     "colorNote": "The eight above are the DEFAULT roles, not the whole set — `tag-input-<color>` accepts any color the app registers (see get_tokens → customColors). `tag-input-brand` is as real as `tag-input-primary` once `brand` is declared.",
     "compoundSelectors": [
       ".tag-input:focus-within",
-      ".tag-input[data-disabled]"
+      ".tag-input[data-disabled]",
+      ".tag-input-remove:focus-visible"
     ]
   },
   {
@@ -15021,7 +15183,8 @@
       ".tree-node[data-drag-over=\"before\"]::before, .tree-node[data-drag-over=\"after\"]::after",
       ".tree-node[data-drag-over=\"before\"]::before",
       ".tree-node[data-drag-over=\"after\"]::after",
-      ".tree-toggle[data-expanded]"
+      ".tree-toggle[data-expanded]",
+      ".tree-toggle:focus-visible"
     ]
   },
   {
@@ -15029,7 +15192,7 @@
     "package": "@wizeworks/silicaui",
     "category": "css",
     "sourceFile": "silicaui/src/components/typography.js",
-    "description": "Typography — @wizeworks/silicaui's UI type ramp (distinct from `.prose`, which styles a block of long-form/markdown content). This gives the *application* a designed default: bare `<h1>`–`<h6>` and `<p>` look right with zero classes, plus explicit `.display` / `.display-1`–`.display-3` / `.h1`–`.h6` / `.lead` / `.caption` classes to apply any step to any element (a semantic `<h1>` that should read as an h3, or a hero `<h1>` sized up to `.display-1`, etc.). Anchored to the 16px root + the `text-*` scale (see index.js/theme.js). Heading sizes are in `rem` so they track the base font size; the oversized display ramp is fluid (`clamp` + container units) — see DISPLAY_STEPS. Two deliberate scoping choices: • Global element defaults are scoped to `[data-theme]` — the same opt-in surface @wizeworks/silicaui paints (theme.js) — so @wizeworks/silicaui NEVER restyles a host page's headings you didn't opt into (the embeddable/Sparx case). • They use `:where(...)` (zero specificity) so a Tailwind utility (`text-sm`) OR a `.h*` class always wins without `!important`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`)",
+    "description": "Typography — @wizeworks/silicaui's UI type ramp (distinct from `.prose`, which styles a block of long-form/markdown content). This gives the *application* a designed default: bare `<h1>`–`<h6>` and `<p>` look right with zero classes, plus explicit `.display` / `.display-1`–`.display-3` / `.h1`–`.h6` / `.lead` / `.caption` classes to apply any step to any element (a semantic `<h1>` that should read as an h3, or a hero `<h1>` sized up to `.display-1`, etc.). Anchored to the 16px root + the `text-*` scale (see index.js/theme.js). Heading sizes are in `rem` so they track the base font size; the oversized display ramp is fluid (`clamp` + container units) — see DISPLAY_STEPS. Two deliberate scoping choices: • Global element defaults are scoped to the SURFACE — whatever @wizeworks/silicaui paints (theme.js `surfaceScopes`) — so @wizeworks/silicaui NEVER restyles a host page's headings you didn't opt into (the embeddable/Sparx case). Read from that one list rather than spelled out here: this file used to hardcode `[data-theme]`, so an app on `prefersdark` — which must NOT set the attribute — got no type ramp at all and every `<h1>` rendered at 16px/400, indistinguishable from a paragraph (docs/personas/issues/015). • They use `:where(...)` (zero specificity) so a Tailwind utility (`text-sm`) OR a `.h*` class always wins without `!important`. @param {string} [prefix] - prepended verbatim to every class (e.g. `sx-`) @param {boolean} [prefersDark] - whether `prefersdark` is on, which adds the unthemed root as a second surface. Passed through to `surfaceScopes`.",
     "root": null,
     "classes": [
       "blockquote",
@@ -15125,7 +15288,8 @@
       ".wizard-step[data-state=\"active\"]::before, .wizard-step[data-state=\"complete\"]::before",
       ".wizard-step[data-state=\"active\"] .wizard-step-marker",
       ".wizard-step[data-state=\"complete\"] .wizard-step-marker",
-      ".wizard-step[data-state=\"active\"] .wizard-step-label"
+      ".wizard-step[data-state=\"active\"] .wizard-step-label",
+      ".wizard-step:focus-visible"
     ]
   },
   {
@@ -15162,7 +15326,10 @@
       "wordmark-error"
     ],
     "colorPattern": "wordmark-<color>",
-    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `wordmark-<color>` accepts any color the app registers (see get_tokens → customColors). `wordmark-brand` is as real as `wordmark-primary` once `brand` is declared."
+    "colorNote": "The eight above are the DEFAULT roles, not the whole set — `wordmark-<color>` accepts any color the app registers (see get_tokens → customColors). `wordmark-brand` is as real as `wordmark-primary` once `brand` is declared.",
+    "compoundSelectors": [
+      ".wordmark:focus-visible"
+    ]
   },
   {
     "name": "color-utilities",

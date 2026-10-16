@@ -102,7 +102,8 @@ export { Skeleton } from "./skeleton";
 export type { SkeletonProps, SkeletonShape } from "./skeleton";
 
 export { Table } from "./table";
-export type { TableProps, TableSize } from "./table";
+export { TABLE_STACK_BREAKPOINTS } from "./table";
+export type { TableProps, TableSize, TableStackBreakpoint } from "./table";
 
 export { Divider } from "./divider";
 export type { DividerProps, DividerOrientation } from "./divider";

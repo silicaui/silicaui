@@ -1023,6 +1023,16 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   elementDef("Kbd", "feedback", "kbd", "kbd"),
   // Navbar / Table — structural containers (children authored in the tree).
   elementDef("Navbar", "nav", "header", "div", true),
+  // Table lowers to `<table>`, holding its thead/tbody/tfoot children. Its
+  // options are classes on the node, as on the CSS path: `table-zebra`,
+  // `table-hover`, a size `table-xs` to `table-xl`, and `table-stack`, which
+  // turns the rows into blocks while the table's container is narrower than
+  // 36rem so a list fits a narrow pane (`table-stack-sm`, `-md`, `-lg`, `-xl`,
+  // `-2xl`, `-3xl` switch at 24, 28, 32, 36, 42 or 48rem instead). The
+  // container is the Table's parent node, which the plugin turns into a query
+  // container by itself; give that parent the `table-scroll` class (a
+  // full-width block that also scrolls a wide table sideways). A cell that
+  // needs a visible label once stacked carries `attrs: { "data-label": "Total" }`.
   elementDef("Table", "data", "table", "table", true),
   // Field — a form-row container (label + control as children).
   elementDef("Field", "form", "label", "div", true),
