@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-editor
 
+## 0.60.0
+
 ## 0.59.3
 
 ## 0.59.2
