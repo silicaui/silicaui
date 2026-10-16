@@ -43,6 +43,17 @@ const VISUALLY_HIDDEN = {
  * Tailwind prefix (`tw:hidden`) is not recognized; use the attribute there.
  */
 const HIDDEN = ".hidden, [hidden]";
+/**
+ * A table that is hidden, which the stack's important `display: block` must not
+ * show: the `hidden` class or attribute, and also any variant, prefix or
+ * important form of the class (`md:hidden`, `@xl:hidden`, `tw:hidden`,
+ * `hidden!`, `!hidden`), because an important block in this layer overrides
+ * every one of them. A table hidden with a variant does not get the important
+ * block at ANY width, so where the variant does not apply, Tailwind's `table`
+ * utility can make it a table again; to hide a stacked table at some widths
+ * only, hide its wrapper instead.
+ */
+const TABLE_HIDDEN = `${HIDDEN}, [class*=":hidden"], [class*="!hidden"], [class~="hidden!"]`;
 /** The first, second and last cells of a row that are not hidden. */
 const FIRST_SHOWN = `:nth-child(1 of :not(${HIDDEN}))`;
 const SECOND_SHOWN = `:nth-child(2 of :not(${HIDDEN}))`;
@@ -76,11 +87,22 @@ const SELECT_CELL = `:is([data-stack="select"], :has(> ${PICK_CONTROL}))`;
  * push a nowrap cell past the row's edge, which is the bug this mode exists to
  * fix. Utilities sit in a later layer than this plugin's rules, so only an
  * important declaration here can set them aside, and only below the breakpoint.
- * `display` is left alone, so a cell hidden with `hidden` stays hidden.
+ * A cell's `display` is left alone, so a cell hidden with `hidden` stays hidden.
+ *
+ * The TABLE's own `display: block` is important too, for a different reason:
+ * `table` is also a Tailwind core utility, `.table { display: table }`. Any app
+ * whose sources contain the word gets it, in the utilities layer, where it
+ * beats this rule. A stacked table left as a table still wraps its rows, but it
+ * grows to fit its longest unbroken line, so a list of truncated names ran
+ * 1040px wide in a 323px pane and scrolled sideways. The important block skips
+ * a table that is hidden (see `TABLE_HIDDEN`), which must stay hidden. The rows,
+ * the body and the footer keep a normal `display`: no utility is documented on
+ * them, and an important one would show a row hidden with `hidden`.
  */
 function stacked() {
   return {
     display: "block",
+    [`&:not(${TABLE_HIDDEN})`]: { display: "block !important" },
     position: "relative",
 
     // The column headings leave the screen but not the page: a screen reader
@@ -178,6 +200,9 @@ function stacked() {
  * `-xl`, `-2xl` and `-3xl` stack below 24, 28, 32, 36, 42 and 48rem instead:
  * Tailwind's container sizes, so `table-stack-lg` switches where `@lg:` does.
  * Use one of them per table. Works with zebra, hover, every size, and tfoot.
+ * The stacked table stays a block even where Tailwind's own `table` utility
+ * (`display: table`) is on the page. To hide a stacked table at some widths
+ * only, hide its wrapper, not the table.
  *
  * The container is the table's parent, which the plugin makes an inline-size
  * query container itself (`:has(> .table-stack)`), so nothing upstream needs
