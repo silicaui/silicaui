@@ -1030,7 +1030,8 @@
     "step-secondary",
     "step-success",
     "step-warning",
-    "steps"
+    "steps",
+    "steps-vertical"
   ],
   "swap": [
     "swap",
@@ -1061,7 +1062,15 @@
     "table-hover",
     "table-lg",
     "table-md",
+    "table-scroll",
     "table-sm",
+    "table-stack",
+    "table-stack-2xl",
+    "table-stack-3xl",
+    "table-stack-lg",
+    "table-stack-md",
+    "table-stack-sm",
+    "table-stack-xl",
     "table-xl",
     "table-xs",
     "table-zebra"

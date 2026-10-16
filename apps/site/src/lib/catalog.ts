@@ -51,7 +51,7 @@ export const CATALOG: Record<string, CatalogEntry> = {
   "timestamp": { id: "timestamp", title: "Timestamp", description: "Dependency-free relative/absolute time formatting (Intl.RelativeTimeFormat / Intl.DateTimeFormat, no date library), so every callsite renders \"2 minutes ago\" / \"2:30 PM\" the same way instead of each hand-rolling slightly different math.", group: "Data display" },
   "breadcrumb": { id: "breadcrumb", title: "Breadcrumb", description: "A navigation trail. Pass <li> items as children; the chevron separators are drawn by CSS, so no separator markup is needed.", group: "Navigation" },
   "stat": { id: "stat", title: "Stat", description: "A single metric block. Compose from parts.", group: "Data display" },
-  "steps": { id: "steps", title: "Steps", description: "A horizontal progress tracker. Children are <Step>s; color the ones up to (and including) the current step to show completion.", group: "Navigation" },
+  "steps": { id: "steps", title: "Steps", description: "A progress tracker. Children are <Step>s; color the ones up to (and including) the current step to show completion.", group: "Navigation" },
   "join": { id: "join", title: "Join", description: "Merges its children into one seamless segmented group.", group: "Data input" },
   "menu": { id: "menu", title: "Menu", description: "A styled list of links/actions.", group: "Navigation" },
   "collapse": { id: "collapse", title: "Collapse", description: "A native <details> disclosure. Give several the same name for an exclusive accordion (only one open at a time).", group: "Data display" },
