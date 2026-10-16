@@ -116,3 +116,165 @@ test("the stack holds in the dark theme", async ({ page }) => {
   const light = await p.locator("tfoot").evaluate((el) => getComputedStyle(el).borderTopColor);
   expect(rule).not.toBe(light);
 });
+
+// ---------------------------------------------------------------------------
+// Hidden cells and a selection checkbox.
+//
+// A list often hides a column below a pane width with Tailwind's `hidden` plus a
+// container variant (`hidden @xl:table-cell`). When that column is the FIRST
+// cell, `:first-child` lands on a cell nobody can see and the name loses its own
+// line; when it is the LAST, the button is no longer pushed to the end. And a
+// first cell holding only a selection checkbox took a whole line to itself.
+// ---------------------------------------------------------------------------
+
+/** The row's content box: its border box less its inline padding. */
+async function contentBox(row: Locator) {
+  const b = await box(row);
+  const pad = await row.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { start: parseFloat(s.paddingInlineStart), end: parseFloat(s.paddingInlineEnd) };
+  });
+  return { left: b.x + pad.start, right: b.x + b.width - pad.end };
+}
+
+/** The visible cells of a row, in order. */
+async function shownCells(row: Locator) {
+  const out: Locator[] = [];
+  for (const cell of await row.locator(":scope > td").all()) if (await cell.isVisible()) out.push(cell);
+  return out;
+}
+
+/** The space between the bottom of the name's line and the top of the next line. */
+async function gapUnderName(row: Locator, name: Locator) {
+  const nameBox = await box(name);
+  let next = Infinity;
+  for (const cell of await shownCells(row)) {
+    const b = await box(cell);
+    if (b.y >= nameBox.y + nameBox.height - 0.5) next = Math.min(next, b.y);
+  }
+  return next - (nameBox.y + nameBox.height);
+}
+
+test("a hidden first cell does not take the name's line", async ({ page }) => {
+  const p = pane(page, "stack-hidden-narrow");
+  for (const row of await p.locator("tbody tr").all()) {
+    const [when, name] = await row.locator(":scope > td").all();
+    await expect(when).toBeHidden();
+    const { left, right } = await contentBox(row);
+    const nameBox = await box(name);
+    expect(nameBox.x).toBeCloseTo(left, 0);
+    expect(nameBox.x + nameBox.width).toBeCloseTo(right, 0);
+    for (const cell of (await shownCells(row)).slice(1)) {
+      expect((await box(cell)).y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 0.5);
+    }
+  }
+});
+
+test("a hidden last cell does not keep the button from the end", async ({ page }) => {
+  const p = pane(page, "stack-hidden-narrow");
+  for (const row of await p.locator("tbody tr").all()) {
+    await expect(row.locator(":scope > td").last()).toBeHidden();
+    const { right } = await contentBox(row);
+    const b = await box(row.locator("button"));
+    expect(b.x + b.width).toBeCloseTo(right, 0);
+  }
+});
+
+test("the `hidden` attribute is skipped the same way as the class", async ({ page }) => {
+  const p = pane(page, "stack-hidden-narrow");
+  const row = p.locator("tbody tr").first();
+  // Swap the class for the attribute on both hidden cells of the row.
+  await row.evaluate((tr) => {
+    for (const td of [tr.firstElementChild!, tr.lastElementChild!]) {
+      td.classList.remove("hidden");
+      td.setAttribute("hidden", "");
+    }
+  });
+  const [, name] = await row.locator(":scope > td").all();
+  const { left, right } = await contentBox(row);
+  const nameBox = await box(name);
+  expect(nameBox.x).toBeCloseTo(left, 0);
+  expect(nameBox.x + nameBox.width).toBeCloseTo(right, 0);
+  const b = await box(row.locator("button"));
+  expect(b.x + b.width).toBeCloseTo(right, 0);
+});
+
+test("in a wide pane, the columns that were hidden show and it is a table", async ({ page }) => {
+  const p = pane(page, "stack-hidden-wide");
+  expect(await p.locator("table").evaluate((el) => getComputedStyle(el).display)).toBe("table");
+  const row = p.locator("tbody tr").first();
+  await expect(row.locator(":scope > td").first()).toBeVisible();
+  await expect(row.locator(":scope > td").last()).toBeVisible();
+});
+
+test("a selection checkbox stays on the name's line, and the name takes the rest of it", async ({ page }) => {
+  const plain = pane(page, "stack-narrow").locator("tbody tr").first();
+  const plainGap = await gapUnderName(plain, plain.locator(":scope > td").first());
+
+  const p = pane(page, "stack-select-narrow");
+  for (const row of await p.locator("tbody tr").all()) {
+    const [select, name] = await row.locator(":scope > td").all();
+    const { left, right } = await contentBox(row);
+    const selectBox = await box(select);
+    const nameBox = await box(name);
+    const checkbox = await box(select.locator("input"));
+    // The checkbox starts the row and sits beside the name, centered on its line.
+    expect(selectBox.x).toBeCloseTo(left, 0);
+    expect(nameBox.x).toBeGreaterThan(selectBox.x + selectBox.width - 0.5);
+    expect(checkbox.y).toBeGreaterThanOrEqual(nameBox.y - 0.5);
+    expect(checkbox.y + checkbox.height).toBeLessThanOrEqual(nameBox.y + nameBox.height + 0.5);
+    // The name fills what the checkbox leaves of the line.
+    expect(nameBox.x + nameBox.width).toBeCloseTo(right, 0);
+    // Everything else is below that line, as far below it as in a plain row.
+    for (const cell of (await shownCells(row)).slice(2)) {
+      expect((await box(cell)).y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 0.5);
+    }
+    expect(await gapUnderName(row, name)).toBeCloseTo(plainGap, 0);
+    // And the button is still at the end.
+    const b = await box(row.locator("button"));
+    expect(b.x + b.width).toBeCloseTo(right, 0);
+  }
+});
+
+test("a hidden selection cell leaves the name its own line", async ({ page }) => {
+  const p = pane(page, "stack-select-hidden-narrow");
+  for (const row of await p.locator("tbody tr").all()) {
+    const [select, name] = await row.locator(":scope > td").all();
+    await expect(select).toBeHidden();
+    const { left, right } = await contentBox(row);
+    const nameBox = await box(name);
+    expect(nameBox.x).toBeCloseTo(left, 0);
+    expect(nameBox.x + nameBox.width).toBeCloseTo(right, 0);
+  }
+});
+
+test("a cell that marks itself data-stack=select is a selection cell too", async ({ page }) => {
+  const p = pane(page, "stack-select-narrow");
+  const row = p.locator("tbody tr").first();
+  // Wrap the checkbox in a label, so only the opt-in can say what the cell is.
+  await row.evaluate((tr) => {
+    const td = tr.firstElementChild as HTMLElement;
+    const label = document.createElement("label");
+    label.append(td.querySelector("input")!, document.createElement("span"));
+    td.replaceChildren(label);
+    td.dataset.stack = "select";
+  });
+  const [select, name] = await row.locator(":scope > td").all();
+  const { right } = await contentBox(row);
+  const selectBox = await box(select);
+  const nameBox = await box(name);
+  expect(nameBox.x).toBeGreaterThan(selectBox.x + selectBox.width - 0.5);
+  expect(nameBox.y).toBeLessThan(selectBox.y + selectBox.height);
+  expect(nameBox.x + nameBox.width).toBeCloseTo(right, 0);
+});
+
+test("the new lists fit their 343px panes too", async ({ page }) => {
+  for (const demo of ["stack-hidden-narrow", "stack-select-narrow", "stack-select-hidden-narrow"]) {
+    const p = pane(page, demo);
+    const { scroll, client } = await p.locator(".table-scroll").evaluate((el) => ({
+      scroll: el.scrollWidth,
+      client: el.clientWidth,
+    }));
+    expect(scroll, demo).toBeLessThanOrEqual(client);
+  }
+});

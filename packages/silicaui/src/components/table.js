@@ -30,10 +30,44 @@ const VISUALLY_HIDDEN = {
 };
 
 /**
+ * A cell the stack treats as not there: Tailwind's `hidden` utility (this is a
+ * Tailwind plugin, so that class is a known quantity) or the `hidden` attribute.
+ * A list hides a column below a pane width with `hidden @xl:table-cell`, and the
+ * stack must not hand the row's own line, or its end, to a cell nobody sees.
+ *
+ * The test is the class or the attribute, not the computed `display`, which a
+ * selector cannot read. So a cell is treated as hidden whenever it CARRIES
+ * `hidden`, even at a width where a variant such as `@xl:table-cell` shows it.
+ * That only matters if the table stacks at a wider breakpoint than the variant
+ * switches at (`table-stack-3xl` with `@xl:table-cell`); match the two. A
+ * Tailwind prefix (`tw:hidden`) is not recognized; use the attribute there.
+ */
+const HIDDEN = ".hidden, [hidden]";
+/** The first, second and last cells of a row that are not hidden. */
+const FIRST_SHOWN = `:nth-child(1 of :not(${HIDDEN}))`;
+const SECOND_SHOWN = `:nth-child(2 of :not(${HIDDEN}))`;
+const LAST_SHOWN = `:nth-last-child(1 of :not(${HIDDEN}))`;
+
+/**
+ * A cell that holds only a control to pick the row: a lone checkbox or radio
+ * (the bare `<Checkbox>` renders exactly that), or any cell marked
+ * `data-stack="select"`, for a control wrapped in more markup.
+ */
+const PICK_CONTROL = 'input:is([type="checkbox"], [type="radio"]):only-child';
+const SELECT_CELL = `:is([data-stack="select"], :has(> ${PICK_CONTROL}))`;
+
+/**
  * A stacked table, once its container is narrower than the breakpoint. Each row
  * is a block that wraps its cells: the first cell takes a line of its own (the
  * row's name), the rest flow after it and wrap as they need to, and the last one
- * (usually the row's own button) sits at the end of its line.
+ * (usually the row's own button) sits at the end of its line. "First" and "last"
+ * mean the first and last cells that show, so hidden cells (see `HIDDEN`) are
+ * skipped wherever they are in the row.
+ *
+ * A first cell that only picks the row (see `SELECT_CELL`) does not take that
+ * line: it stays at the start of the name's line, the name fills the rest of
+ * it, and the other cells move below. This only applies to the first cell that
+ * shows; a selection cell further along the row is an ordinary cell.
  *
  * Cell SIZING belongs to the stack here, with `!important`. A list built for
  * table layout carries width utilities that only make sense in a table: the
@@ -83,8 +117,33 @@ function stacked() {
     },
     // An empty cell would still open a gap in the row.
     "& :is(td, th):empty": { display: "none" },
-    "& > tbody > tr > :first-child": { flexBasis: "100%" },
-    "& tr > :last-child:not(:first-child)": { marginInlineStart: "auto" },
+    // The name's own line. `:nth-child(1 of …)` rather than `:first-child`, so
+    // a hidden first cell is skipped; with no hidden cell it is the same cell.
+    [`& > tbody > tr > ${FIRST_SHOWN}:not(${SELECT_CELL})`]: { flexBasis: "100%" },
+    // A leading selection cell: the name beside it fills the rest of the line…
+    [`& > tbody > tr > ${FIRST_SHOWN}${SELECT_CELL} ~ ${SECOND_SHOWN}`]: {
+      flexGrow: "1",
+      flexBasis: "0",
+    },
+    // …and an empty full-width item breaks the line after the name. A flex row
+    // can only break before an item, so the break is the row's `::before`,
+    // moved after the name with `order`, and the cells after the name move with
+    // it. Visual order still follows the source. This tests the selection cell
+    // from the row, because a `:has()` cannot nest inside another `:has()`.
+    [`& > tbody > tr:has(> ${FIRST_SHOWN}[data-stack="select"], > ${FIRST_SHOWN} > ${PICK_CONTROL})::before`]:
+      {
+        content: '""',
+        flexBasis: "100%",
+        order: "1",
+      },
+    [`& > tbody > tr > ${FIRST_SHOWN}${SELECT_CELL} ~ ${SECOND_SHOWN} ~ *`]: { order: "1" },
+    // The break is a line of its own, so it would open a second row gap under
+    // the name. Pulling the first line's bottom up by one gap closes it, and
+    // the row is as tall as one without a selection cell.
+    [`& > tbody > tr > ${FIRST_SHOWN}${SELECT_CELL}, & > tbody > tr > ${FIRST_SHOWN}${SELECT_CELL} ~ ${SECOND_SHOWN}`]:
+      { marginBlockEnd: "calc(var(--table-pad-y) / -2)" },
+    // The row's button at the end, unless it is the only cell that shows.
+    [`& tr > ${LAST_SHOWN}:not(${FIRST_SHOWN})`]: { marginInlineStart: "auto" },
     "& :is(td, th)[data-label]::before": {
       content: "attr(data-label)",
       marginInlineEnd: "0.5em",
@@ -110,7 +169,11 @@ function stacked() {
  * is narrower than 36rem, so a list fits a narrow pane instead of running past
  * it. The header is visually hidden (a screen reader still reads it), each row
  * wraps its cells with the first on a line of its own and the last at the end,
- * and a cell with `data-label="Total"` shows that label before its value. At
+ * and a cell with `data-label="Total"` shows that label before its value. First
+ * and last skip a cell hidden with Tailwind's `hidden` class or the `hidden`
+ * attribute, so `hidden @xl:table-cell` on a first or last column is fine. A
+ * first cell holding only a checkbox or radio (or marked `data-stack="select"`)
+ * stays on the name's line instead of taking one to itself. At
  * 36rem and wider it is an ordinary table. `table-stack-sm`, `-md`, `-lg`,
  * `-xl`, `-2xl` and `-3xl` stack below 24, 28, 32, 36, 42 and 48rem instead:
  * Tailwind's container sizes, so `table-stack-lg` switches where `@lg:` does.
