@@ -1033,6 +1033,10 @@ export const BUILTIN_COMPONENTS: ComponentDef[] = [
   // container by itself; give that parent the `table-scroll` class (a
   // full-width block that also scrolls a wide table sideways). A cell that
   // needs a visible label once stacked carries `attrs: { "data-label": "Total" }`.
+  // A stacked row gives its first cell that shows a line of its own and pushes
+  // its last to the end, skipping cells with the `hidden` class or attribute. A
+  // leading cell that only picks the row (a lone checkbox or radio, or a cell
+  // with `attrs: { "data-stack": "select" }`) stays on the name's line.
   elementDef("Table", "data", "table", "table", true),
   // Field — a form-row container (label + control as children).
   elementDef("Field", "form", "label", "div", true),

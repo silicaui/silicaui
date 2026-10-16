@@ -230,14 +230,89 @@ check(
   cell !== "" && !/display/.test(cell),
   cell,
 );
+// "The first cell" and "the last cell" mean the first and last cells that SHOW.
+// A list that hides a column below a pane width does it with Tailwind's
+// `hidden` plus a container variant (`hidden @xl:table-cell`), or with the
+// `hidden` attribute. With `:first-child` / `:last-child`, a hidden first cell
+// took the name's line and a hidden last cell kept the button from the end.
+const SHOWN = ":not(.hidden, [hidden])";
+const stackedAt = (re) =>
+  rules.filter((r) => containerOf(r) === AT && r.selector.startsWith(".table-stack ") && re.test(r.decls));
+const ownLine = stackedAt(/flex-basis:\s*100%/).filter((r) => /^\.table-stack > tbody > tr > /.test(r.selector));
 check(
-  "the first cell takes a line of its own",
-  /flex-basis:\s*100%/.test(decls(rules, ".table-stack > tbody > tr > :first-child", AT)),
+  "the first cell that shows takes a line of its own (a `hidden` class or attribute is skipped)",
+  ownLine.length === 1 && ownLine[0].selector.startsWith(`.table-stack > tbody > tr > :nth-child(1 of ${SHOWN})`),
+  ownLine.map((r) => r.selector).join(" | ") || "no own-line rule",
 );
+const atEnd = stackedAt(/margin-inline-start:\s*auto/);
 check(
-  "the last cell (the row's button) sits at the end",
-  /margin-inline-start:\s*auto/.test(decls(rules, ".table-stack tr > :last-child:not(:first-child)", AT)),
+  "the last cell that shows (the row's button) sits at the end, unless it is also the first",
+  atEnd.length === 1 &&
+    atEnd[0].selector === `.table-stack tr > :nth-last-child(1 of ${SHOWN}):not(:nth-child(1 of ${SHOWN}))`,
+  atEnd.map((r) => r.selector).join(" | ") || "no end rule",
 );
+
+// A first cell that holds only a selection control (or says it is one with
+// `data-stack="select"`) stays on the name's line instead of taking a line to
+// itself, and the name fills the rest of that line.
+const SELECT = /\[data-stack="?select"?\]/;
+const PICK = /input:is\(\[type="?checkbox"?\], \[type="?radio"?\]\):only-child/;
+check(
+  "a selection cell is not given a line of its own",
+  ownLine.length === 1 && SELECT.test(ownLine[0].selector) && PICK.test(ownLine[0].selector) &&
+    /:not\(:is\(/.test(ownLine[0].selector),
+  ownLine.map((r) => r.selector).join(" | "),
+);
+const fill = stackedAt(/flex-grow:\s*1/);
+check(
+  "the cell after a leading selection cell fills the rest of its line",
+  fill.length === 1 && SELECT.test(fill[0].selector) && PICK.test(fill[0].selector) &&
+    fill[0].selector.includes(`~ :nth-child(2 of ${SHOWN})`) && /flex-basis:\s*0/.test(fill[0].decls),
+  fill.map((r) => r.selector).join(" | ") || "no fill rule",
+);
+const lineBreak = stackedAt(/flex-basis:\s*100%/).filter((r) => /::before$/.test(r.selector));
+check(
+  "a row with a leading selection cell breaks the line after the name",
+  lineBreak.length === 1 && /^\.table-stack > tbody > tr:has\(/.test(lineBreak[0].selector) &&
+    /order:\s*1/.test(lineBreak[0].decls) && /content:\s*""/.test(lineBreak[0].decls),
+  lineBreak.map((r) => r.selector).join(" | ") || "no break rule",
+);
+const after = stackedAt(/order:\s*1/).filter((r) => !/::before$/.test(r.selector));
+check(
+  "the cells after the name move below that break",
+  after.length === 1 && after[0].selector.endsWith(`~ :nth-child(2 of ${SHOWN}) ~ *`),
+  after.map((r) => r.selector).join(" | ") || "no order rule",
+);
+
+const pullUp = stackedAt(/margin-block-end:\s*calc\(var\(--table-pad-y\) \/ -2\)/);
+check(
+  "the name's line pulls up by one row gap, so the break does not open a second gap",
+  pullUp.length === 1 && pullUp[0].selector.includes(`~ :nth-child(2 of ${SHOWN})`) &&
+    /--table-pad-y\) \/ 2\)/.test(tr),
+  pullUp.map((r) => r.selector).join(" | ") || "no pull-up rule",
+);
+
+// `:has()` may not nest inside another `:has()`: a browser drops the whole rule,
+// and nothing else says so. The selection test is a `:has()`, so this is easy to
+// write by accident in the row's break rule.
+function nestedHas(selector) {
+  let depth = 0;
+  const open = [];
+  for (let i = 0; i < selector.length; i++) {
+    if (selector.startsWith(":has(", i)) {
+      if (open.some((d) => d < depth + 1)) return true;
+      open.push(depth + 1);
+    }
+    if (selector[i] === "(") depth++;
+    else if (selector[i] === ")") {
+      if (open.length && open[open.length - 1] === depth) open.pop();
+      depth--;
+    }
+  }
+  return false;
+}
+const nested = rules.filter((r) => /\.table-stack/.test(r.selector) && nestedHas(r.selector)).map((r) => r.selector);
+check("no stacked selector nests a :has() inside a :has()", nested.length === 0, nested.slice(0, 2).join(" | "));
 check(
   "a cell with data-label shows that label",
   /content:\s*attr\(data-label\)/.test(decls(rules, ".table-stack :is(td, th)[data-label]::before", AT)),

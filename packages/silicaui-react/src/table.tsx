@@ -29,7 +29,11 @@ export interface TableProps
    * list fits a narrow pane instead of running past it. The header is visually
    * hidden (a screen reader still reads it), each row wraps its cells with the
    * first on a line of its own and the last at the end, and a cell with
-   * `data-label="Total"` shows that label before its value.
+   * `data-label="Total"` shows that label before its value. First and last
+   * skip a cell hidden with Tailwind's `hidden` class or the `hidden`
+   * attribute, so a column shown only when wide (`hidden @xl:table-cell`) can
+   * lead or end the row. A first cell holding only a checkbox or radio, or
+   * marked `data-stack="select"`, stays on the name's line.
    *
    * `true` stacks below a 36rem container. A breakpoint (`"sm"` 24rem, `"md"`
    * 28rem, `"lg"` 32rem, `"xl"` 36rem, `"2xl"` 42rem, `"3xl"` 48rem) stacks
