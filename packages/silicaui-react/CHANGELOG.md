@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-react
 
+## 0.60.1
+
 ## 0.60.0
 
 ### Minor Changes

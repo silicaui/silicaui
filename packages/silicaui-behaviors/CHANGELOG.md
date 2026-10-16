@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-behaviors
 
+## 0.60.1
+
 ## 0.60.0
 
 ## 0.59.3
