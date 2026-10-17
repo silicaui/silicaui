@@ -1,5 +1,7 @@
 # @wizeworks/silicaui-panels
 
+## 0.60.2
+
 ## 0.60.1
 
 ## 0.60.0
