@@ -39,9 +39,20 @@ function check(name, cond, detail) {
 const here = resolve(import.meta.dirname, "..");
 const plugin = `${here.replace(/\\/g, "/")}/src/index.js`;
 
-async function build(options = "") {
+/**
+ * Compile the plugin. With `candidates`, Tailwind's own utilities are compiled
+ * too, in their usual layer, for exactly those class names, the way an app's
+ * source scan hands them to Tailwind. The `md` breakpoint is declared so a
+ * `md:` variant compiles, as it does under `@import "tailwindcss"`.
+ */
+async function build(options = "", candidates = null) {
   const dir = mkdtempSync(join(tmpdir(), "silica-table-stack-"));
-  const source = options ? `@plugin "${plugin}" {\n${options}\n}\n` : `@plugin "${plugin}";\n`;
+  const pluginRule = options ? `@plugin "${plugin}" {\n${options}\n}\n` : `@plugin "${plugin}";\n`;
+  const source = candidates
+    ? "@layer theme, base, components, utilities;\n" +
+      "@theme {\n  --breakpoint-md: 48rem;\n}\n" +
+      `@layer utilities {\n  @tailwind utilities;\n}\n${pluginRule}`
+    : pluginRule;
   try {
     const compiled = await compile(source, {
       base: dir,
@@ -53,7 +64,7 @@ async function build(options = "") {
         return { module: mod.default ?? mod, base };
       },
     });
-    return compiled.build([]);
+    return compiled.build(candidates ?? []);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -320,6 +331,176 @@ check(
 check(
   "the footer is set off from the last row with a token rule",
   /border-top:[^;]*var\(--color-base-300\)/.test(decls(rules, ".table-stack > tfoot", AT)),
+);
+
+console.log("\ntable-stack: the stacked table beats Tailwind's own `table` utility");
+
+// `table` is also a Tailwind core utility, `.table { display: table }`. An app
+// whose sources contain the word gets it in the utilities layer, which outranks
+// the base layer this plugin writes to. Stacked, the table must still be a
+// block: as a table it grows to fit its longest unbroken line, and a list of
+// truncated names ran 1040px wide in a 323px pane. So the stacked `display` is
+// `!important`, except on a table that is hidden, which must stay hidden.
+//
+// This resolves the cascade for `display` on a `<table>` the way a browser
+// does, over the rules the compiler really emitted: importance, then layer,
+// then specificity, then source order.
+
+/** Remove CSS escapes from a class name: `md\:hidden` is the class `md:hidden`. */
+const unescapeCss = (s) => s.replace(/\\(.)/g, "$1");
+
+/** Split a compound selector into its simple parts, keeping `:not(...)` whole. */
+function simpleParts(compound) {
+  const parts = [];
+  let i = 0;
+  while (i < compound.length) {
+    const start = i;
+    // An attribute selector opens a bracket that its own first character is.
+    let depth = compound[i] === "[" ? 1 : 0;
+    i += compound[i] === "\\" ? 2 : 1;
+    while (i < compound.length) {
+      const ch = compound[i];
+      if (ch === "\\") {
+        i += 2;
+        continue;
+      }
+      if (depth === 0 && (ch === "." || ch === ":" || ch === "[")) break;
+      if (ch === "(" || ch === "[") depth++;
+      else if (ch === ")" || ch === "]") depth--;
+      i++;
+    }
+    parts.push(compound.slice(start, i));
+  }
+  return parts;
+}
+
+/**
+ * The specificity (as one number) with which `selector`, a single compound with
+ * no combinators, matches a `<table>` with these classes and attributes, or
+ * null if it does not match. Anything this does not understand does not match,
+ * so a rule it cannot read is left out rather than guessed at.
+ */
+function matchTable(selector, el) {
+  const outer = selector.replace(/\\./g, "").replace(/\([^)]*\)|\[[^\]]*\]/g, "");
+  if (/[\s>~+]/.test(outer)) return null;
+  let spec = 0;
+  for (const part of simpleParts(selector)) {
+    if (part === "table") spec += 1;
+    else if (part.startsWith(".")) {
+      if (!el.classes.includes(unescapeCss(part.slice(1)))) return null;
+      spec += 100;
+    } else if (part.startsWith("[")) {
+      const m = part.match(/^\[(\w[\w-]*)(?:([*~])="([^"]*)")?\]$/);
+      if (!m) return null;
+      const [, attr, op, want] = m;
+      const value = attr === "class" ? el.classes.join(" ") : el.attrs[attr];
+      if (value === undefined) return null;
+      if (op === "*" && !value.includes(want)) return null;
+      if (op === "~" && !value.split(/\s+/).includes(want)) return null;
+      spec += 100;
+    } else if (part.startsWith(":not(")) {
+      const args = splitTop(part.slice(5, -1));
+      if (args.some((a) => matchTable(a, el) !== null)) return null;
+      // Every argument here is one class or attribute selector.
+      spec += 100;
+    } else return null;
+  }
+  return spec;
+}
+
+const LAYERS = ["theme", "base", "components", "utilities"];
+
+/**
+ * The `display` declaration a `<table>` gets inside a container narrower than
+ * `width` (or `null` for a wide one, outside every query): every emitted rule
+ * that sets `display` and matches, ranked the way the cascade ranks them. Every
+ * `@media` query counts as matching, as on a wide screen.
+ */
+function tableDisplay(rules, el, width) {
+  const candidates = [];
+  rules.forEach((rule, order) => {
+    const query = containerOf(rule);
+    if (query && query !== `@container (width < ${width})`) return;
+    const decl = rule.decls.split(/;\s*/).find((d) => /^display\s*:/.test(d));
+    if (!decl) return;
+    const specs = splitTop(rule.selector)
+      .map((s) => matchTable(s, el))
+      .filter((s) => s !== null);
+    if (!specs.length) return;
+    const layer = rule.at.find((a) => a.startsWith("@layer "));
+    candidates.push({
+      value: decl.replace(/^display\s*:\s*/, "").replace(/\s*!important$/, ""),
+      important: /!important$/.test(decl),
+      layer: layer ? LAYERS.indexOf(layer.slice(7).trim()) : LAYERS.length,
+      spec: Math.max(...specs),
+      order,
+      selector: rule.selector,
+    });
+  });
+  candidates.sort((a, b) => {
+    if (a.important !== b.important) return a.important ? 1 : -1;
+    // An important declaration in an EARLIER layer wins; a normal one in a later.
+    if (a.layer !== b.layer) return a.important ? b.layer - a.layer : a.layer - b.layer;
+    return a.spec - b.spec || a.order - b.order;
+  });
+  return candidates.at(-1) ?? null;
+}
+
+const shown = (won) => (won ? `${won.value}${won.important ? " !important" : ""} from ${won.selector}` : "no display at all");
+
+const withUtilities = flatten(
+  parse(
+    await build("", ["table", "hidden", "md:hidden", "hidden!", "!hidden", ...EXPECTED.map(([c]) => c)]),
+  ),
+);
+check(
+  "Tailwind emits its `table` utility in the utilities layer (the collision is real)",
+  withUtilities.some(
+    (r) => r.selector === ".table" && r.at.includes("@layer utilities") && /display:\s*table/.test(r.decls),
+  ),
+  "no `.table { display: table }` in @layer utilities, so this section tests nothing",
+);
+for (const [cls, width] of EXPECTED) {
+  const won = tableDisplay(withUtilities, { classes: ["table", cls], attrs: {} }, width);
+  check(
+    `<table class="table ${cls}"> is a block below ${width}, not the utility's table`,
+    won?.value === "block",
+    shown(won),
+  );
+}
+const wide = tableDisplay(withUtilities, { classes: ["table", "table-stack"], attrs: {} }, null);
+check("above the breakpoint the stacked table is a table again", wide?.value === "table", shown(wide));
+// A hidden table must stay hidden. The important block is what could undo
+// that, so it skips a table that carries a hide: the `hidden` class, a variant
+// or an important form of it, or the `hidden` attribute.
+//
+// `md:hidden` (here at a width where it applies) is a later utility than
+// `table`, and `hidden!` is important, so each wins once the block steps aside. The bare `hidden` class does
+// not beat Tailwind's `table` on any table, stacked or not: both are utilities
+// of equal weight and `table` is emitted after it. So that case is checked in a
+// build without the `table` utility, as in an app whose tables come from
+// generated markup the source scan never sees.
+for (const cls of ["md:hidden", "hidden!", "!hidden"]) {
+  const won = tableDisplay(withUtilities, { classes: ["table", "table-stack", cls], attrs: {} }, "36rem");
+  check(`a stacked table hidden with \`${cls}\` stays hidden`, won?.value === "none", shown(won));
+}
+const noTableUtility = flatten(parse(await build("", ["hidden", "table-stack"])));
+const hiddenClass = tableDisplay(noTableUtility, { classes: ["table", "table-stack", "hidden"], attrs: {} }, "36rem");
+check("a stacked table hidden with the `hidden` class stays hidden", hiddenClass?.value === "none", shown(hiddenClass));
+// Preflight hides `[hidden]` with an important rule in the base layer, and is
+// not compiled here. What could override it is the stack's important block, so
+// this checks that the block does not apply.
+const attrWon = tableDisplay(withUtilities, { classes: ["table", "table-stack"], attrs: { hidden: "" } }, "36rem");
+check(
+  "a stacked table with the `hidden` attribute does not get the important block",
+  !!attrWon && !attrWon.important,
+  shown(attrWon),
+);
+const cellWithUtilities = decls(withUtilities, ".table-stack :is(td, th)", AT);
+check(
+  "a cell's `display` is still left alone, so `hidden` on a cell keeps working",
+  cellWithUtilities !== "" && !/display/.test(cellWithUtilities),
+  cellWithUtilities,
 );
 
 console.log("\ntable: sizes drive the padding the stacked rows read");

@@ -13,6 +13,19 @@ const INVOICES = [
     { customer: "Ridgeview Family Dental, second location", number: "INV-1044", due: "$12,900.00", state: "Paid" as const, sent: "Sep 21", note: "Paid early" },
 ];
 
+/**
+ * The same invoices with customer names longer than a narrow pane is wide. A
+ * truncated name takes no room in a block, but a table grows to fit its
+ * longest unbroken line, so these only fit a 343px pane if the stacked table
+ * is really a block.
+ */
+const LONG_NAMES = [
+    "Harbor Street Bakery and Cafe, wholesale bread and pastry accounts for the east side",
+    "Juniper and Fern Florists, weddings, events and weekly office arrangements downtown",
+    "Ridgeview Family Dental, second location, pediatric and orthodontic care on Main Street",
+];
+const LONG_INVOICES = INVOICES.map((r, i) => ({ ...r, customer: LONG_NAMES[i] ?? r.customer }));
+
 const STATE_COLOR = { Overdue: "error", Due: "warning", Paid: "success" } as const;
 
 /**
@@ -20,7 +33,7 @@ const STATE_COLOR = { Overdue: "error", Due: "warning", Paid: "success" } as con
  * and truncates, then nowrap cells for the amount, the state, and the row's own
  * button. As a table that is wider than a 343px pane; stacked, it fits.
  */
-function InvoiceList() {
+function InvoiceList({ rows = INVOICES }: { rows?: typeof INVOICES }) {
     return (
         <Table stack zebra size="sm">
             <thead>
@@ -34,7 +47,7 @@ function InvoiceList() {
                 </tr>
             </thead>
             <tbody>
-                {INVOICES.map((r) => (
+                {rows.map((r) => (
                     <tr key={r.number}>
                         <td className="w-full max-w-0 min-w-56">
                             <div className="truncate font-semibold">{r.customer}</div>
@@ -211,6 +224,20 @@ export function TableDemo() {
                     <div data-demo="stack-wide" className="rounded-box border border-base-300">
                         <InvoiceList />
                     </div>
+                </div>
+            </Section>
+
+            <Section title="Stacked with names longer than the pane">
+                <p className="max-w-xl">
+                    A long name truncates inside the pane instead of making the list wider
+                    than it. This holds in an app that also uses Tailwind's own{" "}
+                    <code>table</code> class, which sets the same name to a table display.
+                </p>
+                <div
+                    data-demo="stack-long-narrow"
+                    className="w-[343px] max-w-full rounded-box border border-base-300"
+                >
+                    <InvoiceList rows={LONG_INVOICES} />
                 </div>
             </Section>
 

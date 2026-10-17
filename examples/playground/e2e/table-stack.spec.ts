@@ -278,3 +278,85 @@ test("the new lists fit their 343px panes too", async ({ page }) => {
     expect(scroll, demo).toBeLessThanOrEqual(client);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Tailwind's own `table` utility.
+//
+// `table` is also a Tailwind core utility (`.table { display: table }`). An app
+// whose sources say "table" gets it, in the utilities layer, and that layer
+// outranks the plugin's rules. If it beats the stacked table's `display: block`,
+// the rows still wrap, but the table grows to fit its longest unbroken line: a
+// list of long, truncated names runs past its pane and scrolls sideways. This
+// playground's sources say "table", so its stylesheet has the utility.
+// ---------------------------------------------------------------------------
+
+/** The display Tailwind's `table` utility gives a plain `<div class="table">`. */
+async function tableUtilityDisplay(page: Page) {
+  return page.evaluate(() => {
+    const probe = document.createElement("div");
+    probe.className = "table";
+    document.body.append(probe);
+    const display = getComputedStyle(probe).display;
+    probe.remove();
+    return display;
+  });
+}
+
+test("a stacked table is a block, even with Tailwind's `table` utility on the page", async ({ page }) => {
+  // Without the utility there is no collision to test, so make sure it is there.
+  expect(await tableUtilityDisplay(page)).toBe("table");
+  for (const demo of ["stack-narrow", "stack-hidden-narrow", "stack-select-narrow", "stack-long-narrow"]) {
+    const display = await pane(page, demo)
+      .locator("table")
+      .evaluate((el) => getComputedStyle(el).display);
+    expect(display, demo).toBe("block");
+  }
+});
+
+test("names longer than the pane truncate, and the list still fits its 343px pane", async ({ page }) => {
+  expect(await tableUtilityDisplay(page)).toBe("table");
+  const p = pane(page, "stack-long-narrow");
+  const wrapper = p.locator(".table-scroll");
+  const { scroll, client } = await wrapper.evaluate((el) => ({
+    scroll: el.scrollWidth,
+    client: el.clientWidth,
+  }));
+  expect(scroll).toBeLessThanOrEqual(client);
+  // The table is no wider than its pane.
+  const edge = await box(p);
+  const table = await box(p.locator("table"));
+  expect(table.x + table.width).toBeLessThanOrEqual(edge.x + edge.width + 0.5);
+  // Each name is cut short with an ellipsis, and the button is on screen.
+  for (const row of await p.locator("tbody tr").all()) {
+    const name = row.locator(":scope > td").first().locator("div").first();
+    const cut = await name.evaluate((el) => el.scrollWidth > el.clientWidth);
+    expect(cut).toBe(true);
+    const b = await box(row.locator("button"));
+    expect(b.x + b.width).toBeLessThanOrEqual(edge.x + edge.width + 0.5);
+  }
+});
+
+// The stacked `display: block` is important, so it must step aside for a table
+// that is hidden. The bare `hidden` class is not tried here: on this page it
+// cannot hide ANY `<table class="table">`, stacked or not, because Tailwind
+// emits `table` after `hidden` and the two weigh the same. The CSS probe checks
+// that case in a build without the `table` utility.
+test("a stacked table hidden with a `hidden` variant or the attribute stays hidden", async ({ page }) => {
+  const table = pane(page, "stack-narrow").locator("table");
+  const display = () => table.evaluate((el) => getComputedStyle(el).display);
+
+  // This page is wider than `md`, so `md:hidden` applies.
+  await table.evaluate((el) => el.classList.add("md:hidden"));
+  expect(await display()).toBe("none");
+  await table.evaluate((el) => el.classList.remove("md:hidden"));
+  expect(await display()).not.toBe("none");
+
+  // The important form of the class.
+  await table.evaluate((el) => el.classList.add("hidden!"));
+  expect(await display()).toBe("none");
+  await table.evaluate((el) => el.classList.remove("hidden!"));
+  expect(await display()).not.toBe("none");
+
+  await table.evaluate((el) => el.setAttribute("hidden", ""));
+  expect(await display()).toBe("none");
+});
