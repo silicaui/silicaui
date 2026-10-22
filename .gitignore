@@ -9,3 +9,5 @@ test-results/
 playwright-report/
 .next/
 apps/site/out/
+# WizeLens dev traces (pnpm site:dev)
+.wizelens/

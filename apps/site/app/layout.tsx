@@ -17,6 +17,14 @@ import {
 } from "@/lib/site";
 import "./globals.css";
 
+// WizeLens is on with a browser key baked in at build time (production) or under
+// `next dev`. The test is inline on purpose: webpack folds it and drops the
+// import with it, so a build with no key ships no WizeLens code at all.
+const WizeLens =
+  process.env.NEXT_PUBLIC_WIZELENS_KEY || process.env.NODE_ENV === "development"
+    ? (await import("@/components/wizelens")).WizeLens
+    : null;
+
 export const metadata: Metadata = {
   // Resolves every relative URL in Open Graph / canonical / images against the
   // real origin, so the static export emits absolute URLs crawlers can follow.
@@ -94,6 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           ]}
         />
         <Providers>{children}</Providers>
+        {WizeLens && <WizeLens />}
       </body>
     </html>
   );

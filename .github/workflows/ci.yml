@@ -101,7 +101,11 @@ jobs:
           name: dist
       - run: tar -xzf dist.tgz
 
+      # WizeLens browser key: public (it ships in the page), so a repo VARIABLE, not a
+      # secret. Unset, the export carries no WizeLens code at all. See apps/site/deploy/README.md.
       - run: pnpm site:build
+        env:
+          NEXT_PUBLIC_WIZELENS_KEY: ${{ vars.WIZELENS_BROWSER_KEY }}
 
       - uses: actions/upload-artifact@v7
         with:
