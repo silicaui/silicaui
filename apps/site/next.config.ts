@@ -24,7 +24,16 @@ const nextConfig: NextConfig = {
     "@wizeworks/silicaui-react",
     "@wizeworks/silicaui-html",
     "@wizeworks/silicaui-demos",
+    // WizeLens dev tracing (instrumentation.ts) patches Node itself; never bundled.
+    "@wizeworks/lens-node",
   ],
+  // The WizeLens browser key (public, wl_bk_…), read at BUILD time. Always defined,
+  // "" when unset, so the check in app/layout.tsx folds to a constant
+  // and a build with no key ships no WizeLens code. CI sets it from the repo
+  // variable WIZELENS_BROWSER_KEY.
+  env: {
+    NEXT_PUBLIC_WIZELENS_KEY: process.env.NEXT_PUBLIC_WIZELENS_KEY ?? "",
+  },
   // Node 24 workaround, not a preference. Webpack hashes modules with a
   // bundled xxhash64 WASM module; `WasmHash._updateWithBuffer` caches a
   // reference to `exports.memory.buffer`, and on Node 24 V8 detaches that

@@ -89,6 +89,25 @@ than follow it. And there is no `paths:` filter any more: the old one listed
 `apps/site/**` and `packages/**` but not `pnpm-lock.yaml` or the root `package.json`,
 so a dependency bump silently skipped the deploy entirely.
 
+## WizeLens
+
+The site's pages send page loads, React renders, fetches, errors and console lines
+straight to WizeLens Cloud. There is no server here, so it uses a **browser key**
+(`wl_bk_…`): public, it ships in the page, and the cloud takes posts only from the
+sites listed on it. That is why it is a repo **Variable**, not a secret:
+
+```bash
+gh variable set WIZELENS_BROWSER_KEY -R silicaui/silicaui -b 'wl_bk_…'
+```
+
+Make the key in WizeLens Cloud (project `silicaui`, Team page → browser keys) with
+the sites `https://silicaui.com` and `https://www.silicaui.com`. The `site` job reads
+it at build time as `NEXT_PUBLIC_WIZELENS_KEY`; the next push to `main` ships it.
+Unset, the export carries no WizeLens code at all. Delete the variable to turn it off.
+
+In `pnpm site:dev`, the dev server traces itself instead: dashboard at
+`http://localhost:4011/_wizelens`, HUD on every page.
+
 ## Deploying by hand
 
 Only useful for a break-glass fix; CI is the normal path. Pushing to GHCR needs
