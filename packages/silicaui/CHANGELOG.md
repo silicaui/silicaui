@@ -1,5 +1,11 @@
 # @wizeworks/silicaui
 
+## 0.61.0
+
+### Minor Changes
+
+- e152dfc: Add an opt-in `components` option to the Tailwind plugin: `@plugin "@wizeworks/silicaui" { components: button, card; }` emits only those component stylesheets, in the same order as the full build. With no option the output is unchanged. Also add `chunkmarkers` (build tooling) that tags where each component starts.
+
 ## 0.60.3
 
 ## 0.60.2
