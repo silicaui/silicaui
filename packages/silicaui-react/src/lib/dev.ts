@@ -6,10 +6,10 @@
  * the verbose guidance is dropped from production builds; the `typeof` guard
  * covers unbundled ESM where `process` genuinely doesn't exist.
  */
-declare const process: { env?: { NODE_ENV?: string } } | undefined;
+declare const process: { env: { NODE_ENV?: string } } | undefined;
 
 export const isDev =
-  typeof process !== "undefined" && process?.env?.NODE_ENV !== "production";
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 
 /**
  * Both `render` failure modes are silent — one drops the element's props, the
