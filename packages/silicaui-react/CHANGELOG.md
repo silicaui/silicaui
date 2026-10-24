@@ -1,5 +1,11 @@
 # @wizeworks/silicaui-react
 
+## 0.60.3
+
+### Patch Changes
+
+- b17f6e6: Fix the dev-only check running in production: the guard now reads the literal `process.env.NODE_ENV`, so bundlers fold it and drop the "CSS plugin is not loaded" check from production builds.
+
 ## 0.60.2
 
 ## 0.60.1
