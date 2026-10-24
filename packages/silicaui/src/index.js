@@ -4,116 +4,8 @@ import { buildBase } from "./theme.js";
 import { colorUtilities, softUtilities, glassUtilities, textInkUtilities } from "./color-utilities.js";
 import { warnUnregisteredColors } from "./lib/warn-unregistered-colors.js";
 import { findInkProblems, registeredColorValues, warnInkProblems } from "./lib/warn-auto-ink.js";
-import { button } from "./components/button.js";
-import { badge } from "./components/badge.js";
-import { input } from "./components/input.js";
-import { inputGroup } from "./components/input-group.js";
-import { pinInput } from "./components/pin-input.js";
-import { phoneInput } from "./components/phone-input.js";
-import { select } from "./components/select.js";
-import { textarea } from "./components/textarea.js";
-import { card } from "./components/card.js";
-import { alert } from "./components/alert.js";
-import { progress } from "./components/progress.js";
-import { avatar } from "./components/avatar.js";
-import { skeleton } from "./components/skeleton.js";
-import { table } from "./components/table.js";
-import { divider } from "./components/divider.js";
-import { kbd } from "./components/kbd.js";
-import { timestamp } from "./components/timestamp.js";
-import { breadcrumb } from "./components/breadcrumb.js";
-import { stat } from "./components/stat.js";
-import { steps } from "./components/steps.js";
-import { join } from "./components/join.js";
-import { menu } from "./components/menu.js";
-import { collapse } from "./components/collapse.js";
-import { indicator } from "./components/indicator.js";
-import { loading } from "./components/loading.js";
-import { prose } from "./components/prose.js";
-import { typography } from "./components/typography.js";
 import { TYPE_SCALE } from "./type-scale.js";
-import { navbar } from "./components/navbar.js";
-import { footer } from "./components/footer.js";
-import { hero } from "./components/hero.js";
-import { link } from "./components/link.js";
-import { mockup } from "./components/mockup.js";
-import { timeline } from "./components/timeline.js";
-import { carousel } from "./components/carousel.js";
-import { marquee } from "./components/marquee.js";
-import { stack } from "./components/stack.js";
-import { rating } from "./components/rating.js";
-import { radialProgress } from "./components/radial-progress.js";
-import { pagination } from "./components/pagination.js";
-import { accordion } from "./components/accordion.js";
-import { chat } from "./components/chat.js";
-import { range } from "./components/range.js";
-import { toast } from "./components/toast.js";
-import { swap } from "./components/swap.js";
-import { status } from "./components/status.js";
-import { countdown } from "./components/countdown.js";
-import { numberField } from "./components/number-field.js";
-import { drawer } from "./components/drawer.js";
-import { list } from "./components/list.js";
-import { fileInput } from "./components/file-input.js";
-import { dock } from "./components/dock.js";
-import { tooltip } from "./components/tooltip.js";
-import { dialog } from "./components/dialog.js";
-import { popover } from "./components/popover.js";
-import { dropdown } from "./components/dropdown.js";
-import { tabs } from "./components/tabs.js";
-import { checkbox } from "./components/checkbox.js";
-import { radio } from "./components/radio.js";
-import { toggle } from "./components/toggle.js";
-import { fieldset } from "./components/fieldset.js";
-import { label } from "./components/label.js";
-import { validator } from "./components/validator.js";
-import { diff } from "./components/diff.js";
-import { mask } from "./components/mask.js";
-import { meter } from "./components/meter.js";
-import { scrollArea } from "./components/scroll-area.js";
-import { previewCard } from "./components/preview-card.js";
-import { toolbar } from "./components/toolbar.js";
-import { navigationMenu } from "./components/navigation-menu.js";
-import { menubar } from "./components/menubar.js";
-import { toggleGroup } from "./components/toggle-group.js";
-import { field } from "./components/field.js";
-import { radioGroup } from "./components/radio-group.js";
-import { checkboxGroup } from "./components/checkbox-group.js";
-import { slider } from "./components/slider.js";
-import { switchControl } from "./components/switch.js";
-import { collapsible } from "./components/collapsible.js";
-import { filter } from "./components/filter.js";
-import { selectMenu } from "./components/select-menu.js";
-import { combobox } from "./components/combobox.js";
-import { multiSelect } from "./components/multi-select.js";
-import { outline } from "./components/outline.js";
-import { segmentField } from "./components/segment-field.js";
-import { lightbox } from "./components/lightbox.js";
-import { overlay } from "./components/overlay.js";
-import { overflowList } from "./components/overflow-list.js";
-import { scrollStrip } from "./components/scroll-strip.js";
-import { metadataList } from "./components/metadata-list.js";
-import { chatSuite } from "./components/chat-suite.js";
-import { powerSearch } from "./components/power-search.js";
-import { appShell } from "./components/app-shell.js";
-import { calendar } from "./components/calendar.js";
-import { dataTable } from "./components/data-table.js";
-import { emptyState } from "./components/empty-state.js";
-import { tagInput } from "./components/tag-input.js";
-import { chart } from "./components/chart.js";
-import { colorPicker } from "./components/color-picker.js";
-import { commandPalette } from "./components/command-palette.js";
-import { treeView } from "./components/tree-view.js";
-import { dropzone } from "./components/dropzone.js";
-import { fileUpload } from "./components/file-upload.js";
-import { wizard } from "./components/wizard.js";
-import { richTextEditor } from "./components/rich-text-editor.js";
-import { sortableList } from "./components/sortable-list.js";
-import { resizablePanels } from "./components/resizable-panels.js";
-import { wordmark } from "./components/wordmark.js";
-import { selectionList } from "./components/selection-list.js";
-import { sidebar } from "./components/sidebar.js";
-import { animations } from "./components/animations.js";
+import { COMPONENTS } from "./components/registry.js";
 
 /**
  * Parse the `colors` option from `@plugin "@wizeworks/silicaui" { colors: … }`.
@@ -153,6 +45,26 @@ function parsePrefersDark(option) {
   const raw = Array.isArray(option) ? option.join("") : String(option);
   const v = raw.trim().replace(/^['"]+|['"]+$/g, "").toLowerCase();
   return v === "" || v === "true" || v === "1" || v === "yes";
+}
+
+/**
+ * Parse `components` from `@plugin "@wizeworks/silicaui" { components: button, card; }`.
+ *
+ * Opt-in. Absent → null → every component is emitted, byte-for-byte as before.
+ * Present → only the listed component files (names as in `components/registry.js`)
+ * are emitted, in the SAME order as the full build so the cascade does not move.
+ * Tokens, base styles and color utilities are not components and always ship.
+ */
+function parseComponents(option) {
+  if (option == null) return null;
+  const raw = Array.isArray(option) ? option : String(option).split(/[\s,]+/);
+  const names = raw.map((s) => String(s).trim().replace(/^['"]+|['"]+$/g, "")).filter(Boolean);
+  return new Set(names);
+}
+
+/** True for `chunkmarkers: true`: a build-tool aid that tags where each component starts. */
+function parseFlag(option) {
+  return option != null && parsePrefersDark(option);
 }
 
 /**
@@ -215,6 +127,8 @@ export default plugin.withOptions(
       // type ramp (docs/personas/issues/013, /015).
       const prefersDark = parsePrefersDark(options.prefersdark);
       addBase(buildBase({ prefersDark }));
+      const only = parseComponents(options.components);
+      const markers = parseFlag(options.chunkmarkers);
       // Components are emitted via addBase, not addComponents, on purpose.
       // Tailwind v4 tree-shakes addComponents/addUtilities output against
       // scanned content — but a React component library builds its class names
@@ -222,115 +136,13 @@ export default plugin.withOptions(
       // drop everything. addBase is always emitted, which is what a component
       // library needs. Utilities still win over these (higher layer), so
       // `<Button className="w-full">` overrides as expected.
-      addBase(button(colors, prefix));
-      addBase(badge(colors, prefix));
-      addBase(input(colors, prefix));
-      addBase(inputGroup(prefix));
-      addBase(pinInput(colors, prefix));
-      addBase(select(colors, prefix));
-      addBase(textarea(colors, prefix));
-      addBase(card(prefix));
-      addBase(alert(colors, prefix));
-      addBase(progress(colors, prefix));
-      addBase(avatar(colors, prefix));
-      addBase(skeleton(prefix));
-      addBase(table(prefix));
-      addBase(divider(prefix));
-      addBase(kbd(prefix));
-      addBase(timestamp(prefix));
-      addBase(breadcrumb(prefix));
-      addBase(stat(prefix));
-      addBase(steps(colors, prefix));
-      addBase(join(prefix));
-      addBase(phoneInput(prefix));
-      addBase(menu(prefix));
-      addBase(collapse(prefix));
-      addBase(indicator(prefix));
-      addBase(loading(prefix));
-      addBase(prose(prefix));
-      addBase(typography(prefix, prefersDark));
-      addBase(navbar(prefix));
-      addBase(footer(prefix));
-      addBase(hero(prefix));
-      addBase(link(colors, prefix));
-      addBase(mockup(prefix));
-      addBase(timeline(prefix));
-      addBase(carousel(prefix));
-      addBase(marquee(prefix));
-      addBase(stack(prefix));
-      addBase(rating(colors, prefix));
-      addBase(radialProgress(prefix));
-      addBase(pagination(colors, prefix));
-      addBase(accordion(prefix));
-      addBase(chat(colors, prefix));
-      addBase(range(colors, prefix));
-      addBase(toast(colors, prefix));
-      addBase(swap(prefix));
-      addBase(status(colors, prefix));
-      addBase(countdown(prefix));
-      addBase(numberField(prefix));
-      addBase(drawer(prefix));
-      addBase(list(prefix));
-      addBase(fileInput(prefix));
-      addBase(dock(colors, prefix));
-      addBase(fieldset(prefix));
-      addBase(label(prefix));
-      addBase(validator(prefix));
-      addBase(diff(prefix));
-      addBase(mask(prefix));
-      addBase(meter(colors, prefix));
-      addBase(scrollArea(prefix));
-      addBase(previewCard(prefix));
-      addBase(toolbar(prefix));
-      addBase(navigationMenu(prefix));
-      addBase(menubar(prefix));
-      addBase(toggleGroup(colors, prefix));
-      addBase(field(prefix));
-      addBase(radioGroup(prefix));
-      addBase(checkboxGroup(prefix));
-      addBase(slider(colors, prefix));
-      addBase(switchControl(colors, prefix));
-      addBase(collapsible(prefix));
-      addBase(filter(colors, prefix));
-      addBase(selectMenu(prefix));
-      addBase(combobox(prefix));
-      addBase(multiSelect(colors, prefix));
-      addBase(outline(prefix));
-      addBase(segmentField(colors, prefix));
-      addBase(lightbox(prefix));
-      addBase(overlay(prefix));
-      addBase(overflowList(prefix));
-      addBase(scrollStrip(prefix));
-      addBase(metadataList(prefix));
-      addBase(chatSuite(prefix));
-      addBase(powerSearch(prefix));
-      addBase(appShell(prefix));
-      addBase(calendar(colors, prefix));
-      addBase(dataTable(colors, prefix));
-      addBase(emptyState(prefix));
-      addBase(tagInput(colors, prefix));
-      addBase(chart(prefix));
-      addBase(colorPicker(prefix));
-      addBase(commandPalette(prefix));
-      addBase(treeView(prefix));
-      addBase(dropzone(prefix));
-      addBase(fileUpload(prefix));
-      addBase(wizard(colors, prefix));
-      addBase(richTextEditor(prefix));
-      addBase(sortableList(prefix));
-      addBase(resizablePanels(prefix));
-      addBase(wordmark(colors, prefix));
-      addBase(selectionList(prefix));
-      addBase(sidebar(colors, prefix));
-      addBase(animations(prefix));
-      addBase(tooltip(prefix));
-      addBase(dialog(prefix));
-      addBase(popover(prefix));
-      addBase(dropdown(prefix));
-      addBase(tabs(colors, prefix));
-      addBase(checkbox(colors, prefix));
-      addBase(radio(colors, prefix));
-      addBase(toggle(colors, prefix));
+      for (const [name, build] of COMPONENTS) {
+        if (only && !only.has(name)) continue;
+        // A marker rule lets a post-build step cut the stylesheet per component.
+        if (markers) addBase({ [`.sui-chunk-${name}`]: { "--sui-chunk": "1" } });
+        addBase(build(colors, prefix, prefersDark));
+      }
+      if (markers) addBase({ ".sui-chunk-end": { "--sui-chunk": "1" } });
       // Color utilities as var-setters for EVERY declared color — parity with the
       // component variants above. Custom colors get `text-brand`/`bg-brand`/
       // `border-brand` with no scanning or safelist (@wizeworks/silicaui's N-color promise).

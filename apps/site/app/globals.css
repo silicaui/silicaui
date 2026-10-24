@@ -11,6 +11,8 @@
      and nothing for a CSP to refuse. `<ThemeController>` in the headers writes
      an explicit `data-theme`, which outranks this. */
   prefersdark: true;
+  /* Tags where each component starts so the build can cut the stylesheet per page. */
+  chunkmarkers: true;
 }
 
 /* `brand` is not one of silicaui's roles — it's invented here, by this site,
