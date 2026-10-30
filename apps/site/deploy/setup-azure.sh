@@ -7,7 +7,7 @@
 # .github/workflows/ci.yml assumes — nothing else. There is no
 # registry to provision (GHCR comes with the GitHub repo) and no cluster to
 # provision (silicaui is a co-tenant of the platform's AKS cluster, which the
-# sparx repo's terraform owns).
+# wize-infrastructure repo's terraform owns and its own release applies).
 #
 # WHAT THIS GRANTS, stated honestly: the AKS cluster has no Entra integration
 # (`aadProfile: null`) and local accounts are enabled, so `az aks
@@ -19,7 +19,7 @@
 # subscription — no VMs, no networking, no storage, not even the cluster's own
 # Azure configuration. Narrowing the in-cluster half means turning on Entra
 # integration + Azure RBAC for Kubernetes authorization on the cluster, which is
-# a platform-wide change owned by the sparx repo.
+# a platform-wide change owned by the wize-infrastructure repo.
 set -euo pipefail
 
 SUBSCRIPTION=13b32167-3051-4e00-8bbd-0f7d578a06eb

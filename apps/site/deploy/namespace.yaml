@@ -1,6 +1,7 @@
 # silicaui's own namespace on the shared AKS cluster — self-contained, the way
 # kanNINJA's workloads live in `kanninja`. Nothing here reaches into sparx-prod
-# except the single Caddy host block, which lives in sparx's config, not here.
+# except the single Caddy host block, which lives in wize-infrastructure's
+# config (k8s/ingress/Caddyfile), not here.
 apiVersion: v1
 kind: Namespace
 metadata:
