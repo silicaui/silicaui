@@ -26,7 +26,8 @@ Exactly three things changed:
 The Deployment, the Service, and the nginx image are byte-for-byte the same idea
 in both clouds, because a Deployment plus a ClusterIP Service names no vendor.
 The one provider-specific object in the whole path — the `type: LoadBalancer`
-Service — belongs to Caddy in the sparx repo, and even that is portable.
+Service — belongs to Caddy, which the wize-infrastructure repo owns, and even
+that is portable.
 
 **During the move the site 502'd.** DNS and the Caddy host block were cut over
 to Azure with the rest of the platform, but the workload itself was never
@@ -54,7 +55,7 @@ silent and arrives days later.
 | `../Dockerfile`, `../nginx.conf` | Runtime image: unprivileged nginx serving the prebuilt `out/` on :8080 |
 | `namespace.yaml` / `deployment.yaml` / `service.yaml` | The workload (own namespace, 2 replicas, ClusterIP) |
 | `kustomization.yaml` | Ties them together; CI rewrites `newTag` to pin the image |
-| `caddy-silicaui.caddyfile` | **Mirror** of the host block that already ships in the sparx Caddyfile |
+| `caddy-silicaui.caddyfile` | **Mirror** of the host block that already ships in the shared Caddyfile in wize-infrastructure |
 | `setup-azure.sh` | One-time identity setup for CI |
 | `setup-gcp.sh` | Parked. The GKE workflow it paired with is gone; see its header |
 
@@ -66,8 +67,10 @@ silent and arrives days later.
    and one role assignment scoped to the cluster. It prints three IDs.
 2. **GitHub** — set those three as repo **Variables** (not secrets):
    `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
-3. **Caddy** — nothing to do. The `silicaui.com` host block already ships in the
-   sparx repo's `k8s/ingress/Caddyfile`.
+3. **Caddy** — nothing to do. The `silicaui.com` host block already ships in
+   wize-infrastructure's [`k8s/ingress/Caddyfile`](https://github.com/wizeworksllc/wize-infrastructure/blob/main/k8s/ingress/Caddyfile)
+   (`wizeworksllc/wize-infrastructure`). A routing change is a PR there, applied
+   by that repo's own release, not by sparx's.
 4. **DNS** — `silicaui.com` and `www.silicaui.com` A records point at
    `20.12.217.0`, grey-cloud / DNS-only in Cloudflare so ACME challenges reach
    the origin. Caddy issues the cert on the first HTTPS request.

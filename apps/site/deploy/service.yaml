@@ -5,7 +5,7 @@
 #
 # Nothing here names a cloud. That is the point: the ONLY provider-specific
 # object in this whole path is the `type: LoadBalancer` Service that Caddy owns
-# in the sparx repo, which is why moving GKE → AKS changed the registry and the
+# in the wize-infrastructure repo, which is why moving GKE → AKS changed the registry and the
 # CI credential and left this file's contract untouched.
 apiVersion: v1
 kind: Service

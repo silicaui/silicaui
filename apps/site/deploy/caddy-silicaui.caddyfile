@@ -2,14 +2,16 @@
 # MIRROR — NOT THE SOURCE OF TRUTH.
 #
 # This is a read-only copy of the silicaui host block as it exists TODAY in the
-# sparx repo's unified routing table, `k8s/ingress/Caddyfile`. It already ships
+# wize-infrastructure repo's unified routing table, `k8s/ingress/Caddyfile`
+# (wizeworksllc/wize-infrastructure). It already ships
 # there; nothing needs to be pasted anywhere for silicaui.com to route. The copy
 # lives here so this repo can explain its own ingress without a second checkout.
 #
 # It is deliberately NOT applied from this repo, and an in-cluster ConfigMap
 # edit would be pointless: the live config is Kustomize-generated and
 # hash-named, so a hand edit is overwritten on the next `kubectl apply -k`.
-# To change routing, change it in the sparx repo and redeploy Caddy there.
+# To change routing, change it in wize-infrastructure; that repo's own release
+# applies Caddy (Caddy still runs in `sparx-prod`, but sparx no longer ships it).
 #
 # THE ON-DEMAND TLS DECISION (reversed from what this file used to say):
 # an earlier version of this block omitted on-demand TLS on the theory that the
